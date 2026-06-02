@@ -7,7 +7,7 @@
   const ROOM_PAD = 86;
   const SAVE_KEY = "soulrift-save-v1";
   const SIGNAL_RELAY_URL = "https://ntfy.sh";
-  const APP_VERSION = "20260602-authoritative-sync-17";
+  const APP_VERSION = "20260603-stable-world-sync-18";
   const VERSION_CHECK_INTERVAL = 15000;
 
   const RARITY = {
@@ -1017,6 +1017,7 @@
       if (message.type === "collect" && this.host) this.game.handleRemoteCollect(message.from, message.pickupId);
       if (message.type === "damage" && !this.host) this.game.applyHostDamage(message.amount);
       if (message.type === "snapshot" && !this.host) this.game.applyNetworkSnapshot(message.snapshot);
+      if (message.type === "needSnapshot" && this.host) this.game.sendNetworkSnapshotTo(message.from);
 
       if (message.type === "offer") {
         const peer = this.ensurePeer(message.from, false);
@@ -1141,6 +1142,9 @@
       if (message.type === "snapshot" && !this.host) {
         this.game.applyNetworkSnapshot(message.snapshot);
       }
+      if (message.type === "needSnapshot" && this.host) {
+        this.game.sendNetworkSnapshotTo(peer.remoteId);
+      }
       if (message.type === "start") {
         if (this.game.run?.multiplayer && this.game.run.seed === message.seed) return;
         if (Array.isArray(message.slots)) this.slots = message.slots;
@@ -1257,6 +1261,21 @@
       if (!this.host && !this.hasOpenPeers()) this.sendSignal({ type: "collect", pickupId }, this.hostId());
     }
 
+    requestSnapshot() {
+      if (this.host || !this.code) return;
+      const message = { type: "needSnapshot" };
+      for (const peer of this.peers.values()) {
+        this.sendPeer(peer, message);
+      }
+      this.sendSignal(message, this.hostId());
+    }
+
+    sendSnapshot(remoteId, snapshot) {
+      const peer = this.peers.get(remoteId);
+      if (peer) this.sendPeer(peer, { type: "snapshot", snapshot });
+      if (!this.hasOpenPeer(remoteId)) this.sendSignal({ type: "snapshot", snapshot }, remoteId);
+    }
+
     broadcastSnapshot(snapshot, relaySnapshot = snapshot) {
       for (const peer of this.peers.values()) {
         this.sendPeer(peer, { type: "snapshot", snapshot });
@@ -1318,6 +1337,7 @@
       this.menuTime = 0;
       this.networkTimer = 0;
       this.snapshotTimer = 0;
+      this.resyncTimer = 0;
       this.toastTimer = 0;
       this.nextHudSkillAt = 0;
       this.hudSkillMarkup = "";
@@ -2880,6 +2900,8 @@
         name: extra.name || player.name || this.save.account.username || "Người chơi",
         x: player.x,
         y: player.y,
+        vx: player.vx || 0,
+        vy: player.vy || 0,
         hp: player.hp,
         maxHp: player.maxHp,
         energy: player.energy,
@@ -3071,8 +3093,9 @@
             t: now
           });
         }
+        const slotIds = new Set((this.lobby.slots || []).map((slot) => slot?.id).filter(Boolean));
         for (const id of this.remotePlayers.keys()) {
-          if (!seen.has(id)) this.remotePlayers.delete(id);
+          if (!seen.has(id) && !slotIds.has(id)) this.remotePlayers.delete(id);
         }
       }
     }
@@ -5760,6 +5783,7 @@
     updateNetwork(dt) {
       this.networkTimer -= dt;
       this.snapshotTimer -= dt;
+      this.resyncTimer -= dt;
       if (!this.run || !this.isMultiplayerRun()) return;
       if (this.networkTimer <= 0) {
         this.networkTimer = this.lobby.hasOpenPeers() ? 0.04 : 0.1;
@@ -5767,22 +5791,87 @@
         this.lobby.sendState(this.networkPlayerState(this.lobby.id, p));
       }
       if (this.isMultiplayerHost() && this.lobby.guestCount() > 0 && this.snapshotTimer <= 0) {
-        const needsRelay = this.lobby.openPeerCount() < this.lobby.guestCount();
-        this.snapshotTimer = this.lobby.hasOpenPeers() ? (this.perf.quality < 0.75 ? 0.16 : 0.1) : 0.26;
-        const snapshot = this.networkSnapshot();
-        if (snapshot) this.lobby.broadcastSnapshot(snapshot, needsRelay ? this.networkSnapshot(true) : snapshot);
+        this.snapshotTimer = this.lobby.hasOpenPeers() ? (this.perf.quality < 0.75 ? 0.16 : 0.1) : 0.18;
+        const snapshot = this.networkSnapshot(true);
+        if (snapshot) this.lobby.broadcastSnapshot(snapshot, snapshot);
       }
+      this.maybeRequestNetworkResync(dt);
       for (const [id, remote] of [...this.remotePlayers]) {
-        if (performance.now() - remote.t > 4000) this.remotePlayers.delete(id);
+        const stillInRoom = this.lobby.slots.some((slot) => slot?.id === id);
+        if (!stillInRoom && performance.now() - remote.t > 4000) this.remotePlayers.delete(id);
       }
+      this.ensureRemotePlayersFromLobby();
+    }
+
+    expectedCombatRoom() {
+      const room = this.run?.currentRoom;
+      if (!room || room.cleared || room.rewardDropped || room.nextOpened) return false;
+      if (room.intro > 0.15) return false;
+      return !["treasure", "merchant", "healing"].includes(room.type);
+    }
+
+    maybeRequestNetworkResync(dt) {
+      if (!this.isMultiplayerClient() || !this.expectedCombatRoom()) return;
+      if (this.run.enemies.length > 0 || this.resyncTimer > 0) return;
+      this.resyncTimer = 0.75;
+      this.lobby.requestSnapshot();
+    }
+
+    ensureRemotePlayersFromLobby() {
+      if (!this.run || !this.isMultiplayerRun()) return;
+      const p = this.run.player;
+      const offsets = [
+        { x: -54, y: 34 },
+        { x: 54, y: 34 },
+        { x: 0, y: 76 }
+      ];
+      const slots = (this.lobby.slots || []).filter((slot) => slot?.id && slot.id !== this.lobby.id);
+      slots.forEach((slot, index) => {
+        if (this.remotePlayers.has(slot.id)) return;
+        const character = characterById(slot.characterId || "swordsman");
+        const offset = offsets[index % offsets.length];
+        this.remotePlayers.set(slot.id, {
+          id: slot.id,
+          name: slot.name || "Người chơi",
+          x: p.x + offset.x,
+          y: p.y + offset.y,
+          displayX: p.x + offset.x,
+          displayY: p.y + offset.y,
+          vx: 0,
+          vy: 0,
+          hp: character.stats.hp,
+          maxHp: character.stats.hp,
+          energy: character.stats.energy,
+          maxEnergy: character.stats.energy,
+          damage: character.stats.damage,
+          crit: character.stats.crit,
+          color: "#d8b46a",
+          characterId: character.id,
+          animation: "idle",
+          animTime: this.menuTime,
+          actionTime: 0,
+          actionTotal: 0,
+          power: slot.powerId || "fire",
+          facing: -Math.PI / 2,
+          t: performance.now()
+        });
+      });
+    }
+
+    sendNetworkSnapshotTo(remoteId) {
+      if (!this.isMultiplayerHost() || !remoteId) return;
+      const snapshot = this.networkSnapshot(true);
+      if (snapshot) this.lobby.sendSnapshot(remoteId, snapshot);
     }
 
     updateNetworkInterpolation(dt) {
       if (!this.run || !this.isMultiplayerRun()) return;
-      const remoteBlend = clamp(dt * 18, 0, 1);
+      const now = performance.now();
+      const remoteBlend = clamp(dt * 22, 0, 1);
       for (const remote of this.remotePlayers.values()) {
-        const targetX = Number(remote.x);
-        const targetY = Number(remote.y);
+        const age = clamp((now - (remote.t || now)) / 1000, 0, 0.12);
+        const targetX = Number(remote.x) + (Number(remote.vx) || 0) * age;
+        const targetY = Number(remote.y) + (Number(remote.vy) || 0) * age;
         if (!Number.isFinite(targetX) || !Number.isFinite(targetY)) continue;
         if (!Number.isFinite(remote.displayX) || !Number.isFinite(remote.displayY)) {
           remote.displayX = targetX;
@@ -5793,14 +5882,14 @@
         }
       }
       if (!this.isMultiplayerClient()) return;
-      const enemyBlend = clamp(dt * 16, 0, 1);
+      const enemyBlend = clamp(dt * 18, 0, 1);
       for (const enemy of this.run.enemies) {
         enemy.flash = Math.max(0, (enemy.flash || 0) - dt);
         enemy.attackAnim = Math.max(0, (enemy.attackAnim || 0) - dt);
         enemy.launch = Math.max(0, (enemy.launch || 0) - dt);
         enemy.windupTime = Math.max(0, (enemy.windupTime || 0) - dt);
-        const targetX = Number(enemy.x);
-        const targetY = Number(enemy.y);
+        const targetX = Number(enemy.x) + (Number(enemy.vx) || 0) * 0.06;
+        const targetY = Number(enemy.y) + (Number(enemy.vy) || 0) * 0.06;
         if (!Number.isFinite(targetX) || !Number.isFinite(targetY)) continue;
         if (!Number.isFinite(enemy.displayX) || !Number.isFinite(enemy.displayY)) {
           enemy.displayX = targetX;

@@ -7,6 +7,8 @@
   const ROOM_PAD = 86;
   const SAVE_KEY = "soulrift-save-v1";
   const SIGNAL_RELAY_URL = "https://ntfy.sh";
+  const APP_VERSION = "20260602-auto-update-14";
+  const VERSION_CHECK_INTERVAL = 15000;
 
   const RARITY = {
     common: { label: "Thường", color: "#d4d7df", rate: 1 },
@@ -1259,6 +1261,8 @@
       this.toastTimer = 0;
       this.nextHudSkillAt = 0;
       this.hudSkillMarkup = "";
+      this.updateTimer = null;
+      this.updateInProgress = false;
       this.perf = { avgDt: 1 / 60, quality: 1 };
       this.bindEvents();
       this.resize();
@@ -1270,9 +1274,59 @@
       const loaded = await this.store.load();
       this.save = mergeSave(defaultSave(), loaded);
       this.normalizeSave();
+      this.startUpdateWatcher();
       this.mode = this.hasAccount() ? "menu" : "account";
       this.showMainMenu();
       requestAnimationFrame((time) => this.loop(time));
+    }
+
+    startUpdateWatcher() {
+      this.checkForUpdate();
+      if (this.updateTimer) clearInterval(this.updateTimer);
+      this.updateTimer = setInterval(() => this.checkForUpdate(), VERSION_CHECK_INTERVAL);
+      document.addEventListener("visibilitychange", () => {
+        if (!document.hidden) this.checkForUpdate();
+      });
+    }
+
+    async checkForUpdate() {
+      if (this.updateInProgress || location.protocol === "file:") return;
+      try {
+        const response = await fetch(`version.json?t=${Date.now()}`, {
+          cache: "no-store",
+          headers: { "Cache-Control": "no-cache" }
+        });
+        if (!response.ok) return;
+        const data = await response.json();
+        const latest = String(data.version || "").trim();
+        if (latest && latest !== APP_VERSION) this.forceUpdate(latest);
+      } catch {
+        // Silent: update checks should never interrupt play if the network is unavailable.
+      }
+    }
+
+    async forceUpdate(latest) {
+      if (this.updateInProgress) return;
+      this.updateInProgress = true;
+      this.toast(`Có bản mới ${latest}. Đang cập nhật...`);
+      try {
+        if ("serviceWorker" in navigator) {
+          const regs = await navigator.serviceWorker.getRegistrations();
+          await Promise.all(regs.map((reg) => reg.unregister()));
+        }
+        if ("caches" in window) {
+          const keys = await caches.keys();
+          await Promise.all(keys.map((key) => caches.delete(key)));
+        }
+      } catch {
+        // Reload still forces the fresh index even if cache cleanup is blocked.
+      }
+      setTimeout(() => {
+        const next = new URL(location.href);
+        next.searchParams.set("update", latest);
+        next.searchParams.set("t", Date.now().toString());
+        location.replace(next.toString());
+      }, 700);
     }
 
     normalizeSave() {

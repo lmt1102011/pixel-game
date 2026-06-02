@@ -1179,7 +1179,7 @@
       this.input = {
         keys: new Set(),
         mouse: { x: 0, y: 0, worldX: 0, worldY: 0, left: false },
-        touch: { x: 0, y: 0, active: false, aimX: 1, aimY: 0 },
+        touch: { x: 0, y: 0, rawX: 0, rawY: 0, active: false, aimX: 1, aimY: 0 },
         actions: new Set()
       };
       this.remotePlayers = new Map();
@@ -1516,15 +1516,28 @@
       const moveMag = Math.hypot(this.input.touch.x, this.input.touch.y);
       let dx = 0;
       let dy = 0;
-      if (moveMag > 0.12) {
+      if (moveMag > 0.2) {
         dx = this.input.touch.x / moveMag;
         dy = this.input.touch.y / moveMag;
       } else {
         dx = Math.cos(player.facing || 0);
         dy = Math.sin(player.facing || 0);
       }
-      const amount = Math.min(this.worldViewWidth(), this.worldViewHeight()) * 0.12;
+      const amount = Math.min(this.worldViewWidth(), this.worldViewHeight()) * 0.075 * clamp(moveMag, 0.35, 1);
       return { x: dx * amount, y: dy * amount };
+    }
+
+    updateTouchVector(dt) {
+      const touch = this.input.touch;
+      const targetX = touch.active ? touch.rawX || 0 : 0;
+      const targetY = touch.active ? touch.rawY || 0 : 0;
+      const blend = Math.min(1, dt * (touch.active ? 10 : 18));
+      touch.x += (targetX - touch.x) * blend;
+      touch.y += (targetY - touch.y) * blend;
+      if (!touch.active && Math.hypot(touch.x, touch.y) < 0.015) {
+        touch.x = 0;
+        touch.y = 0;
+      }
     }
 
     updatePerformanceState(dt) {
@@ -1656,19 +1669,21 @@
         const dx = touch.clientX - cx;
         const dy = touch.clientY - cy;
         const len = Math.hypot(dx, dy);
-        const max = rect.width * 0.42;
+        const max = rect.width * 0.46;
         const nx = len > 0 ? dx / len : 0;
         const ny = len > 0 ? dy / len : 0;
-        const mag = clamp(len / max, 0, 1);
-        this.input.touch.x = nx * mag;
-        this.input.touch.y = ny * mag;
+        const rawMag = clamp(len / max, 0, 1);
+        const deadzone = 0.18;
+        const mag = rawMag <= deadzone ? 0 : Math.pow((rawMag - deadzone) / (1 - deadzone), 1.35);
+        this.input.touch.rawX = nx * mag;
+        this.input.touch.rawY = ny * mag;
         this.input.touch.active = true;
         stick.classList.add("active");
-        if (mag > 0.12) {
+        if (mag > 0.16) {
           this.input.touch.aimX = nx;
           this.input.touch.aimY = ny;
         }
-        nub.style.transform = `translate(${nx * mag * max}px, ${ny * mag * max}px)`;
+        nub.style.transform = `translate(${nx * rawMag * max}px, ${ny * rawMag * max}px)`;
       };
       const beginStick = (touch, floating = false) => {
         if (this.joystickTouchId !== null) return;
@@ -1689,6 +1704,8 @@
       const resetStick = () => {
         this.input.touch.x = 0;
         this.input.touch.y = 0;
+        this.input.touch.rawX = 0;
+        this.input.touch.rawY = 0;
         this.input.touch.active = false;
         this.joystickTouchId = null;
         stick.classList.remove("active");
@@ -3097,6 +3114,7 @@
     update(dt) {
       if (!this.run) return;
       const player = this.run.player;
+      if (this.isMobileDevice()) this.updateTouchVector(dt);
       this.updateCamera(dt);
       const worldDt = this.hitStop > 0 ? 0 : dt;
       this.hitStop = Math.max(0, (this.hitStop || 0) - dt);
@@ -3143,10 +3161,12 @@
       const lead = this.mobileCameraLead(player);
       const targetX = clamp(player.x + lead.x - viewW / 2, 0, Math.max(0, WORLD_W - viewW));
       const targetY = clamp(player.y + lead.y - viewH / 2, 0, Math.max(0, WORLD_H - viewH));
-      this.camera.x += (targetX - this.camera.x) * Math.min(1, dt * 8);
-      this.camera.y += (targetY - this.camera.y) * Math.min(1, dt * 8);
-      this.camera.shake = Math.max(0, this.camera.shake - dt * 34);
-      const amount = this.camera.shake * this.save.settings.screenShake;
+      const follow = this.isMobileDevice() ? 4.2 : 8;
+      this.camera.x += (targetX - this.camera.x) * Math.min(1, dt * follow);
+      this.camera.y += (targetY - this.camera.y) * Math.min(1, dt * follow);
+      this.camera.shake = Math.max(0, this.camera.shake - dt * (this.isMobileDevice() ? 46 : 34));
+      const shakeScale = this.isMobileDevice() ? 0.34 : 1;
+      const amount = this.camera.shake * this.save.settings.screenShake * shakeScale;
       this.camera.shakeX = rand(-amount, amount);
       this.camera.shakeY = rand(-amount, amount);
     }
@@ -3164,15 +3184,18 @@
 
       let mx = 0;
       let my = 0;
+      let keyboardMove = false;
       if (this.input.keys.has("KeyW")) my -= 1;
       if (this.input.keys.has("KeyS")) my += 1;
       if (this.input.keys.has("KeyA")) mx -= 1;
       if (this.input.keys.has("KeyD")) mx += 1;
+      keyboardMove = mx !== 0 || my !== 0;
       if (this.input.touch.active) {
         mx += this.input.touch.x;
         my += this.input.touch.y;
       }
       const mag = Math.hypot(mx, my);
+      let movePower = this.isMobileDevice() && !keyboardMove ? clamp(mag, 0, 1) : (mag > 0 ? 1 : 0);
       if (mag > 0) {
         mx /= mag;
         my /= mag;
@@ -3187,6 +3210,7 @@
         speed = 680;
         mx = p.dashVector.x;
         my = p.dashVector.y;
+        movePower = 1;
         p.invuln = Math.max(p.invuln, 0.1);
         p.animation = "dash";
         p.actionTime = 0;
@@ -3195,11 +3219,11 @@
           this.addTrailDamage(p.x, p.y, "#ff6b3a");
         }
       } else if (p.actionTime <= 0) {
-        p.animation = mag > 0.75 ? "run" : mag > 0.1 ? "walk" : "idle";
+        p.animation = movePower > 0.72 ? "run" : movePower > 0.08 ? "walk" : "idle";
       }
 
-      p.vx = mx * speed;
-      p.vy = my * speed;
+      p.vx = mx * speed * movePower;
+      p.vy = my * speed * movePower;
       p.x = clamp(p.x + p.vx * dt, ROOM_PAD + p.radius, WORLD_W - ROOM_PAD - p.radius);
       p.y = clamp(p.y + p.vy * dt, ROOM_PAD + p.radius, WORLD_H - ROOM_PAD - p.radius);
 

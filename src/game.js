@@ -1066,6 +1066,7 @@
       this.toastTimer = 0;
       this.bindEvents();
       this.resize();
+      this.updateMobileGate();
       this.init();
     }
 
@@ -1372,9 +1373,11 @@
       const mobile = this.isMobileDevice();
       const needsLandscape = mobile && !this.isLandscapeView();
       const needsFullscreen = mobile && this.canRequestFullscreen() && !this.isFullscreenActive();
-      this.mobileGate.classList.toggle("hidden", !(needsLandscape || needsFullscreen));
+      const visible = needsLandscape || needsFullscreen;
+      this.mobileGate.classList.toggle("hidden", !visible);
       this.mobileGate.classList.toggle("portrait", needsLandscape);
       this.mobileGate.classList.toggle("fullscreen-missing", needsFullscreen);
+      document.body.classList.toggle("mobile-gate-active", visible);
     }
 
     async enterMobilePlayMode() {
@@ -2207,6 +2210,7 @@
 
     startRun(power, forcedBiomeId = "", options = {}) {
       this.audio.start();
+      if (this.isMobileDevice()) this.enterMobilePlayMode();
       this.save.progression.runs += 1;
       const biomeIndex = Math.max(0, BIOMES.findIndex((biome) => biome.id === forcedBiomeId));
       const startBiome = BIOMES[biomeIndex >= 0 ? biomeIndex : 0];

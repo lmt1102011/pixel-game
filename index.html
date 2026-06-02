@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
     <meta name="theme-color" content="#090b12" />
     <title>SOULRIFT</title>
-    <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="styles.css?v=20260602-mobile-fullscreen-2" />
   </head>
   <body>
     <canvas id="gameCanvas" aria-label="Khung chơi Soulrift"></canvas>
@@ -28,10 +28,10 @@
     <main id="screen" class="screen"></main>
     <div id="toast" class="toast hidden"></div>
 
-    <div id="mobileGate" class="mobile-gate hidden" role="dialog" aria-modal="true" aria-labelledby="mobileGateTitle">
+    <div id="mobileGate" class="mobile-gate" role="dialog" aria-modal="true" aria-labelledby="mobileGateTitle">
       <div class="mobile-gate-panel">
         <div class="mobile-gate-icon" aria-hidden="true">XOAY</div>
-        <h2 id="mobileGateTitle">Xoay ngang để chơi</h2>
+        <h2 id="mobileGateTitle">Bắt buộc xoay ngang</h2>
         <p>Trên điện thoại, Soulrift cần màn hình ngang và toàn màn hình để nút điều khiển không che trận đấu.</p>
         <button id="mobileGateButton" class="btn primary" type="button">BẬT TOÀN MÀN HÌNH</button>
         <span>Nhấn nút rồi xoay máy sang ngang.</span>
@@ -50,6 +50,6 @@
       </div>
     </div>
 
-    <script src="src/game.js"></script>
+    <script src="src/game.js?v=20260602-mobile-fullscreen-2"></script>
   </body>
 </html>

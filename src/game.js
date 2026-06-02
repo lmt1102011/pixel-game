@@ -813,6 +813,7 @@
       this.mapVote = "forest";
       this.signal = null;
       this.peers = new Map();
+      this.joinRetryTimers = [];
       this.slots = [{ ...this.playerProfile(), ready: false, vote: this.mapVote, host: true }];
     }
 
@@ -863,9 +864,17 @@
       this.ready = false;
       this.slots = [{ ...this.playerProfile(), ready: false, vote: this.mapVote, host: false }];
       this.openSignal();
-      this.sendSignal({ type: "hello", ...this.playerProfile() });
+      this.announceJoin();
       this.game.toast(`Đang vào phòng ${this.code}`);
       this.game.renderLobby();
+    }
+
+    announceJoin() {
+      const hello = () => {
+        if (!this.host && this.code) this.sendSignal({ type: "hello", ...this.playerProfile() });
+      };
+      hello();
+      this.joinRetryTimers.push(setTimeout(hello, 350), setTimeout(hello, 1000));
     }
 
     close() {
@@ -873,6 +882,8 @@
         peer.channel?.close();
         peer.pc?.close();
       }
+      for (const timer of this.joinRetryTimers) clearTimeout(timer);
+      this.joinRetryTimers = [];
       this.peers.clear();
       if (this.signal) this.signal.close();
       this.signal = null;
@@ -903,11 +914,35 @@
           characterId: message.characterId || "swordsman",
           host: false
         });
+        this.game.renderLobby();
         const peer = this.ensurePeer(message.from, true);
-        const offer = await peer.pc.createOffer();
-        await peer.pc.setLocalDescription(offer);
-        this.sendSignal({ type: "offer", sdp: offer }, message.from);
+        if (!peer.pc.localDescription && peer.pc.signalingState === "stable") {
+          const offer = await peer.pc.createOffer();
+          await peer.pc.setLocalDescription(offer);
+          this.sendSignal({ type: "offer", sdp: offer }, message.from);
+        }
+        this.sendSignal({ type: "lobby", slots: this.slots, mapVote: this.mapVote }, message.from);
         this.broadcastLobby();
+      }
+
+      if (message.type === "lobby" && !this.host && Array.isArray(message.slots)) {
+        this.slots = message.slots;
+        if (message.mapVote) this.mapVote = message.mapVote;
+        this.game.renderLobby();
+      }
+
+      if (message.type === "ready" && this.host) {
+        this.upsertSlot({
+          id: message.from,
+          name: message.name || "Người chơi",
+          ready: Boolean(message.ready),
+          vote: this.mapVote,
+          powerId: message.powerId || "",
+          characterId: message.characterId || "swordsman",
+          host: false
+        });
+        this.broadcastLobby();
+        this.game.renderLobby();
       }
 
       if (message.type === "offer") {
@@ -960,6 +995,7 @@
         if (this.host) this.sendPeer(peer, { type: "lobby", slots: this.slots, mapVote: this.mapVote });
         else this.sendPeer(peer, { type: "ready", ...this.playerProfile(), ready: this.ready, vote: this.mapVote });
         this.game.toast("Đã kết nối người chơi");
+        if (this.game.mode === "lobby") this.game.renderLobby();
       };
       peer.channel.onmessage = (event) => {
         try {
@@ -1008,6 +1044,7 @@
         this.game.applyNetworkSnapshot(message.snapshot);
       }
       if (message.type === "start") {
+        if (Array.isArray(message.slots)) this.slots = message.slots;
         const ownPowerId = this.game.save.account.selectedPower || message.powerId;
         this.game.startRun(powerById(ownPowerId), message.biomeId, { multiplayer: true, host: false, seed: message.seed });
       }
@@ -1045,6 +1082,7 @@
 
     broadcastReady() {
       const message = { type: "ready", ...this.playerProfile(), ready: this.ready, vote: this.mapVote, host: this.host };
+      if (!this.host && this.code) this.sendSignal(message);
       for (const peer of this.peers.values()) {
         this.sendPeer(peer, message);
       }
@@ -1057,9 +1095,9 @@
       }
     }
 
-    broadcastStart(powerId, biomeId, seed) {
+    broadcastStart(powerId, biomeId, seed, slots = this.slots) {
       for (const peer of this.peers.values()) {
-        this.sendPeer(peer, { type: "start", powerId, biomeId, seed });
+        this.sendPeer(peer, { type: "start", powerId, biomeId, seed, slots });
       }
     }
 
@@ -1104,6 +1142,14 @@
         if (peer.channel?.readyState === "open") return true;
       }
       return false;
+    }
+
+    openPeerCount() {
+      let count = 0;
+      for (const peer of this.peers.values()) {
+        if (peer.channel?.readyState === "open") count++;
+      }
+      return count;
     }
 
     sendPeer(peer, message) {
@@ -2386,7 +2432,18 @@
         <button class="tab ${this.lobby.mapVote === biome.id ? "active" : ""}" data-action="vote-map" data-biome="${biome.id}" ${isHost ? "" : "disabled"}>${biome.name}</button>
       `).join("");
       const allReady = this.lobby.slots.every((slot) => slot.host || slot.ready);
-      const canStart = isHost && this.lobby.code && allReady;
+      const connectedPeers = this.lobby.openPeerCount();
+      const hasGuest = this.lobby.slots.some((slot) => slot && !slot.host);
+      const canStart = isHost && this.lobby.code && hasGuest && connectedPeers > 0 && allReady;
+      const startHint = !isHost
+        ? "Chờ chủ phòng"
+        : !hasGuest
+          ? "Chưa có người chơi khác"
+          : connectedPeers <= 0
+            ? "Đang kết nối realtime"
+            : allReady
+              ? "Có thể bắt đầu"
+              : "Chờ mọi người sẵn sàng";
       this.setScreen(`
         <section class="shell">
           ${this.navHtml("multiplayer")}
@@ -2407,6 +2464,7 @@
             <p class="code-box">${this.lobby.code || "CHƯA CÓ PHÒNG"}</p>
             <div class="grid cols-2">${slots}</div>
             <div class="tabs">${votes}</div>
+            <p class="small">${startHint}</p>
             <div class="grid cols-2">
               <button class="btn" data-action="ready-room">${this.lobby.ready ? "BỎ SẴN SÀNG" : "SẴN SÀNG"}</button>
               <button class="btn primary" data-action="start-room" ${canStart ? "" : "disabled"}>${isHost ? "BẮT ĐẦU" : "CHỜ CHỦ PHÒNG"}</button>
@@ -2425,6 +2483,15 @@
         this.toast("Hãy tạo phòng trước");
         return;
       }
+      const hasGuest = this.lobby.slots.some((slot) => slot && !slot.host);
+      if (!hasGuest) {
+        this.toast("Chưa có người chơi khác trong phòng");
+        return;
+      }
+      if (this.lobby.openPeerCount() <= 0) {
+        this.toast("Phòng chưa kết nối realtime xong");
+        return;
+      }
       const waiting = this.lobby.slots.find((slot) => !slot.host && !slot.ready);
       if (waiting) {
         this.toast(`${waiting.name} chưa sẵn sàng`);
@@ -2439,7 +2506,7 @@
       const selectedPower = powerById(powerId);
       const biomeId = this.lobby.mapVote || "forest";
       const seed = Math.random();
-      this.lobby.broadcastStart(selectedPower.id, biomeId, seed);
+      this.lobby.broadcastStart(selectedPower.id, biomeId, seed, this.lobby.slots);
       this.startRun(selectedPower, biomeId, { multiplayer: true, host: true, seed });
     }
 
@@ -2540,6 +2607,8 @@
       };
       this.audio.setBiome(this.run.biome);
       this.applyEquippedItems();
+      if (this.run.multiplayer) this.seedRemotePlayersFromLobby();
+      else this.remotePlayers.clear();
       this.mode = "game";
       this.setScreen("");
       this.hud.classList.remove("hidden");
@@ -2558,6 +2627,43 @@
 
     isMultiplayerClient() {
       return this.isMultiplayerRun() && !this.run.netHost;
+    }
+
+    seedRemotePlayersFromLobby() {
+      if (!this.isMultiplayerRun()) return;
+      const slots = (this.lobby.slots || []).filter((slot) => slot?.id && slot.id !== this.lobby.id);
+      const p = this.run.player;
+      const offsets = [
+        { x: -54, y: 34 },
+        { x: 54, y: 34 },
+        { x: 0, y: 76 }
+      ];
+      this.remotePlayers.clear();
+      slots.forEach((slot, index) => {
+        const character = characterById(slot.characterId || "swordsman");
+        const offset = offsets[index % offsets.length];
+        this.remotePlayers.set(slot.id, {
+          id: slot.id,
+          name: slot.name || "Người chơi",
+          x: p.x + offset.x,
+          y: p.y + offset.y,
+          hp: character.stats.hp,
+          maxHp: character.stats.hp,
+          energy: character.stats.energy,
+          maxEnergy: character.stats.energy,
+          damage: character.stats.damage,
+          crit: character.stats.crit,
+          color: "#d8b46a",
+          characterId: character.id,
+          animation: "idle",
+          animTime: this.menuTime,
+          actionTime: 0,
+          actionTotal: 0,
+          power: slot.powerId || "fire",
+          facing: -Math.PI / 2,
+          t: performance.now()
+        });
+      });
     }
 
     networkPlayerState(id = this.lobby.id, player = this.run?.player, extra = {}) {

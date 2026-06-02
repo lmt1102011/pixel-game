@@ -1368,6 +1368,19 @@
       );
     }
 
+    worldViewScale() {
+      if (!this.run || !this.isMobileDevice()) return 1;
+      return Math.min(window.innerWidth, window.innerHeight) <= 430 ? 0.86 : 0.9;
+    }
+
+    worldViewWidth() {
+      return this.width / this.worldViewScale();
+    }
+
+    worldViewHeight() {
+      return this.height / this.worldViewScale();
+    }
+
     updateMobileGate() {
       if (!this.mobileGate) return;
       const mobile = this.isMobileDevice();
@@ -1425,6 +1438,10 @@
         this.input.touch.x = nx * mag;
         this.input.touch.y = ny * mag;
         this.input.touch.active = true;
+        if (mag > 0.12) {
+          this.input.touch.aimX = nx;
+          this.input.touch.aimY = ny;
+        }
         nub.style.transform = `translate(${nx * mag * max}px, ${ny * mag * max}px)`;
       };
       stick.addEventListener("touchstart", (event) => {
@@ -1473,10 +1490,11 @@
 
     updateMouse(event) {
       const rect = this.canvas.getBoundingClientRect();
+      const scale = this.worldViewScale();
       this.input.mouse.x = event.clientX - rect.left;
       this.input.mouse.y = event.clientY - rect.top;
-      this.input.mouse.worldX = this.camera.x + this.input.mouse.x - this.camera.shakeX;
-      this.input.mouse.worldY = this.camera.y + this.input.mouse.y - this.camera.shakeY;
+      this.input.mouse.worldX = this.camera.x + this.input.mouse.x / scale - this.camera.shakeX;
+      this.input.mouse.worldY = this.camera.y + this.input.mouse.y / scale - this.camera.shakeY;
       if (this.run?.player) {
         const player = this.run.player;
         const dx = this.input.mouse.worldX - player.x;
@@ -1485,6 +1503,21 @@
         this.input.touch.aimX = dx / len;
         this.input.touch.aimY = dy / len;
       }
+    }
+
+    basicAimAngle(player) {
+      if (this.isMobileDevice()) {
+        const mag = Math.hypot(this.input.touch.x, this.input.touch.y);
+        if (mag > 0.12) {
+          const dx = this.input.touch.x / mag;
+          const dy = this.input.touch.y / mag;
+          this.input.touch.aimX = dx;
+          this.input.touch.aimY = dy;
+          return Math.atan2(dy, dx);
+        }
+        return Number.isFinite(player.facing) ? player.facing : Math.atan2(this.input.touch.aimY, this.input.touch.aimX);
+      }
+      return Math.atan2(this.input.mouse.worldY - player.y, this.input.mouse.worldX - player.x);
     }
 
     onKeyDown(event) {
@@ -2649,8 +2682,10 @@
         return;
       }
       const player = this.run.player;
-      const targetX = clamp(player.x - this.width / 2, 0, WORLD_W - this.width);
-      const targetY = clamp(player.y - this.height / 2, 0, WORLD_H - this.height);
+      const viewW = this.worldViewWidth();
+      const viewH = this.worldViewHeight();
+      const targetX = clamp(player.x - viewW / 2, 0, Math.max(0, WORLD_W - viewW));
+      const targetY = clamp(player.y - viewH / 2, 0, Math.max(0, WORLD_H - viewH));
       this.camera.x += (targetX - this.camera.x) * Math.min(1, dt * 8);
       this.camera.y += (targetY - this.camera.y) * Math.min(1, dt * 8);
       this.camera.shake = Math.max(0, this.camera.shake - dt * 34);
@@ -2765,7 +2800,7 @@
       const p = this.run?.player;
       if (!p || p.attackCd > 0 || this.run.currentRoom.intro > 0) return;
       const character = characterById(p.characterId);
-      const angle = Math.atan2(this.input.mouse.worldY - p.y, this.input.mouse.worldX - p.x);
+      const angle = this.basicAimAngle(p);
       p.facing = angle;
       p.attackCd = p.basicAttackCd || character.stats.attackCd;
       p.animation = "attack";
@@ -4640,7 +4675,9 @@
     drawGame(ctx) {
       const camX = this.camera.x - this.camera.shakeX;
       const camY = this.camera.y - this.camera.shakeY;
+      const scale = this.worldViewScale();
       ctx.save();
+      ctx.scale(scale, scale);
       ctx.translate(-camX, -camY);
       this.drawRoom(ctx);
       this.drawTrails(ctx);
@@ -5693,9 +5730,11 @@
     drawBossBars(ctx) {
       const boss = this.run.enemies.find((enemy) => enemy.boss);
       if (!boss) return;
-      const x = this.camera.x + this.width / 2 - Math.min(620, this.width - 80) / 2;
-      const y = this.camera.y + this.height - 78;
-      const w = Math.min(620, this.width - 80);
+      const viewW = this.worldViewWidth();
+      const viewH = this.worldViewHeight();
+      const w = Math.min(620, viewW - 80);
+      const x = this.camera.x + viewW / 2 - w / 2;
+      const y = this.camera.y + viewH - 78;
       ctx.save();
       ctx.fillStyle = "rgba(0,0,0,0.65)";
       ctx.fillRect(x, y, w, 16);
@@ -5712,15 +5751,17 @@
 
     drawRoomIntro(ctx) {
       const alpha = clamp(this.run.currentRoom.intro, 0, 1);
+      const viewW = this.worldViewWidth();
+      const viewH = this.worldViewHeight();
       ctx.save();
       ctx.globalAlpha = alpha;
       ctx.fillStyle = "rgba(0,0,0,0.45)";
-      ctx.fillRect(this.camera.x, this.camera.y + this.height * 0.38, this.width, 96);
+      ctx.fillRect(this.camera.x, this.camera.y + viewH * 0.38, viewW, 96);
       ctx.fillStyle = this.run.biome.accent;
       ctx.font = "900 34px ui-sans-serif, system-ui";
       ctx.textAlign = "center";
       const label = this.run.currentRoom.type === "boss" ? this.run.biome.boss : `${this.run.biome.name} - ${this.run.currentRoom.label}`;
-      ctx.fillText(label, this.camera.x + this.width / 2, this.camera.y + this.height * 0.38 + 58);
+      ctx.fillText(label, this.camera.x + viewW / 2, this.camera.y + viewH * 0.38 + 58);
       ctx.restore();
     }
 

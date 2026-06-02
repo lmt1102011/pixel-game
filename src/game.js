@@ -7,7 +7,7 @@
   const ROOM_PAD = 86;
   const SAVE_KEY = "soulrift-save-v1";
   const SIGNAL_RELAY_URL = "https://ntfy.sh";
-  const APP_VERSION = "20260603-reflect-slash-21";
+  const APP_VERSION = "20260603-world-doors-22";
   const VERSION_CHECK_INTERVAL = 15000;
 
   const RARITY = {
@@ -256,13 +256,22 @@
     { id: "secret", label: "Bí Mật", icon: "#", weight: 4, color: "#82ffd3" }
   ];
 
+  const DIFFICULTIES = [
+    { id: "easy", label: "Dễ", text: "Quái yếu hơn, phù hợp để thử nhân vật và power.", enemyHp: 0.82, enemyDamage: 0.84, countBonus: -1, rewardBonus: -0.06 },
+    { id: "normal", label: "Thường", text: "Nhịp chuẩn của Soulrift.", enemyHp: 1, enemyDamage: 1, countBonus: 0, rewardBonus: 0 },
+    { id: "hard", label: "Khó", text: "Quái dai và đau hơn, đổi lại đồ rơi tốt hơn.", enemyHp: 1.22, enemyDamage: 1.16, countBonus: 1, rewardBonus: 0.12 }
+  ];
+
   const CURSES = [
     { id: "doubleDamage", name: "Sát Thương Kép", text: "Bạn và quái đều gây gấp đôi sát thương.", color: "#ff4b55" },
     { id: "halfHp", name: "Nửa Sinh Lực", text: "Máu tối đa bị giảm một nửa trong phòng này.", color: "#a169ff" },
     { id: "explosive", name: "Đòn Nổ", text: "Mỗi đòn thứ năm phát nổ.", color: "#ff8d3d" },
     { id: "teleport", name: "Dịch Chuyển Loạn", text: "Không gian trượt đi khi chịu áp lực.", color: "#64a8ff" },
     { id: "lifesteal", name: "Hút Máu", text: "Mọi sinh vật đều hồi máu khi đánh trúng.", color: "#ff3f5f" },
-    { id: "chaos", name: "Hỗn Loạn", text: "Đạn phân tách và bẫy dao động mạnh hơn.", color: "#f2bf63" }
+    { id: "chaos", name: "Hỗn Loạn", text: "Đạn phân tách và bẫy dao động mạnh hơn.", color: "#f2bf63" },
+    { id: "glassMight", name: "Cuồng Nộ Kính", text: "Tăng sát thương nhưng mất một phần máu tối đa trong phòng.", color: "#ffd166" },
+    { id: "ironPulse", name: "Nhịp Thép", text: "Tăng chịu đòn nhưng đánh thường chậm hơn trong phòng.", color: "#c9d0db" },
+    { id: "manaDebt", name: "Nợ Năng Lượng", text: "Kĩ năng gây mạnh hơn nhưng năng lượng hồi chậm hơn.", color: "#35d6c9" }
   ];
 
   const ITEMS = [
@@ -353,6 +362,33 @@
       rarity: "rare",
       icon: "LC",
       text: "Tăng tỉ lệ chí mạng và độ hiếm phần thưởng."
+    },
+    {
+      id: "merchantEdge",
+      name: "Lưỡi Kiếm Khế Ước",
+      slot: "Weapon",
+      rarity: "epic",
+      icon: "ME",
+      merchantOnly: true,
+      text: "Vũ khí thương nhân: tăng sát thương và chí mạng."
+    },
+    {
+      id: "riftLedger",
+      name: "Sổ Khe Nứt",
+      slot: "Relic 1",
+      rarity: "legendary",
+      icon: "RL",
+      merchantOnly: true,
+      text: "Di vật thương nhân: tăng may mắn phần thưởng."
+    },
+    {
+      id: "azurePermit",
+      name: "Giấy Phép Lam",
+      slot: "Charm",
+      rarity: "mythic",
+      icon: "AP",
+      merchantOnly: true,
+      text: "Bùa thương nhân: tăng năng lượng và hồi chiêu nhẹ."
     },
     {
       id: "divineSigil",
@@ -865,6 +901,7 @@
       this.lastLobbyAt = Date.now();
       this.slots = [{ ...this.playerProfile(), ready: true, vote: this.mapVote, host: true }];
       this.openSignal();
+      this.game.rememberRoomCode(this.code);
       this.game.toast(`Đã tạo phòng ${this.code}`);
       this.game.renderLobby();
     }
@@ -883,6 +920,7 @@
       this.lastLobbyAt = 0;
       this.slots = [{ ...this.playerProfile(), ready: false, vote: this.mapVote, host: false }];
       this.openSignal();
+      this.game.rememberRoomCode(this.code);
       this.announceJoin();
       this.game.toast(`Đang vào phòng ${this.code}`);
       this.game.renderLobby();
@@ -2064,7 +2102,7 @@
       if (event.code === "KeyE") this.useSkill("e");
       if (event.code === "KeyR") this.useSkill("r");
       if (event.code === "KeyF") this.useSkill("f");
-      if (event.code === "Tab") this.showMapOverlay();
+      if (event.code === "Tab" && this.run.roomObjects?.some((object) => object.type === "nextDoor")) this.toast("Đi lên phía trên bản đồ để vào cửa tiếp theo");
     }
 
     loop(time) {
@@ -2177,11 +2215,7 @@
           </div>
           <div class="nav-buttons">
             ${item("play", "CHƠI", true)}
-            ${item("powers", "SỨC MẠNH")}
             ${item("character", "NHÂN VẬT")}
-            ${item("inventory", "KHO ĐỒ")}
-            ${item("awakening", "THỨC TỈNH")}
-            ${item("multiplayer", "NHIỀU NGƯỜI")}
             ${item("settings", "CÀI ĐẶT")}
             ${item("logout-account", "ĐĂNG XUẤT")}
           </div>
@@ -2207,7 +2241,16 @@
         if (action !== "menu") this.toast("Bạn cần tạo tài khoản trước");
         return;
       }
-      if (action === "play") this.startSelectedRun();
+      if (action === "play") this.showPlayMenu();
+      if (action === "play-solo") this.showSoloMenu();
+      if (action === "play-multiplayer") this.showMultiplayerHub();
+      if (action === "find-room") this.showRoomFinder();
+      if (action === "create-room-from-play") {
+        this.lobby.create();
+        this.renderLobby();
+      }
+      if (action === "start-solo-difficulty") this.startSelectedRun("", { difficulty: target.dataset.difficulty || "normal" });
+      if (action === "character-tab") this.showCharacterTab(target.dataset.tab || "character");
       if (action === "character") this.showCharacter();
       if (action === "inventory") this.showInventory();
       if (action === "powers") this.showPowers();
@@ -2219,6 +2262,8 @@
       if (action === "restart") this.startSelectedRun();
       if (action === "choose-power") this.selectPower(target.dataset.power);
       if (action === "spin-power") this.spinPower();
+      if (action === "buy-merchant-offer") this.buyMerchantOffer(target.dataset.offer);
+      if (action === "leave-merchant") this.completeMerchantRoom();
       if (action === "select-character") this.selectCharacter(target.dataset.character);
       if (action === "upgrade-stat") this.upgradeStatPoint(target.dataset.stat);
       if (action === "reset-stat-points") this.resetStatPoints();
@@ -2233,7 +2278,7 @@
       if (action === "unequip-slot") this.unequipSlot(target.dataset.slot);
       if (action === "awaken-power") this.awakenPower(target.dataset.power);
       if (action === "create-room") this.lobby.create();
-      if (action === "join-room") this.lobby.join(document.getElementById("roomCodeInput")?.value);
+      if (action === "join-room") this.lobby.join(target.dataset.roomCode || document.getElementById("roomCodeInput")?.value);
       if (action === "ready-room") this.lobby.toggleReady();
       if (action === "vote-map") this.lobby.setVote(target.dataset.biome);
       if (action === "start-room") {
@@ -2261,14 +2306,158 @@
       }
     }
 
-    startSelectedRun(forcedBiomeId = "") {
+    showPlayMenu() {
+      this.mode = "play";
+      this.hud.classList.add("hidden");
+      this.touchLayer.classList.add("hidden");
+      this.setScreen(`
+        <section class="shell">
+          ${this.navHtml("play")}
+          <div class="panel">
+            <div class="panel-header">
+              <div>
+                <h2 class="panel-title">Chơi</h2>
+                <p class="panel-subtitle">Chọn kiểu chơi trước khi vào khe nứt.</p>
+              </div>
+            </div>
+            <div class="grid cols-2">
+              <button class="choice-card" data-action="play-solo">
+                <div class="card-icon">1</div>
+                <h3>Chơi đơn</h3>
+                <p>Chọn độ khó rồi bắt đầu bằng power đang mang.</p>
+              </button>
+              <button class="choice-card" data-action="play-multiplayer">
+                <div class="card-icon">4</div>
+                <h3>Nhiều người chơi</h3>
+                <p>Tạo phòng hoặc tìm phòng bằng ID.</p>
+              </button>
+            </div>
+          </div>
+        </section>
+      `);
+    }
+
+    showSoloMenu() {
+      this.mode = "play";
+      const selected = this.save.account.selectedPower ? powerById(this.save.account.selectedPower) : null;
+      const difficultyCards = DIFFICULTIES.map((difficulty) => `
+        <button class="choice-card" data-action="start-solo-difficulty" data-difficulty="${difficulty.id}">
+          <div class="card-icon">${difficulty.label.slice(0, 1)}</div>
+          <h3>${difficulty.label}</h3>
+          <p>${difficulty.text}</p>
+          <p class="small">Máu quái ${Math.round(difficulty.enemyHp * 100)}% - sát thương quái ${Math.round(difficulty.enemyDamage * 100)}%</p>
+        </button>
+      `).join("");
+      this.setScreen(`
+        <section class="shell">
+          ${this.navHtml("play")}
+          <div class="panel">
+            <div class="panel-header">
+              <div>
+                <h2 class="panel-title">Chơi Đơn</h2>
+                <p class="panel-subtitle">${selected ? `Power: ${selected.name}` : "Hãy quay và chọn power trước khi bắt đầu."}</p>
+              </div>
+              <button class="btn" data-action="play">TRỞ LẠI</button>
+            </div>
+            <div class="grid cols-3">${difficultyCards}</div>
+          </div>
+        </section>
+      `);
+    }
+
+    showMultiplayerHub() {
+      this.mode = "play";
+      this.setScreen(`
+        <section class="shell">
+          ${this.navHtml("play")}
+          <div class="panel">
+            <div class="panel-header">
+              <div>
+                <h2 class="panel-title">Nhiều Người Chơi</h2>
+                <p class="panel-subtitle">Tạo phòng mới hoặc tìm phòng bằng ID.</p>
+              </div>
+              <button class="btn" data-action="play">TRỞ LẠI</button>
+            </div>
+            <div class="grid cols-2">
+              <button class="choice-card" data-action="create-room-from-play">
+                <div class="card-icon">+</div>
+                <h3>Tạo phòng</h3>
+                <p>Bạn là chủ phòng và là người duy nhất được bắt đầu.</p>
+              </button>
+              <button class="choice-card" data-action="find-room">
+                <div class="card-icon">ID</div>
+                <h3>Tìm phòng</h3>
+                <p>Xem phòng hiện có trên máy này hoặc nhập ID phòng.</p>
+              </button>
+            </div>
+          </div>
+        </section>
+      `);
+    }
+
+    recentRoomCodes() {
+      try {
+        const raw = localStorage.getItem("soulrift-recent-rooms");
+        const codes = raw ? JSON.parse(raw) : [];
+        return Array.isArray(codes) ? codes.filter(Boolean).slice(0, 6) : [];
+      } catch {
+        return [];
+      }
+    }
+
+    rememberRoomCode(code) {
+      const normalized = String(code || "").trim().toUpperCase();
+      if (!normalized) return;
+      const next = [normalized, ...this.recentRoomCodes().filter((entry) => entry !== normalized)].slice(0, 6);
+      try {
+        localStorage.setItem("soulrift-recent-rooms", JSON.stringify(next));
+      } catch {
+        // Local room history is optional.
+      }
+    }
+
+    showRoomFinder() {
+      this.mode = "play";
+      const current = this.lobby.code ? [this.lobby.code] : [];
+      const rooms = [...current, ...this.recentRoomCodes().filter((code) => code !== this.lobby.code)].slice(0, 6);
+      const roomList = rooms.length ? rooms.map((code) => `
+        <button class="choice-card" data-action="${code === this.lobby.code ? "multiplayer" : "join-room"}" data-room-code="${code}">
+          <div class="card-icon">${code.slice(0, 2)}</div>
+          <h3>${code}</h3>
+          <p>${code === this.lobby.code ? (this.lobby.host ? "Phòng bạn đang tạo" : "Phòng đang tham gia") : "Phòng gần đây"}</p>
+        </button>
+      `).join("") : `<div class="empty-state">Chưa có phòng nào được phát hiện trên máy này.</div>`;
+      this.setScreen(`
+        <section class="shell">
+          ${this.navHtml("play")}
+          <div class="panel">
+            <div class="panel-header">
+              <div>
+                <h2 class="panel-title">Tìm Phòng</h2>
+                <p class="panel-subtitle">Nhập ID phòng hoặc chọn phòng đang có.</p>
+              </div>
+              <button class="btn" data-action="play-multiplayer">TRỞ LẠI</button>
+            </div>
+            <div class="grid cols-2">
+              <div>
+                <input id="roomCodeInput" class="field" placeholder="ID PHÒNG" maxlength="12" />
+                <button class="btn primary" data-action="join-room">VÀO PHÒNG</button>
+              </div>
+              ${roomList}
+            </div>
+          </div>
+        </section>
+      `);
+    }
+
+    startSelectedRun(forcedBiomeId = "", options = {}) {
       const powerId = this.save.account.selectedPower;
       if (!powerId || !this.save.account.ownedPowers.includes(powerId)) {
         this.toast("Hãy quay và chọn một sức mạnh trước");
         this.showPowers();
         return;
       }
-      this.startRun(powerById(powerId), forcedBiomeId);
+      this.startRun(powerById(powerId), forcedBiomeId, options);
     }
 
     selectPower(powerId) {
@@ -2388,6 +2577,27 @@
       `;
     }
 
+    characterTabs(active = "character") {
+      const tabs = [
+        ["character", "Nhân vật"],
+        ["inventory", "Kho đồ"],
+        ["powers", "Sức mạnh"],
+        ["awakening", "Thức tỉnh"]
+      ];
+      return `
+        <div class="tab-strip">
+          ${tabs.map(([id, label]) => `<button class="btn ${active === id ? "primary" : ""}" data-action="character-tab" data-tab="${id}">${label}</button>`).join("")}
+        </div>
+      `;
+    }
+
+    showCharacterTab(tab = "character") {
+      if (tab === "inventory") this.showInventory();
+      else if (tab === "powers") this.showPowers();
+      else if (tab === "awakening") this.showAwakening();
+      else this.showCharacter();
+    }
+
     roomIllustration(room) {
       return `
         <div class="mini-ill room-ill room-${room.type}" style="--ill:${room.color}">
@@ -2462,6 +2672,7 @@
                 <p class="panel-subtitle">Màu giáp, khuôn mặt, hào quang, phụ kiện và vệt lướt.</p>
               </div>
             </div>
+            ${this.characterTabs("character")}
             <div class="character-layout">
               ${this.characterPreviewHtml()}
               <div class="character-controls">
@@ -2549,7 +2760,7 @@
       `).join("");
       this.setScreen(`
         <section class="shell">
-          ${this.navHtml("inventory")}
+          ${this.navHtml("character")}
           <div class="panel">
             <div class="panel-header">
               <div>
@@ -2557,6 +2768,7 @@
                 <p class="panel-subtitle">Tài khoản mới không có vật phẩm. Đồ chỉ rơi sau khi vượt phòng.</p>
               </div>
             </div>
+            ${this.characterTabs("inventory")}
             <div class="slot-grid">${slots}</div>
             <div class="inventory-list">${items || `<div class="empty-state">Chưa có vật phẩm nào.</div>`}</div>
           </div>
@@ -2571,7 +2783,7 @@
       const rows = POWERS.map((power) => this.powerCard(power, "choose-power")).join("");
       this.setScreen(`
         <section class="shell">
-          ${this.navHtml("powers")}
+          ${this.navHtml("character")}
           <div class="panel">
             <div class="panel-header">
               <div>
@@ -2580,6 +2792,7 @@
               </div>
               <button class="btn primary" data-action="spin-power">QUAY SỨC MẠNH</button>
             </div>
+            ${this.characterTabs("powers")}
             <div class="power-summary">
               <div>
                 <p class="small">Đang mang vào ải</p>
@@ -2610,7 +2823,7 @@
       }).join("");
       this.setScreen(`
         <section class="shell">
-          ${this.navHtml("awakening")}
+          ${this.navHtml("character")}
           <div class="panel">
             <div class="panel-header">
               <div>
@@ -2618,6 +2831,7 @@
                 <p class="panel-subtitle">Thường 100%, Hiếm 90%, Sử Thi 75%, Huyền Thoại 50%, Thần Thoại 30%, Thần Thánh 15%.</p>
               </div>
             </div>
+            ${this.characterTabs("awakening")}
             <div class="grid">${rows}</div>
           </div>
         </section>
@@ -2707,7 +2921,7 @@
         `;
       this.setScreen(`
         <section class="shell">
-          ${this.navHtml("multiplayer")}
+          ${this.navHtml("play")}
           <div class="panel">
             <div class="panel-header">
               <div>
@@ -2718,7 +2932,7 @@
             <div class="grid cols-2">
               <button class="btn primary" data-action="create-room">TẠO PHÒNG</button>
               <div>
-                <input id="roomCodeInput" class="field" placeholder="MÃ PHÒNG" maxlength="6" />
+                <input id="roomCodeInput" class="field" placeholder="MÃ PHÒNG" maxlength="12" />
                 <button class="btn" data-action="join-room">VÀO PHÒNG</button>
               </div>
             </div>
@@ -2829,10 +3043,12 @@
       this.save.progression.runs += 1;
       const biomeIndex = Math.max(0, BIOMES.findIndex((biome) => biome.id === forcedBiomeId));
       const startBiome = BIOMES[biomeIndex >= 0 ? biomeIndex : 0];
+      const difficulty = DIFFICULTIES.find((entry) => entry.id === options.difficulty) || DIFFICULTIES[1];
       this.run = {
         seed: Number.isFinite(options.seed) ? options.seed : Math.random(),
         power,
         powerMeta: this.save.powers[power.id],
+        difficulty,
         stage: BIOMES.indexOf(startBiome),
         roomNumber: 0,
         roomsCleared: 0,
@@ -2854,6 +3070,8 @@
         trails: [],
         effects: [],
         delayedStrikes: [],
+        roomObjects: [],
+        merchantOffers: [],
         player: this.createPlayer(),
         curse: null,
         rewardQueue: [],
@@ -3006,6 +3224,13 @@
       ]);
     }
 
+    compactRoomObject(object) {
+      return this.compactFields(object, [
+        "id", "type", "x", "y", "radius", "grow", "opened", "active", "roomType",
+        "label", "icon", "color", "effect", "locked", "claimed"
+      ]);
+    }
+
     mergeNetworkActors(current, incoming, snapDistance = 520) {
       const previousById = new Map();
       for (const actor of current || []) {
@@ -3048,6 +3273,7 @@
         roomClearTimer: this.run.roomClearTimer,
         biomeId: this.run.biome.id,
         seed: this.run.seed,
+        curse: this.run.curse ? { ...this.run.curse } : null,
         nextRooms: this.run.nextRooms.map((room) => ({ ...room })),
         players,
         currentRoom: this.run.currentRoom ? {
@@ -3061,11 +3287,15 @@
           rewardDropped: this.run.currentRoom.rewardDropped,
           rewardClaimed: this.run.currentRoom.rewardClaimed,
           nextOpened: this.run.currentRoom.nextOpened,
+          bossDefeated: this.run.currentRoom.bossDefeated,
+          bossExitOpened: this.run.currentRoom.bossExitOpened,
+          advancing: this.run.currentRoom.advancing,
           rewardClaims: this.run.currentRoom.rewardClaims || {},
           rewardOwners: this.run.currentRoom.rewardOwners || []
         } : null,
         enemies: compact ? this.run.enemies.map((enemy) => this.compactEnemy(enemy)) : this.run.enemies.map((enemy) => ({ ...enemy })),
         hazards: this.run.hazards.map((hazard) => compact ? this.compactFields(hazard, ["type", "x", "y", "radius", "pulse", "cooldown"]) : ({ ...hazard })),
+        roomObjects: this.run.roomObjects.map((object) => compact ? this.compactRoomObject(object) : this.serializableVisual(object)),
         pickups: this.run.pickups.map((pickup) => compact ? this.compactPickup(pickup) : this.serializableVisual(pickup)),
         projectiles: (compact ? this.run.projectiles.slice(-36) : this.run.projectiles).map((projectile) => compact ? this.compactProjectile(projectile) : this.serializableVisual(projectile)),
         drones: compact ? [] : this.run.drones.map((drone) => this.serializableVisual(drone)),
@@ -3088,6 +3318,7 @@
       this.run.roomsCleared = Number.isFinite(snapshot.roomsCleared) ? snapshot.roomsCleared : this.run.roomsCleared;
       this.run.roomClearTimer = Number.isFinite(snapshot.roomClearTimer) ? snapshot.roomClearTimer : this.run.roomClearTimer;
       if (Number.isFinite(snapshot.seed)) this.run.seed = snapshot.seed;
+      this.run.curse = snapshot.curse ? { ...snapshot.curse } : null;
       if (Array.isArray(snapshot.nextRooms)) this.run.nextRooms = snapshot.nextRooms.map((room) => ({ ...room }));
       if (snapshot.currentRoom) {
         this.run.currentRoom = { ...(this.run.currentRoom || {}), ...snapshot.currentRoom };
@@ -3099,6 +3330,7 @@
       }
       if (Array.isArray(snapshot.enemies)) this.run.enemies = this.mergeNetworkActors(this.run.enemies, snapshot.enemies, 620);
       if (Array.isArray(snapshot.hazards)) this.run.hazards = snapshot.hazards.map((hazard) => ({ ...hazard }));
+      if (Array.isArray(snapshot.roomObjects)) this.run.roomObjects = snapshot.roomObjects.map((object) => ({ ...object }));
       if (Array.isArray(snapshot.pickups)) this.run.pickups = snapshot.pickups.map((pickup) => ({ ...pickup }));
       if (Array.isArray(snapshot.projectiles)) this.run.projectiles = snapshot.projectiles.map((projectile) => ({ ...projectile }));
       if (Array.isArray(snapshot.drones)) this.run.drones = snapshot.drones.map((drone) => ({ ...drone }));
@@ -3178,6 +3410,7 @@
         comboTimer: 0,
         invuln: 0,
         guardianParry: 0,
+        energyRegenDelay: 0,
         dashTime: 0,
         dashCd: 0,
         dashVector: { x: 1, y: 0 },
@@ -3248,6 +3481,16 @@
         player.crit += 0.08;
         player.stats.rewardLuck += 0.15;
       }
+      if (item.id === "merchantEdge") {
+        player.damage += 5;
+        player.crit += 0.05;
+      }
+      if (item.id === "riftLedger") player.stats.rewardLuck += 0.18;
+      if (item.id === "azurePermit") {
+        player.maxEnergy += 18;
+        player.energy += 18;
+        player.damage += 2;
+      }
     }
 
     startRoom(room) {
@@ -3279,15 +3522,20 @@
       this.run.shockwaves = [];
       this.run.trails = [];
       this.run.delayedStrikes = [];
+      this.run.roomObjects = [];
+      this.run.merchantOffers = [];
       this.run.player.x = WORLD_W / 2;
       this.run.player.y = WORLD_H / 2;
       this.run.player.invuln = 1;
       this.run.player.pendingBasicAttack = null;
-      if (type === "curse") this.applyCurse(pick(CURSES));
       if (type === "healing") this.healPlayer(55);
       this.spawnHazards();
-      this.spawnRoomEnemies(type);
-      if (this.run.enemies.length === 0 || ["treasure", "merchant", "healing", "secret"].includes(type)) {
+      if (type === "treasure") this.spawnTreasureChest();
+      else if (type === "merchant") this.spawnMerchantStall();
+      else if (type === "curse") this.spawnCurseBook();
+      else if (type === "boss") this.spawnBossGate();
+      else this.spawnRoomEnemies(type);
+      if (this.run.enemies.length === 0 && ["healing", "secret"].includes(type)) {
         this.run.roomClearTimer = 0.6;
       }
       this.toast(`${this.run.biome.name}: ${this.run.currentRoom.label || title(type)}`);
@@ -3298,11 +3546,18 @@
       if (curse.id === "halfHp") {
         this.run.player.hp = Math.min(this.run.player.hp, Math.ceil(this.run.player.maxHp * 0.5));
       }
+      if (curse.id === "glassMight") {
+        this.run.player.hp = Math.min(this.run.player.hp, Math.ceil(this.run.player.maxHp * 0.7));
+      }
+      if (curse.id === "ironPulse") {
+        this.run.player.shield = Math.max(this.run.player.shield || 0, 28 + this.run.stage * 6);
+      }
       this.toast(`Nguyền rủa: ${curse.name}`);
     }
 
     spawnHazards() {
       const biome = this.run.biome;
+      if (["treasure", "merchant", "curse", "healing"].includes(this.run.currentRoom.type)) return;
       const count = this.run.currentRoom.type === "boss" ? 8 : 4 + this.run.stage;
       for (let i = 0; i < count; i++) {
         this.run.hazards.push({
@@ -3325,12 +3580,83 @@
       let count = 5 + this.run.stage + Math.floor(this.run.roomNumber / 2);
       if (type === "elite") count += 3;
       if (type === "challenge") count += 5;
+      count += this.run.difficulty?.countBonus || 0;
       if (["treasure", "healing", "merchant", "secret"].includes(type)) count = type === "secret" ? 2 : 0;
+      count = Math.max(0, count);
       for (let i = 0; i < count; i++) {
         const edge = pick(["top", "bottom", "left", "right"]);
         const pos = this.edgePosition(edge);
         this.run.enemies.push(this.createEnemy(pick(biome.enemies), pos.x, pos.y, type === "elite" || chance(0.12)));
       }
+    }
+
+    addRoomObject(type, data = {}) {
+      const object = {
+        id: uid(type),
+        type,
+        x: WORLD_W / 2,
+        y: ROOM_PAD + 220,
+        radius: 46,
+        grow: 0,
+        opened: false,
+        active: true,
+        ...data
+      };
+      this.run.roomObjects.push(object);
+      return object;
+    }
+
+    spawnTreasureChest() {
+      this.addRoomObject("treasureChest", {
+        y: ROOM_PAD + 245,
+        radius: 48,
+        color: "#f2bf63",
+        label: "Rương Kho Báu",
+        effect: "gold"
+      });
+    }
+
+    spawnBossGate() {
+      this.run.currentRoom.started = false;
+      this.addRoomObject("bossGate", {
+        y: WORLD_H / 2 - 40,
+        radius: 82,
+        color: this.run.biome.accent,
+        label: "Cổng Trùm",
+        effect: "boss"
+      });
+    }
+
+    spawnBossExit(x = WORLD_W / 2, y = WORLD_H / 2 + 120) {
+      this.addRoomObject("bossExit", {
+        x: clamp(x + 120, ROOM_PAD + 120, WORLD_W - ROOM_PAD - 120),
+        y: clamp(y, ROOM_PAD + 130, WORLD_H - ROOM_PAD - 130),
+        radius: 62,
+        color: "#f2bf63",
+        label: "Cổng Phần Thưởng",
+        effect: "gold"
+      });
+    }
+
+    spawnMerchantStall() {
+      this.run.merchantOffers = this.rollMerchantOffers();
+      this.addRoomObject("merchantStall", {
+        y: WORLD_H / 2 - 20,
+        radius: 58,
+        color: "#35d6c9",
+        label: "Quầy Thương Nhân",
+        effect: "merchant"
+      });
+    }
+
+    spawnCurseBook() {
+      this.addRoomObject("curseBook", {
+        y: WORLD_H / 2 - 30,
+        radius: 50,
+        color: "#a169ff",
+        label: "Sách Nguyền",
+        effect: "curse"
+      });
     }
 
     edgePosition(edge) {
@@ -3369,10 +3695,10 @@
         vx: 0,
         vy: 0,
         radius: elite ? size + 7 : size,
-        hp: (hpBase + this.run.stage * 20) * (elite ? 2.25 : 1),
-        maxHp: (hpBase + this.run.stage * 20) * (elite ? 2.25 : 1),
+        hp: (hpBase + this.run.stage * 20) * (elite ? 2.25 : 1) * (this.run.difficulty?.enemyHp || 1),
+        maxHp: (hpBase + this.run.stage * 20) * (elite ? 2.25 : 1) * (this.run.difficulty?.enemyHp || 1),
         speed: speedBase * (elite ? 1.04 : 1),
-        damage: damageBase + this.run.stage * 3.4,
+        damage: (damageBase + this.run.stage * 3.4) * (this.run.difficulty?.enemyDamage || 1),
         role,
         ranged,
         bulky,
@@ -3412,10 +3738,10 @@
         vx: 0,
         vy: 0,
         radius: 58,
-        hp: 780 + this.run.stage * 240,
-        maxHp: 780 + this.run.stage * 240,
+        hp: (780 + this.run.stage * 240) * (this.run.difficulty?.enemyHp || 1),
+        maxHp: (780 + this.run.stage * 240) * (this.run.difficulty?.enemyHp || 1),
         speed: 62 + this.run.stage * 5,
-        damage: 28 + this.run.stage * 6,
+        damage: (28 + this.run.stage * 6) * (this.run.difficulty?.enemyDamage || 1),
         ranged: true,
         bulky: true,
         elite: true,
@@ -3457,6 +3783,7 @@
       this.updatePlayer(worldDt);
       this.updateDrones(worldDt);
       this.updateHazards(worldDt);
+      this.updateRoomObjects(worldDt);
       this.updateDelayedStrikes(worldDt);
       if (!this.isMultiplayerClient()) this.updateEnemies(worldDt);
       this.updateProjectiles(worldDt);
@@ -3472,9 +3799,17 @@
     ensureRoomClearState(dt) {
       const room = this.run?.currentRoom;
       if (!room || room.cleared || room.intro > 0 || this.run.enemies.length > 0) return;
+      if (this.roomNeedsObjectInteraction(room)) return;
       if (!Number.isFinite(this.run.roomClearTimer) || this.run.roomClearTimer <= 0) this.run.roomClearTimer = 0.35;
       this.run.roomClearTimer -= Math.max(0.016, dt || 0);
       if (this.run.roomClearTimer <= 0) this.clearRoom();
+    }
+
+    roomNeedsObjectInteraction(room = this.run?.currentRoom) {
+      if (!room) return false;
+      if (["treasure", "merchant", "curse"].includes(room.type)) return !room.rewardClaimed && !room.nextOpened;
+      if (room.type === "boss") return !room.rewardClaimed;
+      return false;
     }
 
     updateCamera(dt) {
@@ -3508,7 +3843,9 @@
       p.attackCd = Math.max(0, p.attackCd - dt);
       this.updatePendingBasicAttack(p, dt);
       p.dashCd = Math.max(0, p.dashCd - dt);
-      p.energy = Math.min(p.maxEnergy, p.energy + dt * 18);
+      p.energyRegenDelay = Math.max(0, (p.energyRegenDelay || 0) - dt);
+      const regenRate = (this.run.curse?.id === "manaDebt" ? 5.2 : 7.6) + (this.run.power.id === "time" ? 1.2 : 0);
+      if (p.energyRegenDelay <= 0) p.energy = Math.min(p.maxEnergy, p.energy + dt * regenRate);
       for (const key of Object.keys(p.cooldowns)) p.cooldowns[key] = Math.max(0, p.cooldowns[key] - dt);
 
       let mx = 0;
@@ -3600,6 +3937,7 @@
       p.dashTime = 0.18;
       p.dashCd = this.run.power.id === "time" ? 0.48 : 0.7;
       p.energy -= 12;
+      p.energyRegenDelay = Math.max(p.energyRegenDelay || 0, 0.65);
       p.facing = Math.atan2(dy, dx);
       this.camera.shake = Math.max(this.camera.shake, 3);
       this.audio.sfx(160, "sawtooth", 0.05, 0.08);
@@ -3615,8 +3953,13 @@
       if (!p || p.attackCd > 0 || this.run.currentRoom.intro > 0) return;
       const character = characterById(p.characterId);
       const angle = this.basicAimAngle(p);
+      const mageBasicCost = 7;
+      if (character.id === "mage" && p.energy < mageBasicCost) {
+        this.toast("Không đủ năng lượng");
+        return;
+      }
       p.facing = angle;
-      p.attackCd = p.basicAttackCd || character.stats.attackCd;
+      p.attackCd = (p.basicAttackCd || character.stats.attackCd) * (this.run.curse?.id === "ironPulse" ? 1.14 : 1);
       p.animation = "attack";
       p.actionTotal = character.id === "guardian" ? 0.7 : character.id === "mage" ? 0.6 : character.id === "ranger" ? 0.72 : character.id === "assassin" ? 0.44 : 0.58;
       p.actionTime = p.actionTotal;
@@ -3625,6 +3968,8 @@
       this.addAttackDust(p.x + Math.cos(angle) * 24, p.y + Math.sin(angle) * 24, angle, character.id === "guardian");
       if (this.isMultiplayerClient() && character.id !== "ranger") this.sendBasicAttackPacket(character, p, angle);
       if (character.id === "mage") {
+        p.energy = Math.max(0, p.energy - mageBasicCost);
+        p.energyRegenDelay = Math.max(p.energyRegenDelay || 0, 0.78);
         this.basicMageAttack(p, angle);
         return;
       }
@@ -3963,6 +4308,7 @@
       if (key !== "f" && (p.cooldowns[key] > 0 || p.energy < cost)) return;
       if (key === "f" && (p.cooldowns.f > 0 || p.ult < 100)) return;
       if (key !== "f") p.energy -= cost;
+      p.energyRegenDelay = Math.max(p.energyRegenDelay || 0, key === "r" ? 1.45 : key === "e" ? 1.25 : 1.05);
       p.cooldowns[key] = cooldown;
       p.animation = key === "f" ? "ultimate" : "skill";
       p.actionTotal = key === "f" ? 0.72 : key === "r" ? 0.48 : 0.38;
@@ -4075,7 +4421,7 @@
       const remote = Boolean(options.remote);
       const x = caster.x;
       const y = caster.y;
-      const damage = Math.max(8, options.damage || caster.damage || this.run.player.damage);
+      const damage = Math.max(8, options.damage || caster.damage || this.run.player.damage) * (this.run.curse?.id === "manaDebt" ? 1.18 : 1);
       const tx = target?.x ?? x + Math.cos(angle) * 240;
       const ty = target?.y ?? y + Math.sin(angle) * 240;
       const forwardX = x + Math.cos(angle) * 145;
@@ -4451,6 +4797,7 @@
       const crit = chance(p.crit + (options.source === "ultimate" ? 0.25 : 0) + (Number(options.critBonus) || 0));
       let damage = amount * (crit ? 2 : 1);
       if (this.run.curse?.id === "doubleDamage") damage *= 2;
+      if (this.run.curse?.id === "glassMight") damage *= 1.22;
       if (this.run.curse?.id === "explosive" && p.combo % 5 === 0) {
         this.addShockwave(enemy.x, enemy.y, 120, "#ff8d3d", 32);
       }
@@ -4585,6 +4932,7 @@
       if (p.invuln > 0) return;
       let damage = amount;
       if (this.run.curse?.id === "doubleDamage") damage *= 2;
+      if (this.run.curse?.id === "ironPulse") damage *= 0.76;
       let absorbed = 0;
       if (p.shield > 0) {
         absorbed = Math.min(p.shield, damage);
@@ -4636,21 +4984,53 @@
       for (let i = 0; i < 16 * this.save.settings.particles; i++) {
         this.addParticle(enemy.x + rand(-enemy.radius, enemy.radius), enemy.y + rand(-enemy.radius, enemy.radius), enemy.boss ? "#f2bf63" : this.run.power.color, rand(8, 24), rand(0.25, 0.7), "spark");
       }
-      if (enemy.boss) this.onBossDefeated(enemy);
-      else if (chance(0.08)) this.run.pickups.push({ x: enemy.x, y: enemy.y, type: "heal", radius: 12, life: 8 });
+      if (enemy.boss) {
+        this.onBossDefeated(enemy);
+        return;
+      } else if (chance(0.08)) this.run.pickups.push({ x: enemy.x, y: enemy.y, type: "heal", radius: 12, life: 8 });
       if (this.run.enemies.length === 0 && !this.run.currentRoom?.cleared) {
         this.spawnRoomReward(enemy.x, enemy.y);
         this.run.roomClearTimer = 0.35;
       }
     }
 
-    onBossDefeated() {
+    onBossDefeated(enemy = null) {
       this.save.progression.bossesDefeated += 1;
       this.save.materials.bossCore += 1;
       if (chance(0.35)) this.save.materials.divineSpark += 1;
       this.save.achievements.bossBreaker = true;
       this.persist();
-      this.addShockwave(WORLD_W / 2, WORLD_H / 2, 520, "#f2bf63", 88);
+      if (this.run.currentRoom) this.run.currentRoom.bossDefeated = true;
+      const x = enemy?.x ?? WORLD_W / 2;
+      const y = enemy?.y ?? WORLD_H / 2;
+      this.spawnBossExit(x, y);
+      this.addShockwave(x, y, 520, "#f2bf63", 88);
+      this.toast("Boss gục xuống. Cổng thưởng đã mở.");
+    }
+
+    claimBossExitReward() {
+      const room = this.run?.currentRoom;
+      if (!room || room.rewardDropped) return;
+      room.bossExitOpened = true;
+      this.spawnRoomReward(this.run.player.x, this.run.player.y);
+      this.clearRoom();
+      this.addShockwave(this.run.player.x, this.run.player.y, 210, "#f2bf63", 0);
+    }
+
+    advanceToNextStageAfterBoss() {
+      if (this.run.currentRoom?.advancing) return;
+      if (this.run.currentRoom) this.run.currentRoom.advancing = true;
+      this.run.stage += 1;
+      if (this.run.stage >= BIOMES.length) {
+        this.showVictory();
+        return;
+      }
+      this.run.biome = BIOMES[this.run.stage];
+      this.audio.setBiome(this.run.biome);
+      this.run.roomNumber = 0;
+      this.run.nextRooms = [];
+      this.toast(`Tiến vào ${this.run.biome.name}`);
+      this.startRoom({ type: "normal", label: "Phòng Thường", icon: "X", color: "#c9d0db" });
     }
 
     clearRoom() {
@@ -4710,8 +5090,8 @@
     rollRoomReward() {
       const luck = this.run.player.stats.rewardLuck || 0;
       const room = this.run.currentRoom.type;
-      const difficulty = this.roomDifficulty(room);
-      const itemChance = room === "boss" ? 1 : clamp(0.12 + difficulty * 0.72 + luck * 0.5, 0.08, 0.88);
+      const difficulty = this.roomDifficulty(room) + (this.run.difficulty?.rewardBonus || 0);
+      const itemChance = room === "boss" ? 1 : room === "treasure" ? clamp(0.74 + luck * 0.35, 0.68, 0.94) : clamp(0.12 + difficulty * 0.72 + luck * 0.5, 0.08, 0.88);
       if (chance(itemChance)) return { type: "item", item: this.rollItemForRoom(difficulty, luck), difficulty };
       if (chance(0.46 + difficulty * 0.14)) {
         return {
@@ -4813,9 +5193,46 @@
             this.toast("Chờ chủ phòng chọn phòng tiếp theo");
             return;
           }
-          if (this.prepareNextRooms()) this.showMapOverlay();
+          if (this.prepareNextRooms()) this.spawnNextRoomDoors();
         }
       }, 350);
+    }
+
+    doorEffectFor(room) {
+      if (room.type === "treasure") return "gold";
+      if (room.type === "merchant") return "merchant";
+      if (room.type === "curse") return "curse";
+      if (room.type === "boss") return "boss";
+      if (room.type === "healing") return "leaf";
+      if (this.run.biome.id === "forest") return "leaf";
+      if (this.run.biome.id === "frozen") return "snow";
+      if (this.run.biome.id === "temple") return "sand";
+      if (this.run.biome.id === "lava") return "ember";
+      if (this.run.biome.id === "neon") return "spark";
+      return "spark";
+    }
+
+    spawnNextRoomDoors() {
+      if (!this.run?.nextRooms?.length) return;
+      const doors = this.run.nextRooms;
+      const spacing = doors.length > 2 ? 170 : 210;
+      const baseX = WORLD_W / 2 - ((doors.length - 1) * spacing) / 2;
+      const y = ROOM_PAD + 135;
+      this.run.roomObjects = this.run.roomObjects.filter((object) => object.type !== "nextDoor");
+      doors.forEach((room, index) => {
+        this.addRoomObject("nextDoor", {
+          x: baseX + index * spacing,
+          y,
+          radius: room.type === "boss" ? 66 : 54,
+          roomType: room.type,
+          label: room.label,
+          icon: room.icon,
+          color: room.color,
+          effect: this.doorEffectFor(room)
+        });
+      });
+      this.addShockwave(WORLD_W / 2, y, 220, this.run.biome.accent, 0);
+      this.toast("Cửa khu tiếp theo đã mọc lên ở phía trên bản đồ");
     }
 
     roomDifficulty(type) {
@@ -4848,10 +5265,21 @@
       const order = ["common", "rare", "epic", "legendary", "mythic", "divine"];
       const start = Math.max(0, order.indexOf(rarity));
       for (let i = start; i >= 0; i--) {
-        const lower = ITEMS.filter((item) => item.rarity === order[i]);
+        const lower = ITEMS.filter((item) => item.rarity === order[i] && !item.merchantOnly);
         if (lower.length) return pick(lower);
       }
-      return pick(ITEMS.filter((item) => item.rarity === "rare"));
+      return pick(ITEMS.filter((item) => item.rarity === "rare" && !item.merchantOnly));
+    }
+
+    rollMerchantItemForRoom(difficulty = 0, luck = 0) {
+      const rarity = this.rollRarityForDifficulty(difficulty + 0.1, luck);
+      const order = ["rare", "epic", "legendary", "mythic", "divine"];
+      const start = Math.max(0, order.indexOf(rarity));
+      for (let i = Math.max(start, 0); i >= 0; i--) {
+        const pool = ITEMS.filter((item) => item.merchantOnly && item.rarity === order[i]);
+        if (pool.length) return pick(pool);
+      }
+      return pick(ITEMS.filter((item) => item.merchantOnly));
     }
 
     showReward() {
@@ -4902,6 +5330,110 @@
       `;
     }
 
+    rollMerchantOffers() {
+      const mats = ["emberGlass", "frostCore", "stormThread", "bloodAmber"];
+      const offers = [];
+      const usedItems = new Set();
+      for (let i = 0; i < 4; i++) {
+        const difficulty = clamp(0.62 + this.run.stage * 0.12 + i * 0.06, 0.55, 1.25);
+        const reward = i < 3
+          ? { type: "item", item: this.rollMerchantItemForRoom(difficulty, 0.08), difficulty }
+          : { type: "upgrade", stat: pick(["damage", "hp", "energy", "crit", "skill"]), rarity: this.rollRarityForDifficulty(difficulty, 0.1) };
+        if (reward.type === "item") {
+          for (let tries = 0; usedItems.has(reward.item.id) && tries < 8; tries++) reward.item = this.rollMerchantItemForRoom(difficulty, 0.08);
+          usedItems.add(reward.item.id);
+        }
+        const priceMaterial = pick(mats);
+        const rarity = reward.type === "item" ? reward.item.rarity : reward.rarity;
+        const rarityCost = { common: 3, rare: 5, epic: 8, legendary: 12, mythic: 16, divine: 22 }[rarity] || 6;
+        offers.push({
+          id: uid("offer"),
+          reward,
+          priceMaterial,
+          price: Math.max(2, rarityCost + this.run.stage * 2 + i),
+          bought: false
+        });
+      }
+      return offers;
+    }
+
+    merchantOfferHtml(offer, index) {
+      const reward = offer.reward;
+      const color = this.rewardColor(reward);
+      const owned = this.save.materials[offer.priceMaterial] || 0;
+      const canBuy = owned >= offer.price && !offer.bought;
+      const illustration = reward.type === "item"
+        ? this.itemIllustration(reward.item)
+        : `<div class="mini-ill upgrade-ill" style="--ill:${color}"><span>+</span></div>`;
+      const titleText = this.rewardLabel(reward);
+      const detail = reward.type === "item"
+        ? `${slotLabel(reward.item.slot)} - ${RARITY[reward.item.rarity].label}`
+        : `${RARITY[reward.rarity].label} - tăng ngay trong lượt chơi`;
+      return `
+        <div class="reward-card shop-offer" style="border-color:${color}">
+          ${illustration}
+          <div>
+            <h3>${titleText}</h3>
+            <p>${detail}</p>
+            <p class="small">${reward.type === "item" ? reward.item.text : "Vật phẩm đặc biệt của thương nhân, không xuất hiện trong chọn thưởng."}</p>
+          </div>
+          <div class="shop-price">
+            <span>${materialLabel(offer.priceMaterial)} ${owned}/${offer.price}</span>
+            <button class="btn primary" data-action="buy-merchant-offer" data-offer="${index}" ${canBuy ? "" : "disabled"}>${offer.bought ? "ĐÃ MUA" : "MUA"}</button>
+          </div>
+        </div>
+      `;
+    }
+
+    showMerchantShop() {
+      if (!this.run) return;
+      this.mode = "merchant";
+      if (!this.run.merchantOffers?.length) this.run.merchantOffers = this.rollMerchantOffers();
+      const offers = this.run.merchantOffers.map((offer, index) => this.merchantOfferHtml(offer, index)).join("");
+      this.setScreen(`
+        <section class="wide-panel">
+          <div class="panel-header">
+            <div>
+              <h2 class="panel-title">Thương Nhân Khe Nứt</h2>
+              <p class="panel-subtitle">Vật phẩm và trang bị đặc biệt chỉ bán trong phòng này.</p>
+            </div>
+            <button class="btn" data-action="leave-merchant">RỜI QUẦY</button>
+          </div>
+          <div class="grid">${offers}</div>
+        </section>
+      `);
+    }
+
+    buyMerchantOffer(index) {
+      const offer = this.run?.merchantOffers?.[Number(index)];
+      if (!offer || offer.bought) return;
+      const owned = this.save.materials[offer.priceMaterial] || 0;
+      if (owned < offer.price) {
+        this.toast("Không đủ nguyên liệu");
+        return;
+      }
+      this.save.materials[offer.priceMaterial] = owned - offer.price;
+      offer.bought = true;
+      this.grantReward(offer.reward);
+      this.persist();
+      this.showMerchantShop();
+    }
+
+    completeMerchantRoom() {
+      if (!this.run?.currentRoom) return;
+      if (this.isMultiplayerClient()) {
+        this.resumeGame();
+        return;
+      }
+      for (const object of this.run.roomObjects || []) {
+        if (object.type === "merchantStall") object.opened = true;
+      }
+      this.run.currentRoom.rewardDropped = true;
+      this.run.currentRoom.rewardClaimed = true;
+      this.clearRoom();
+      this.resumeGame();
+    }
+
     claimReward(index) {
       const reward = this.run.rewardQueue[Number(index)];
       if (!reward) return;
@@ -4946,7 +5478,13 @@
       for (let i = 0; i < 14 * this.save.settings.particles; i++) {
         this.addParticle(pickup.x, pickup.y, color, rand(8, 20), rand(0.3, 0.75), i % 3 === 0 ? "ring" : "spark");
       }
-      if (this.run.currentRoom?.cleared) this.openNextRoomsAfterReward();
+      if (this.run.currentRoom?.cleared) {
+        if (!this.isMultiplayerClient() && this.run.currentRoom.type === "boss" && this.run.currentRoom.bossExitOpened && this.run.currentRoom.rewardClaimed) {
+          this.advanceToNextStageAfterBoss();
+        } else {
+          this.openNextRoomsAfterReward();
+        }
+      }
     }
 
     handleRemoteCollect(remoteId, pickupId) {
@@ -4959,7 +5497,10 @@
       this.run.currentRoom.rewardClaims ||= {};
       this.run.currentRoom.rewardClaims[remoteId] = true;
       this.run.currentRoom.rewardClaimed = this.allRewardOwnersClaimed();
-      if (this.run.currentRoom.rewardClaimed) this.openNextRoomsAfterReward();
+      if (this.run.currentRoom.rewardClaimed) {
+        if (this.run.currentRoom.type === "boss" && this.run.currentRoom.bossExitOpened) this.advanceToNextStageAfterBoss();
+        else this.openNextRoomsAfterReward();
+      }
     }
 
     applyUpgrade(reward) {
@@ -5243,17 +5784,17 @@
         if (enemy.skillCd <= 0 && d < 620) {
           if (enemy.role === "bomber") {
             enemy.skillCd = enemy.elite ? 2.35 : 3.05;
-            this.startEnemyWindup(enemy, "bombZone", enemy.elite ? 0.58 : 0.72, a, p.x, p.y);
+            this.startEnemyWindup(enemy, chance(0.42) ? "mineScatter" : "bombZone", enemy.elite ? 0.58 : 0.72, a, p.x, p.y);
             return;
           }
           if (enemy.role === "marksman") {
             enemy.skillCd = enemy.elite ? 2.0 : 2.6;
-            this.startEnemyWindup(enemy, "lineShot", enemy.elite ? 0.42 : 0.55, a);
+            this.startEnemyWindup(enemy, chance(0.38) ? "spreadShot" : "lineShot", enemy.elite ? 0.42 : 0.55, a);
             return;
           }
           if (enemy.role === "caster") {
             enemy.skillCd = enemy.elite ? 2.2 : 2.9;
-            this.startEnemyWindup(enemy, "casterZone", enemy.elite ? 0.62 : 0.78, a, p.x, p.y);
+            this.startEnemyWindup(enemy, chance(0.36) ? "orbNova" : "casterZone", enemy.elite ? 0.62 : 0.78, a, p.x, p.y);
             return;
           }
         }
@@ -5276,12 +5817,12 @@
         if (enemy.skillCd <= 0) {
           if (enemy.role === "skirmisher" && d > contact + 35 && d < contact + 175) {
             enemy.skillCd = enemy.elite ? 1.55 : 2.05;
-            this.startEnemyWindup(enemy, "skirmisherDash", enemy.elite ? 0.24 : 0.32, a);
+            this.startEnemyWindup(enemy, chance(0.34) ? "feintDash" : "skirmisherDash", enemy.elite ? 0.24 : 0.32, a);
             return;
           }
           if (enemy.role === "brute" && d > contact + 55 && d < 360) {
             enemy.skillCd = enemy.elite ? 2.45 : 3.1;
-            this.startEnemyWindup(enemy, "charge", enemy.elite ? 0.44 : 0.58, a);
+            this.startEnemyWindup(enemy, chance(0.35) ? "quake" : "charge", enemy.elite ? 0.44 : 0.58, a, p.x, p.y);
             return;
           }
           if (enemy.role === "guard" && d < contact + 115) {
@@ -5291,7 +5832,7 @@
           }
           if (enemy.role === "duelist" && d < contact + 135) {
             enemy.skillCd = enemy.elite ? 1.8 : 2.35;
-            this.startEnemyWindup(enemy, "duelistSlash", enemy.elite ? 0.28 : 0.36, a);
+            this.startEnemyWindup(enemy, chance(0.36) ? "crossSlash" : "duelistSlash", enemy.elite ? 0.28 : 0.36, a);
             return;
           }
         }
@@ -5346,16 +5887,35 @@
       if (type === "lineShot") {
         this.addEffect({ type: "lineTell", x: enemy.x, y: enemy.y, angle, length: enemy.elite ? 640 : 560, width: enemy.elite ? 34 : 26, time, maxTime: time, color });
       }
+      if (type === "spreadShot") {
+        for (let i = -1; i <= 1; i++) {
+          this.addEffect({ type: "lineTell", x: enemy.x, y: enemy.y, angle: angle + i * 0.22, length: enemy.elite ? 520 : 460, width: enemy.elite ? 24 : 20, time, maxTime: time, color });
+        }
+      }
       if (type === "charge") {
         this.addEffect({ type: "lineTell", x: enemy.x, y: enemy.y, angle, length: enemy.elite ? 310 : 250, width: enemy.elite ? 44 : 36, time, maxTime: time, color: "#ff8d3d" });
+      }
+      if (type === "quake") {
+        this.addEffect({ type: "danger", x: enemy.x, y: enemy.y, radius: enemy.elite ? 132 : 108, time, color: "#ff8d3d", damage: enemy.damage * 0.66 });
       }
       if (type === "casterZone") {
         const radius = enemy.elite ? 92 : 74;
         this.addEffect({ type: "danger", x: targetX, y: targetY, radius, time: time + 0.08, color: "#ff4b55", damage: enemy.damage * 0.82 });
       }
+      if (type === "orbNova") {
+        this.addEffect({ type: "danger", x: enemy.x, y: enemy.y, radius: enemy.elite ? 118 : 96, time, color, damage: enemy.damage * 0.45 });
+      }
       if (type === "bombZone") {
         const radius = enemy.elite ? 104 : 86;
         this.addEffect({ type: "danger", x: targetX, y: targetY, radius, time: time + 0.12, color: "#ff8d3d", damage: enemy.damage * 0.72 });
+      }
+      if (type === "mineScatter") {
+        for (let i = 0; i < 3; i++) {
+          const a = angle + (i - 1) * 0.62;
+          const x = targetX + Math.cos(a) * (42 + i * 18);
+          const y = targetY + Math.sin(a) * (42 + i * 18);
+          this.addEffect({ type: "danger", x, y, radius: enemy.elite ? 70 : 58, time: time + 0.18 + i * 0.05, color: "#ff8d3d", damage: enemy.damage * 0.46 });
+        }
       }
       if (type === "guardSlam") {
         this.addEffect({
@@ -5371,8 +5931,16 @@
       if (type === "duelistSlash") {
         this.addEffect({ type: "lineTell", x: enemy.x, y: enemy.y, angle, length: enemy.elite ? 170 : 135, width: enemy.elite ? 58 : 46, time, maxTime: time, color: "#f3ead7" });
       }
+      if (type === "crossSlash") {
+        for (const offset of [-0.42, 0.42]) {
+          this.addEffect({ type: "lineTell", x: enemy.x, y: enemy.y, angle: angle + offset, length: enemy.elite ? 178 : 146, width: enemy.elite ? 48 : 38, time, maxTime: time, color: "#f3ead7" });
+        }
+      }
       if (type === "skirmisherDash") {
         this.addEffect({ type: "lineTell", x: enemy.x, y: enemy.y, angle, length: enemy.elite ? 190 : 160, width: enemy.elite ? 40 : 32, time, maxTime: time, color: "#dfe6ef" });
+      }
+      if (type === "feintDash") {
+        this.addEffect({ type: "lineTell", x: enemy.x, y: enemy.y, angle, length: enemy.elite ? 230 : 190, width: enemy.elite ? 34 : 28, time, maxTime: time, color: "#dfe6ef" });
       }
     }
 
@@ -5396,6 +5964,26 @@
           kind: "enemySniper"
         });
       }
+      if (type === "spreadShot") {
+        const count = enemy.elite ? 5 : 3;
+        const spread = enemy.elite ? 0.18 : 0.24;
+        for (let i = 0; i < count; i++) {
+          const a = angle + (i - (count - 1) / 2) * spread;
+          this.spawnProjectile({
+            owner: "enemy",
+            x: enemy.x + Math.cos(a) * enemy.radius,
+            y: enemy.y + Math.sin(a) * enemy.radius,
+            vx: Math.cos(a) * (enemy.elite ? 430 : 390),
+            vy: Math.sin(a) * (enemy.elite ? 430 : 390),
+            radius: enemy.elite ? 7 : 6,
+            damage: enemy.damage * 0.48,
+            life: 2.0,
+            color: enemy.elite ? "#ffbd5e" : this.run.biome.accent,
+            pierce: 0,
+            kind: "enemySpread"
+          });
+        }
+      }
       if (type === "charge") {
         enemy.chargeTime = enemy.elite ? 0.5 : 0.42;
         enemy.chargeDir = angle;
@@ -5403,12 +5991,24 @@
         enemy.chargeSpeed = enemy.elite ? 380 : 330;
         enemy.chargeDamage = 0.72;
       }
+      if (type === "quake") {
+        enemy.vx -= Math.cos(angle) * 120;
+        enemy.vy -= Math.sin(angle) * 120;
+        this.addShockwave(enemy.x, enemy.y, enemy.elite ? 145 : 118, "#ff8d3d", 0);
+      }
       if (type === "skirmisherDash") {
         enemy.chargeTime = enemy.elite ? 0.34 : 0.28;
         enemy.chargeDir = angle;
         enemy.chargeHit = false;
         enemy.chargeSpeed = enemy.elite ? 430 : 385;
         enemy.chargeDamage = 0.5;
+      }
+      if (type === "feintDash") {
+        enemy.chargeTime = enemy.elite ? 0.42 : 0.34;
+        enemy.chargeDir = Math.atan2(player.y - enemy.y, player.x - enemy.x);
+        enemy.chargeHit = false;
+        enemy.chargeSpeed = enemy.elite ? 400 : 350;
+        enemy.chargeDamage = 0.44;
       }
       if (type === "guardSlam") {
         this.addShockwave(enemy.x + Math.cos(angle) * 58, enemy.y + Math.sin(angle) * 58, enemy.elite ? 110 : 88, "#f4d26f", 0);
@@ -5426,9 +6026,41 @@
           this.damageCombatTarget(player, enemy.damage * 0.68, enemy);
         }
       }
+      if (type === "crossSlash") {
+        const dx = player.x - enemy.x;
+        const dy = player.y - enemy.y;
+        const d = Math.hypot(dx, dy);
+        const targetAngle = Math.atan2(dy, dx);
+        for (const offset of [-0.42, 0.42]) {
+          if (d < enemy.radius + player.radius + 102 && Math.abs(angleDelta(targetAngle, angle + offset)) < Math.PI * 0.28) {
+            this.damageCombatTarget(player, enemy.damage * 0.46, enemy);
+          }
+        }
+        enemy.vx += -Math.sin(angle) * (enemy.elite ? 150 : 105);
+        enemy.vy += Math.cos(angle) * (enemy.elite ? 150 : 105);
+      }
       if (type === "casterZone" || type === "bombZone") {
         for (let i = 0; i < 8; i++) {
           this.addParticle(enemy.windupX + rand(-34, 34), enemy.windupY + rand(-34, 34), this.run.biome.accent, rand(8, 18), rand(0.25, 0.55), "spark");
+        }
+      }
+      if (type === "orbNova") {
+        const count = enemy.elite ? 8 : 6;
+        for (let i = 0; i < count; i++) {
+          const a = (i / count) * TAU + angle * 0.2;
+          this.spawnProjectile({
+            owner: "enemy",
+            x: enemy.x + Math.cos(a) * enemy.radius,
+            y: enemy.y + Math.sin(a) * enemy.radius,
+            vx: Math.cos(a) * (enemy.elite ? 245 : 215),
+            vy: Math.sin(a) * (enemy.elite ? 245 : 215),
+            radius: enemy.elite ? 9 : 8,
+            damage: enemy.damage * 0.42,
+            life: 2.7,
+            color: this.run.biome.accent,
+            pierce: 0,
+            kind: "enemyOrb"
+          });
         }
       }
     }
@@ -5657,6 +6289,76 @@
         }
       }
       return best;
+    }
+
+    updateRoomObjects(dt) {
+      if (!this.run?.roomObjects?.length) return;
+      const p = this.run.player;
+      for (const object of this.run.roomObjects) {
+        object.grow = clamp((object.grow || 0) + dt * 1.9, 0, 1);
+        if (object.opened || object.locked) continue;
+        const touchRadius = object.radius * (object.type === "nextDoor" ? 0.82 : 0.72);
+        if (Math.hypot(p.x - object.x, p.y - object.y) > p.radius + touchRadius) continue;
+        this.handleRoomObjectContact(object);
+      }
+    }
+
+    handleRoomObjectContact(object) {
+      if (!object || object.opened) return;
+      if (object.type === "nextDoor") {
+        if (this.isMultiplayerClient()) {
+          this.toast("Chờ chủ phòng đi vào cửa tiếp theo");
+          return;
+        }
+        object.opened = true;
+        this.startRoom({
+          type: object.roomType,
+          label: object.label,
+          icon: object.icon,
+          color: object.color
+        });
+        return;
+      }
+      if (object.type === "merchantStall") {
+        this.showMerchantShop();
+        return;
+      }
+      if (this.isMultiplayerClient()) {
+        this.toast("Chờ chủ phòng kích hoạt vật thể này");
+        return;
+      }
+      if (object.type === "treasureChest") {
+        object.opened = true;
+        this.spawnRoomReward(object.x, object.y);
+        this.clearRoom();
+        this.addShockwave(object.x, object.y, 170, object.color || "#f2bf63", 0);
+        this.audio.sfx(520, "triangle", 0.12, 0.12);
+        return;
+      }
+      if (object.type === "bossGate") {
+        object.opened = true;
+        object.active = false;
+        this.run.currentRoom.started = true;
+        this.spawnBoss();
+        this.addShockwave(object.x, object.y, 260, object.color || this.run.biome.accent, 0);
+        this.camera.shake = Math.max(this.camera.shake, 18);
+        this.toast("Trùm đã xuất hiện");
+        return;
+      }
+      if (object.type === "bossExit") {
+        object.opened = true;
+        this.claimBossExitReward();
+        return;
+      }
+      if (object.type === "curseBook") {
+        object.opened = true;
+        this.applyCurse(pick(CURSES));
+        const room = this.run.currentRoom;
+        room.rewardDropped = true;
+        room.rewardClaimed = true;
+        this.clearRoom();
+        this.addShockwave(object.x, object.y, 190, object.color || "#a169ff", 0);
+      }
     }
 
     updateHazards(dt) {
@@ -6054,7 +6756,9 @@
       const room = this.run?.currentRoom;
       if (!room || room.cleared || room.rewardDropped || room.nextOpened) return false;
       if (room.intro > 0.15) return false;
-      return !["treasure", "merchant", "healing"].includes(room.type);
+      if (["treasure", "merchant", "healing", "curse"].includes(room.type)) return false;
+      if (room.type === "boss" && !room.started) return false;
+      return true;
     }
 
     maybeRequestNetworkResync(dt) {
@@ -6155,6 +6859,7 @@
       const energyBar = document.getElementById("energyBar");
       const hpText = document.getElementById("hpText");
       const energyText = document.getElementById("energyText");
+      const cursePill = document.getElementById("cursePill");
       const roomPill = document.getElementById("roomPill");
       const objectivePill = document.getElementById("objectivePill");
       const hpWidth = `${clamp((p.hp / p.maxHp) * 100, 0, 100).toFixed(1)}%`;
@@ -6167,6 +6872,17 @@
       if (energyBar.style.width !== energyWidth) energyBar.style.width = energyWidth;
       if (hpText.textContent !== hpLabel) hpText.textContent = hpLabel;
       if (energyText.textContent !== energyLabel) energyText.textContent = energyLabel;
+      if (cursePill) {
+        if (this.run.curse) {
+          const curseLabel = `${this.run.curse.name}: ${this.run.curse.text}`;
+          cursePill.classList.remove("hidden");
+          cursePill.style.borderColor = this.run.curse.color || "#a169ff";
+          cursePill.style.color = this.run.curse.color || "#e5d6ff";
+          if (cursePill.textContent !== curseLabel) cursePill.textContent = curseLabel;
+        } else {
+          cursePill.classList.add("hidden");
+        }
+      }
       if (roomPill.textContent !== roomLabel) roomPill.textContent = roomLabel;
       if (objectivePill.textContent !== objectiveLabel) objectivePill.textContent = objectiveLabel;
       const now = performance.now();
@@ -6196,9 +6912,16 @@
       const room = this.run?.currentRoom;
       const enemies = this.run?.enemies.length || 0;
       if (enemies > 0) return `Hạ ${enemies} quái`;
+      const activeObject = this.run?.roomObjects?.find((object) => !object.opened && object.type !== "nextDoor");
+      if (activeObject?.type === "treasureChest") return "Chạm rương kho báu";
+      if (activeObject?.type === "bossGate") return "Chạm cổng lớn để gọi boss";
+      if (activeObject?.type === "bossExit") return "Chạm cổng thưởng";
+      if (activeObject?.type === "merchantStall") return "Chạm quầy thương nhân";
+      if (activeObject?.type === "curseBook") return "Chạm sách nguyền";
       if (!room?.cleared) return "Đang ổn định khe nứt";
       if (room.rewardDropped && !room.rewardClaimed) return "Nhặt thưởng";
-      if (room.nextOpened) return "Chọn phòng tiếp";
+      if (this.run?.roomObjects?.some((object) => object.type === "nextDoor")) return "Đi vào một cánh cửa";
+      if (room.nextOpened) return "Chờ cửa khu tiếp theo";
       return "Đã dọn phòng";
     }
 
@@ -6251,6 +6974,7 @@
       this.drawTrails(ctx);
       this.drawHazards(ctx);
       this.drawPickups(ctx);
+      this.drawRoomObjects(ctx);
       this.drawEffects(ctx);
       for (const projectile of this.run.projectiles) this.drawProjectile(ctx, projectile);
       for (const drone of this.run.drones) this.drawDrone(ctx, drone);
@@ -6410,6 +7134,217 @@
       }
     }
 
+    drawRoomObjects(ctx) {
+      const objects = this.run.roomObjects || [];
+      for (const object of objects) {
+        if (!this.inView(object.x, object.y, (object.radius || 50) + 180)) continue;
+        if (object.type === "nextDoor" || object.type === "bossGate" || object.type === "bossExit") this.drawDoorObject(ctx, object);
+        if (object.type === "treasureChest") this.drawTreasureChest(ctx, object);
+        if (object.type === "merchantStall") this.drawMerchantStall(ctx, object);
+        if (object.type === "curseBook") this.drawCurseBook(ctx, object);
+      }
+    }
+
+    drawObjectAmbient(ctx, object, radius) {
+      const effect = object.effect || "spark";
+      const color = object.color || this.run.biome.accent;
+      const count = this.perf.quality < 0.65 ? 7 : 12;
+      ctx.save();
+      ctx.globalCompositeOperation = "lighter";
+      for (let i = 0; i < count; i++) {
+        const t = this.menuTime * (effect === "snow" ? 0.7 : 1.35) + i * 0.73;
+        const angle = (i / count) * TAU + t * 0.32;
+        const wave = Math.sin(t * 1.7 + i) * 10;
+        const x = object.x + Math.cos(angle) * (radius + wave);
+        const y = object.y + Math.sin(angle) * (radius * 0.72 + wave * 0.5) + (effect === "snow" ? (t * 18 + i * 9) % 42 - 21 : 0);
+        ctx.globalAlpha = object.opened ? 0.18 : 0.35;
+        if (effect === "leaf") {
+          ctx.fillStyle = "#8ee27a";
+          ctx.save();
+          ctx.translate(x, y);
+          ctx.rotate(angle);
+          ctx.beginPath();
+          ctx.ellipse(0, 0, 4, 9, 0, 0, TAU);
+          ctx.fill();
+          ctx.restore();
+        } else if (effect === "snow") {
+          ctx.fillStyle = "#d9fbff";
+          ctx.fillRect(x - 2, y - 2, 4, 4);
+        } else if (effect === "sand") {
+          ctx.fillStyle = "#f4d26f";
+          ctx.fillRect(x - 10, y - 1, 20, 2);
+        } else if (effect === "gold" || effect === "merchant") {
+          ctx.fillStyle = effect === "merchant" ? "#35d6c9" : "#f2bf63";
+          ctx.save();
+          ctx.translate(x, y);
+          ctx.rotate(Math.PI / 4);
+          ctx.fillRect(-4, -4, 8, 8);
+          ctx.restore();
+        } else if (effect === "curse" || effect === "boss") {
+          ctx.strokeStyle = effect === "boss" ? color : "#a169ff";
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.arc(x, y, 6 + (i % 3), 0, TAU);
+          ctx.stroke();
+        } else {
+          ctx.fillStyle = color;
+          ctx.fillRect(x - 3, y - 3, 6, 6);
+        }
+      }
+      ctx.restore();
+    }
+
+    drawDoorObject(ctx, object) {
+      const grow = clamp(object.grow || 0, 0, 1);
+      const color = object.color || this.run.biome.accent;
+      const w = object.type === "bossGate" ? 118 : object.type === "bossExit" ? 92 : 78;
+      const h = object.type === "bossGate" ? 146 : object.type === "bossExit" ? 112 : 98;
+      const y = object.y + (1 - grow) * 54;
+      this.drawObjectAmbient(ctx, { ...object, y }, Math.max(w, h) * 0.62);
+      ctx.save();
+      ctx.translate(object.x, y);
+      ctx.scale(grow, grow);
+      ctx.shadowColor = color;
+      ctx.shadowBlur = this.glow(object.type === "bossGate" ? 28 : 18);
+      ctx.fillStyle = "rgba(0,0,0,0.44)";
+      ctx.beginPath();
+      ctx.ellipse(0, h * 0.48, w * 0.62, 12, 0, 0, TAU);
+      ctx.fill();
+      ctx.fillStyle = "#101521";
+      ctx.strokeStyle = color;
+      ctx.lineWidth = object.type === "bossGate" ? 8 : 5;
+      ctx.beginPath();
+      ctx.moveTo(-w / 2, h / 2);
+      ctx.lineTo(-w / 2, -h * 0.06);
+      ctx.quadraticCurveTo(0, -h * 0.72, w / 2, -h * 0.06);
+      ctx.lineTo(w / 2, h / 2);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+      ctx.globalAlpha = object.opened ? 0.22 : 0.52;
+      ctx.fillStyle = color;
+      ctx.fillRect(-w * 0.32, -h * 0.06, w * 0.64, h * 0.5);
+      ctx.globalAlpha = 1;
+      ctx.strokeStyle = "#ffffff";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(-w * 0.24, h * 0.38);
+      ctx.lineTo(-w * 0.24, -h * 0.02);
+      ctx.quadraticCurveTo(0, -h * 0.38, w * 0.24, -h * 0.02);
+      ctx.lineTo(w * 0.24, h * 0.38);
+      ctx.stroke();
+      ctx.fillStyle = color;
+      ctx.font = "900 16px ui-sans-serif, system-ui";
+      ctx.textAlign = "center";
+      ctx.fillText(object.icon || (object.type === "bossGate" ? "B" : ">"), 0, -4);
+      if (object.label) {
+        ctx.shadowBlur = 0;
+        ctx.fillStyle = "#f3ead7";
+        ctx.font = "850 11px ui-sans-serif, system-ui";
+        ctx.fillText(String(object.label).slice(0, 18), 0, h * 0.68);
+      }
+      ctx.restore();
+    }
+
+    drawTreasureChest(ctx, object) {
+      const grow = clamp(object.grow || 0, 0, 1);
+      const y = object.y + (1 - grow) * 34;
+      this.drawObjectAmbient(ctx, { ...object, y }, 74);
+      ctx.save();
+      ctx.translate(object.x, y);
+      ctx.scale(grow, grow);
+      ctx.shadowColor = "#f2bf63";
+      ctx.shadowBlur = this.glow(18);
+      ctx.fillStyle = "rgba(0,0,0,0.32)";
+      ctx.beginPath();
+      ctx.ellipse(0, 32, 58, 12, 0, 0, TAU);
+      ctx.fill();
+      ctx.fillStyle = "#5b3418";
+      ctx.fillRect(-45, -8, 90, 42);
+      ctx.fillStyle = "#8b5524";
+      ctx.fillRect(-43, -24, 86, 24);
+      ctx.fillStyle = "#f2bf63";
+      ctx.fillRect(-49, -6, 98, 8);
+      ctx.fillRect(-6, -23, 12, 57);
+      ctx.fillRect(-10, 6, 20, 15);
+      ctx.strokeStyle = "#fff0b8";
+      ctx.lineWidth = 3;
+      ctx.strokeRect(-45, -8, 90, 42);
+      if (object.opened) {
+        ctx.globalAlpha = 0.72;
+        ctx.fillStyle = "#fff0b8";
+        ctx.fillRect(-30, -36, 60, 12);
+      }
+      ctx.restore();
+    }
+
+    drawMerchantStall(ctx, object) {
+      const grow = clamp(object.grow || 0, 0, 1);
+      const y = object.y + (1 - grow) * 34;
+      this.drawObjectAmbient(ctx, { ...object, y }, 82);
+      ctx.save();
+      ctx.translate(object.x, y);
+      ctx.scale(grow, grow);
+      ctx.shadowColor = "#35d6c9";
+      ctx.shadowBlur = this.glow(14);
+      ctx.fillStyle = "rgba(0,0,0,0.34)";
+      ctx.beginPath();
+      ctx.ellipse(0, 46, 74, 13, 0, 0, TAU);
+      ctx.fill();
+      ctx.fillStyle = "#1d2230";
+      ctx.fillRect(-64, -12, 128, 58);
+      ctx.fillStyle = "#2f3546";
+      ctx.fillRect(-58, 8, 116, 30);
+      for (let i = 0; i < 4; i++) {
+        ctx.fillStyle = i % 2 ? "#f2bf63" : "#35d6c9";
+        ctx.fillRect(-66 + i * 33, -40, 34, 28);
+      }
+      ctx.fillStyle = "#c9d0db";
+      ctx.fillRect(-52, 18, 24, 14);
+      ctx.fillStyle = "#f2bf63";
+      ctx.fillRect(-3, 12, 18, 18);
+      ctx.fillStyle = "#76ffd8";
+      ctx.save();
+      ctx.translate(43, 22);
+      ctx.rotate(Math.PI / 4);
+      ctx.fillRect(-8, -8, 16, 16);
+      ctx.restore();
+      ctx.strokeStyle = "#9ffcf1";
+      ctx.lineWidth = 3;
+      ctx.strokeRect(-64, -12, 128, 58);
+      ctx.restore();
+    }
+
+    drawCurseBook(ctx, object) {
+      const grow = clamp(object.grow || 0, 0, 1);
+      const y = object.y + Math.sin(this.menuTime * 2.3) * 4 + (1 - grow) * 38;
+      this.drawObjectAmbient(ctx, { ...object, y }, 76);
+      ctx.save();
+      ctx.translate(object.x, y);
+      ctx.scale(grow, grow);
+      ctx.shadowColor = "#a169ff";
+      ctx.shadowBlur = this.glow(20);
+      ctx.rotate(Math.sin(this.menuTime * 1.6) * 0.04);
+      ctx.fillStyle = "rgba(0,0,0,0.34)";
+      ctx.beginPath();
+      ctx.ellipse(0, 35, 50, 10, 0, 0, TAU);
+      ctx.fill();
+      ctx.fillStyle = "#211430";
+      ctx.fillRect(-38, -28, 76, 58);
+      ctx.fillStyle = "#a169ff";
+      ctx.fillRect(-4, -28, 8, 58);
+      ctx.strokeStyle = "#e5d6ff";
+      ctx.lineWidth = 3;
+      ctx.strokeRect(-38, -28, 76, 58);
+      ctx.beginPath();
+      ctx.arc(0, 0, 16, 0, TAU);
+      ctx.stroke();
+      ctx.fillStyle = "#e5d6ff";
+      ctx.fillRect(-3, -18, 6, 36);
+      ctx.fillRect(-18, -3, 36, 6);
+      ctx.restore();
+    }
+
     drawTrails(ctx) {
       for (const trail of this.run.trails) {
         if (!this.inView(trail.x, trail.y, trail.radius + 80)) continue;
@@ -6466,7 +7401,24 @@
         ctx.beginPath();
         ctx.arc(-projectile.radius * 1.1, 0, r * 1.12, -0.45, 0.45);
         ctx.stroke();
-      } else if (projectile.kind === "rangerBasic" || projectile.kind === "crystal" || projectile.kind === "enemySniper") {
+      } else if (projectile.kind === "rangerBasic") {
+        ctx.shadowBlur = this.glow(10);
+        ctx.fillStyle = "#f3ead7";
+        ctx.fillRect(-projectile.radius * 1.4, -projectile.radius * 0.22, projectile.radius * 3.4, projectile.radius * 0.44);
+        ctx.fillStyle = projectile.color;
+        ctx.beginPath();
+        ctx.moveTo(projectile.radius * 2.2, 0);
+        ctx.lineTo(projectile.radius * 0.8, -projectile.radius * 0.78);
+        ctx.lineTo(projectile.radius * 1.02, -projectile.radius * 0.18);
+        ctx.lineTo(-projectile.radius * 1.4, -projectile.radius * 0.18);
+        ctx.lineTo(-projectile.radius * 1.4, projectile.radius * 0.18);
+        ctx.lineTo(projectile.radius * 1.02, projectile.radius * 0.18);
+        ctx.lineTo(projectile.radius * 0.8, projectile.radius * 0.78);
+        ctx.closePath();
+        ctx.fill();
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(-projectile.radius * 0.6, -1, projectile.radius * 2.0, 2);
+      } else if (projectile.kind === "crystal" || projectile.kind === "enemySniper") {
         ctx.fillRect(-projectile.radius, -projectile.radius * 0.35, projectile.radius * 2.4, projectile.radius * 0.7);
         ctx.beginPath();
         ctx.moveTo(projectile.radius * 1.4, 0);
@@ -7073,23 +8025,26 @@
             ctx.arc(length * 0.42, 0, Math.max(5, width * 0.28), 0, TAU);
             ctx.fill();
           } else if (effect.kind === "ranger") {
-            const r = width * (1 + progress * 0.35);
+            const r = width * (0.82 + progress * 0.25);
             ctx.beginPath();
-            ctx.moveTo(length, 0);
+            ctx.moveTo(length * 1.06, 0);
             ctx.lineTo(length * 0.42, -r);
-            ctx.lineTo(length * 0.52, -r * 0.25);
-            ctx.lineTo(-length * 0.25, -r * 0.25);
-            ctx.lineTo(-length * 0.25, r * 0.25);
-            ctx.lineTo(length * 0.52, r * 0.25);
+            ctx.lineTo(length * 0.56, -r * 0.2);
+            ctx.lineTo(-length * 0.34, -r * 0.18);
+            ctx.lineTo(-length * 0.34, r * 0.18);
+            ctx.lineTo(length * 0.56, r * 0.2);
             ctx.lineTo(length * 0.42, r);
             ctx.closePath();
             ctx.fill();
             ctx.globalAlpha = alpha * 0.7;
             ctx.stroke();
-            ctx.globalAlpha = alpha * 0.55;
-            ctx.fillStyle = effect.color || "#fff3d0";
-            ctx.fillRect(-length * 0.36, -r * 0.72, length * 0.72, 3);
-            ctx.fillRect(-length * 0.36, r * 0.55, length * 0.72, 3);
+            ctx.globalAlpha = alpha * 0.82;
+            ctx.strokeStyle = "#ffffff";
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(-length * 0.36, 0);
+            ctx.lineTo(length * 0.88, 0);
+            ctx.stroke();
           } else if (effect.kind === "guardian") {
             ctx.globalAlpha = alpha * 0.86;
             ctx.fillStyle = effect.accent || "#fff3c2";
@@ -7158,6 +8113,13 @@
               ctx.lineTo(length * 0.44, i * width * 0.38);
               ctx.stroke();
             }
+            ctx.globalAlpha = alpha * 0.95;
+            ctx.strokeStyle = "#ffffff";
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(-length * 0.04, -width * 1.08);
+            ctx.quadraticCurveTo(length * 0.38, -width * 0.26, length * 0.84, width * 0.72);
+            ctx.stroke();
           }
         }
         if (effect.type === "hitSpark") {

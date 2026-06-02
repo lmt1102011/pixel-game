@@ -1093,9 +1093,17 @@
     }
 
     broadcastSnapshot(snapshot) {
+      if (!this.hasOpenPeers()) return;
       for (const peer of this.peers.values()) {
         this.sendPeer(peer, { type: "snapshot", snapshot });
       }
+    }
+
+    hasOpenPeers() {
+      for (const peer of this.peers.values()) {
+        if (peer.channel?.readyState === "open") return true;
+      }
+      return false;
     }
 
     sendPeer(peer, message) {
@@ -1132,6 +1140,7 @@
       this.joystickTouchId = null;
       this.menuTime = 0;
       this.networkTimer = 0;
+      this.snapshotTimer = 0;
       this.toastTimer = 0;
       this.perf = { avgDt: 1 / 60, quality: 1 };
       this.bindEvents();
@@ -1417,7 +1426,7 @@
     }
 
     isMobileDevice() {
-      return this.pointerQuery.matches || Math.min(window.innerWidth, window.innerHeight) <= 760;
+      return this.pointerQuery.matches;
     }
 
     isLandscapeView() {
@@ -1487,12 +1496,17 @@
     }
 
     particleLimit() {
-      const base = this.isMobileDevice() ? 170 : 280;
+      const base = this.isMobileDevice() ? 130 : 220;
       return Math.round(base * (0.72 + this.perf.quality * 0.28));
     }
 
     effectLimit() {
-      return this.isMobileDevice() ? 86 : 130;
+      return this.isMobileDevice() ? 72 : 105;
+    }
+
+    glow(value) {
+      const quality = this.perf?.quality ?? 1;
+      return value * clamp(quality, 0.45, 1);
     }
 
     trimVisualList(list, limit) {
@@ -1668,7 +1682,7 @@
     }
 
     resize() {
-      this.dpr = Math.min(window.devicePixelRatio || 1, this.isMobileDevice() ? 1.35 : 2);
+      this.dpr = Math.min(window.devicePixelRatio || 1, this.isMobileDevice() ? 1.15 : 1.5);
       this.width = window.innerWidth;
       this.height = window.innerHeight;
       this.canvas.width = Math.floor(this.width * this.dpr);
@@ -5175,11 +5189,15 @@
 
     updateNetwork(dt) {
       this.networkTimer -= dt;
-      if (this.networkTimer > 0 || !this.run) return;
-      this.networkTimer = 0.05;
-      const p = this.run.player;
-      this.lobby.sendState(this.networkPlayerState(this.lobby.id, p));
-      if (this.isMultiplayerHost()) {
+      this.snapshotTimer -= dt;
+      if (!this.run || !this.isMultiplayerRun()) return;
+      if (this.networkTimer <= 0) {
+        this.networkTimer = 0.05;
+        const p = this.run.player;
+        this.lobby.sendState(this.networkPlayerState(this.lobby.id, p));
+      }
+      if (this.isMultiplayerHost() && this.lobby.hasOpenPeers() && this.snapshotTimer <= 0) {
+        this.snapshotTimer = this.perf.quality < 0.75 ? 0.12 : 0.085;
         const snapshot = this.networkSnapshot();
         if (snapshot) this.lobby.broadcastSnapshot(snapshot);
       }
@@ -5230,7 +5248,7 @@
       ctx.clearRect(0, 0, this.width, this.height);
       if (this.run) this.drawGame(ctx);
       else this.drawMenuBackdrop(ctx);
-      if (!this.run || this.mode !== "game") this.drawMenuBackdrop(ctx, true);
+      if (this.run && this.mode !== "game") this.drawMenuBackdrop(ctx, true);
     }
 
     drawMenuBackdrop(ctx, overlay = false) {
@@ -5388,7 +5406,7 @@
           ctx.translate(pickup.x, pickup.y + bob);
           ctx.globalAlpha = 0.85;
           ctx.shadowColor = color;
-          ctx.shadowBlur = 18;
+          ctx.shadowBlur = this.glow(18);
           ctx.fillStyle = color;
           ctx.rotate(Math.PI / 4);
           ctx.fillRect(-11, -11, 22, 22);
@@ -5445,7 +5463,7 @@
       const tail = clamp(Math.hypot(projectile.vx || 0, projectile.vy || 0) / 45, 8, 28);
       const hideTail = projectile.kind === "mageBasic" || projectile.kind === "rangerBasic";
       ctx.shadowColor = projectile.color;
-      ctx.shadowBlur = 14;
+      ctx.shadowBlur = this.glow(14);
       if (!hideTail) {
         ctx.strokeStyle = projectile.color;
         ctx.lineWidth = Math.max(2, projectile.radius * 0.45);
@@ -5491,7 +5509,7 @@
       ctx.save();
       ctx.fillStyle = drone.color || "#35d6c9";
       ctx.shadowColor = drone.color || "#35d6c9";
-      ctx.shadowBlur = 12;
+      ctx.shadowBlur = this.glow(12);
       ctx.fillRect(drone.x - 7, drone.y - 7, 14, 14);
       ctx.fillStyle = "#ffffff";
       ctx.fillRect(drone.x - 2, drone.y - 2, 4, 4);
@@ -5620,7 +5638,7 @@
       }
       ctx.save();
       ctx.shadowColor = power.color;
-      ctx.shadowBlur = (anim === "skill" || anim === "ultimate") ? 14 : 0;
+      ctx.shadowBlur = (anim === "skill" || anim === "ultimate") ? this.glow(14) : 0;
       if (character.id === "guardian") {
         const thrust = hitFrame ? 30 : holdFrame ? 18 : recoilFrame ? 5 : 0;
         ctx.rotate(facing);
@@ -5834,7 +5852,7 @@
         ctx.strokeStyle = enemy.ranged ? this.run.biome.accent : "#f3ead7";
         ctx.fillStyle = enemy.ranged ? this.run.biome.accent : "#c9d0db";
         ctx.shadowColor = ctx.strokeStyle;
-        ctx.shadowBlur = 10;
+        ctx.shadowBlur = this.glow(10);
         if (enemy.ranged) {
           ctx.fillRect(enemy.radius * 0.45, -5, 18 + enemy.phase * 4, 10);
           ctx.fillRect(enemy.radius * 0.95, -2, 12, 4);
@@ -5880,7 +5898,7 @@
         ctx.strokeStyle = slash.color;
         ctx.lineWidth = slash.line ? (impact ? 8 : 5) : (impact ? 18 : 10);
         ctx.shadowColor = slash.color;
-        ctx.shadowBlur = impact ? 22 : 10;
+        ctx.shadowBlur = this.glow(impact ? 22 : 10);
         if (slash.line) {
           ctx.beginPath();
           ctx.moveTo(slash.x, slash.y);
@@ -5914,7 +5932,7 @@
         ctx.strokeStyle = wave.color;
         ctx.lineWidth = 5;
         ctx.shadowColor = wave.color;
-        ctx.shadowBlur = 16;
+        ctx.shadowBlur = this.glow(16);
         ctx.beginPath();
         ctx.arc(wave.x, wave.y, wave.radius * progress, 0, TAU);
         ctx.stroke();
@@ -5932,7 +5950,7 @@
         ctx.strokeStyle = effect.color;
         ctx.fillStyle = effect.color;
         ctx.shadowColor = effect.color;
-        ctx.shadowBlur = 18;
+        ctx.shadowBlur = this.glow(18);
         if (foreground) ctx.globalCompositeOperation = "lighter";
         if (["pull", "zone", "danger", "ultimate"].includes(effect.type)) {
           const pulse = Math.sin(this.menuTime * 8) * 8;
@@ -5963,7 +5981,7 @@
           ctx.translate(effect.x, effect.y);
           ctx.rotate(effect.angle || 0);
           ctx.globalAlpha = alpha;
-          ctx.shadowBlur = effect.heavy ? 20 : 14;
+          ctx.shadowBlur = this.glow(effect.heavy ? 20 : 14);
           ctx.shadowColor = effect.color || "#fff3d0";
           ctx.fillStyle = effect.accent || "#ffffff";
           ctx.strokeStyle = effect.color || "#fff3d0";
@@ -6018,7 +6036,7 @@
             }
           } else if (effect.kind === "assassin") {
             ctx.lineCap = "round";
-            ctx.shadowBlur = 22;
+            ctx.shadowBlur = this.glow(22);
             ctx.strokeStyle = effect.accent || "#ffffff";
             ctx.lineWidth = width * 0.42;
             for (let i = -1; i <= 1; i += 2) {
@@ -6072,7 +6090,7 @@
           const spread = effect.heavy ? 20 : 14;
           ctx.translate(effect.x, effect.y);
           ctx.rotate(effect.angle || 0);
-          ctx.shadowBlur = effect.heavy ? 24 : 18;
+          ctx.shadowBlur = this.glow(effect.heavy ? 24 : 18);
           ctx.strokeStyle = effect.color || "#f3ead7";
           ctx.fillStyle = "#ffffff";
           ctx.globalAlpha = alpha;
@@ -6115,7 +6133,7 @@
           } else if (effect.kind === "assassin") {
             ctx.lineCap = "round";
             ctx.strokeStyle = effect.accent || "#ffffff";
-            ctx.shadowBlur = 22;
+            ctx.shadowBlur = this.glow(22);
             ctx.lineWidth = 8;
             ctx.beginPath();
             ctx.moveTo(-31, -25);
@@ -6205,7 +6223,7 @@
       ctx.fillStyle = effect.accent || effect.color;
       ctx.lineWidth = 3 + alpha * 3;
       ctx.shadowColor = effect.color;
-      ctx.shadowBlur = 20;
+      ctx.shadowBlur = this.glow(20);
       ctx.translate(effect.x, effect.y);
       ctx.rotate((effect.angle || 0) + (1 - alpha) * (effect.kind === "time" ? -1.3 : 1.1));
       ctx.beginPath();

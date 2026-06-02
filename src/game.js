@@ -7,7 +7,7 @@
   const ROOM_PAD = 86;
   const SAVE_KEY = "soulrift-save-v1";
   const SIGNAL_RELAY_URL = "https://ntfy.sh";
-  const APP_VERSION = "20260602-auto-update-14";
+  const APP_VERSION = "20260602-start-relay-15";
   const VERSION_CHECK_INTERVAL = 15000;
 
   const RARITY = {
@@ -1004,6 +1004,13 @@
         this.game.renderLobby();
       }
 
+      if (message.type === "start" && !this.host) {
+        if (this.game.run?.multiplayer && this.game.run.seed === message.seed) return;
+        if (Array.isArray(message.slots)) this.slots = message.slots;
+        const ownPowerId = this.game.save.account.selectedPower || message.powerId;
+        this.game.startRun(powerById(ownPowerId), message.biomeId, { multiplayer: true, host: false, seed: message.seed });
+      }
+
       if (message.type === "offer") {
         const peer = this.ensurePeer(message.from, false);
         await peer.pc.setRemoteDescription(message.sdp);
@@ -1112,6 +1119,7 @@
         this.game.applyNetworkSnapshot(message.snapshot);
       }
       if (message.type === "start") {
+        if (this.game.run?.multiplayer && this.game.run.seed === message.seed) return;
         if (Array.isArray(message.slots)) this.slots = message.slots;
         const ownPowerId = this.game.save.account.selectedPower || message.powerId;
         this.game.startRun(powerById(ownPowerId), message.biomeId, { multiplayer: true, host: false, seed: message.seed });
@@ -1161,12 +1169,14 @@
 
     broadcastLobby() {
       if (!this.host) return;
+      if (this.code) this.sendSignal({ type: "lobby", slots: this.slots, mapVote: this.mapVote });
       for (const peer of this.peers.values()) {
         this.sendPeer(peer, { type: "lobby", slots: this.slots, mapVote: this.mapVote });
       }
     }
 
     broadcastStart(powerId, biomeId, seed, slots = this.slots) {
+      if (this.code) this.sendSignal({ type: "start", powerId, biomeId, seed, slots });
       for (const peer of this.peers.values()) {
         this.sendPeer(peer, { type: "start", powerId, biomeId, seed, slots });
       }
@@ -2575,16 +2585,14 @@
       const allReady = this.lobby.slots.every((slot) => slot.host || slot.ready);
       const connectedPeers = this.lobby.openPeerCount();
       const hasGuest = this.lobby.slots.some((slot) => slot && !slot.host);
-      const canStart = isHost && this.lobby.code && hasGuest && connectedPeers > 0 && allReady;
+      const canStart = isHost && this.lobby.code && hasGuest && allReady;
       const startHint = !isHost
         ? "Chờ chủ phòng"
         : !hasGuest
           ? "Chưa có người chơi khác"
-          : connectedPeers <= 0
-            ? "Đang kết nối realtime"
-            : allReady
-              ? "Có thể bắt đầu"
-              : "Chờ mọi người sẵn sàng";
+          : allReady
+            ? (connectedPeers > 0 ? "Có thể bắt đầu" : "Có thể bắt đầu qua relay")
+            : "Chờ mọi người sẵn sàng";
       const lobbyControls = isHost
         ? `<button class="btn primary" data-action="start-room" ${canStart ? "" : "disabled"}>BẮT ĐẦU</button>`
         : `
@@ -2630,10 +2638,6 @@
       const hasGuest = this.lobby.slots.some((slot) => slot && !slot.host);
       if (!hasGuest) {
         this.toast("Chưa có người chơi khác trong phòng");
-        return;
-      }
-      if (this.lobby.openPeerCount() <= 0) {
-        this.toast("Phòng chưa kết nối realtime xong");
         return;
       }
       const waiting = this.lobby.slots.find((slot) => !slot.host && !slot.ready);

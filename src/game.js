@@ -7,7 +7,7 @@
   const ROOM_PAD = 86;
   const SAVE_KEY = "soulrift-save-v1";
   const SIGNAL_RELAY_URL = "https://ntfy.sh";
-  const APP_VERSION = "20260603-combat-roles-20";
+  const APP_VERSION = "20260603-reflect-slash-21";
   const VERSION_CHECK_INTERVAL = 15000;
 
   const RARITY = {
@@ -2853,6 +2853,7 @@
         shockwaves: [],
         trails: [],
         effects: [],
+        delayedStrikes: [],
         player: this.createPlayer(),
         curse: null,
         rewardQueue: [],
@@ -3277,6 +3278,7 @@
       this.run.pickups = [];
       this.run.shockwaves = [];
       this.run.trails = [];
+      this.run.delayedStrikes = [];
       this.run.player.x = WORLD_W / 2;
       this.run.player.y = WORLD_H / 2;
       this.run.player.invuln = 1;
@@ -3455,6 +3457,7 @@
       this.updatePlayer(worldDt);
       this.updateDrones(worldDt);
       this.updateHazards(worldDt);
+      this.updateDelayedStrikes(worldDt);
       if (!this.isMultiplayerClient()) this.updateEnemies(worldDt);
       this.updateProjectiles(worldDt);
       this.updateSlashes(worldDt);
@@ -3708,12 +3711,12 @@
         y,
         vx: Math.cos(angle) * 920,
         vy: Math.sin(angle) * 920,
-        radius: 14,
+        radius: 18,
         damage,
         life: 0.52,
         color: "#e8edf7",
         pierce: 1,
-        kind: "phantomBlade"
+        kind: "phantomSlash"
       });
       this.run.slashes.push({
         x,
@@ -3782,40 +3785,62 @@
       const arc = Math.PI * 0.72;
       const damage = p.damage * (0.8 + p.combo * 0.025);
       const flurry = chance(0.2);
-      this.addBasicAttackBurst(p.x + Math.cos(angle) * range * 0.42, p.y + Math.sin(angle) * range * 0.42, angle, "assassin", range);
-      if (flurry) {
-        this.addBasicAttackBurst(p.x + Math.cos(angle + 0.2) * range * 0.38, p.y + Math.sin(angle + 0.2) * range * 0.38, angle + 0.2, "assassin", range * 0.92);
-        this.addBasicAttackBurst(p.x + Math.cos(angle - 0.2) * range * 0.38, p.y + Math.sin(angle - 0.2) * range * 0.38, angle - 0.2, "assassin", range * 0.92);
-      }
       this.audio.sfx(360 + p.combo * 18, "triangle", 0.035, 0.055);
-      let hits = 0;
-      for (const enemy of [...this.run.enemies]) {
-        const d = Math.hypot(enemy.x - p.x, enemy.y - p.y);
-        const a = Math.atan2(enemy.y - p.y, enemy.x - p.x);
-        if (d < range + enemy.radius && Math.abs(angleDelta(a, angle)) < arc * 0.5) {
-          hits++;
-          this.damageEnemy(enemy, damage, {
-            x: Math.cos(angle) * 1.15,
-            y: Math.sin(angle) * 1.15,
-            combo: p.combo,
-            source: "assassin"
-          });
-          if (flurry) {
-            for (const extraAngle of [angle + 0.22, angle - 0.22]) {
-              this.damageEnemy(enemy, damage * 0.65, {
-                x: Math.cos(extraAngle) * 1.05,
-                y: Math.sin(extraAngle) * 1.05,
-                combo: p.combo,
-                source: "assassin"
-              });
-            }
-          }
-        }
+      const hits = this.performAssassinSlash(p.x, p.y, angle, range, arc, damage, p.combo);
+      if (flurry) {
+        this.queueAssassinSlash(p.x, p.y, angle + 0.22, range * 0.96, arc, damage * 0.65, p.combo, 0.12);
+        this.queueAssassinSlash(p.x, p.y, angle - 0.22, range * 0.96, arc, damage * 0.65, p.combo, 0.24);
       }
       if (hits > 0) {
         this.hitStop = Math.max(this.hitStop || 0, 0.045);
         this.camera.shake = Math.max(this.camera.shake, 5 + hits);
       }
+    }
+
+    performAssassinSlash(x, y, angle, range, arc, damage, combo = 1) {
+      this.addBasicAttackBurst(x + Math.cos(angle) * range * 0.42, y + Math.sin(angle) * range * 0.42, angle, "assassin", range);
+      this.audio.sfx(410 + combo * 12, "triangle", 0.025, 0.045);
+      let hits = 0;
+      for (const enemy of [...this.run.enemies]) {
+        const d = Math.hypot(enemy.x - x, enemy.y - y);
+        const a = Math.atan2(enemy.y - y, enemy.x - x);
+        if (d < range + enemy.radius && Math.abs(angleDelta(a, angle)) < arc * 0.5) {
+          hits++;
+          this.damageEnemy(enemy, damage, {
+            x: Math.cos(angle) * 1.15,
+            y: Math.sin(angle) * 1.15,
+            combo,
+            source: "assassin"
+          });
+        }
+      }
+      return hits;
+    }
+
+    queueAssassinSlash(x, y, angle, range, arc, damage, combo, delay) {
+      this.run.delayedStrikes ||= [];
+      this.run.delayedStrikes.push({ type: "assassin", x, y, angle, range, arc, damage, combo, time: delay });
+    }
+
+    updateDelayedStrikes(dt) {
+      if (!this.run?.delayedStrikes?.length) return;
+      let write = 0;
+      for (let i = 0; i < this.run.delayedStrikes.length; i++) {
+        const strike = this.run.delayedStrikes[i];
+        strike.time -= dt;
+        if (strike.time > 0) {
+          this.run.delayedStrikes[write++] = strike;
+          continue;
+        }
+        if (strike.type === "assassin") {
+          const hits = this.performAssassinSlash(strike.x, strike.y, strike.angle, strike.range, strike.arc, strike.damage, strike.combo);
+          if (hits > 0) {
+            this.hitStop = Math.max(this.hitStop || 0, 0.035);
+            this.camera.shake = Math.max(this.camera.shake, 4 + hits * 0.7);
+          }
+        }
+      }
+      this.run.delayedStrikes.length = write;
     }
 
     sendBasicAttackPacket(character, p, angle, combo = p.combo, damage = p.damage) {
@@ -3875,11 +3900,15 @@
       const arc = character.id === "guardian" ? Math.PI * 0.72 : character.id === "assassin" ? Math.PI * 0.72 : Math.PI * 0.72;
       const damage = character.id === "guardian" ? baseDamage * 1.15 : character.id === "assassin" ? baseDamage * (0.8 + combo * 0.025) : baseDamage * (1 + combo * 0.04);
       const flurry = character.id === "assassin" && chance(0.2);
-      this.addBasicAttackBurst(x + dirX * range * 0.42, y + dirY * range * 0.42, angle, character.id, range);
-      if (flurry) {
-        this.addBasicAttackBurst(x + Math.cos(angle + 0.2) * range * 0.38, y + Math.sin(angle + 0.2) * range * 0.38, angle + 0.2, character.id, range * 0.92);
-        this.addBasicAttackBurst(x + Math.cos(angle - 0.2) * range * 0.38, y + Math.sin(angle - 0.2) * range * 0.38, angle - 0.2, character.id, range * 0.92);
+      if (character.id === "assassin") {
+        this.performAssassinSlash(x, y, angle, range, arc, damage, combo);
+        if (flurry) {
+          this.queueAssassinSlash(x, y, angle + 0.22, range * 0.96, arc, damage * 0.65, combo, 0.12);
+          this.queueAssassinSlash(x, y, angle - 0.22, range * 0.96, arc, damage * 0.65, combo, 0.24);
+        }
+        return;
       }
+      this.addBasicAttackBurst(x + dirX * range * 0.42, y + dirY * range * 0.42, angle, character.id, range);
       for (const enemy of [...this.run.enemies]) {
         const d = Math.hypot(enemy.x - x, enemy.y - y);
         const a = Math.atan2(enemy.y - y, enemy.x - x);
@@ -3889,11 +3918,6 @@
             enemy.launch = Math.max(enemy.launch || 0, enemy.boss ? 0.12 : 0.45);
           }
           strike(enemy, damage);
-          if (flurry) {
-            for (const extraAngle of [angle + 0.22, angle - 0.22]) {
-              this.damageEnemy(enemy, damage * 0.65, { ...hitOptions, x: Math.cos(extraAngle), y: Math.sin(extraAngle) });
-            }
-          }
         }
       }
       if (character.id === "swordsman" && chance(0.2)) this.spawnPhantomBlade(x + dirX * 42, y + dirY * 42, angle, damage * 0.15, "ally");
@@ -4487,6 +4511,71 @@
       });
       this.camera.shake = Math.max(this.camera.shake, 9);
       this.audio.sfx(130, "square", 0.07, 0.11);
+      return true;
+    }
+
+    guardianParryOpen(target) {
+      if (!target || target.characterId !== "guardian") return false;
+      return Number.isFinite(target.guardianParry)
+        ? target.guardianParry > 0
+        : (target.animation === "attack" && (target.actionTime || 0) > 0);
+    }
+
+    markGuardianParry(target) {
+      const realTarget = target.local ? this.run.player : (this.remotePlayers.get(target.id) || target);
+      realTarget.guardianParry = 0;
+      realTarget.invuln = Math.max(realTarget.invuln || 0, 0.24);
+      realTarget.animation = "attack";
+      realTarget.actionTotal = Math.max(realTarget.actionTotal || 0, 0.38);
+      realTarget.actionTime = Math.max(realTarget.actionTime || 0, 0.24);
+      return realTarget;
+    }
+
+    tryGuardianProjectileReflect(target, projectile) {
+      if (!this.guardianParryOpen(target) || !projectile || projectile.owner !== "enemy") return false;
+      const guardian = this.markGuardianParry(target);
+      const guardianRadius = guardian.radius || target.radius || 22;
+      const nearest = this.nearestEnemy(guardian.x, guardian.y, 920);
+      const speed = Math.max(620, Math.hypot(projectile.vx || 0, projectile.vy || 0) * 1.08);
+      const angle = nearest ? Math.atan2(nearest.y - guardian.y, nearest.x - guardian.x) : Math.atan2(-(projectile.vy || 0), -(projectile.vx || 1));
+      projectile.owner = target.local ? "player" : "ally";
+      projectile.x = guardian.x + Math.cos(angle) * (guardianRadius + projectile.radius + 10);
+      projectile.y = guardian.y + Math.sin(angle) * (guardianRadius + projectile.radius + 10);
+      projectile.vx = Math.cos(angle) * speed;
+      projectile.vy = Math.sin(angle) * speed;
+      projectile.damage = Math.max(1, projectile.damage * 0.5);
+      projectile.life = Math.max(projectile.life || 0, 0.7);
+      projectile.color = "#ffd36a";
+      projectile.kind = "guardianReflect";
+      this.addBasicAttackBurst(guardian.x + Math.cos(angle) * 52, guardian.y + Math.sin(angle) * 52, angle, "guardian", 104);
+      this.addShockwave(guardian.x, guardian.y, 96, "#ffd36a", 0);
+      this.camera.shake = Math.max(this.camera.shake, 8);
+      this.audio.sfx(150, "square", 0.07, 0.1);
+      return true;
+    }
+
+    tryGuardianEffectReflect(target, effect) {
+      if (!this.guardianParryOpen(target) || !effect || !Number.isFinite(effect.damage)) return false;
+      const guardian = this.markGuardianParry(target);
+      const nearest = this.nearestEnemy(guardian.x, guardian.y, 860);
+      const angle = nearest ? Math.atan2(nearest.y - guardian.y, nearest.x - guardian.x) : (effect.angle || guardian.facing || 0);
+      this.spawnProjectile({
+        owner: target.local ? "player" : "ally",
+        x: guardian.x + Math.cos(angle) * 36,
+        y: guardian.y + Math.sin(angle) * 36,
+        vx: Math.cos(angle) * 820,
+        vy: Math.sin(angle) * 820,
+        radius: 13,
+        damage: Math.max(1, effect.damage * 0.5),
+        life: 0.72,
+        color: "#ffd36a",
+        pierce: 0,
+        kind: "guardianReflect"
+      });
+      this.addBasicAttackBurst(guardian.x + Math.cos(angle) * 52, guardian.y + Math.sin(angle) * 52, angle, "guardian", 104);
+      this.addShockwave(guardian.x, guardian.y, 106, "#ffd36a", 0);
+      this.camera.shake = Math.max(this.camera.shake, 8);
+      this.audio.sfx(150, "square", 0.07, 0.1);
       return true;
     }
 
@@ -5487,12 +5576,21 @@
             }
           }
         } else if (!this.isMultiplayerClient()) {
+          let reflected = false;
           for (const target of this.combatTargets()) {
             if (Math.hypot(target.x - projectile.x, target.y - projectile.y) < target.radius + projectile.radius) {
-              this.damageCombatTarget(target, projectile.damage);
-              projectile.life = 0;
+              if (this.tryGuardianProjectileReflect(target, projectile)) {
+                reflected = true;
+              } else {
+                this.damageCombatTarget(target, projectile.damage, projectile);
+                projectile.life = 0;
+              }
               break;
             }
+          }
+          if (reflected) {
+            this.run.projectiles[write++] = projectile;
+            continue;
           }
         }
         if (
@@ -5641,7 +5739,7 @@
           if (!this.isMultiplayerClient()) {
             for (const target of this.combatTargets()) {
               if (Math.hypot(target.x - effect.x, target.y - effect.y) < effect.radius + target.radius) {
-                this.damageCombatTarget(target, effect.damage);
+                if (!this.tryGuardianEffectReflect(target, effect)) this.damageCombatTarget(target, effect.damage, effect);
               }
             }
           }
@@ -6347,22 +6445,26 @@
       ctx.translate(projectile.x, projectile.y);
       ctx.rotate(angle);
       ctx.fillStyle = projectile.color;
-      if (projectile.kind === "phantomBlade") {
+      if (projectile.kind === "phantomSlash") {
+        const r = projectile.radius * 2.7;
         ctx.globalAlpha = 0.82;
         ctx.strokeStyle = projectile.color;
-        ctx.lineWidth = Math.max(5, projectile.radius * 0.52);
+        ctx.lineWidth = Math.max(6, projectile.radius * 0.5);
         ctx.lineCap = "round";
         ctx.beginPath();
-        ctx.moveTo(-projectile.radius * 2.2, 0);
-        ctx.lineTo(projectile.radius * 2.8, 0);
+        ctx.arc(-projectile.radius * 0.4, 0, r, -0.58, 0.58);
         ctx.stroke();
-        ctx.globalAlpha = 0.42;
+        ctx.globalAlpha = 0.48;
+        ctx.strokeStyle = "#ffffff";
         ctx.lineWidth = 2;
         ctx.beginPath();
-        ctx.moveTo(-projectile.radius * 1.4, -projectile.radius * 0.75);
-        ctx.lineTo(projectile.radius * 2.1, -projectile.radius * 0.18);
-        ctx.moveTo(-projectile.radius * 1.4, projectile.radius * 0.75);
-        ctx.lineTo(projectile.radius * 2.1, projectile.radius * 0.18);
+        ctx.arc(-projectile.radius * 0.15, 0, r * 0.7, -0.52, 0.52);
+        ctx.stroke();
+        ctx.globalAlpha = 0.28;
+        ctx.strokeStyle = projectile.color;
+        ctx.lineWidth = 4;
+        ctx.beginPath();
+        ctx.arc(-projectile.radius * 1.1, 0, r * 1.12, -0.45, 0.45);
         ctx.stroke();
       } else if (projectile.kind === "rangerBasic" || projectile.kind === "crystal" || projectile.kind === "enemySniper") {
         ctx.fillRect(-projectile.radius, -projectile.radius * 0.35, projectile.radius * 2.4, projectile.radius * 0.7);
@@ -6544,22 +6646,22 @@
         }
       } else if (character.id === "mage") {
         const side = dir;
-        const staffX = side * 16;
+        const staffX = side * 14;
         ctx.translate(staffX, castFrame ? -2 : 0);
         ctx.fillStyle = "#dfe8ef";
-        ctx.fillRect(-2, -20, 4, 52);
+        ctx.fillRect(-2, -16, 4, 42);
         ctx.fillStyle = character.color;
         ctx.beginPath();
-        ctx.arc(0, -24, 6 + castFrame * 2, 0, TAU);
+        ctx.arc(0, -19, 5 + castFrame * 2, 0, TAU);
         ctx.fill();
         ctx.fillStyle = power.accent;
-        ctx.fillRect(-5, 24, 10, 5);
+        ctx.fillRect(-4, 22, 8, 4);
         if (anim === "attack" || castFrame) {
           ctx.globalAlpha = 0.75;
           ctx.strokeStyle = power.color;
           ctx.lineWidth = 2;
           ctx.beginPath();
-          ctx.arc(0, -24, 12 + castFrame * 5, 0, TAU);
+          ctx.arc(0, -19, 10 + castFrame * 5, 0, TAU);
           ctx.stroke();
           ctx.globalAlpha = 1;
         }

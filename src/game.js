@@ -6,6 +6,7 @@
   const WORLD_H = 1160;
   const ROOM_PAD = 86;
   const SAVE_KEY = "soulrift-save-v1";
+  const SIGNAL_RELAY_URL = "https://ntfy.sh";
 
   const RARITY = {
     common: { label: "Thường", color: "#d4d7df", rate: 1 },
@@ -812,6 +813,10 @@
       this.ready = false;
       this.mapVote = "forest";
       this.signal = null;
+      this.remoteSignal = null;
+      this.signalTopic = "";
+      this.signalSince = 0;
+      this.seenSignals = new Set();
       this.peers = new Map();
       this.joinRetryTimers = [];
       this.slots = [{ ...this.playerProfile(), ready: false, vote: this.mapVote, host: true }];
@@ -843,7 +848,7 @@
     makeCode() {
       const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
       let code = "";
-      for (let i = 0; i < 5; i++) code += alphabet[Math.floor(Math.random() * alphabet.length)];
+      for (let i = 0; i < 6; i++) code += alphabet[Math.floor(Math.random() * alphabet.length)];
       return code;
     }
 
@@ -893,22 +898,68 @@
       this.peers.clear();
       if (this.signal) this.signal.close();
       this.signal = null;
+      if (this.remoteSignal) this.remoteSignal.close();
+      this.remoteSignal = null;
+      this.signalTopic = "";
+      this.seenSignals.clear();
     }
 
     openSignal() {
-      if (!("BroadcastChannel" in window) || !("RTCPeerConnection" in window)) return;
-      this.signal = new BroadcastChannel(`soulrift-${this.code}`);
-      this.signal.onmessage = (event) => this.onSignal(event.data);
+      if (!("RTCPeerConnection" in window)) {
+        this.game.toast("Trình duyệt không hỗ trợ chơi nhiều người");
+        return;
+      }
+      this.signalSince = Date.now() - 15000;
+      this.signalTopic = `soulrift-${this.code.toLowerCase()}`;
+      if ("BroadcastChannel" in window) {
+        this.signal = new BroadcastChannel(this.signalTopic);
+        this.signal.onmessage = (event) => this.onSignal(event.data);
+      }
+      this.openRemoteSignal();
+    }
+
+    openRemoteSignal() {
+      if (!("EventSource" in window) || !window.fetch || !this.signalTopic) return;
+      const since = Math.floor(this.signalSince / 1000);
+      const url = `${SIGNAL_RELAY_URL}/${encodeURIComponent(this.signalTopic)}/sse?since=${since}`;
+      this.remoteSignal = new EventSource(url);
+      this.remoteSignal.onmessage = (event) => this.onRemoteSignal(event);
+      this.remoteSignal.onerror = () => {
+        if (this.game.mode === "lobby") this.game.renderLobby();
+      };
+    }
+
+    onRemoteSignal(event) {
+      try {
+        const envelope = JSON.parse(event.data);
+        if (envelope.event && envelope.event !== "message") return;
+        const payload = typeof envelope.message === "string" ? JSON.parse(envelope.message) : envelope.message;
+        if (!payload || (payload.sentAt && payload.sentAt < this.signalSince)) return;
+        this.onSignal(payload);
+      } catch {
+        // Ignore unrelated public relay messages.
+      }
     }
 
     sendSignal(message, target = "") {
-      if (!this.signal) return;
-      this.signal.postMessage({ ...message, from: this.id, target });
+      const payload = { ...message, from: this.id, target, sentAt: Date.now(), signalId: message.signalId || uid("signal") };
+      if (this.signal) this.signal.postMessage(payload);
+      if (window.fetch && this.signalTopic) {
+        fetch(`${SIGNAL_RELAY_URL}/${encodeURIComponent(this.signalTopic)}`, {
+          method: "POST",
+          body: JSON.stringify(payload)
+        }).catch(() => {});
+      }
     }
 
     async onSignal(message) {
       if (!message || message.from === this.id) return;
       if (message.target && message.target !== this.id) return;
+      if (message.signalId) {
+        if (this.seenSignals.has(message.signalId)) return;
+        this.seenSignals.add(message.signalId);
+        if (this.seenSignals.size > 300) this.seenSignals.clear();
+      }
 
       if (message.type === "hello" && this.host) {
         this.upsertSlot({
@@ -1001,6 +1052,9 @@
         if (this.host) this.sendPeer(peer, { type: "lobby", slots: this.slots, mapVote: this.mapVote });
         else this.sendPeer(peer, { type: "ready", ...this.playerProfile(), ready: this.ready, vote: this.mapVote });
         this.game.toast("Đã kết nối người chơi");
+        if (this.game.mode === "lobby") this.game.renderLobby();
+      };
+      peer.channel.onclose = () => {
         if (this.game.mode === "lobby") this.game.renderLobby();
       };
       peer.channel.onmessage = (event) => {
@@ -2496,7 +2550,7 @@
             <div class="grid cols-2">
               <button class="btn primary" data-action="create-room">TẠO PHÒNG</button>
               <div>
-                <input id="roomCodeInput" class="field" placeholder="MÃ PHÒNG" maxlength="5" />
+                <input id="roomCodeInput" class="field" placeholder="MÃ PHÒNG" maxlength="6" />
                 <button class="btn" data-action="join-room">VÀO PHÒNG</button>
               </div>
             </div>

@@ -1046,6 +1046,7 @@
       this.touchLayer = document.getElementById("touchLayer");
       this.mobileGate = document.getElementById("mobileGate");
       this.mobileGateButton = document.getElementById("mobileGateButton");
+      this.pointerQuery = matchMedia("(hover: none), (pointer: coarse)");
       this.store = new SaveStore();
       this.audio = new AudioEngine(this);
       this.lobby = new PeerLobby(this);
@@ -1064,6 +1065,7 @@
       this.menuTime = 0;
       this.networkTimer = 0;
       this.toastTimer = 0;
+      this.perf = { avgDt: 1 / 60, quality: 1 };
       this.bindEvents();
       this.resize();
       this.updateMobileGate();
@@ -1347,7 +1349,7 @@
     }
 
     isMobileDevice() {
-      return matchMedia("(hover: none), (pointer: coarse)").matches || Math.min(window.innerWidth, window.innerHeight) <= 760;
+      return this.pointerQuery.matches || Math.min(window.innerWidth, window.innerHeight) <= 760;
     }
 
     isLandscapeView() {
@@ -1379,6 +1381,67 @@
 
     worldViewHeight() {
       return this.height / this.worldViewScale();
+    }
+
+    updatePerformanceState(dt) {
+      const frame = clamp(dt || 1 / 60, 1 / 120, 0.12);
+      this.perf.avgDt = this.perf.avgDt * 0.94 + frame * 0.06;
+      if (this.perf.avgDt > 0.026) {
+        this.perf.quality = clamp(this.perf.quality - frame * 0.42, 0.58, 1);
+      } else if (this.perf.avgDt < 0.0195) {
+        this.perf.quality = clamp(this.perf.quality + frame * 0.2, 0.58, 1);
+      }
+    }
+
+    particleSpawnChance(shape = "spark") {
+      if (["crit", "plus"].includes(shape)) return 1;
+      const mobileBias = this.isMobileDevice() ? 0.82 : 1;
+      return clamp(mobileBias * (0.56 + this.perf.quality * 0.44), 0.38, 1);
+    }
+
+    particleLimit() {
+      const base = this.isMobileDevice() ? 170 : 280;
+      return Math.round(base * (0.72 + this.perf.quality * 0.28));
+    }
+
+    effectLimit() {
+      return this.isMobileDevice() ? 86 : 130;
+    }
+
+    trimVisualList(list, limit) {
+      if (list.length > limit) list.splice(0, list.length - limit);
+    }
+
+    trimEffectList() {
+      if (!this.run) return;
+      const limit = this.effectLimit();
+      while (this.run.effects.length > limit) {
+        const index = this.run.effects.findIndex((effect) => (
+          effect.type === "attackBurst" ||
+          effect.type === "hitSpark" ||
+          effect.type === "castBurst" ||
+          effect.type === "castCone" ||
+          effect.type === "powerGlyph"
+        ));
+        this.run.effects.splice(index >= 0 ? index : 0, 1);
+      }
+    }
+
+    viewBounds(pad = 0) {
+      const viewW = this.renderViewW || this.worldViewWidth();
+      const viewH = this.renderViewH || this.worldViewHeight();
+      return {
+        left: this.camera.x - pad,
+        top: this.camera.y - pad,
+        right: this.camera.x + viewW + pad,
+        bottom: this.camera.y + viewH + pad
+      };
+    }
+
+    inView(x, y, pad = 120) {
+      const viewW = this.renderViewW || this.worldViewWidth();
+      const viewH = this.renderViewH || this.worldViewHeight();
+      return x >= this.camera.x - pad && x <= this.camera.x + viewW + pad && y >= this.camera.y - pad && y <= this.camera.y + viewH + pad;
     }
 
     updateMobileGate() {
@@ -1477,7 +1540,7 @@
     }
 
     resize() {
-      this.dpr = Math.min(window.devicePixelRatio || 1, 2);
+      this.dpr = Math.min(window.devicePixelRatio || 1, this.isMobileDevice() ? 1.35 : 2);
       this.width = window.innerWidth;
       this.height = window.innerHeight;
       this.canvas.width = Math.floor(this.width * this.dpr);
@@ -1540,8 +1603,10 @@
     }
 
     loop(time) {
-      const dt = Math.min(0.033, (time - this.last) / 1000 || 0);
+      const rawDt = this.last ? (time - this.last) / 1000 || 0 : 1 / 60;
+      const dt = Math.min(0.033, rawDt);
       this.last = time;
+      this.updatePerformanceState(rawDt || dt);
       this.menuTime += dt;
       if (this.toastTimer > 0) {
         this.toastTimer -= dt;
@@ -3122,6 +3187,7 @@
             maxLife: 0.18,
             color: power.accent
           });
+          this.trimVisualList(this.run.slashes, this.isMobileDevice() ? 24 : 38);
         }
       }
       if (kind === "fire") this.addTrailDamage(x + Math.cos(angle) * 36, y + Math.sin(angle) * 36, power.color);
@@ -4154,14 +4220,18 @@
 
     updateProjectiles(dt) {
       const p = this.run.player;
-      for (const projectile of [...this.run.projectiles]) {
+      let write = 0;
+      for (let i = 0; i < this.run.projectiles.length; i++) {
+        const projectile = this.run.projectiles[i];
         projectile.age += dt;
         projectile.life -= dt;
         projectile.x += projectile.vx * dt;
         projectile.y += projectile.vy * dt;
-        this.addParticle(projectile.x, projectile.y, projectile.color, projectile.radius * 0.9, 0.25, "dot");
+        if (this.inView(projectile.x, projectile.y, 90) && chance((this.isMobileDevice() ? 18 : 30) * dt)) {
+          this.addParticle(projectile.x, projectile.y, projectile.color, projectile.radius * 0.9, 0.25, "dot");
+        }
         if (projectile.owner === "player") {
-          for (const enemy of [...this.run.enemies]) {
+          for (const enemy of this.run.enemies) {
             if (Math.hypot(enemy.x - projectile.x, enemy.y - projectile.y) < enemy.radius + projectile.radius) {
               const len = Math.hypot(projectile.vx, projectile.vy) || 1;
               this.damageEnemy(enemy, projectile.damage, { x: projectile.vx / len, y: projectile.vy / len, source: "projectile", kind: projectile.kind });
@@ -4183,24 +4253,21 @@
         ) {
           projectile.life = 0;
         }
-        if (projectile.life <= 0) {
-          const index = this.run.projectiles.indexOf(projectile);
-          if (index >= 0) this.run.projectiles.splice(index, 1);
-        }
+        if (projectile.life > 0) this.run.projectiles[write++] = projectile;
       }
+      this.run.projectiles.length = write;
     }
 
     updateDrones(dt) {
       const p = this.run.player;
-      for (const drone of [...this.run.drones]) {
+      let write = 0;
+      for (let i = 0; i < this.run.drones.length; i++) {
+        const drone = this.run.drones[i];
         drone.angle += dt * 2.4;
         drone.cooldown -= dt;
         if (drone.temporary) {
           drone.temporary -= dt;
-          if (drone.temporary <= 0) {
-            this.run.drones.splice(this.run.drones.indexOf(drone), 1);
-            continue;
-          }
+          if (drone.temporary <= 0) continue;
         }
         const x = p.x + Math.cos(drone.angle) * drone.radius;
         const y = p.y + Math.sin(drone.angle) * drone.radius;
@@ -4226,7 +4293,9 @@
             drone.cooldown = 0.7;
           }
         }
+        this.run.drones[write++] = drone;
       }
+      this.run.drones.length = write;
     }
 
     nearestEnemy(x, y, range) {
@@ -4255,7 +4324,9 @@
           if (hazard.type === "voltage") p.energy = Math.max(0, p.energy - 12);
         }
       }
-      for (const pickup of [...this.run.pickups]) {
+      let pickupWrite = 0;
+      for (let i = 0; i < this.run.pickups.length; i++) {
+        const pickup = this.run.pickups[i];
         pickup.age = (pickup.age || 0) + dt;
         if (pickup.type === "reward") {
           pickup.vy = (pickup.vy || 0) + 180 * dt;
@@ -4285,13 +4356,16 @@
             pickup.life = 0;
           }
         }
-        if (pickup.life <= 0) this.run.pickups.splice(this.run.pickups.indexOf(pickup), 1);
+        if (pickup.life > 0) this.run.pickups[pickupWrite++] = pickup;
       }
+      this.run.pickups.length = pickupWrite;
     }
 
     updateEffects(dt) {
       if (!this.run) return;
-      for (const effect of [...this.run.effects]) {
+      let write = 0;
+      for (let i = 0; i < this.run.effects.length; i++) {
+        const effect = this.run.effects[i];
         effect.time -= dt;
         if (effect.type === "pull") {
           for (const enemy of this.run.enemies) {
@@ -4327,23 +4401,31 @@
             this.addShockwave(x, y, 190, "#b28dff", 22);
           }
         }
-        if (effect.time <= 0) this.run.effects.splice(this.run.effects.indexOf(effect), 1);
+        if (effect.time > 0) this.run.effects[write++] = effect;
       }
+      this.run.effects.length = write;
     }
 
     addEffect(effect) {
-      if (this.run) this.run.effects.push(effect);
+      if (!this.run) return;
+      this.run.effects.push(effect);
+      this.trimEffectList();
     }
 
     updateSlashes(dt) {
-      for (const slash of [...this.run.slashes]) {
+      let write = 0;
+      for (let i = 0; i < this.run.slashes.length; i++) {
+        const slash = this.run.slashes[i];
         slash.life -= dt;
-        if (slash.life <= 0) this.run.slashes.splice(this.run.slashes.indexOf(slash), 1);
+        if (slash.life > 0) this.run.slashes[write++] = slash;
       }
+      this.run.slashes.length = write;
     }
 
     updateTrails(dt) {
-      for (const trail of [...this.run.trails]) {
+      let write = 0;
+      for (let i = 0; i < this.run.trails.length; i++) {
+        const trail = this.run.trails[i];
         trail.life -= dt;
         if (trail.damageTick !== undefined) {
           trail.damageTick -= dt;
@@ -4356,24 +4438,30 @@
             }
           }
         }
-        if (trail.life <= 0) this.run.trails.splice(this.run.trails.indexOf(trail), 1);
+        if (trail.life > 0) this.run.trails[write++] = trail;
       }
+      this.run.trails.length = write;
     }
 
     leaveTrail(x, y, color) {
       this.run.trails.push({ x, y, radius: 18, color, life: 0.45, maxLife: 0.45 });
+      this.trimVisualList(this.run.trails, this.isMobileDevice() ? 28 : 42);
     }
 
     addTrailDamage(x, y, color) {
       this.run.trails.push({ x, y, radius: 28, color, life: 1.1, maxLife: 1.1, damageTick: 0 });
+      this.trimVisualList(this.run.trails, this.isMobileDevice() ? 28 : 42);
     }
 
     addShockwave(x, y, radius, color, damage = 0) {
       this.run.shockwaves.push({ x, y, radius, color, life: 0.42, maxLife: 0.42, damage, hit: new Set() });
+      this.trimVisualList(this.run.shockwaves, this.isMobileDevice() ? 16 : 24);
     }
 
     updateShockwaves(dt) {
-      for (const wave of [...this.run.shockwaves]) {
+      let write = 0;
+      for (let i = 0; i < this.run.shockwaves.length; i++) {
+        const wave = this.run.shockwaves[i];
         wave.life -= dt;
         const progress = 1 - wave.life / wave.maxLife;
         const current = wave.radius * progress;
@@ -4385,8 +4473,9 @@
             }
           }
         }
-        if (wave.life <= 0) this.run.shockwaves.splice(this.run.shockwaves.indexOf(wave), 1);
+        if (wave.life > 0) this.run.shockwaves[write++] = wave;
       }
+      this.run.shockwaves.length = write;
     }
 
     chainLightning(origin, damage) {
@@ -4406,6 +4495,7 @@
         if (!target) break;
         hit.add(target.id);
         this.run.slashes.push({ x: source.x, y: source.y, tx: target.x, ty: target.y, line: true, life: 0.16, maxLife: 0.16, color: "#ffe45e" });
+        this.trimVisualList(this.run.slashes, this.isMobileDevice() ? 24 : 38);
         this.damageEnemy(target, damage, { x: 0, y: 0, source: "chain", kind: "lightning" });
         source = target;
       }
@@ -4437,6 +4527,7 @@
       }
       if (this.save.settings.damageNumbers) {
         this.run.damageTexts.push({ x, y: y - 18, vx: rand(-18, 18), vy: -52, life: 0.72, text: `${crit ? "CRIT " : ""}${Math.ceil(damage)}`, color: crit ? "#ffe45e" : "#ffffff", crit });
+        this.trimVisualList(this.run.damageTexts, this.isMobileDevice() ? 28 : 48);
       }
       this.audio.sfx(crit ? 520 : 360, crit ? "square" : "triangle", 0.045, crit ? 0.13 : 0.08);
     }
@@ -4469,7 +4560,7 @@
       const ranged = kind === "mage" || kind === "ranger";
       const life = heavy ? 0.24 : kind === "assassin" ? 0.18 : ranged ? 0.19 : 0.22;
       const palette = this.characterEffectPalette(kind);
-      this.run.effects.push({
+      this.addEffect({
         type: "attackBurst",
         x,
         y,
@@ -4505,7 +4596,7 @@
       const life = heavy ? 0.3 : 0.24;
       const palette = this.characterEffectPalette(kind);
       const color = heavy ? palette.accent : palette.color;
-      this.run.effects.push({
+      this.addEffect({
         type: "hitSpark",
         x,
         y,
@@ -4534,6 +4625,12 @@
 
     addParticle(x, y, color, size, life, shape = "spark", angle = rand(0, TAU), speed = rand(20, 220)) {
       if (!this.run || this.save.settings.particles <= 0) return;
+      if (Math.random() > this.particleSpawnChance(shape)) return;
+      const limit = this.particleLimit();
+      if (this.run.particles.length >= limit) {
+        if (!["crit", "plus", "ring"].includes(shape)) return;
+        this.run.particles.shift();
+      }
       this.run.particles.push({
         x,
         y,
@@ -4549,25 +4646,31 @@
 
     updateParticles(dt) {
       if (!this.run) return;
-      for (const particle of [...this.run.particles]) {
+      let write = 0;
+      for (let i = 0; i < this.run.particles.length; i++) {
+        const particle = this.run.particles[i];
         particle.life -= dt;
         particle.x += particle.vx * dt;
         particle.y += particle.vy * dt;
         particle.vx *= Math.pow(0.05, dt);
         particle.vy *= Math.pow(0.05, dt);
-        if (particle.life <= 0) this.run.particles.splice(this.run.particles.indexOf(particle), 1);
+        if (particle.life > 0) this.run.particles[write++] = particle;
       }
+      this.run.particles.length = write;
     }
 
     updateDamageTexts(dt) {
       if (!this.run) return;
-      for (const text of [...this.run.damageTexts]) {
+      let write = 0;
+      for (let i = 0; i < this.run.damageTexts.length; i++) {
+        const text = this.run.damageTexts[i];
         text.life -= dt;
         text.x += text.vx * dt;
         text.y += text.vy * dt;
         text.vy += 80 * dt;
-        if (text.life <= 0) this.run.damageTexts.splice(this.run.damageTexts.indexOf(text), 1);
+        if (text.life > 0) this.run.damageTexts[write++] = text;
       }
+      this.run.damageTexts.length = write;
     }
 
     updateNetwork(dt) {
@@ -4676,6 +4779,8 @@
       const camX = this.camera.x - this.camera.shakeX;
       const camY = this.camera.y - this.camera.shakeY;
       const scale = this.worldViewScale();
+      this.renderViewW = this.width / scale;
+      this.renderViewH = this.height / scale;
       ctx.save();
       ctx.scale(scale, scale);
       ctx.translate(-camX, -camY);
@@ -4689,9 +4794,10 @@
       const actors = [...this.run.enemies, this.run.player].sort((a, b) => a.y - b.y);
       for (const actor of actors) {
         if (actor === this.run.player) this.drawHero(ctx, actor.x, actor.y, 2.2, actor, this.run.power, this.save.customization);
-        else this.drawEnemy(ctx, actor);
+        else if (this.inView(actor.x, actor.y, actor.radius + 120)) this.drawEnemy(ctx, actor);
       }
       for (const remote of this.remotePlayers.values()) {
+        if (!this.inView(remote.x, remote.y, 120)) continue;
         this.drawHero(ctx, remote.x, remote.y, 2.0, {
           facing: remote.facing,
           animation: remote.animation || "run",
@@ -4710,17 +4816,24 @@
       this.drawBossBars(ctx);
       if (this.run.currentRoom?.intro > 0) this.drawRoomIntro(ctx);
       ctx.restore();
+      this.renderViewW = 0;
+      this.renderViewH = 0;
       this.drawVignette(ctx);
     }
 
     drawRoom(ctx) {
       const biome = this.run.biome;
+      const bounds = this.viewBounds(120);
       ctx.fillStyle = "#05070b";
       ctx.fillRect(0, 0, WORLD_W, WORLD_H);
       ctx.fillStyle = biome.floor;
       ctx.fillRect(ROOM_PAD, ROOM_PAD, WORLD_W - ROOM_PAD * 2, WORLD_H - ROOM_PAD * 2);
-      for (let x = ROOM_PAD; x < WORLD_W - ROOM_PAD; x += 64) {
-        for (let y = ROOM_PAD; y < WORLD_H - ROOM_PAD; y += 64) {
+      const startX = Math.max(ROOM_PAD, ROOM_PAD + Math.floor((bounds.left - ROOM_PAD) / 64) * 64);
+      const endX = Math.min(WORLD_W - ROOM_PAD, bounds.right + 64);
+      const startY = Math.max(ROOM_PAD, ROOM_PAD + Math.floor((bounds.top - ROOM_PAD) / 64) * 64);
+      const endY = Math.min(WORLD_H - ROOM_PAD, bounds.bottom + 64);
+      for (let x = startX; x < endX; x += 64) {
+        for (let y = startY; y < endY; y += 64) {
           const n = Math.sin(x * 0.04 + y * 0.03 + this.run.seed * 10);
           ctx.fillStyle = n > 0 ? "rgba(255,255,255,0.025)" : "rgba(0,0,0,0.08)";
           ctx.fillRect(x, y, 62, 62);
@@ -4746,12 +4859,14 @@
       for (let i = 0; i < 8; i++) {
         const x = ROOM_PAD + ((i * 317 + this.menuTime * 18) % (WORLD_W - ROOM_PAD * 2));
         const y = ROOM_PAD + ((i * 181 + Math.sin(this.menuTime + i) * 80) % (WORLD_H - ROOM_PAD * 2));
+        if (!this.inView(x + 90, y + 12, 220)) continue;
         ctx.fillRect(x, y, 180, 24);
       }
     }
 
     drawHazards(ctx) {
       for (const hazard of this.run.hazards) {
+        if (!this.inView(hazard.x, hazard.y, hazard.radius + 80)) continue;
         const color = {
           thorn: "#75e66e",
           ice: "#83e8ff",
@@ -4778,6 +4893,7 @@
 
     drawPickups(ctx) {
       for (const pickup of this.run.pickups) {
+        if (!this.inView(pickup.x, pickup.y, pickup.radius + 90)) continue;
         ctx.save();
         if (pickup.type === "reward") {
           const color = pickup.color || this.rewardColor(pickup.reward);
@@ -4817,6 +4933,7 @@
 
     drawTrails(ctx) {
       for (const trail of this.run.trails) {
+        if (!this.inView(trail.x, trail.y, trail.radius + 80)) continue;
         const alpha = trail.life / trail.maxLife;
         ctx.save();
         ctx.globalAlpha = alpha * 0.5;
@@ -4829,6 +4946,7 @@
     }
 
     drawProjectile(ctx, projectile) {
+      if (!this.inView(projectile.x, projectile.y, projectile.radius + 120)) return;
       ctx.save();
       const angle = Math.atan2(projectile.vy || 0, projectile.vx || 1);
       const tail = clamp(Math.hypot(projectile.vx || 0, projectile.vy || 0) / 45, 8, 28);
@@ -4876,6 +4994,7 @@
 
     drawDrone(ctx, drone) {
       if (!drone.x) return;
+      if (!this.inView(drone.x, drone.y, 80)) return;
       ctx.save();
       ctx.fillStyle = drone.color || "#35d6c9";
       ctx.shadowColor = drone.color || "#35d6c9";
@@ -5245,6 +5364,7 @@
 
     drawSlashes(ctx) {
       for (const slash of this.run.slashes) {
+        if (!this.inView(slash.x, slash.y, slash.range || 180) && !this.inView(slash.tx || slash.x, slash.ty || slash.y, 80)) continue;
         const alpha = slash.life / slash.maxLife;
         const impact = alpha > 0.55 ? 1 : 0;
         ctx.save();
@@ -5279,6 +5399,7 @@
 
     drawShockwaves(ctx) {
       for (const wave of this.run.shockwaves) {
+        if (!this.inView(wave.x, wave.y, wave.radius + 80)) continue;
         const progress = 1 - wave.life / wave.maxLife;
         ctx.save();
         ctx.globalAlpha = wave.life / wave.maxLife;
@@ -5297,6 +5418,7 @@
       for (const effect of this.run.effects) {
         const combatFlash = effect.type === "attackBurst" || effect.type === "hitSpark";
         if (foreground !== combatFlash) continue;
+        if (Number.isFinite(effect.x) && Number.isFinite(effect.y) && !this.inView(effect.x, effect.y, (effect.radius || effect.reach || 180) + 80)) continue;
         ctx.save();
         ctx.globalAlpha = Math.min(0.42, effect.time);
         ctx.strokeStyle = effect.color;
@@ -5669,6 +5791,7 @@
       ctx.save();
       ctx.globalCompositeOperation = "lighter";
       for (const particle of this.run.particles) {
+        if (!this.inView(particle.x, particle.y, particle.size + 80)) continue;
         const alpha = particle.life / particle.maxLife;
         ctx.globalAlpha = alpha;
         ctx.fillStyle = particle.color;
@@ -5718,6 +5841,7 @@
       ctx.font = "800 16px ui-sans-serif, system-ui";
       ctx.textAlign = "center";
       for (const text of this.run.damageTexts) {
+        if (!this.inView(text.x, text.y, 80)) continue;
         ctx.globalAlpha = clamp(text.life / 0.72, 0, 1);
         ctx.fillStyle = "#111521";
         ctx.fillText(text.text, text.x + 1, text.y + 1);

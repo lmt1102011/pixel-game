@@ -244,9 +244,25 @@ button {
   width: min(420px, 100%);
 }
 
-.menu-only .logo,
 .menu-only .account-strip {
   display: none;
+}
+
+.menu-only .main-nav {
+  text-align: center;
+}
+
+.menu-only .logo {
+  margin-bottom: 16px;
+}
+
+.menu-only .logo h1 {
+  font-size: 52px;
+}
+
+.menu-only .btn {
+  min-height: 50px;
+  text-align: center;
 }
 
 .back-nav {
@@ -1480,22 +1496,47 @@ button {
 
 .touch-actions {
   position: absolute;
-  right: 14px;
+  right: 18px;
   bottom: 22px;
   display: grid;
-  grid-template-columns: repeat(3, 58px);
-  gap: 8px;
+  grid-template-columns: repeat(4, 68px);
+  gap: 10px;
   pointer-events: auto;
 }
 
 .touch-actions button {
-  width: 58px;
-  height: 48px;
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  background: rgba(8, 10, 16, 0.58);
+  width: 68px;
+  height: 58px;
+  border: 1px solid rgba(242, 191, 99, 0.3);
+  background: linear-gradient(180deg, rgba(23, 27, 38, 0.86), rgba(8, 10, 16, 0.72));
   color: var(--ink);
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 900;
+  box-shadow: 0 12px 26px rgba(0, 0, 0, 0.34), inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+}
+
+.touch-actions button:active {
+  transform: translateY(1px) scale(0.98);
+  border-color: rgba(99, 255, 203, 0.58);
+  background: linear-gradient(180deg, rgba(42, 53, 62, 0.92), rgba(11, 15, 22, 0.8));
+}
+
+.touch-actions [data-touch="attack"],
+.touch-actions [data-touch="dash"] {
+  grid-column: span 2;
+  width: auto;
+  height: 66px;
+  font-size: 14px;
+}
+
+.touch-actions [data-touch="attack"] {
+  border-color: rgba(255, 107, 58, 0.48);
+  color: #ffd8c9;
+}
+
+.touch-actions [data-touch="dash"] {
+  border-color: rgba(99, 255, 203, 0.42);
+  color: #cbfff0;
 }
 
 .code-box {
@@ -1716,15 +1757,21 @@ button {
   .touch-actions {
     right: calc(12px + env(safe-area-inset-right));
     bottom: calc(16px + env(safe-area-inset-bottom));
-    grid-template-columns: repeat(3, 58px);
-    gap: 8px;
+    grid-template-columns: repeat(4, 64px);
+    gap: 9px;
   }
 
   .touch-actions button {
-    width: 58px;
-    height: 52px;
-    background: rgba(8, 10, 16, 0.68);
-    font-size: 10px;
+    width: 64px;
+    height: 56px;
+    font-size: 11px;
+  }
+
+  .touch-actions [data-touch="attack"],
+  .touch-actions [data-touch="dash"] {
+    width: auto;
+    height: 62px;
+    font-size: 13px;
   }
 }
 
@@ -1837,11 +1884,18 @@ button {
   }
 
   .touch-actions {
-    grid-template-columns: repeat(3, 54px);
+    grid-template-columns: repeat(4, 58px);
+    gap: 7px;
   }
 
   .touch-actions button {
-    width: 54px;
-    height: 44px;
+    width: 58px;
+    height: 50px;
+  }
+
+  .touch-actions [data-touch="attack"],
+  .touch-actions [data-touch="dash"] {
+    width: auto;
+    height: 54px;
   }
 }

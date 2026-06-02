@@ -7,7 +7,7 @@
   const ROOM_PAD = 86;
   const SAVE_KEY = "soulrift-save-v1";
   const SIGNAL_RELAY_URL = "https://ntfy.sh";
-  const APP_VERSION = "20260603-status-lobby-23";
+  const APP_VERSION = "20260603-boss-mobile-lobby-24";
   const VERSION_CHECK_INTERVAL = 15000;
   const DIRECTORY_TOPIC = "soulrift-directory";
   const ROOM_CODE_RE = /^[A-Z0-9]{4,12}$/;
@@ -858,6 +858,9 @@
       this.remoteSignal = null;
       this.signalTopic = "";
       this.signalSince = 0;
+      this.remotePollSince = 0;
+      this.remotePollTimer = 0;
+      this.remotePollBusy = false;
       this.presenceTimer = 0;
       this.directoryTimer = 0;
       this.lastLobbyAt = 0;
@@ -948,7 +951,14 @@
         if (!this.host && this.code) this.sendSignal({ type: "hello", ...this.playerProfile() });
       };
       hello();
-      this.joinRetryTimers.push(setTimeout(hello, 350), setTimeout(hello, 1000), setTimeout(hello, 2200), setTimeout(hello, 4200));
+      this.joinRetryTimers.push(
+        setTimeout(hello, 350),
+        setTimeout(hello, 1000),
+        setTimeout(hello, 2200),
+        setTimeout(hello, 4200),
+        setTimeout(hello, 7000),
+        setTimeout(hello, 10500)
+      );
     }
 
     close() {
@@ -964,6 +974,9 @@
       if (this.remoteSignal) this.remoteSignal.close();
       this.remoteSignal = null;
       this.signalTopic = "";
+      this.remotePollSince = 0;
+      this.remotePollTimer = 0;
+      this.remotePollBusy = false;
       this.presenceTimer = 0;
       this.lastLobbyAt = 0;
       this.seenSignals.clear();
@@ -971,6 +984,7 @@
 
     updatePresence(dt) {
       this.updateDirectoryPresence(dt);
+      this.pollRemoteSignal(dt);
       this.checkJoinTimeout();
       if (!this.code || this.game.mode !== "lobby") return;
       this.presenceTimer -= dt;
@@ -990,7 +1004,7 @@
       if (!this.host || !this.code || !window.fetch) return;
       this.directoryTimer -= dt;
       if (this.directoryTimer > 0) return;
-      this.directoryTimer = 2.2;
+      this.directoryTimer = 1.35;
       const payload = {
         type: "roomPresence",
         code: this.code,
@@ -1008,7 +1022,7 @@
 
     checkJoinTimeout() {
       if (!this.joinPending || this.host || !this.code) return;
-      if (Date.now() - this.joinStartedAt < 6500) return;
+      if (Date.now() - this.joinStartedAt < 14500) return;
       if (this.lastLobbyAt > 0 || this.openPeerCount() > 0) {
         this.joinPending = false;
         return;
@@ -1028,6 +1042,7 @@
         return;
       }
       this.signalSince = Date.now() - 15000;
+      this.remotePollSince = this.signalSince;
       this.signalTopic = `soulrift-${this.code.toLowerCase()}`;
       if ("BroadcastChannel" in window) {
         this.signal = new BroadcastChannel(this.signalTopic);
@@ -1049,11 +1064,46 @@
 
     onRemoteSignal(event) {
       try {
-        const envelope = JSON.parse(event.data);
-        if (envelope.event && envelope.event !== "message") return;
+        this.handleRemoteEnvelope(JSON.parse(event.data)).catch(() => {});
+      } catch {
+        // Ignore unrelated public relay messages.
+      }
+    }
+
+    async pollRemoteSignal(dt) {
+      if (!window.fetch || !this.signalTopic) return;
+      this.remotePollTimer -= dt;
+      if (this.remotePollTimer > 0 || this.remotePollBusy) return;
+      this.remotePollTimer = this.joinPending ? 0.55 : this.host ? 0.85 : 1.2;
+      this.remotePollBusy = true;
+      try {
+        const since = Math.floor((this.remotePollSince || this.signalSince || Date.now() - 30000) / 1000);
+        const response = await fetch(`${SIGNAL_RELAY_URL}/${encodeURIComponent(this.signalTopic)}/json?poll=1&since=${since}`, { cache: "no-store" });
+        if (!response.ok) return;
+        const text = await response.text();
+        for (const line of text.split(/\r?\n/)) {
+          if (!line.trim()) continue;
+          try {
+            await this.handleRemoteEnvelope(JSON.parse(line));
+          } catch {
+            // Relay polling can include stale or malformed public messages.
+          }
+        }
+      } catch {
+        // SSE is still active when polling fails.
+      } finally {
+        this.remotePollBusy = false;
+      }
+    }
+
+    async handleRemoteEnvelope(envelope) {
+      try {
+        if (!envelope || (envelope.event && envelope.event !== "message")) return;
         const payload = typeof envelope.message === "string" ? JSON.parse(envelope.message) : envelope.message;
         if (!payload || (payload.sentAt && payload.sentAt < this.signalSince)) return;
-        this.onSignal(payload);
+        const relayTime = Number(envelope.time || 0) * 1000;
+        this.remotePollSince = Math.max(this.remotePollSince || 0, Number(payload.sentAt || 0) + 1, relayTime + 1);
+        await this.onSignal(payload);
       } catch {
         // Ignore unrelated public relay messages.
       }
@@ -2129,6 +2179,18 @@
 
     basicAimAngle(player) {
       if (this.isMobileDevice()) {
+        const characterId = player?.characterId || this.save.account.selectedCharacter;
+        if (["mage", "ranger"].includes(characterId)) {
+          const target = this.nearestEnemy(player.x, player.y, 980);
+          if (target) {
+            const dx = target.x - player.x;
+            const dy = target.y - player.y;
+            const len = Math.hypot(dx, dy) || 1;
+            this.input.touch.aimX = dx / len;
+            this.input.touch.aimY = dy / len;
+            return Math.atan2(dy, dx);
+          }
+        }
         const mag = Math.hypot(this.input.touch.x, this.input.touch.y);
         if (mag > 0.12) {
           const dx = this.input.touch.x / mag;
@@ -2488,7 +2550,7 @@
             continue;
           }
           if (payload?.type !== "roomPresence" || !payload.code) continue;
-          if (now - Number(payload.sentAt || 0) > 18000) continue;
+          if (now - Number(payload.sentAt || 0) > 60000) continue;
           const code = String(payload.code || "").trim().toUpperCase();
           if (!ROOM_CODE_RE.test(code)) continue;
           rooms.set(code, {
@@ -3675,7 +3737,10 @@
       if (type === "treasure") this.spawnTreasureChest();
       else if (type === "merchant") this.spawnMerchantStall();
       else if (type === "curse") this.spawnCurseBook();
-      else if (type === "boss") this.spawnBossGate();
+      else if (type === "boss") {
+        this.run.currentRoom.started = true;
+        this.spawnBoss();
+      }
       else this.spawnRoomEnemies(type);
       if (this.run.enemies.length === 0 && ["healing", "secret"].includes(type)) {
         this.run.roomClearTimer = 0.6;
@@ -3918,6 +3983,7 @@
 
     spawnBoss() {
       const biome = this.run.biome;
+      const hp = (1180 + this.run.stage * 360) * (this.run.difficulty?.enemyHp || 1);
       this.run.enemies.push({
         id: uid("boss"),
         kind: biome.boss,
@@ -3926,8 +3992,8 @@
         vx: 0,
         vy: 0,
         radius: 58,
-        hp: (780 + this.run.stage * 240) * (this.run.difficulty?.enemyHp || 1),
-        maxHp: (780 + this.run.stage * 240) * (this.run.difficulty?.enemyHp || 1),
+        hp,
+        maxHp: hp,
         speed: 62 + this.run.stage * 5,
         damage: (28 + this.run.stage * 6) * (this.run.difficulty?.enemyDamage || 1),
         ranged: true,
@@ -6583,9 +6649,11 @@
         return;
       }
       if (object.type === "bossGate") {
+        if (this.run.currentRoom.started) return;
         object.opened = true;
         object.active = false;
         this.run.currentRoom.started = true;
+        this.run.roomObjects = this.run.roomObjects.filter((entry) => entry !== object);
         this.spawnBoss();
         this.addShockwave(object.x, object.y, 260, object.color || this.run.biome.accent, 0);
         this.camera.shake = Math.max(this.camera.shake, 18);

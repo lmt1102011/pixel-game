@@ -7,7 +7,7 @@
   const ROOM_PAD = 86;
   const SAVE_KEY = "soulrift-save-v1";
   const SIGNAL_RELAY_URL = "https://ntfy.sh";
-  const APP_VERSION = "20260602-gameplay-relay-16";
+  const APP_VERSION = "20260602-authoritative-sync-17";
   const VERSION_CHECK_INTERVAL = 15000;
 
   const RARITY = {
@@ -1011,7 +1011,7 @@
         this.game.startRun(powerById(ownPowerId), message.biomeId, { multiplayer: true, host: false, seed: message.seed });
       }
 
-      if (message.type === "state" && this.host) this.applyRemoteState(message.from, message.state);
+      if (message.type === "state") this.applyRemoteState(message.from, message.state);
       if (message.type === "attack" && this.host) this.game.handleRemoteAttack(message.from, message.attack);
       if (message.type === "skill" && this.host) this.game.handleRemoteSkill(message.from, message.skill);
       if (message.type === "collect" && this.host) this.game.handleRemoteCollect(message.from, message.pickupId);
@@ -1086,11 +1086,20 @@
       if (!remoteId || !state) return;
       const previous = this.game.remotePlayers.get(remoteId) || {};
       const slot = this.slots.find((entry) => entry.id === remoteId);
+      const x = Number(state.x);
+      const y = Number(state.y);
+      const nextX = Number.isFinite(x) ? x : previous.x;
+      const nextY = Number.isFinite(y) ? y : previous.y;
+      const previousDisplayX = Number.isFinite(previous.displayX) ? previous.displayX : (Number.isFinite(previous.x) ? previous.x : nextX);
+      const previousDisplayY = Number.isFinite(previous.displayY) ? previous.displayY : (Number.isFinite(previous.y) ? previous.y : nextY);
+      const snap = !Number.isFinite(previousDisplayX) || !Number.isFinite(previousDisplayY) || Math.hypot(nextX - previousDisplayX, nextY - previousDisplayY) > 520;
       this.game.remotePlayers.set(remoteId, {
         ...previous,
         ...state,
         id: remoteId,
         name: state.name || previous.name || slot?.name || "Người chơi",
+        displayX: snap ? nextX : previousDisplayX,
+        displayY: snap ? nextY : previousDisplayY,
         t: performance.now()
       });
     }
@@ -1214,6 +1223,11 @@
         this.sendPeer(peer, { type: "state", state });
       }
       if (!this.host && !this.hasOpenPeers()) this.sendSignal({ type: "state", state }, this.hostId());
+      if (this.host && this.code) {
+        for (const slot of this.slots) {
+          if (slot?.id && !slot.host && !this.hasOpenPeer(slot.id)) this.sendSignal({ type: "state", state }, slot.id);
+        }
+      }
     }
 
     sendAttack(attack) {
@@ -1243,11 +1257,15 @@
       if (!this.host && !this.hasOpenPeers()) this.sendSignal({ type: "collect", pickupId }, this.hostId());
     }
 
-    broadcastSnapshot(snapshot) {
+    broadcastSnapshot(snapshot, relaySnapshot = snapshot) {
       for (const peer of this.peers.values()) {
         this.sendPeer(peer, { type: "snapshot", snapshot });
       }
-      if (this.code && this.openPeerCount() < this.guestCount()) this.sendSignal({ type: "snapshot", snapshot });
+      if (this.code) {
+        for (const slot of this.slots) {
+          if (slot?.id && !slot.host && !this.hasOpenPeer(slot.id)) this.sendSignal({ type: "snapshot", snapshot: relaySnapshot || snapshot }, slot.id);
+        }
+      }
     }
 
     hasOpenPeers() {
@@ -2794,6 +2812,13 @@
       this.hud.classList.remove("hidden");
       this.touchLayer.classList.toggle("hidden", !this.isMobileDevice());
       this.startRoom({ type: "normal", label: "Phòng Thường", icon: "X", color: "#c9d0db" });
+      if (this.isMultiplayerClient()) {
+        this.run.enemies = [];
+        this.run.projectiles = [];
+        this.run.hazards = [];
+        this.run.pickups = [];
+        this.run.roomClearTimer = 0;
+      }
       this.persist();
     }
 
@@ -2827,6 +2852,8 @@
           name: slot.name || "Người chơi",
           x: p.x + offset.x,
           y: p.y + offset.y,
+          displayX: p.x + offset.x,
+          displayY: p.y + offset.y,
           hp: character.stats.hp,
           maxHp: character.stats.hp,
           energy: character.stats.energy,
@@ -2886,16 +2913,73 @@
       return { ...wave, hit: new Set(Array.isArray(wave.hit) ? wave.hit : []) };
     }
 
-    networkSnapshot() {
+    compactFields(entry, fields) {
+      const clean = {};
+      for (const key of fields) {
+        const value = entry?.[key];
+        if (value == null) continue;
+        if (["number", "string", "boolean"].includes(typeof value)) clean[key] = value;
+        else if (key === "reward") clean[key] = value;
+      }
+      return clean;
+    }
+
+    compactEnemy(enemy) {
+      return this.compactFields(enemy, [
+        "id", "kind", "x", "y", "vx", "vy", "radius", "hp", "maxHp", "speed", "damage",
+        "role", "ranged", "bulky", "elite", "boss", "attackCd", "skillCd", "windupType",
+        "windupTime", "windupTotal", "windupAngle", "windupX", "windupY", "chargeTime",
+        "chargeHit", "chargeDir", "chargeSpeed", "chargeDamage", "attackAnim", "attackDir",
+        "launch", "flash", "stun", "burn", "chill", "mark", "phase", "phaseLock", "aiTimer"
+      ]);
+    }
+
+    compactProjectile(projectile) {
+      return this.compactFields(projectile, [
+        "id", "owner", "x", "y", "vx", "vy", "radius", "damage", "life", "age", "color", "pierce", "kind"
+      ]);
+    }
+
+    compactPickup(pickup) {
+      return this.compactFields(pickup, [
+        "id", "type", "ownerId", "ownerName", "x", "y", "vx", "vy", "radius", "life", "age", "color", "collected", "reward"
+      ]);
+    }
+
+    mergeNetworkActors(current, incoming, snapDistance = 520) {
+      const previousById = new Map();
+      for (const actor of current || []) {
+        if (actor?.id) previousById.set(actor.id, actor);
+      }
+      return incoming.map((actor) => {
+        const previous = previousById.get(actor.id) || {};
+        const x = Number(actor.x);
+        const y = Number(actor.y);
+        const nextX = Number.isFinite(x) ? x : previous.x;
+        const nextY = Number.isFinite(y) ? y : previous.y;
+        const previousDisplayX = Number.isFinite(previous.displayX) ? previous.displayX : (Number.isFinite(previous.x) ? previous.x : nextX);
+        const previousDisplayY = Number.isFinite(previous.displayY) ? previous.displayY : (Number.isFinite(previous.y) ? previous.y : nextY);
+        const snap = !Number.isFinite(previousDisplayX) || !Number.isFinite(previousDisplayY) || Math.hypot(nextX - previousDisplayX, nextY - previousDisplayY) > snapDistance;
+        return {
+          ...previous,
+          ...actor,
+          displayX: snap ? nextX : previousDisplayX,
+          displayY: snap ? nextY : previousDisplayY
+        };
+      });
+    }
+
+    networkSnapshot(compact = false) {
       if (!this.run) return null;
       const players = [this.networkPlayerState()].filter(Boolean);
       for (const [id, state] of this.remotePlayers) {
-        players.push({
-          id,
-          name: state.name || this.lobby.slots.find((slot) => slot.id === id)?.name || "Người chơi",
-          ...state,
-          id
+        const slot = this.lobby.slots.find((entry) => entry.id === id);
+        const playerState = this.networkPlayerState(id, state, {
+          name: state.name || slot?.name,
+          color: state.color,
+          power: state.power
         });
+        if (playerState) players.push(playerState);
       }
       return {
         stage: this.run.stage,
@@ -2920,16 +3004,16 @@
           rewardClaims: this.run.currentRoom.rewardClaims || {},
           rewardOwners: this.run.currentRoom.rewardOwners || []
         } : null,
-        enemies: this.run.enemies.map((enemy) => ({ ...enemy })),
-        hazards: this.run.hazards.map((hazard) => ({ ...hazard })),
-        pickups: this.run.pickups.map((pickup) => this.serializableVisual(pickup)),
-        projectiles: this.run.projectiles.map((projectile) => this.serializableVisual(projectile)),
-        drones: this.run.drones.map((drone) => this.serializableVisual(drone)),
-        slashes: this.run.slashes.map((slash) => this.serializableVisual(slash)),
-        shockwaves: this.run.shockwaves.map((wave) => ({ ...this.serializableVisual(wave), hit: Array.from(wave.hit || []) })),
-        trails: this.run.trails.map((trail) => this.serializableVisual(trail)),
-        effects: this.run.effects.filter((effect) => ["pull", "zone", "danger", "ultimate"].includes(effect.type)).slice(-24).map((effect) => this.serializableVisual(effect)),
-        damageTexts: this.run.damageTexts.slice(-24).map((text) => this.serializableVisual(text)),
+        enemies: compact ? this.run.enemies.map((enemy) => this.compactEnemy(enemy)) : this.run.enemies.map((enemy) => ({ ...enemy })),
+        hazards: this.run.hazards.map((hazard) => compact ? this.compactFields(hazard, ["type", "x", "y", "radius", "pulse", "cooldown"]) : ({ ...hazard })),
+        pickups: this.run.pickups.map((pickup) => compact ? this.compactPickup(pickup) : this.serializableVisual(pickup)),
+        projectiles: (compact ? this.run.projectiles.slice(-36) : this.run.projectiles).map((projectile) => compact ? this.compactProjectile(projectile) : this.serializableVisual(projectile)),
+        drones: compact ? [] : this.run.drones.map((drone) => this.serializableVisual(drone)),
+        slashes: (compact ? this.run.slashes.slice(-14) : this.run.slashes).map((slash) => this.serializableVisual(slash)),
+        shockwaves: (compact ? this.run.shockwaves.slice(-10) : this.run.shockwaves).map((wave) => ({ ...this.serializableVisual(wave), hit: Array.from(wave.hit || []) })),
+        trails: compact ? [] : this.run.trails.map((trail) => this.serializableVisual(trail)),
+        effects: this.run.effects.filter((effect) => ["pull", "zone", "danger", "ultimate"].includes(effect.type)).slice(compact ? -12 : -24).map((effect) => this.serializableVisual(effect)),
+        damageTexts: compact ? [] : this.run.damageTexts.slice(-24).map((text) => this.serializableVisual(text)),
         t: performance.now()
       };
     }
@@ -2953,7 +3037,7 @@
         this.setScreen("");
         this.hud.classList.remove("hidden");
       }
-      if (Array.isArray(snapshot.enemies)) this.run.enemies = snapshot.enemies.map((enemy) => ({ ...enemy }));
+      if (Array.isArray(snapshot.enemies)) this.run.enemies = this.mergeNetworkActors(this.run.enemies, snapshot.enemies, 620);
       if (Array.isArray(snapshot.hazards)) this.run.hazards = snapshot.hazards.map((hazard) => ({ ...hazard }));
       if (Array.isArray(snapshot.pickups)) this.run.pickups = snapshot.pickups.map((pickup) => ({ ...pickup }));
       if (Array.isArray(snapshot.projectiles)) this.run.projectiles = snapshot.projectiles.map((projectile) => ({ ...projectile }));
@@ -2971,10 +3055,19 @@
           seen.add(player.id);
           const previous = this.remotePlayers.get(player.id) || {};
           const slot = this.lobby.slots.find((entry) => entry.id === player.id);
+          const x = Number(player.x);
+          const y = Number(player.y);
+          const nextX = Number.isFinite(x) ? x : previous.x;
+          const nextY = Number.isFinite(y) ? y : previous.y;
+          const previousDisplayX = Number.isFinite(previous.displayX) ? previous.displayX : (Number.isFinite(previous.x) ? previous.x : nextX);
+          const previousDisplayY = Number.isFinite(previous.displayY) ? previous.displayY : (Number.isFinite(previous.y) ? previous.y : nextY);
+          const snap = !Number.isFinite(previousDisplayX) || !Number.isFinite(previousDisplayY) || Math.hypot(nextX - previousDisplayX, nextY - previousDisplayY) > 520;
           this.remotePlayers.set(player.id, {
             ...previous,
             ...player,
             name: player.name || previous.name || slot?.name || "Người chơi",
+            displayX: snap ? nextX : previousDisplayX,
+            displayY: snap ? nextY : previousDisplayY,
             t: now
           });
         }
@@ -3293,6 +3386,7 @@
       this.updateDamageTexts(dt);
       this.updateHud();
       this.updateNetwork(dt);
+      this.updateNetworkInterpolation(dt);
       if (this.run.currentRoom.intro > 0) {
         this.run.currentRoom.intro -= dt;
         return;
@@ -3300,7 +3394,7 @@
       this.updatePlayer(worldDt);
       this.updateDrones(worldDt);
       this.updateHazards(worldDt);
-      this.updateEnemies(worldDt);
+      if (!this.isMultiplayerClient()) this.updateEnemies(worldDt);
       this.updateProjectiles(worldDt);
       this.updateSlashes(worldDt);
       this.updateTrails(worldDt);
@@ -3308,7 +3402,7 @@
       if (this.input.mouse.left) this.attackBasic();
       if (player.comboTimer > 0) player.comboTimer -= worldDt;
       else player.combo = 0;
-      this.ensureRoomClearState(worldDt);
+      if (!this.isMultiplayerClient()) this.ensureRoomClearState(worldDt);
     }
 
     ensureRoomClearState(dt) {
@@ -5258,7 +5352,7 @@
         const y = p.y + Math.sin(drone.angle) * drone.radius;
         drone.x = x;
         drone.y = y;
-        if (drone.cooldown <= 0) {
+        if (drone.cooldown <= 0 && !this.isMultiplayerClient()) {
           const target = this.nearestEnemy(x, y, 430);
           if (target) {
             const angle = Math.atan2(target.y - y, target.x - x);
@@ -5668,17 +5762,53 @@
       this.snapshotTimer -= dt;
       if (!this.run || !this.isMultiplayerRun()) return;
       if (this.networkTimer <= 0) {
-        this.networkTimer = this.lobby.hasOpenPeers() ? 0.05 : 0.18;
+        this.networkTimer = this.lobby.hasOpenPeers() ? 0.04 : 0.1;
         const p = this.run.player;
         this.lobby.sendState(this.networkPlayerState(this.lobby.id, p));
       }
       if (this.isMultiplayerHost() && this.lobby.guestCount() > 0 && this.snapshotTimer <= 0) {
-        this.snapshotTimer = this.lobby.hasOpenPeers() ? (this.perf.quality < 0.75 ? 0.18 : 0.11) : 0.42;
+        const needsRelay = this.lobby.openPeerCount() < this.lobby.guestCount();
+        this.snapshotTimer = this.lobby.hasOpenPeers() ? (this.perf.quality < 0.75 ? 0.16 : 0.1) : 0.26;
         const snapshot = this.networkSnapshot();
-        if (snapshot) this.lobby.broadcastSnapshot(snapshot);
+        if (snapshot) this.lobby.broadcastSnapshot(snapshot, needsRelay ? this.networkSnapshot(true) : snapshot);
       }
       for (const [id, remote] of [...this.remotePlayers]) {
         if (performance.now() - remote.t > 4000) this.remotePlayers.delete(id);
+      }
+    }
+
+    updateNetworkInterpolation(dt) {
+      if (!this.run || !this.isMultiplayerRun()) return;
+      const remoteBlend = clamp(dt * 18, 0, 1);
+      for (const remote of this.remotePlayers.values()) {
+        const targetX = Number(remote.x);
+        const targetY = Number(remote.y);
+        if (!Number.isFinite(targetX) || !Number.isFinite(targetY)) continue;
+        if (!Number.isFinite(remote.displayX) || !Number.isFinite(remote.displayY)) {
+          remote.displayX = targetX;
+          remote.displayY = targetY;
+        } else {
+          remote.displayX += (targetX - remote.displayX) * remoteBlend;
+          remote.displayY += (targetY - remote.displayY) * remoteBlend;
+        }
+      }
+      if (!this.isMultiplayerClient()) return;
+      const enemyBlend = clamp(dt * 16, 0, 1);
+      for (const enemy of this.run.enemies) {
+        enemy.flash = Math.max(0, (enemy.flash || 0) - dt);
+        enemy.attackAnim = Math.max(0, (enemy.attackAnim || 0) - dt);
+        enemy.launch = Math.max(0, (enemy.launch || 0) - dt);
+        enemy.windupTime = Math.max(0, (enemy.windupTime || 0) - dt);
+        const targetX = Number(enemy.x);
+        const targetY = Number(enemy.y);
+        if (!Number.isFinite(targetX) || !Number.isFinite(targetY)) continue;
+        if (!Number.isFinite(enemy.displayX) || !Number.isFinite(enemy.displayY)) {
+          enemy.displayX = targetX;
+          enemy.displayY = targetY;
+        } else {
+          enemy.displayX += (targetX - enemy.displayX) * enemyBlend;
+          enemy.displayY += (targetY - enemy.displayY) * enemyBlend;
+        }
       }
     }
 
@@ -5788,16 +5918,23 @@
       this.drawEffects(ctx);
       for (const projectile of this.run.projectiles) this.drawProjectile(ctx, projectile);
       for (const drone of this.run.drones) this.drawDrone(ctx, drone);
-      const actors = [...this.run.enemies, this.run.player].sort((a, b) => a.y - b.y);
+      const actorY = (actor) => Number.isFinite(actor.displayY) ? actor.displayY : actor.y;
+      const actors = [...this.run.enemies, this.run.player].sort((a, b) => actorY(a) - actorY(b));
       for (const actor of actors) {
         if (actor === this.run.player) {
           this.drawHero(ctx, actor.x, actor.y, 2.2, actor, this.run.power, this.save.customization);
           if (this.isMultiplayerRun()) this.drawNameTag(ctx, actor.x, actor.y - 58, actor.name || this.save.account.username || "Bạn", true);
-        } else if (this.inView(actor.x, actor.y, actor.radius + 120)) this.drawEnemy(ctx, actor);
+        } else {
+          const enemyX = Number.isFinite(actor.displayX) ? actor.displayX : actor.x;
+          const enemyY = Number.isFinite(actor.displayY) ? actor.displayY : actor.y;
+          if (this.inView(enemyX, enemyY, actor.radius + 120)) this.drawEnemy(ctx, { ...actor, x: enemyX, y: enemyY });
+        }
       }
       for (const remote of this.remotePlayers.values()) {
-        if (!this.inView(remote.x, remote.y, 120)) continue;
-        this.drawHero(ctx, remote.x, remote.y, 2.0, {
+        const remoteX = Number.isFinite(remote.displayX) ? remote.displayX : remote.x;
+        const remoteY = Number.isFinite(remote.displayY) ? remote.displayY : remote.y;
+        if (!this.inView(remoteX, remoteY, 120)) continue;
+        this.drawHero(ctx, remoteX, remoteY, 2.0, {
           facing: remote.facing,
           animation: remote.animation || "run",
           animTime: remote.animTime || this.menuTime,
@@ -5806,7 +5943,7 @@
           hp: remote.hp,
           characterId: remote.characterId
         }, powerById(remote.power), { ...this.save.customization, color: remote.color });
-        this.drawNameTag(ctx, remote.x, remote.y - 54, remote.name || "Người chơi", false);
+        this.drawNameTag(ctx, remoteX, remoteY - 54, remote.name || "Người chơi", false);
       }
       this.drawSlashes(ctx);
       this.drawShockwaves(ctx);

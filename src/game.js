@@ -1044,6 +1044,8 @@
       this.hud = document.getElementById("hud");
       this.toastEl = document.getElementById("toast");
       this.touchLayer = document.getElementById("touchLayer");
+      this.mobileGate = document.getElementById("mobileGate");
+      this.mobileGateButton = document.getElementById("mobileGateButton");
       this.store = new SaveStore();
       this.audio = new AudioEngine(this);
       this.lobby = new PeerLobby(this);
@@ -1312,7 +1314,16 @@
     }
 
     bindEvents() {
-      window.addEventListener("resize", () => this.resize());
+      window.addEventListener("resize", () => {
+        this.resize();
+        this.updateMobileGate();
+      });
+      window.addEventListener("orientationchange", () => {
+        window.setTimeout(() => this.updateMobileGate(), 220);
+      });
+      document.addEventListener("fullscreenchange", () => this.updateMobileGate());
+      document.addEventListener("webkitfullscreenchange", () => this.updateMobileGate());
+      this.mobileGateButton?.addEventListener("click", () => this.enterMobilePlayMode());
       window.addEventListener("keydown", (event) => this.onKeyDown(event));
       window.addEventListener("keyup", (event) => this.input.keys.delete(event.code));
       this.canvas.addEventListener("mousemove", (event) => this.updateMouse(event));
@@ -1331,6 +1342,67 @@
       });
       this.screen.addEventListener("input", (event) => this.handleInput(event));
       this.bindTouchControls();
+      this.updateMobileGate();
+    }
+
+    isMobileDevice() {
+      return matchMedia("(hover: none), (pointer: coarse)").matches || Math.min(window.innerWidth, window.innerHeight) <= 760;
+    }
+
+    isLandscapeView() {
+      return window.innerWidth >= window.innerHeight;
+    }
+
+    canRequestFullscreen() {
+      const target = document.documentElement;
+      return Boolean(target.requestFullscreen || target.webkitRequestFullscreen || this.canvas.webkitRequestFullscreen);
+    }
+
+    isFullscreenActive() {
+      return Boolean(
+        document.fullscreenElement ||
+        document.webkitFullscreenElement ||
+        navigator.standalone ||
+        matchMedia("(display-mode: fullscreen)").matches
+      );
+    }
+
+    updateMobileGate() {
+      if (!this.mobileGate) return;
+      const mobile = this.isMobileDevice();
+      const needsLandscape = mobile && !this.isLandscapeView();
+      const needsFullscreen = mobile && this.canRequestFullscreen() && !this.isFullscreenActive();
+      this.mobileGate.classList.toggle("hidden", !(needsLandscape || needsFullscreen));
+      this.mobileGate.classList.toggle("portrait", needsLandscape);
+      this.mobileGate.classList.toggle("fullscreen-missing", needsFullscreen);
+    }
+
+    async enterMobilePlayMode() {
+      this.audio.start();
+      const target = document.documentElement;
+      try {
+        if (!this.isFullscreenActive()) {
+          if (target.requestFullscreen) {
+            try {
+              await target.requestFullscreen({ navigationUI: "hide" });
+            } catch {
+              await target.requestFullscreen();
+            }
+          } else if (target.webkitRequestFullscreen) {
+            target.webkitRequestFullscreen();
+          } else if (this.canvas.webkitRequestFullscreen) {
+            this.canvas.webkitRequestFullscreen();
+          }
+        }
+      } catch {
+        this.toast("Trình duyệt đang chặn toàn màn hình, hãy xoay ngang và thử lại");
+      }
+      try {
+        if (screen.orientation?.lock) await screen.orientation.lock("landscape");
+      } catch {
+        // Some mobile browsers only allow manual rotation.
+      }
+      this.updateMobileGate();
     }
 
     bindTouchControls() {

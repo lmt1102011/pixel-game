@@ -1272,6 +1272,66 @@ button {
   text-align: center;
 }
 
+.mobile-gate {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: grid;
+  place-items: center;
+  padding: calc(18px + env(safe-area-inset-top)) calc(18px + env(safe-area-inset-right)) calc(18px + env(safe-area-inset-bottom)) calc(18px + env(safe-area-inset-left));
+  background: rgba(5, 7, 11, 0.92);
+  backdrop-filter: blur(10px);
+}
+
+.mobile-gate-panel {
+  width: min(430px, 100%);
+  padding: 20px;
+  border: 1px solid rgba(242, 191, 99, 0.48);
+  background: rgba(16, 19, 29, 0.96);
+  box-shadow: 0 22px 54px rgba(0, 0, 0, 0.58);
+  text-align: center;
+}
+
+.mobile-gate-icon {
+  display: inline-grid;
+  place-items: center;
+  min-width: 74px;
+  min-height: 46px;
+  margin-bottom: 12px;
+  border: 1px solid rgba(53, 214, 201, 0.42);
+  background: rgba(53, 214, 201, 0.12);
+  color: #9ffcf1;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.mobile-gate h2 {
+  margin: 0 0 8px;
+  color: var(--ink);
+  font-size: 26px;
+}
+
+.mobile-gate p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.mobile-gate .btn {
+  justify-content: center;
+  width: 100%;
+  min-height: 52px;
+  margin: 16px 0 9px;
+  text-align: center;
+}
+
+.mobile-gate span {
+  color: var(--gold);
+  font-size: 12px;
+  font-weight: 800;
+}
+
 .touch-layer {
   position: fixed;
   inset: 0;
@@ -1356,6 +1416,12 @@ button {
 @media (hover: none), (pointer: coarse) {
   .touch-layer {
     display: block;
+  }
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .mobile-gate {
+    display: none !important;
   }
 }
 

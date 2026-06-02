@@ -818,7 +818,8 @@
     }
 
     playerName() {
-      return this.game.save?.account?.username || "Bạn";
+      const name = String(this.game.save?.account?.username || "").trim();
+      return name || "Bạn";
     }
 
     playerProfile() {
@@ -832,6 +833,11 @@
 
     syncOwnSlot() {
       this.upsertSlot({ ...this.playerProfile(), ready: this.ready, vote: this.mapVote, host: this.host });
+    }
+
+    slotName(slot, fallback = "Người chơi") {
+      const name = String(slot?.name || "").trim();
+      return name || fallback;
     }
 
     makeCode() {
@@ -1026,7 +1032,13 @@
         this.game.renderLobby();
       }
       if (message.type === "state") {
-        this.game.remotePlayers.set(peer.remoteId, message.state);
+        const previous = this.game.remotePlayers.get(peer.remoteId) || {};
+        const slot = this.slots.find((entry) => entry.id === peer.remoteId);
+        this.game.remotePlayers.set(peer.remoteId, {
+          ...previous,
+          ...message.state,
+          name: message.state?.name || previous.name || slot?.name || "Người chơi"
+        });
       }
       if (message.type === "attack" && this.host) {
         this.game.handleRemoteAttack(peer.remoteId, message.attack);
@@ -1052,14 +1064,17 @@
 
     upsertSlot(slot) {
       const existing = this.slots.find((entry) => entry.id === slot.id);
+      const fallback = existing?.name || `Người chơi ${this.slots.length + 1}`;
+      const cleanSlot = { ...slot, name: this.slotName(slot, fallback) };
       if (existing) {
-        Object.assign(existing, slot);
+        Object.assign(existing, cleanSlot);
       } else if (this.slots.length < 4) {
-        this.slots.push(slot);
+        this.slots.push(cleanSlot);
       }
     }
 
     toggleReady() {
+      if (this.host) return;
       this.ready = !this.ready;
       this.syncOwnSlot();
       this.broadcastReady();
@@ -2437,9 +2452,10 @@
         const slot = this.lobby.slots[index];
         const powerName = slot?.powerId ? powerById(slot.powerId).name : "Chưa chọn power";
         const characterName = slot?.characterId ? characterById(slot.characterId).name : "Chưa chọn nhân vật";
+        const displayName = slot ? this.lobby.slotName(slot, `Người chơi ${index + 1}`) : "";
         return `
           <div class="lobby-slot">
-            <h3>${slot ? `${slot.name}${slot.host ? " - Chủ phòng" : ""}` : `Người chơi ${index + 1}`}</h3>
+            <h3>${slot ? `${displayName}${slot.host ? " - Chủ phòng" : ""}` : `Người chơi ${index + 1}`}</h3>
             <p>${slot ? (slot.host ? "Điều phối ải" : slot.ready ? "Sẵn sàng" : "Chưa sẵn sàng") : "Đang trống"}</p>
             <p class="small">${slot ? `${characterName} - ${powerName}` : "Hỗ trợ 2-4 người chơi"}</p>
           </div>
@@ -2461,6 +2477,12 @@
             : allReady
               ? "Có thể bắt đầu"
               : "Chờ mọi người sẵn sàng";
+      const lobbyControls = isHost
+        ? `<button class="btn primary" data-action="start-room" ${canStart ? "" : "disabled"}>BẮT ĐẦU</button>`
+        : `
+          <button class="btn" data-action="ready-room">${this.lobby.ready ? "BỎ SẴN SÀNG" : "SẴN SÀNG"}</button>
+          <button class="btn primary" data-action="start-room" disabled>CHỜ CHỦ PHÒNG</button>
+        `;
       this.setScreen(`
         <section class="shell">
           ${this.navHtml("multiplayer")}
@@ -2482,10 +2504,7 @@
             <div class="grid cols-2">${slots}</div>
             <div class="tabs">${votes}</div>
             <p class="small">${startHint}</p>
-            <div class="grid cols-2">
-              <button class="btn" data-action="ready-room">${this.lobby.ready ? "BỎ SẴN SÀNG" : "SẴN SÀNG"}</button>
-              <button class="btn primary" data-action="start-room" ${canStart ? "" : "disabled"}>${isHost ? "BẮT ĐẦU" : "CHỜ CHỦ PHÒNG"}</button>
-            </div>
+            <div class="grid ${isHost ? "" : "cols-2"}">${lobbyControls}</div>
           </div>
         </section>
       `);
@@ -2806,7 +2825,14 @@
         for (const player of snapshot.players) {
           if (!player?.id || player.id === this.lobby.id) continue;
           seen.add(player.id);
-          this.remotePlayers.set(player.id, { ...player, t: now });
+          const previous = this.remotePlayers.get(player.id) || {};
+          const slot = this.lobby.slots.find((entry) => entry.id === player.id);
+          this.remotePlayers.set(player.id, {
+            ...previous,
+            ...player,
+            name: player.name || previous.name || slot?.name || "Người chơi",
+            t: now
+          });
         }
         for (const id of this.remotePlayers.keys()) {
           if (!seen.has(id)) this.remotePlayers.delete(id);

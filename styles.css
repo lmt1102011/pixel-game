@@ -702,10 +702,13 @@ button {
 .choice-card h3,
 .reward-card h3,
 .slot h3,
-.power-row h3 {
+.power-row h3,
+.lobby-slot h3 {
   margin: 0 0 8px;
   font-size: 17px;
   letter-spacing: 0;
+  color: var(--text);
+  overflow-wrap: anywhere;
 }
 
 .choice-card p,

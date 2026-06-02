@@ -7,7 +7,7 @@
   const ROOM_PAD = 86;
   const SAVE_KEY = "soulrift-save-v1";
   const SIGNAL_RELAY_URL = "https://ntfy.sh";
-  const APP_VERSION = "20260602-start-relay-15";
+  const APP_VERSION = "20260602-gameplay-relay-16";
   const VERSION_CHECK_INTERVAL = 15000;
 
   const RARITY = {
@@ -1011,6 +1011,13 @@
         this.game.startRun(powerById(ownPowerId), message.biomeId, { multiplayer: true, host: false, seed: message.seed });
       }
 
+      if (message.type === "state" && this.host) this.applyRemoteState(message.from, message.state);
+      if (message.type === "attack" && this.host) this.game.handleRemoteAttack(message.from, message.attack);
+      if (message.type === "skill" && this.host) this.game.handleRemoteSkill(message.from, message.skill);
+      if (message.type === "collect" && this.host) this.game.handleRemoteCollect(message.from, message.pickupId);
+      if (message.type === "damage" && !this.host) this.game.applyHostDamage(message.amount);
+      if (message.type === "snapshot" && !this.host) this.game.applyNetworkSnapshot(message.snapshot);
+
       if (message.type === "offer") {
         const peer = this.ensurePeer(message.from, false);
         await peer.pc.setRemoteDescription(message.sdp);
@@ -1075,6 +1082,19 @@
       };
     }
 
+    applyRemoteState(remoteId, state) {
+      if (!remoteId || !state) return;
+      const previous = this.game.remotePlayers.get(remoteId) || {};
+      const slot = this.slots.find((entry) => entry.id === remoteId);
+      this.game.remotePlayers.set(remoteId, {
+        ...previous,
+        ...state,
+        id: remoteId,
+        name: state.name || previous.name || slot?.name || "Người chơi",
+        t: performance.now()
+      });
+    }
+
     onPeer(message, peer) {
       if (message.type === "ready") {
         this.upsertSlot({
@@ -1095,13 +1115,7 @@
         this.game.renderLobby();
       }
       if (message.type === "state") {
-        const previous = this.game.remotePlayers.get(peer.remoteId) || {};
-        const slot = this.slots.find((entry) => entry.id === peer.remoteId);
-        this.game.remotePlayers.set(peer.remoteId, {
-          ...previous,
-          ...message.state,
-          name: message.state?.name || previous.name || slot?.name || "Người chơi"
-        });
+        this.applyRemoteState(peer.remoteId, message.state);
       }
       if (message.type === "attack" && this.host) {
         this.game.handleRemoteAttack(peer.remoteId, message.attack);
@@ -1182,40 +1196,58 @@
       }
     }
 
+    hostId() {
+      return this.slots.find((slot) => slot?.host)?.id || "";
+    }
+
+    guestCount() {
+      return this.slots.filter((slot) => slot && !slot.host).length;
+    }
+
+    hasOpenPeer(remoteId) {
+      const peer = this.peers.get(remoteId);
+      return peer?.channel?.readyState === "open";
+    }
+
     sendState(state) {
       for (const peer of this.peers.values()) {
         this.sendPeer(peer, { type: "state", state });
       }
+      if (!this.host && !this.hasOpenPeers()) this.sendSignal({ type: "state", state }, this.hostId());
     }
 
     sendAttack(attack) {
       for (const peer of this.peers.values()) {
         this.sendPeer(peer, { type: "attack", attack });
       }
+      if (!this.host && !this.hasOpenPeers()) this.sendSignal({ type: "attack", attack }, this.hostId());
     }
 
     sendSkill(skill) {
       for (const peer of this.peers.values()) {
         this.sendPeer(peer, { type: "skill", skill });
       }
+      if (!this.host && !this.hasOpenPeers()) this.sendSignal({ type: "skill", skill }, this.hostId());
     }
 
     sendDamage(remoteId, amount) {
       const peer = this.peers.get(remoteId);
       if (peer) this.sendPeer(peer, { type: "damage", amount });
+      if (!this.hasOpenPeer(remoteId)) this.sendSignal({ type: "damage", amount }, remoteId);
     }
 
     sendCollect(pickupId) {
       for (const peer of this.peers.values()) {
         this.sendPeer(peer, { type: "collect", pickupId });
       }
+      if (!this.host && !this.hasOpenPeers()) this.sendSignal({ type: "collect", pickupId }, this.hostId());
     }
 
     broadcastSnapshot(snapshot) {
-      if (!this.hasOpenPeers()) return;
       for (const peer of this.peers.values()) {
         this.sendPeer(peer, { type: "snapshot", snapshot });
       }
+      if (this.code && this.openPeerCount() < this.guestCount()) this.sendSignal({ type: "snapshot", snapshot });
     }
 
     hasOpenPeers() {
@@ -5636,12 +5668,12 @@
       this.snapshotTimer -= dt;
       if (!this.run || !this.isMultiplayerRun()) return;
       if (this.networkTimer <= 0) {
-        this.networkTimer = 0.05;
+        this.networkTimer = this.lobby.hasOpenPeers() ? 0.05 : 0.18;
         const p = this.run.player;
         this.lobby.sendState(this.networkPlayerState(this.lobby.id, p));
       }
-      if (this.isMultiplayerHost() && this.lobby.hasOpenPeers() && this.snapshotTimer <= 0) {
-        this.snapshotTimer = this.perf.quality < 0.75 ? 0.18 : 0.11;
+      if (this.isMultiplayerHost() && this.lobby.guestCount() > 0 && this.snapshotTimer <= 0) {
+        this.snapshotTimer = this.lobby.hasOpenPeers() ? (this.perf.quality < 0.75 ? 0.18 : 0.11) : 0.42;
         const snapshot = this.networkSnapshot();
         if (snapshot) this.lobby.broadcastSnapshot(snapshot);
       }

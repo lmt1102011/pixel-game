@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+    <meta name="theme-color" content="#090b12" />
+    <title>SOULRIFT</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <canvas id="gameCanvas" aria-label="Khung chơi Soulrift"></canvas>
+
+    <div id="hud" class="hud hidden" aria-live="polite">
+      <div class="hud-left">
+        <div class="brand-mini">SOULRIFT</div>
+        <div class="bar-frame hp"><span id="hpBar"></span><b id="hpText"></b></div>
+        <div class="bar-frame energy"><span id="energyBar"></span><b id="energyText"></b></div>
+      </div>
+      <div class="hud-center">
+        <div id="roomPill" class="room-pill"></div>
+        <div id="objectivePill" class="objective-pill"></div>
+      </div>
+      <div class="hud-right">
+        <div id="skillStrip" class="skill-strip"></div>
+      </div>
+    </div>
+
+    <main id="screen" class="screen"></main>
+    <div id="toast" class="toast hidden"></div>
+
+    <div id="touchLayer" class="touch-layer hidden" aria-hidden="true">
+      <div id="stick" class="stick"><span></span></div>
+      <div class="touch-actions">
+        <button data-touch="attack">ĐÁNH</button>
+        <button data-touch="dash">LƯỚT</button>
+        <button data-touch="q">Q</button>
+        <button data-touch="e">E</button>
+        <button data-touch="r">R</button>
+        <button data-touch="f">TUYỆT</button>
+      </div>
+    </div>
+
+    <script src="src/game.js"></script>
+  </body>
+</html>

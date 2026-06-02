@@ -1142,6 +1142,8 @@
       this.networkTimer = 0;
       this.snapshotTimer = 0;
       this.toastTimer = 0;
+      this.nextHudSkillAt = 0;
+      this.hudSkillMarkup = "";
       this.perf = { avgDt: 1 / 60, quality: 1 };
       this.bindEvents();
       this.resize();
@@ -1482,31 +1484,33 @@
     updatePerformanceState(dt) {
       const frame = clamp(dt || 1 / 60, 1 / 120, 0.12);
       this.perf.avgDt = this.perf.avgDt * 0.94 + frame * 0.06;
-      if (this.perf.avgDt > 0.026) {
-        this.perf.quality = clamp(this.perf.quality - frame * 0.42, 0.58, 1);
-      } else if (this.perf.avgDt < 0.0195) {
-        this.perf.quality = clamp(this.perf.quality + frame * 0.2, 0.58, 1);
+      if (this.perf.avgDt > 0.024) {
+        this.perf.quality = clamp(this.perf.quality - frame * 0.74, 0.42, 1);
+      } else if (this.perf.avgDt < 0.0185) {
+        this.perf.quality = clamp(this.perf.quality + frame * 0.2, 0.42, 1);
       }
     }
 
     particleSpawnChance(shape = "spark") {
       if (["crit", "plus"].includes(shape)) return 1;
-      const mobileBias = this.isMobileDevice() ? 0.82 : 1;
-      return clamp(mobileBias * (0.56 + this.perf.quality * 0.44), 0.38, 1);
+      const mobileBias = this.isMobileDevice() ? 0.68 : 0.88;
+      return clamp(mobileBias * (0.46 + this.perf.quality * 0.54), 0.24, 0.92);
     }
 
     particleLimit() {
-      const base = this.isMobileDevice() ? 130 : 220;
-      return Math.round(base * (0.72 + this.perf.quality * 0.28));
+      const base = this.isMobileDevice() ? 90 : 165;
+      return Math.round(base * (0.58 + this.perf.quality * 0.42));
     }
 
     effectLimit() {
-      return this.isMobileDevice() ? 72 : 105;
+      const base = this.isMobileDevice() ? 44 : 78;
+      return Math.round(base * (0.72 + (this.perf?.quality ?? 1) * 0.28));
     }
 
     glow(value) {
       const quality = this.perf?.quality ?? 1;
-      return value * clamp(quality, 0.45, 1);
+      if (quality < 0.56) return 0;
+      return value * clamp(quality * (this.isMobileDevice() ? 0.38 : 0.62), 0.12, 0.72);
     }
 
     trimVisualList(list, limit) {
@@ -1683,7 +1687,7 @@
     }
 
     resize() {
-      this.dpr = Math.min(window.devicePixelRatio || 1, this.isMobileDevice() ? 1.15 : 1.5);
+      this.dpr = Math.min(window.devicePixelRatio || 1, this.isMobileDevice() ? 1 : 1.25);
       this.width = window.innerWidth;
       this.height = window.innerHeight;
       this.canvas.width = Math.floor(this.width * this.dpr);
@@ -2638,8 +2642,8 @@
         slashes: this.run.slashes.map((slash) => this.serializableVisual(slash)),
         shockwaves: this.run.shockwaves.map((wave) => ({ ...this.serializableVisual(wave), hit: Array.from(wave.hit || []) })),
         trails: this.run.trails.map((trail) => this.serializableVisual(trail)),
-        effects: this.run.effects.filter((effect) => effect.type !== "shield" && effect.type !== "divinePassive").map((effect) => this.serializableVisual(effect)),
-        damageTexts: this.run.damageTexts.slice(-36).map((text) => this.serializableVisual(text)),
+        effects: this.run.effects.filter((effect) => ["pull", "zone", "danger", "ultimate"].includes(effect.type)).slice(-24).map((effect) => this.serializableVisual(effect)),
+        damageTexts: this.run.damageTexts.slice(-24).map((text) => this.serializableVisual(text)),
         t: performance.now()
       };
     }
@@ -3439,6 +3443,14 @@
     }
 
     addSkillShape(kind, variant, x, y, angle, radius, time = 0.62, extra = {}) {
+      const quality = this.perf?.quality ?? 1;
+      const cap = quality < 0.58 ? 2 : this.isMobileDevice() ? 3 : 5;
+      const current = this.run.effects.filter((effect) => effect.type === "skillShape").length;
+      if (current >= cap) {
+        const index = this.run.effects.findIndex((effect) => effect.type === "skillShape");
+        if (index >= 0) this.run.effects.splice(index, 1);
+      }
+      const visualTime = Math.max(0.18, time * (this.isMobileDevice() ? 0.72 : 0.86) * clamp(quality + 0.18, 0.58, 1));
       this.addEffect({
         type: "skillShape",
         kind,
@@ -3447,8 +3459,8 @@
         y,
         angle,
         radius,
-        time,
-        maxTime: time,
+        time: visualTime,
+        maxTime: visualTime,
         color: powerById(kind).color,
         accent: powerById(kind).accent,
         ...extra
@@ -3784,7 +3796,8 @@
         void: "void",
         time: "clock"
       }[kind] || "spark";
-      const count = Math.round((14 + intensity * 10) * this.save.settings.particles);
+      const particleScale = clamp(this.perf?.quality ?? 1, 0.35, 1) * (this.isMobileDevice() ? 0.55 : 0.78);
+      const count = Math.round((7 + intensity * 5) * this.save.settings.particles * particleScale);
       for (let i = 0; i < count; i++) {
         const directional = i % 2 === 0;
         const a = directional ? angle + rand(-0.55, 0.55) : angle + rand(-Math.PI, Math.PI);
@@ -3864,7 +3877,9 @@
           });
         }
       }
-      for (let i = 0; i < 24 * this.save.settings.particles; i++) {
+      const particleScale = clamp(this.perf?.quality ?? 1, 0.35, 1) * (this.isMobileDevice() ? 0.56 : 0.78);
+      const count = Math.round((ultimate ? 16 : 7) * this.save.settings.particles * particleScale);
+      for (let i = 0; i < count; i++) {
         const angle = rand(0, TAU);
         const r = rand(20, radius);
         this.addParticle(x + Math.cos(angle) * r, y + Math.sin(angle) * r, color, rand(8, 22), rand(0.35, 0.8), "spark");
@@ -5358,7 +5373,7 @@
         this.lobby.sendState(this.networkPlayerState(this.lobby.id, p));
       }
       if (this.isMultiplayerHost() && this.lobby.hasOpenPeers() && this.snapshotTimer <= 0) {
-        this.snapshotTimer = this.perf.quality < 0.75 ? 0.12 : 0.085;
+        this.snapshotTimer = this.perf.quality < 0.75 ? 0.18 : 0.11;
         const snapshot = this.networkSnapshot();
         if (snapshot) this.lobby.broadcastSnapshot(snapshot);
       }
@@ -5370,12 +5385,27 @@
     updateHud() {
       if (!this.run) return;
       const p = this.run.player;
-      document.getElementById("hpBar").style.width = `${clamp((p.hp / p.maxHp) * 100, 0, 100)}%`;
-      document.getElementById("energyBar").style.width = `${clamp((p.energy / p.maxEnergy) * 100, 0, 100)}%`;
-      document.getElementById("hpText").textContent = `${Math.ceil(p.hp)} / ${Math.ceil(p.maxHp)}`;
-      document.getElementById("energyText").textContent = `${Math.ceil(p.energy)} / ${Math.ceil(p.maxEnergy)}`;
-      document.getElementById("roomPill").textContent = `${this.run.biome.name} - ${this.run.currentRoom?.label || ""}`;
-      document.getElementById("objectivePill").textContent = this.roomObjectiveText();
+      const hpBar = document.getElementById("hpBar");
+      const energyBar = document.getElementById("energyBar");
+      const hpText = document.getElementById("hpText");
+      const energyText = document.getElementById("energyText");
+      const roomPill = document.getElementById("roomPill");
+      const objectivePill = document.getElementById("objectivePill");
+      const hpWidth = `${clamp((p.hp / p.maxHp) * 100, 0, 100).toFixed(1)}%`;
+      const energyWidth = `${clamp((p.energy / p.maxEnergy) * 100, 0, 100).toFixed(1)}%`;
+      const hpLabel = `${Math.ceil(p.hp)} / ${Math.ceil(p.maxHp)}`;
+      const energyLabel = `${Math.ceil(p.energy)} / ${Math.ceil(p.maxEnergy)}`;
+      const roomLabel = `${this.run.biome.name} - ${this.run.currentRoom?.label || ""}`;
+      const objectiveLabel = this.roomObjectiveText();
+      if (hpBar.style.width !== hpWidth) hpBar.style.width = hpWidth;
+      if (energyBar.style.width !== energyWidth) energyBar.style.width = energyWidth;
+      if (hpText.textContent !== hpLabel) hpText.textContent = hpLabel;
+      if (energyText.textContent !== energyLabel) energyText.textContent = energyLabel;
+      if (roomPill.textContent !== roomLabel) roomPill.textContent = roomLabel;
+      if (objectivePill.textContent !== objectiveLabel) objectivePill.textContent = objectiveLabel;
+      const now = performance.now();
+      if (now < this.nextHudSkillAt) return;
+      this.nextHudSkillAt = now + (this.perf.quality < 0.7 ? 150 : 95);
       const skills = [
         ["ĐÁNH", this.run.power.skills.basic, this.run.player.attackCd, this.run.player.basicAttackCd || 0.38],
         ["Q", this.run.power.skills.q, p.cooldowns.q, 3.2],
@@ -5383,13 +5413,17 @@
         ["R", this.run.power.skills.r, p.cooldowns.r, 8.6],
         ["F", `${this.run.power.skills.f} ${Math.floor(p.ult)}%`, p.ult >= 100 ? 0 : 1, 1]
       ];
-      document.getElementById("skillStrip").innerHTML = skills.map(([key, name, cd, max]) => `
+      const markup = skills.map(([key, name, cd, max]) => `
         <div class="skill ${cd <= 0 ? "ready" : ""}">
           <span class="key">${key}</span>
           <span class="name">${name}</span>
           <span class="cool" style="height:${clamp((cd / max) * 100, 0, 100)}%"></span>
         </div>
       `).join("");
+      if (markup !== this.hudSkillMarkup) {
+        this.hudSkillMarkup = markup;
+        document.getElementById("skillStrip").innerHTML = markup;
+      }
     }
 
     roomObjectiveText() {
@@ -6385,16 +6419,19 @@
       const kind = effect.kind;
       const accent = effect.accent || effect.color;
       const alpha = Math.min(0.9, fade * 0.92);
+      const quality = this.perf?.quality ?? 1;
+      const lowDetail = this.isMobileDevice() || quality < 0.74;
+      if (quality < 0.52 && effect.variant !== "ultimate" && progress > 0.62) return;
       ctx.translate(effect.x, effect.y);
       ctx.rotate(effect.angle || 0);
-      ctx.globalCompositeOperation = kind === "shadow" || kind === "void" ? "source-over" : "lighter";
+      ctx.globalCompositeOperation = "source-over";
       ctx.globalAlpha = alpha;
       ctx.lineCap = "round";
       ctx.lineJoin = "round";
       ctx.strokeStyle = accent;
       ctx.fillStyle = effect.color;
       ctx.shadowColor = effect.color;
-      ctx.shadowBlur = this.glow(20);
+      ctx.shadowBlur = lowDetail ? 0 : this.glow(10);
 
       const diamond = (x, y, w, h, fill = false) => {
         ctx.beginPath();
@@ -6421,10 +6458,11 @@
 
       if (kind === "fire") {
         ctx.lineWidth = 3 + progress * 4;
-        for (let i = -2; i <= 2; i++) {
+        const fan = lowDetail ? 1 : 2;
+        for (let i = -fan; i <= fan; i++) {
           const off = i * 24;
-          const reach = r * (0.58 + (2 - Math.abs(i)) * 0.08);
-          ctx.globalAlpha = alpha * (0.72 + (2 - Math.abs(i)) * 0.09);
+          const reach = r * (0.58 + (fan - Math.abs(i)) * 0.08);
+          ctx.globalAlpha = alpha * (0.72 + (fan - Math.abs(i)) * 0.09);
           ctx.beginPath();
           ctx.moveTo(18, off * 0.35);
           ctx.quadraticCurveTo(reach * 0.38, off - 44, reach, off * 0.12);
@@ -6450,8 +6488,9 @@
         ctx.arc(0, 0, r * (0.42 + progress * 0.25), 0, TAU);
         ctx.stroke();
         ctx.globalAlpha = alpha;
-        for (let i = 0; i < 8; i++) {
-          const a = (i / 8) * TAU;
+        const spikes = lowDetail ? 6 : 8;
+        for (let i = 0; i < spikes; i++) {
+          const a = (i / spikes) * TAU;
           const sx = Math.cos(a);
           const sy = Math.sin(a);
           ctx.beginPath();
@@ -6462,7 +6501,7 @@
         }
       } else if (kind === "lightning") {
         ctx.lineWidth = 5;
-        for (let rail = -1; rail <= 1; rail++) {
+        for (let rail = lowDetail ? 0 : -1; rail <= (lowDetail ? 0 : 1); rail++) {
           const y = rail * 18;
           ctx.globalAlpha = alpha * (rail === 0 ? 1 : 0.55);
           ctx.beginPath();
@@ -6475,8 +6514,9 @@
           ctx.stroke();
         }
         if (effect.variant === "stormCage") {
-          for (let i = 0; i < 7; i++) {
-            const a = (i / 7) * TAU;
+          const bolts = lowDetail ? 5 : 7;
+          for (let i = 0; i < bolts; i++) {
+            const a = (i / bolts) * TAU;
             ctx.beginPath();
             ctx.moveTo(Math.cos(a) * r * 0.32, Math.sin(a) * r * 0.32);
             ctx.lineTo(Math.cos(a) * r * 0.78, Math.sin(a) * r * 0.78);
@@ -6487,7 +6527,7 @@
         ctx.lineWidth = 4;
         ctx.strokeStyle = accent;
         ctx.fillStyle = effect.color;
-        for (let i = 0; i < 3; i++) {
+        for (let i = 0; i < (lowDetail ? 2 : 3); i++) {
           ctx.globalAlpha = alpha * (0.52 + i * 0.13);
           ctx.beginPath();
           ctx.moveTo(-r * 0.18 + i * 16, -r * 0.42 + i * 22);
@@ -6508,7 +6548,7 @@
         }
       } else if (kind === "blood") {
         ctx.lineWidth = 6;
-        for (let i = 0; i < 3; i++) {
+        for (let i = 0; i < (lowDetail ? 2 : 3); i++) {
           const rr = r * (0.26 + i * 0.14 + progress * 0.08);
           ctx.globalAlpha = alpha * (0.86 - i * 0.18);
           ctx.beginPath();
@@ -6516,7 +6556,8 @@
           ctx.stroke();
         }
         ctx.globalAlpha = alpha;
-        for (let i = 0; i < 7; i++) {
+        const drops = lowDetail ? 5 : 7;
+        for (let i = 0; i < drops; i++) {
           const a = -1.15 + i * 0.38;
           const px = Math.cos(a) * r * 0.56;
           const py = Math.sin(a) * r * 0.42;
@@ -6526,7 +6567,7 @@
         }
       } else if (kind === "gravity") {
         ctx.lineWidth = 4;
-        for (let i = 0; i < 3; i++) {
+        for (let i = 0; i < (lowDetail ? 2 : 3); i++) {
           ctx.save();
           ctx.rotate(progress * 1.8 + i * 0.45);
           ctx.globalAlpha = alpha * (0.84 - i * 0.18);
@@ -6538,8 +6579,9 @@
         ctx.beginPath();
         ctx.arc(0, 0, r * 0.68, 0, TAU);
         ctx.stroke();
-        for (let i = 0; i < 6; i++) {
-          const a = (i / 6) * TAU - progress;
+        const nodes = lowDetail ? 4 : 6;
+        for (let i = 0; i < nodes; i++) {
+          const a = (i / nodes) * TAU - progress;
           ctx.beginPath();
           ctx.arc(Math.cos(a) * r * 0.56, Math.sin(a) * r * 0.56, 8, 0, TAU);
           ctx.fill();
@@ -6547,7 +6589,8 @@
       } else if (kind === "crystal") {
         ctx.lineWidth = 3;
         if (effect.variant === "crystalRain") {
-          for (let i = -3; i <= 3; i++) {
+          const rain = lowDetail ? 2 : 3;
+          for (let i = -rain; i <= rain; i++) {
             const x = i * 38;
             diamond(x, -r * 0.42 + Math.abs(i) * 10, 12, 38, true);
             ctx.beginPath();
@@ -6556,27 +6599,29 @@
             ctx.stroke();
           }
         } else {
-          for (let i = -3; i <= 3; i++) {
+          const shards = lowDetail ? 2 : 3;
+          for (let i = -shards; i <= shards; i++) {
             const a = i * 0.2;
-            const dist = r * (0.34 + (3 - Math.abs(i)) * 0.055);
+            const dist = r * (0.34 + (shards - Math.abs(i)) * 0.055);
             ctx.save();
             ctx.rotate(a);
-            diamond(dist, 0, 13 + (3 - Math.abs(i)) * 2, 32 + (3 - Math.abs(i)) * 3, true);
+            diamond(dist, 0, 13 + (shards - Math.abs(i)) * 2, 32 + (shards - Math.abs(i)) * 3, true);
             ctx.restore();
           }
         }
       } else if (kind === "nature") {
         ctx.lineWidth = 5;
         const line = effect.variant === "thornLine" ? length : r * 0.82;
-        for (let i = -1; i <= 1; i++) {
+        for (let i = lowDetail ? 0 : -1; i <= (lowDetail ? 0 : 1); i++) {
           ctx.globalAlpha = alpha * (i === 0 ? 0.95 : 0.62);
           ctx.beginPath();
           ctx.moveTo(0, i * 22);
           ctx.bezierCurveTo(line * 0.24, i * 52 - 30, line * 0.52, i * -44 + 20, line, i * 18);
           ctx.stroke();
         }
-        for (let i = 1; i <= 5; i++) {
-          const x = (line / 5) * i;
+        const leaves = lowDetail ? 3 : 5;
+        for (let i = 1; i <= leaves; i++) {
+          const x = (line / leaves) * i;
           leaf(x, (i % 2 === 0 ? -1 : 1) * 26, 13, (i % 2 === 0 ? -0.8 : 0.8));
           if (effect.variant === "thornLine") diamond(x, 0, 8, 18, true);
         }
@@ -6608,8 +6653,9 @@
         ctx.beginPath();
         ctx.arc(0, 0, r * 0.32, 0, TAU);
         ctx.stroke();
-        for (let i = 0; i < 12; i++) {
-          const a = (i / 12) * TAU;
+        const ticks = lowDetail ? 8 : 12;
+        for (let i = 0; i < ticks; i++) {
+          const a = (i / ticks) * TAU;
           const inner = r * 0.43;
           const outer = r * 0.52;
           ctx.beginPath();
@@ -6633,8 +6679,9 @@
         ctx.beginPath();
         ctx.arc(0, 0, r * (0.56 + progress * 0.12), 0, TAU);
         ctx.stroke();
-        for (let i = 0; i < 10; i++) {
-          const a = (i / 10) * TAU;
+        const rays = lowDetail ? 6 : 10;
+        for (let i = 0; i < rays; i++) {
+          const a = (i / rays) * TAU;
           ctx.beginPath();
           ctx.moveTo(Math.cos(a) * r * 0.64, Math.sin(a) * r * 0.64);
           ctx.lineTo(Math.cos(a) * r * 0.78, Math.sin(a) * r * 0.78);

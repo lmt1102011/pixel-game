@@ -813,7 +813,24 @@
       this.mapVote = "forest";
       this.signal = null;
       this.peers = new Map();
-      this.slots = [{ id: this.id, name: "Bạn", ready: false, vote: this.mapVote }];
+      this.slots = [{ ...this.playerProfile(), ready: false, vote: this.mapVote, host: true }];
+    }
+
+    playerName() {
+      return this.game.save?.account?.username || "Bạn";
+    }
+
+    playerProfile() {
+      return {
+        id: this.id,
+        name: this.playerName(),
+        powerId: this.game.save?.account?.selectedPower || "",
+        characterId: this.game.save?.account?.selectedCharacter || "swordsman"
+      };
+    }
+
+    syncOwnSlot() {
+      this.upsertSlot({ ...this.playerProfile(), ready: this.ready, vote: this.mapVote, host: this.host });
     }
 
     makeCode() {
@@ -828,7 +845,7 @@
       this.host = true;
       this.code = this.makeCode();
       this.ready = false;
-      this.slots = [{ id: this.id, name: "Chủ phòng", ready: false, vote: this.mapVote }];
+      this.slots = [{ ...this.playerProfile(), ready: true, vote: this.mapVote, host: true }];
       this.openSignal();
       this.game.toast(`Đã tạo phòng ${this.code}`);
       this.game.renderLobby();
@@ -844,9 +861,9 @@
       this.host = false;
       this.code = normalized;
       this.ready = false;
-      this.slots = [{ id: this.id, name: "Bạn", ready: false, vote: this.mapVote }];
+      this.slots = [{ ...this.playerProfile(), ready: false, vote: this.mapVote, host: false }];
       this.openSignal();
-      this.sendSignal({ type: "hello" });
+      this.sendSignal({ type: "hello", ...this.playerProfile() });
       this.game.toast(`Đang vào phòng ${this.code}`);
       this.game.renderLobby();
     }
@@ -877,7 +894,15 @@
       if (message.target && message.target !== this.id) return;
 
       if (message.type === "hello" && this.host) {
-        this.upsertSlot(message.from, `Người chơi ${this.slots.length + 1}`, false, "forest");
+        this.upsertSlot({
+          id: message.from,
+          name: message.name || `Người chơi ${this.slots.length + 1}`,
+          ready: false,
+          vote: this.mapVote,
+          powerId: message.powerId || "",
+          characterId: message.characterId || "swordsman",
+          host: false
+        });
         const peer = this.ensurePeer(message.from, true);
         const offer = await peer.pc.createOffer();
         await peer.pc.setLocalDescription(offer);
@@ -932,7 +957,8 @@
     bindChannel(peer) {
       if (!peer.channel) return;
       peer.channel.onopen = () => {
-        this.sendPeer(peer, { type: "lobby", slots: this.slots });
+        if (this.host) this.sendPeer(peer, { type: "lobby", slots: this.slots, mapVote: this.mapVote });
+        else this.sendPeer(peer, { type: "ready", ...this.playerProfile(), ready: this.ready, vote: this.mapVote });
         this.game.toast("Đã kết nối người chơi");
       };
       peer.channel.onmessage = (event) => {
@@ -946,12 +972,21 @@
 
     onPeer(message, peer) {
       if (message.type === "ready") {
-        this.upsertSlot(peer.remoteId, message.name || "Người chơi", message.ready, message.vote || "forest");
+        this.upsertSlot({
+          id: peer.remoteId,
+          name: message.name || "Người chơi",
+          ready: Boolean(message.ready),
+          vote: this.host ? this.mapVote : (message.vote || this.mapVote),
+          powerId: message.powerId || "",
+          characterId: message.characterId || "swordsman",
+          host: Boolean(message.host)
+        });
         if (this.host) this.broadcastLobby();
         this.game.renderLobby();
       }
-      if (message.type === "lobby" && Array.isArray(message.slots)) {
+      if (message.type === "lobby" && !this.host && Array.isArray(message.slots)) {
         this.slots = message.slots;
+        if (message.mapVote) this.mapVote = message.mapVote;
         this.game.renderLobby();
       }
       if (message.type === "state") {
@@ -960,56 +995,71 @@
       if (message.type === "attack" && this.host) {
         this.game.handleRemoteAttack(peer.remoteId, message.attack);
       }
+      if (message.type === "skill" && this.host) {
+        this.game.handleRemoteSkill(peer.remoteId, message.skill);
+      }
+      if (message.type === "damage" && !this.host) {
+        this.game.applyHostDamage(message.amount);
+      }
+      if (message.type === "collect" && this.host) {
+        this.game.handleRemoteCollect(peer.remoteId, message.pickupId);
+      }
       if (message.type === "snapshot" && !this.host) {
         this.game.applyNetworkSnapshot(message.snapshot);
       }
       if (message.type === "start") {
-        this.game.startRun(powerById(message.powerId), message.biomeId, { multiplayer: true, host: false });
+        const ownPowerId = this.game.save.account.selectedPower || message.powerId;
+        this.game.startRun(powerById(ownPowerId), message.biomeId, { multiplayer: true, host: false, seed: message.seed });
       }
     }
 
-    upsertSlot(id, name, ready, vote) {
-      const existing = this.slots.find((slot) => slot.id === id);
+    upsertSlot(slot) {
+      const existing = this.slots.find((entry) => entry.id === slot.id);
       if (existing) {
-        existing.ready = ready;
-        existing.vote = vote;
-        existing.name = name;
+        Object.assign(existing, slot);
       } else if (this.slots.length < 4) {
-        this.slots.push({ id, name, ready, vote });
+        this.slots.push(slot);
       }
     }
 
     toggleReady() {
       this.ready = !this.ready;
-      this.upsertSlot(this.id, this.host ? "Chủ phòng" : "Bạn", this.ready, this.mapVote);
+      this.syncOwnSlot();
       this.broadcastReady();
       this.broadcastLobby();
       this.game.renderLobby();
     }
 
     setVote(biomeId) {
+      if (!this.host && this.code) {
+        this.game.toast("Chỉ chủ phòng được chọn ải");
+        return;
+      }
       this.mapVote = biomeId;
-      this.upsertSlot(this.id, this.host ? "Chủ phòng" : "Bạn", this.ready, this.mapVote);
+      for (const slot of this.slots) slot.vote = biomeId;
+      this.syncOwnSlot();
       this.broadcastReady();
       this.broadcastLobby();
       this.game.renderLobby();
     }
 
     broadcastReady() {
+      const message = { type: "ready", ...this.playerProfile(), ready: this.ready, vote: this.mapVote, host: this.host };
       for (const peer of this.peers.values()) {
-        this.sendPeer(peer, { type: "ready", ready: this.ready, vote: this.mapVote, name: this.host ? "Chủ phòng" : "Người chơi" });
+        this.sendPeer(peer, message);
       }
     }
 
     broadcastLobby() {
+      if (!this.host) return;
       for (const peer of this.peers.values()) {
-        this.sendPeer(peer, { type: "lobby", slots: this.slots });
+        this.sendPeer(peer, { type: "lobby", slots: this.slots, mapVote: this.mapVote });
       }
     }
 
-    broadcastStart(powerId, biomeId) {
+    broadcastStart(powerId, biomeId, seed) {
       for (const peer of this.peers.values()) {
-        this.sendPeer(peer, { type: "start", powerId, biomeId });
+        this.sendPeer(peer, { type: "start", powerId, biomeId, seed });
       }
     }
 
@@ -1022,6 +1072,23 @@
     sendAttack(attack) {
       for (const peer of this.peers.values()) {
         this.sendPeer(peer, { type: "attack", attack });
+      }
+    }
+
+    sendSkill(skill) {
+      for (const peer of this.peers.values()) {
+        this.sendPeer(peer, { type: "skill", skill });
+      }
+    }
+
+    sendDamage(remoteId, amount) {
+      const peer = this.peers.get(remoteId);
+      if (peer) this.sendPeer(peer, { type: "damage", amount });
+    }
+
+    sendCollect(pickupId) {
+      for (const peer of this.peers.values()) {
+        this.sendPeer(peer, { type: "collect", pickupId });
       }
     }
 
@@ -1062,6 +1129,7 @@
         actions: new Set()
       };
       this.remotePlayers = new Map();
+      this.joystickTouchId = null;
       this.menuTime = 0;
       this.networkTimer = 0;
       this.toastTimer = 0;
@@ -1372,7 +1440,7 @@
 
     worldViewScale() {
       if (!this.run || !this.isMobileDevice()) return 1;
-      return Math.min(window.innerWidth, window.innerHeight) <= 430 ? 0.86 : 0.9;
+      return Math.min(window.innerWidth, window.innerHeight) <= 430 ? 0.78 : 0.82;
     }
 
     worldViewWidth() {
@@ -1487,6 +1555,16 @@
     bindTouchControls() {
       const stick = document.getElementById("stick");
       const nub = stick.querySelector("span");
+      const placeStick = (touch) => {
+        const size = stick.offsetWidth || 132;
+        const half = size / 2;
+        const maxX = Math.min(window.innerWidth * 0.48, window.innerWidth - half - 8);
+        const x = clamp(touch.clientX, half + 8, maxX);
+        const y = clamp(touch.clientY, half + 8, window.innerHeight - half - 8);
+        stick.style.left = `${x - half}px`;
+        stick.style.top = `${y - half}px`;
+        stick.style.bottom = "auto";
+      };
       const updateStick = (touch) => {
         const rect = stick.getBoundingClientRect();
         const cx = rect.left + rect.width / 2;
@@ -1494,38 +1572,69 @@
         const dx = touch.clientX - cx;
         const dy = touch.clientY - cy;
         const len = Math.hypot(dx, dy);
-        const max = rect.width * 0.34;
+        const max = rect.width * 0.42;
         const nx = len > 0 ? dx / len : 0;
         const ny = len > 0 ? dy / len : 0;
         const mag = clamp(len / max, 0, 1);
         this.input.touch.x = nx * mag;
         this.input.touch.y = ny * mag;
         this.input.touch.active = true;
+        stick.classList.add("active");
         if (mag > 0.12) {
           this.input.touch.aimX = nx;
           this.input.touch.aimY = ny;
         }
         nub.style.transform = `translate(${nx * mag * max}px, ${ny * mag * max}px)`;
       };
+      const beginStick = (touch, floating = false) => {
+        if (this.joystickTouchId !== null) return;
+        this.joystickTouchId = touch.identifier;
+        if (floating) placeStick(touch);
+        updateStick(touch);
+      };
+      const touchById = (touches) => Array.from(touches).find((touch) => touch.identifier === this.joystickTouchId);
       stick.addEventListener("touchstart", (event) => {
         event.preventDefault();
-        updateStick(event.changedTouches[0]);
+        beginStick(event.changedTouches[0], false);
       }, { passive: false });
       stick.addEventListener("touchmove", (event) => {
         event.preventDefault();
-        updateStick(event.changedTouches[0]);
+        const touch = touchById(event.changedTouches) || touchById(event.touches);
+        if (touch) updateStick(touch);
       }, { passive: false });
       const resetStick = () => {
         this.input.touch.x = 0;
         this.input.touch.y = 0;
         this.input.touch.active = false;
+        this.joystickTouchId = null;
+        stick.classList.remove("active");
         nub.style.transform = "translate(0, 0)";
       };
-      stick.addEventListener("touchend", resetStick);
-      stick.addEventListener("touchcancel", resetStick);
+      const maybeResetStick = (event) => {
+        if (this.joystickTouchId === null) return;
+        if (touchById(event.changedTouches)) resetStick();
+      };
+      stick.addEventListener("touchend", maybeResetStick);
+      stick.addEventListener("touchcancel", maybeResetStick);
+      this.canvas.addEventListener("touchstart", (event) => {
+        if (!this.run || this.mode !== "game") return;
+        const touch = Array.from(event.changedTouches).find((item) => item.clientX < window.innerWidth * 0.52);
+        if (!touch) return;
+        event.preventDefault();
+        beginStick(touch, true);
+      }, { passive: false });
+      this.canvas.addEventListener("touchmove", (event) => {
+        const touch = touchById(event.changedTouches) || touchById(event.touches);
+        if (!touch) return;
+        event.preventDefault();
+        updateStick(touch);
+      }, { passive: false });
+      this.canvas.addEventListener("touchend", maybeResetStick);
+      this.canvas.addEventListener("touchcancel", maybeResetStick);
       for (const button of document.querySelectorAll("[data-touch]")) {
         button.addEventListener("touchstart", (event) => {
           event.preventDefault();
+          event.stopPropagation();
           this.audio.start();
           this.triggerTouchAction(button.dataset.touch);
         }, { passive: false });
@@ -1581,6 +1690,23 @@
         return Number.isFinite(player.facing) ? player.facing : Math.atan2(this.input.touch.aimY, this.input.touch.aimX);
       }
       return Math.atan2(this.input.mouse.worldY - player.y, this.input.mouse.worldX - player.x);
+    }
+
+    skillAimAngle(player) {
+      return this.basicAimAngle(player);
+    }
+
+    skillTargetPoint(player, angle, distance = 230) {
+      if (this.isMobileDevice()) {
+        return {
+          x: clamp(player.x + Math.cos(angle) * distance, ROOM_PAD, WORLD_W - ROOM_PAD),
+          y: clamp(player.y + Math.sin(angle) * distance, ROOM_PAD, WORLD_H - ROOM_PAD)
+        };
+      }
+      return {
+        x: clamp(this.input.mouse.worldX, ROOM_PAD, WORLD_W - ROOM_PAD),
+        y: clamp(this.input.mouse.worldY, ROOM_PAD, WORLD_H - ROOM_PAD)
+      };
     }
 
     onKeyDown(event) {
@@ -1756,7 +1882,13 @@
       if (action === "select-character") this.selectCharacter(target.dataset.character);
       if (action === "upgrade-stat") this.upgradeStatPoint(target.dataset.stat);
       if (action === "reset-stat-points") this.resetStatPoints();
-      if (action === "choose-room") this.startRoom(JSON.parse(decodeURIComponent(target.dataset.room)));
+      if (action === "choose-room") {
+        if (this.isMultiplayerClient()) {
+          this.toast("Chỉ chủ phòng được chọn phòng tiếp theo");
+          return;
+        }
+        this.startRoom(JSON.parse(decodeURIComponent(target.dataset.room)));
+      }
       if (action === "equip-item") this.equipItem(target.dataset.item);
       if (action === "unequip-slot") this.unequipSlot(target.dataset.slot);
       if (action === "awaken-power") this.awakenPower(target.dataset.power);
@@ -1764,7 +1896,13 @@
       if (action === "join-room") this.lobby.join(document.getElementById("roomCodeInput")?.value);
       if (action === "ready-room") this.lobby.toggleReady();
       if (action === "vote-map") this.lobby.setVote(target.dataset.biome);
-      if (action === "start-room") this.startMultiplayerRun();
+      if (action === "start-room") {
+        if (!this.lobby.host) {
+          this.toast("Chỉ chủ phòng được bắt đầu");
+          return;
+        }
+        this.startMultiplayerRun();
+      }
       if (action === "close-map") this.resumeGame();
     }
 
@@ -2192,19 +2330,25 @@
     renderLobby() {
       this.mode = "lobby";
       this.hud.classList.add("hidden");
+      if (this.lobby.code) this.lobby.syncOwnSlot();
+      const isHost = this.lobby.host;
       const slots = Array.from({ length: 4 }, (_, index) => {
         const slot = this.lobby.slots[index];
+        const powerName = slot?.powerId ? powerById(slot.powerId).name : "Chưa chọn power";
+        const characterName = slot?.characterId ? characterById(slot.characterId).name : "Chưa chọn nhân vật";
         return `
           <div class="lobby-slot">
-            <h3>${slot ? slot.name : `Người chơi ${index + 1}`}</h3>
-            <p>${slot ? (slot.ready ? "Sẵn sàng" : "Chưa sẵn sàng") : "Đang trống"}</p>
-            <p class="small">${slot ? `Chọn: ${BIOMES.find((b) => b.id === slot.vote)?.name || "Rừng Mục Rữa"}` : "Hỗ trợ 2-4 người chơi"}</p>
+            <h3>${slot ? `${slot.name}${slot.host ? " - Chủ phòng" : ""}` : `Người chơi ${index + 1}`}</h3>
+            <p>${slot ? (slot.host ? "Điều phối ải" : slot.ready ? "Sẵn sàng" : "Chưa sẵn sàng") : "Đang trống"}</p>
+            <p class="small">${slot ? `${characterName} - ${powerName}` : "Hỗ trợ 2-4 người chơi"}</p>
           </div>
         `;
       }).join("");
       const votes = BIOMES.map((biome) => `
-        <button class="tab ${this.lobby.mapVote === biome.id ? "active" : ""}" data-action="vote-map" data-biome="${biome.id}">${biome.name}</button>
+        <button class="tab ${this.lobby.mapVote === biome.id ? "active" : ""}" data-action="vote-map" data-biome="${biome.id}" ${isHost ? "" : "disabled"}>${biome.name}</button>
       `).join("");
+      const allReady = this.lobby.slots.every((slot) => slot.host || slot.ready);
+      const canStart = isHost && this.lobby.code && allReady;
       this.setScreen(`
         <section class="shell">
           ${this.navHtml("multiplayer")}
@@ -2212,7 +2356,7 @@
             <div class="panel-header">
               <div>
                 <h2 class="panel-title">Nhiều Người</h2>
-                <p class="panel-subtitle">Mã phòng, sẵn sàng và bình chọn bản đồ.</p>
+                <p class="panel-subtitle">${isHost ? "Chủ phòng chọn ải và bắt đầu khi mọi người sẵn sàng." : "Bạn chỉ cần sẵn sàng, chủ phòng sẽ chọn ải và bắt đầu."}</p>
               </div>
             </div>
             <div class="grid cols-2">
@@ -2227,7 +2371,7 @@
             <div class="tabs">${votes}</div>
             <div class="grid cols-2">
               <button class="btn" data-action="ready-room">${this.lobby.ready ? "BỎ SẴN SÀNG" : "SẴN SÀNG"}</button>
-              <button class="btn primary" data-action="start-room">BẮT ĐẦU</button>
+              <button class="btn primary" data-action="start-room" ${canStart ? "" : "disabled"}>${isHost ? "BẮT ĐẦU" : "CHỜ CHỦ PHÒNG"}</button>
             </div>
           </div>
         </section>
@@ -2235,6 +2379,19 @@
     }
 
     startMultiplayerRun() {
+      if (!this.lobby.host) {
+        this.toast("Chỉ chủ phòng được bắt đầu");
+        return;
+      }
+      if (!this.lobby.code) {
+        this.toast("Hãy tạo phòng trước");
+        return;
+      }
+      const waiting = this.lobby.slots.find((slot) => !slot.host && !slot.ready);
+      if (waiting) {
+        this.toast(`${waiting.name} chưa sẵn sàng`);
+        return;
+      }
       const powerId = this.save.account.selectedPower;
       if (!powerId || !this.save.account.ownedPowers.includes(powerId)) {
         this.toast("Hãy chọn sức mạnh trước khi bắt đầu");
@@ -2243,8 +2400,9 @@
       }
       const selectedPower = powerById(powerId);
       const biomeId = this.lobby.mapVote || "forest";
-      this.lobby.broadcastStart(selectedPower.id, biomeId);
-      this.startRun(selectedPower, biomeId, { multiplayer: true, host: true });
+      const seed = Math.random();
+      this.lobby.broadcastStart(selectedPower.id, biomeId, seed);
+      this.startRun(selectedPower, biomeId, { multiplayer: true, host: true, seed });
     }
 
     equipItem(itemId) {
@@ -2313,7 +2471,7 @@
       const biomeIndex = Math.max(0, BIOMES.findIndex((biome) => biome.id === forcedBiomeId));
       const startBiome = BIOMES[biomeIndex >= 0 ? biomeIndex : 0];
       this.run = {
-        seed: Math.random(),
+        seed: Number.isFinite(options.seed) ? options.seed : Math.random(),
         power,
         powerMeta: this.save.powers[power.id],
         stage: BIOMES.indexOf(startBiome),
@@ -2347,7 +2505,7 @@
       this.mode = "game";
       this.setScreen("");
       this.hud.classList.remove("hidden");
-      this.touchLayer.classList.toggle("hidden", !matchMedia("(hover: none), (pointer: coarse)").matches);
+      this.touchLayer.classList.toggle("hidden", !this.isMobileDevice());
       this.startRoom({ type: "normal", label: "Phòng Thường", icon: "X", color: "#c9d0db" });
       this.persist();
     }
@@ -2364,28 +2522,90 @@
       return this.isMultiplayerRun() && !this.run.netHost;
     }
 
+    networkPlayerState(id = this.lobby.id, player = this.run?.player, extra = {}) {
+      if (!player) return null;
+      return {
+        id,
+        name: extra.name || player.name || this.save.account.username || "Người chơi",
+        x: player.x,
+        y: player.y,
+        hp: player.hp,
+        maxHp: player.maxHp,
+        energy: player.energy,
+        maxEnergy: player.maxEnergy,
+        damage: player.damage,
+        crit: player.crit,
+        color: extra.color || this.save.customization.color,
+        characterId: player.characterId,
+        animation: player.animation,
+        animTime: player.animTime,
+        actionTime: player.actionTime,
+        actionTotal: player.actionTotal,
+        power: extra.power || this.run.power.id,
+        facing: player.facing,
+        t: performance.now()
+      };
+    }
+
+    serializableVisual(entry) {
+      const clean = {};
+      for (const [key, value] of Object.entries(entry)) {
+        if (key === "target" || key === "hit") continue;
+        if (value == null || ["number", "string", "boolean"].includes(typeof value)) clean[key] = value;
+        else if (Array.isArray(value)) clean[key] = value.slice(0, 16);
+        else if (key === "reward") clean[key] = value;
+      }
+      return clean;
+    }
+
+    restoreShockwave(wave) {
+      return { ...wave, hit: new Set(Array.isArray(wave.hit) ? wave.hit : []) };
+    }
+
     networkSnapshot() {
       if (!this.run) return null;
+      const players = [this.networkPlayerState()].filter(Boolean);
+      for (const [id, state] of this.remotePlayers) {
+        players.push({
+          id,
+          name: state.name || this.lobby.slots.find((slot) => slot.id === id)?.name || "Người chơi",
+          ...state,
+          id
+        });
+      }
       return {
         stage: this.run.stage,
+        roomNumber: this.run.roomNumber,
         roomsCleared: this.run.roomsCleared,
         roomClearTimer: this.run.roomClearTimer,
         biomeId: this.run.biome.id,
+        seed: this.run.seed,
+        nextRooms: this.run.nextRooms.map((room) => ({ ...room })),
+        players,
         currentRoom: this.run.currentRoom ? {
           type: this.run.currentRoom.type,
           label: this.run.currentRoom.label,
           icon: this.run.currentRoom.icon,
           color: this.run.currentRoom.color,
+          started: this.run.currentRoom.started,
           cleared: this.run.currentRoom.cleared,
           intro: this.run.currentRoom.intro,
           rewardDropped: this.run.currentRoom.rewardDropped,
           rewardClaimed: this.run.currentRoom.rewardClaimed,
-          nextOpened: this.run.currentRoom.nextOpened
+          nextOpened: this.run.currentRoom.nextOpened,
+          rewardClaims: this.run.currentRoom.rewardClaims || {},
+          rewardOwners: this.run.currentRoom.rewardOwners || []
         } : null,
         enemies: this.run.enemies.map((enemy) => ({ ...enemy })),
         hazards: this.run.hazards.map((hazard) => ({ ...hazard })),
-        pickups: this.run.pickups.map((pickup) => ({ ...pickup })),
-        projectiles: this.run.projectiles.filter((projectile) => projectile.owner === "enemy").map((projectile) => ({ ...projectile })),
+        pickups: this.run.pickups.map((pickup) => this.serializableVisual(pickup)),
+        projectiles: this.run.projectiles.map((projectile) => this.serializableVisual(projectile)),
+        drones: this.run.drones.map((drone) => this.serializableVisual(drone)),
+        slashes: this.run.slashes.map((slash) => this.serializableVisual(slash)),
+        shockwaves: this.run.shockwaves.map((wave) => ({ ...this.serializableVisual(wave), hit: Array.from(wave.hit || []) })),
+        trails: this.run.trails.map((trail) => this.serializableVisual(trail)),
+        effects: this.run.effects.filter((effect) => effect.type !== "shield" && effect.type !== "divinePassive").map((effect) => this.serializableVisual(effect)),
+        damageTexts: this.run.damageTexts.slice(-36).map((text) => this.serializableVisual(text)),
         t: performance.now()
       };
     }
@@ -2395,17 +2615,41 @@
       const biome = BIOMES.find((entry) => entry.id === snapshot.biomeId);
       if (biome) this.run.biome = biome;
       this.run.stage = Number.isFinite(snapshot.stage) ? snapshot.stage : this.run.stage;
+      const previousRoomNumber = this.run.roomNumber;
+      this.run.roomNumber = Number.isFinite(snapshot.roomNumber) ? snapshot.roomNumber : this.run.roomNumber;
       this.run.roomsCleared = Number.isFinite(snapshot.roomsCleared) ? snapshot.roomsCleared : this.run.roomsCleared;
       this.run.roomClearTimer = Number.isFinite(snapshot.roomClearTimer) ? snapshot.roomClearTimer : this.run.roomClearTimer;
+      if (Number.isFinite(snapshot.seed)) this.run.seed = snapshot.seed;
+      if (Array.isArray(snapshot.nextRooms)) this.run.nextRooms = snapshot.nextRooms.map((room) => ({ ...room }));
       if (snapshot.currentRoom) {
         this.run.currentRoom = { ...(this.run.currentRoom || {}), ...snapshot.currentRoom };
+      }
+      if (this.run.roomNumber !== previousRoomNumber && this.run.currentRoom && !this.run.currentRoom.cleared) {
+        this.mode = "game";
+        this.setScreen("");
+        this.hud.classList.remove("hidden");
       }
       if (Array.isArray(snapshot.enemies)) this.run.enemies = snapshot.enemies.map((enemy) => ({ ...enemy }));
       if (Array.isArray(snapshot.hazards)) this.run.hazards = snapshot.hazards.map((hazard) => ({ ...hazard }));
       if (Array.isArray(snapshot.pickups)) this.run.pickups = snapshot.pickups.map((pickup) => ({ ...pickup }));
-      if (Array.isArray(snapshot.projectiles)) {
-        const playerProjectiles = this.run.projectiles.filter((projectile) => projectile.owner === "player");
-        this.run.projectiles = [...playerProjectiles, ...snapshot.projectiles.map((projectile) => ({ ...projectile }))];
+      if (Array.isArray(snapshot.projectiles)) this.run.projectiles = snapshot.projectiles.map((projectile) => ({ ...projectile }));
+      if (Array.isArray(snapshot.drones)) this.run.drones = snapshot.drones.map((drone) => ({ ...drone }));
+      if (Array.isArray(snapshot.slashes)) this.run.slashes = snapshot.slashes.map((slash) => ({ ...slash }));
+      if (Array.isArray(snapshot.shockwaves)) this.run.shockwaves = snapshot.shockwaves.map((wave) => this.restoreShockwave(wave));
+      if (Array.isArray(snapshot.trails)) this.run.trails = snapshot.trails.map((trail) => ({ ...trail }));
+      if (Array.isArray(snapshot.effects)) this.run.effects = snapshot.effects.map((effect) => ({ ...effect }));
+      if (Array.isArray(snapshot.damageTexts)) this.run.damageTexts = snapshot.damageTexts.map((text) => ({ ...text }));
+      if (Array.isArray(snapshot.players)) {
+        const now = performance.now();
+        const seen = new Set();
+        for (const player of snapshot.players) {
+          if (!player?.id || player.id === this.lobby.id) continue;
+          seen.add(player.id);
+          this.remotePlayers.set(player.id, { ...player, t: now });
+        }
+        for (const id of this.remotePlayers.keys()) {
+          if (!seen.has(id)) this.remotePlayers.delete(id);
+        }
       }
     }
 
@@ -2442,6 +2686,7 @@
         speed: stats.speed,
         damage: stats.damage,
         crit: stats.crit,
+        name: this.save.account.username || "Bạn",
         characterId: character.id,
         basicAttackCd: stats.attackCd,
         combo: 0,
@@ -2531,7 +2776,9 @@
         cleared: false,
         started: false,
         intro: type === "boss" ? 3.0 : 1.25,
-        timer: 0
+        timer: 0,
+        rewardClaims: {},
+        rewardOwners: []
       };
       this.run.roomNumber += 1;
       this.run.curse = null;
@@ -3082,6 +3329,100 @@
       }
     }
 
+    handleRemoteSkill(remoteId, skill) {
+      if (!this.isMultiplayerHost() || !skill || !this.run) return;
+      const power = powerById(skill.powerId || "fire");
+      const x = Number(skill.x);
+      const y = Number(skill.y);
+      const angle = Number(skill.angle || 0);
+      const targetX = Number.isFinite(Number(skill.targetX)) ? Number(skill.targetX) : x + Math.cos(angle) * 240;
+      const targetY = Number.isFinite(Number(skill.targetY)) ? Number(skill.targetY) : y + Math.sin(angle) * 240;
+      const damage = Math.max(8, Number(skill.damage) || 24);
+      if (![x, y, angle].every(Number.isFinite)) return;
+      const remote = this.remotePlayers.get(remoteId) || {};
+      this.remotePlayers.set(remoteId, {
+        ...remote,
+        x,
+        y,
+        power: power.id,
+        characterId: skill.characterId || remote.characterId || "swordsman",
+        color: skill.color || remote.color || "#d8b46a",
+        animation: skill.key === "f" ? "ultimate" : "skill",
+        actionTotal: skill.key === "f" ? 0.72 : 0.42,
+        actionTime: skill.key === "f" ? 0.72 : 0.42,
+        facing: angle,
+        t: performance.now()
+      });
+
+      if (skill.key === "q") {
+        this.powerCastVfx(power, x, y, angle, 170, 1, false);
+        if (["ice", "nature", "time"].includes(power.id)) {
+          this.areaDamage(x, y, 150, damage * 1.35, power.color, power.id);
+          this.addShockwave(x, y, 175, power.color, 24);
+        } else if (["gravity", "void"].includes(power.id)) {
+          this.addEffect({ type: "pull", x, y, radius: 245, time: 1.15, color: power.color });
+          this.areaDamage(x, y, 125, damage * 1.05, power.color, power.id);
+        } else {
+          for (let i = -2; i <= 2; i++) {
+            const a = angle + i * 0.18;
+            this.spawnProjectile({
+              owner: "ally",
+              x: x + Math.cos(a) * 28,
+              y: y + Math.sin(a) * 28,
+              vx: Math.cos(a) * 560,
+              vy: Math.sin(a) * 560,
+              radius: 8,
+              damage: damage * 0.9,
+              life: 0.9,
+              color: power.color,
+              pierce: 0,
+              kind: power.id
+            });
+          }
+        }
+      }
+
+      if (skill.key === "e") {
+        this.powerCastVfx(power, x, y, angle, 140, 1.1, false);
+        this.addShockwave(x, y, 132, power.color, ["ice", "crystal", "gravity", "void"].includes(power.id) ? 0 : 18);
+        if (!["ice", "crystal", "gravity", "void"].includes(power.id)) this.areaDamage(x, y, 110, damage * 0.7, power.color, power.id);
+      }
+
+      if (skill.key === "r") {
+        this.powerCastVfx(power, x, y, angle, 210, 1.35, false);
+        if (["fire", "crystal", "lightning"].includes(power.id)) {
+          for (let i = 0; i < 8; i++) {
+            const a = (i / 8) * TAU;
+            this.spawnProjectile({
+              owner: "ally",
+              x,
+              y,
+              vx: Math.cos(a) * 430,
+              vy: Math.sin(a) * 430,
+              radius: 10,
+              damage: damage * 1.05,
+              life: 1.15,
+              color: power.color,
+              pierce: 1,
+              kind: power.id
+            });
+          }
+        } else {
+          this.addEffect({ type: "zone", x: targetX, y: targetY, radius: 155, time: 4.5, tick: 0, color: power.color, kind: power.id });
+          this.addShockwave(targetX, targetY, 170, power.color, 24);
+        }
+      }
+
+      if (skill.key === "f") {
+        const awakened = this.save.powers[power.id]?.awakened;
+        const radius = awakened ? 410 : 320;
+        this.powerCastVfx(power, x, y, angle, radius, awakened ? 2.2 : 1.7, false);
+        this.areaDamage(x, y, radius, awakened ? 155 : 112, power.accent, power.id, true);
+        this.addShockwave(x, y, radius + 70, power.accent, 64);
+        this.addEffect({ type: "ultimate", x, y, radius, time: awakened ? 2.4 : 1.7, color: power.accent, kind: power.id });
+      }
+    }
+
     useSkill(key) {
       const p = this.run?.player;
       if (!p) return;
@@ -3095,9 +3436,12 @@
       p.actionTotal = key === "f" ? 0.72 : key === "r" ? 0.48 : 0.38;
       p.actionTime = p.actionTotal;
       const power = this.run.power;
-      if (key === "q") this.castSkillOne(power);
+      const aim = this.skillAimAngle(p);
+      const target = this.skillTargetPoint(p, aim, 250);
+      if (this.isMultiplayerClient()) this.sendSkillPacket(key, power, p, aim, target);
+      if (key === "q") this.castSkillOne(power, aim);
       if (key === "e") this.castSkillTwo(power);
-      if (key === "r") this.castSkillThree(power);
+      if (key === "r") this.castSkillThree(power, aim, target);
       if (key === "f") {
         p.ult = 0;
         p.cooldowns.f = 1;
@@ -3105,7 +3449,23 @@
       }
     }
 
-    powerCastVfx(power, x, y, angle = 0, radius = 150, intensity = 1) {
+    sendSkillPacket(key, power, player, angle, target) {
+      this.lobby.sendSkill({
+        key,
+        powerId: power.id,
+        characterId: player.characterId,
+        x: player.x,
+        y: player.y,
+        angle,
+        targetX: target.x,
+        targetY: target.y,
+        damage: player.damage,
+        color: this.save.customization.color,
+        t: performance.now()
+      });
+    }
+
+    powerCastVfx(power, x, y, angle = 0, radius = 150, intensity = 1, healNature = true) {
       const kind = power.id;
       this.addEffect({
         type: "powerGlyph",
@@ -3192,12 +3552,11 @@
       }
       if (kind === "fire") this.addTrailDamage(x + Math.cos(angle) * 36, y + Math.sin(angle) * 36, power.color);
       if (kind === "gravity" || kind === "void" || kind === "time") this.addShockwave(x, y, radius * (kind === "time" ? 1.1 : 0.9), power.color, 0);
-      if (kind === "nature") this.healPlayer(1 + intensity);
+      if (kind === "nature" && healNature) this.healPlayer(1 + intensity);
     }
 
-    castSkillOne(power) {
+    castSkillOne(power, angle = this.skillAimAngle(this.run.player)) {
       const p = this.run.player;
-      const angle = Math.atan2(this.input.mouse.worldY - p.y, this.input.mouse.worldX - p.x);
       this.powerCastVfx(power, p.x, p.y, angle, 170, 1);
       if (["ice", "nature", "time"].includes(power.id)) {
         this.areaDamage(p.x, p.y, 160, 36, power.color, power.id);
@@ -3246,9 +3605,8 @@
       this.audio.sfx(180, "sine", 0.12, 0.08);
     }
 
-    castSkillThree(power) {
+    castSkillThree(power, aim = this.skillAimAngle(this.run.player), target = this.skillTargetPoint(this.run.player, aim, 250)) {
       const p = this.run.player;
-      const aim = Math.atan2(this.input.mouse.worldY - p.y, this.input.mouse.worldX - p.x);
       this.powerCastVfx(power, p.x, p.y, aim, 210, 1.35);
       if (["fire", "crystal", "lightning"].includes(power.id)) {
         for (let i = 0; i < 8; i++) {
@@ -3268,8 +3626,8 @@
           });
         }
       } else {
-        const tx = this.input.mouse.worldX;
-        const ty = this.input.mouse.worldY;
+        const tx = target.x;
+        const ty = target.y;
         this.addEffect({ type: "zone", x: tx, y: ty, radius: 155, time: 4.5, tick: 0, color: power.color, kind: power.id });
         this.addShockwave(tx, ty, 170, power.color, 24);
       }
@@ -3319,6 +3677,10 @@
     }
 
     damageEnemy(enemy, amount, options = {}) {
+      if (this.isMultiplayerClient()) {
+        enemy.flash = Math.max(enemy.flash || 0, 0.08);
+        return;
+      }
       const p = this.run.player;
       const power = this.run.power;
       const crit = chance(p.crit + (options.source === "ultimate" ? 0.25 : 0));
@@ -3503,31 +3865,65 @@
       return { type: "upgrade", stat: pick(["damage", "hp", "energy", "crit", "skill"]), rarity: this.rollRarityForDifficulty(difficulty * 0.8, luck) };
     }
 
+    rewardOwners() {
+      if (!this.isMultiplayerRun()) return [{ id: this.lobby.id, name: this.save.account.username || "Bạn" }];
+      if (this.isMultiplayerHost()) {
+        return this.lobby.slots.filter(Boolean).map((slot) => ({ id: slot.id, name: slot.name || "Người chơi" }));
+      }
+      return [{ id: this.lobby.id, name: this.save.account.username || "Bạn" }];
+    }
+
+    allRewardOwnersClaimed(room = this.run?.currentRoom) {
+      if (!room?.rewardOwners?.length) return Boolean(room?.rewardClaimed);
+      const claims = room.rewardClaims || {};
+      return room.rewardOwners.every((id) => claims[id]);
+    }
+
+    rollDistinctRoomReward(usedItems) {
+      let reward = this.rollRoomReward();
+      for (let tries = 0; reward.type === "item" && usedItems.has(reward.item.id) && tries < 8; tries++) {
+        reward = this.rollRoomReward();
+      }
+      if (reward.type === "item") usedItems.add(reward.item.id);
+      return reward;
+    }
+
     spawnRoomReward(x, y) {
       const room = this.run?.currentRoom;
       if (!room || room.rewardDropped) return;
-      const reward = this.rollRoomReward();
+      const owners = this.rewardOwners();
+      const usedItems = new Set();
+      const rewards = owners.map((owner) => ({ owner, reward: this.rollDistinctRoomReward(usedItems) }));
       room.rewardDropped = true;
       room.rewardClaimed = false;
-      this.run.rewardQueue = [reward];
-      const color = this.rewardColor(reward);
-      this.run.pickups.push({
-        x,
-        y,
-        vx: rand(-45, 45),
-        vy: rand(-70, -35),
-        type: "reward",
-        reward,
-        radius: 20,
-        life: 90,
-        age: 0,
-        color
+      room.rewardClaims = {};
+      room.rewardOwners = owners.map((owner) => owner.id);
+      this.run.rewardQueue = rewards.map((entry) => entry.reward);
+      rewards.forEach(({ owner, reward }, index) => {
+        const color = this.rewardColor(reward);
+        const spread = (index - (rewards.length - 1) / 2) * 34;
+        this.run.pickups.push({
+          id: uid("pickup"),
+          x: x + spread,
+          y: y + rand(-12, 12),
+          vx: spread * 0.35 + rand(-35, 35),
+          vy: rand(-78, -38),
+          type: "reward",
+          ownerId: owner.id,
+          ownerName: owner.name,
+          reward,
+          radius: 20,
+          life: 90,
+          age: 0,
+          color
+        });
       });
-      this.addShockwave(x, y, 110, color, 0);
+      const firstColor = this.rewardColor(rewards[0]?.reward || { type: "material", rarity: "rare" });
+      this.addShockwave(x, y, 110, firstColor, 0);
       for (let i = 0; i < 18 * this.save.settings.particles; i++) {
-        this.addParticle(x + rand(-18, 18), y + rand(-18, 18), color, rand(8, 22), rand(0.35, 0.85), i % 4 === 0 ? "ring" : "spark");
+        this.addParticle(x + rand(-28, 28), y + rand(-18, 18), firstColor, rand(8, 22), rand(0.35, 0.85), i % 4 === 0 ? "ring" : "spark");
       }
-      this.toast(`Rơi phần thưởng: ${this.rewardLabel(reward)}`);
+      this.toast(this.isMultiplayerRun() ? `Rơi ${rewards.length} phần thưởng riêng` : `Rơi phần thưởng: ${this.rewardLabel(rewards[0].reward)}`);
     }
 
     rewardColor(reward) {
@@ -3547,9 +3943,17 @@
     openNextRoomsAfterReward() {
       const room = this.run?.currentRoom;
       if (!room || room.nextOpened) return;
+      if (!this.allRewardOwnersClaimed(room)) {
+        if (this.isMultiplayerClient()) this.toast("Chờ mọi người nhặt phần thưởng");
+        return;
+      }
       room.nextOpened = true;
       setTimeout(() => {
         if (this.mode === "game" && this.run?.currentRoom?.cleared) {
+          if (this.isMultiplayerClient()) {
+            this.toast("Chờ chủ phòng chọn phòng tiếp theo");
+            return;
+          }
           if (this.prepareNextRooms()) this.showMapOverlay();
         }
       }, 350);
@@ -3669,15 +4073,34 @@
 
     collectRewardPickup(pickup) {
       if (!pickup.reward || pickup.collected) return;
+      if (pickup.ownerId && pickup.ownerId !== this.lobby.id) return;
       pickup.collected = true;
       this.grantReward(pickup.reward);
-      if (this.run.currentRoom) this.run.currentRoom.rewardClaimed = true;
+      if (this.run.currentRoom) {
+        this.run.currentRoom.rewardClaims ||= {};
+        this.run.currentRoom.rewardClaims[this.lobby.id] = true;
+        this.run.currentRoom.rewardClaimed = this.allRewardOwnersClaimed();
+      }
+      if (this.isMultiplayerClient()) this.lobby.sendCollect(pickup.id);
       const color = this.rewardColor(pickup.reward);
       this.addShockwave(pickup.x, pickup.y, 140, color, 0);
       for (let i = 0; i < 14 * this.save.settings.particles; i++) {
         this.addParticle(pickup.x, pickup.y, color, rand(8, 20), rand(0.3, 0.75), i % 3 === 0 ? "ring" : "spark");
       }
       if (this.run.currentRoom?.cleared) this.openNextRoomsAfterReward();
+    }
+
+    handleRemoteCollect(remoteId, pickupId) {
+      if (!this.isMultiplayerHost() || !pickupId || !this.run?.currentRoom) return;
+      const pickup = this.run.pickups.find((entry) => entry.id === pickupId && entry.ownerId === remoteId);
+      if (pickup) {
+        pickup.collected = true;
+        pickup.life = 0;
+      }
+      this.run.currentRoom.rewardClaims ||= {};
+      this.run.currentRoom.rewardClaims[remoteId] = true;
+      this.run.currentRoom.rewardClaimed = this.allRewardOwnersClaimed();
+      if (this.run.currentRoom.rewardClaimed) this.openNextRoomsAfterReward();
     }
 
     applyUpgrade(reward) {
@@ -3729,11 +4152,12 @@
     showMapOverlay() {
       if (!this.run) return;
       this.mode = "map";
-      if (!this.run.nextRooms.length) this.prepareNextRooms();
+      const clientLocked = this.isMultiplayerClient();
+      if (!this.run.nextRooms.length && !clientLocked) this.prepareNextRooms();
       const roomCards = this.run.nextRooms.map((room) => {
         const encoded = encodeURIComponent(JSON.stringify(room));
         return `
-          <button class="choice-card" data-action="choose-room" data-room="${encoded}" style="border-color:${room.color}">
+          <button class="choice-card ${clientLocked ? "locked" : ""}" data-action="choose-room" data-room="${encoded}" style="border-color:${room.color}" ${clientLocked ? "disabled" : ""}>
             ${this.roomIllustration(room)}
             <h3>${room.label}</h3>
             <p class="small">Độ khó ${Math.round(this.roomDifficulty(room.type) * 100)}%</p>
@@ -3746,7 +4170,7 @@
           <div class="panel-header">
             <div>
               <h2 class="panel-title">${this.run.biome.name}</h2>
-              <p class="panel-subtitle">Tầng ${this.run.stage + 1} - Đã vượt ${this.run.roomsCleared} phòng</p>
+              <p class="panel-subtitle">${clientLocked ? "Chờ chủ phòng chọn ải tiếp theo" : `Tầng ${this.run.stage + 1} - Đã vượt ${this.run.roomsCleared} phòng`}</p>
             </div>
             ${this.run.currentRoom?.cleared ? "" : `<button class="btn" data-action="close-map">ĐÓNG</button>`}
           </div>
@@ -3837,6 +4261,51 @@
       `);
     }
 
+    combatTargets() {
+      if (!this.run) return [];
+      const targets = [{ id: this.lobby.id, local: true, radius: this.run.player.radius, ...this.run.player }];
+      if (this.isMultiplayerHost()) {
+        for (const [id, remote] of this.remotePlayers) {
+          if ((remote.hp ?? 1) > 0) targets.push({ id, local: false, radius: 22, ...remote });
+        }
+      }
+      return targets;
+    }
+
+    nearestCombatTarget(x, y, fallback = this.run?.player) {
+      let best = fallback;
+      let bestD = Infinity;
+      for (const target of this.combatTargets()) {
+        const d = Math.hypot(target.x - x, target.y - y);
+        if (d < bestD) {
+          bestD = d;
+          best = target;
+        }
+      }
+      return best || fallback;
+    }
+
+    damageCombatTarget(target, amount, source = null) {
+      if (!target || target.local || target.id === this.lobby.id || !this.isMultiplayerHost()) {
+        this.damagePlayer(amount, source);
+        return;
+      }
+      const remote = this.remotePlayers.get(target.id);
+      if (remote) {
+        remote.hp = Math.max(0, (remote.hp ?? target.maxHp ?? 1) - amount);
+        remote.animation = "damage";
+        remote.actionTime = 0.28;
+        remote.actionTotal = 0.28;
+        remote.t = performance.now();
+      }
+      this.lobby.sendDamage(target.id, amount);
+    }
+
+    applyHostDamage(amount) {
+      if (!this.isMultiplayerClient() || !this.run) return;
+      this.damagePlayer(Math.max(0, Number(amount) || 0));
+    }
+
     updateEnemies(dt) {
       const p = this.run.player;
       for (const enemy of [...this.run.enemies]) {
@@ -3892,7 +4361,7 @@
     }
 
     updateEnemyAi(enemy, dt) {
-      const p = this.run.player;
+      const p = this.nearestCombatTarget(enemy.x, enemy.y);
       const d = Math.hypot(p.x - enemy.x, p.y - enemy.y);
       const a = Math.atan2(p.y - enemy.y, p.x - enemy.x);
       const slow = enemy.chill > 0 ? 0.48 : 1;
@@ -3970,7 +4439,7 @@
           enemy.attackCd = enemy.role === "skirmisher" ? (enemy.elite ? 0.78 : 1.0) : enemy.role === "duelist" ? (enemy.elite ? 0.82 : 1.08) : enemy.elite ? 0.82 : 1.1;
           enemy.attackAnim = 0.32;
           enemy.attackDir = a;
-          this.damagePlayer(enemy.damage * (enemy.role === "brute" ? 1.05 : enemy.role === "skirmisher" ? 0.76 : 0.92), enemy);
+          this.damageCombatTarget(p, enemy.damage * (enemy.role === "brute" ? 1.05 : enemy.role === "skirmisher" ? 0.76 : 0.92), enemy);
           enemy.vx -= Math.cos(a) * 120;
           enemy.vy -= Math.sin(a) * 120;
         }
@@ -3997,7 +4466,7 @@
       enemy.attackDir = enemy.chargeDir;
       if (!enemy.chargeHit && Math.hypot(player.x - enemy.x, player.y - enemy.y) < player.radius + enemy.radius + 18) {
         enemy.chargeHit = true;
-        this.damagePlayer(enemy.damage * (enemy.chargeDamage || 0.72), enemy);
+        this.damageCombatTarget(player, enemy.damage * (enemy.chargeDamage || 0.72), enemy);
         this.camera.shake = Math.max(this.camera.shake, 5);
       }
       if (chance(dt * 12)) this.addParticle(enemy.x, enemy.y, this.run.biome.accent, 9, 0.28, "spark", enemy.chargeDir + Math.PI, rand(80, 150));
@@ -4094,7 +4563,7 @@
         enemy.vx += -Math.sin(angle) * (enemy.elite ? 130 : 95);
         enemy.vy += Math.cos(angle) * (enemy.elite ? 130 : 95);
         if (d < enemy.radius + player.radius + 92 && Math.abs(angleDelta(targetAngle, angle)) < Math.PI * 0.35) {
-          this.damagePlayer(enemy.damage * 0.68, enemy);
+          this.damageCombatTarget(player, enemy.damage * 0.68, enemy);
         }
       }
       if (type === "casterZone" || type === "bombZone") {
@@ -4105,7 +4574,7 @@
     }
 
     updateBoss(enemy, dt) {
-      const p = this.run.player;
+      const p = this.nearestCombatTarget(enemy.x, enemy.y);
       enemy.phaseLock = Math.max(0, enemy.phaseLock - dt);
       const d = Math.hypot(p.x - enemy.x, p.y - enemy.y);
       const a = Math.atan2(p.y - enemy.y, p.x - enemy.x);
@@ -4128,7 +4597,7 @@
         enemy.attackDir = a;
         enemy.attackCd = Math.max(0.65, 1.7 - enemy.phase * 0.22);
       }
-      if (d < enemy.radius + p.radius + 8 && enemy.attackCd < 0.8) this.damagePlayer(enemy.damage * 0.75, enemy);
+      if (d < enemy.radius + p.radius + 8 && enemy.attackCd < 0.8) this.damageCombatTarget(p, enemy.damage * 0.75, enemy);
     }
 
     checkBossPhase(enemy) {
@@ -4171,7 +4640,8 @@
     }
 
     bossSlam(enemy) {
-      this.addEffect({ type: "danger", x: this.run.player.x, y: this.run.player.y, radius: 135 + enemy.phase * 25, time: 0.8, color: "#ff4b55", damage: enemy.damage * 1.6 });
+      const target = this.nearestCombatTarget(enemy.x, enemy.y);
+      this.addEffect({ type: "danger", x: target.x, y: target.y, radius: 135 + enemy.phase * 25, time: 0.8, color: "#ff4b55", damage: enemy.damage * 1.6 });
     }
 
     bossLine(enemy, angle) {
@@ -4230,7 +4700,7 @@
         if (this.inView(projectile.x, projectile.y, 90) && chance((this.isMobileDevice() ? 18 : 30) * dt)) {
           this.addParticle(projectile.x, projectile.y, projectile.color, projectile.radius * 0.9, 0.25, "dot");
         }
-        if (projectile.owner === "player") {
+        if ((projectile.owner === "player" || projectile.owner === "ally") && !this.isMultiplayerClient()) {
           for (const enemy of this.run.enemies) {
             if (Math.hypot(enemy.x - projectile.x, enemy.y - projectile.y) < enemy.radius + projectile.radius) {
               const len = Math.hypot(projectile.vx, projectile.vy) || 1;
@@ -4241,9 +4711,14 @@
               break;
             }
           }
-        } else if (Math.hypot(p.x - projectile.x, p.y - projectile.y) < p.radius + projectile.radius) {
-          this.damagePlayer(projectile.damage);
-          projectile.life = 0;
+        } else if (!this.isMultiplayerClient()) {
+          for (const target of this.combatTargets()) {
+            if (Math.hypot(target.x - projectile.x, target.y - projectile.y) < target.radius + projectile.radius) {
+              this.damageCombatTarget(target, projectile.damage);
+              projectile.life = 0;
+              break;
+            }
+          }
         }
         if (
           projectile.x < ROOM_PAD ||
@@ -4329,12 +4804,13 @@
         const pickup = this.run.pickups[i];
         pickup.age = (pickup.age || 0) + dt;
         if (pickup.type === "reward") {
+          const canCollect = !pickup.ownerId || pickup.ownerId === this.lobby.id;
           pickup.vy = (pickup.vy || 0) + 180 * dt;
           pickup.x = clamp(pickup.x + (pickup.vx || 0) * dt, ROOM_PAD + pickup.radius, WORLD_W - ROOM_PAD - pickup.radius);
           pickup.y = clamp(pickup.y + (pickup.vy || 0) * dt, ROOM_PAD + pickup.radius, WORLD_H - ROOM_PAD - pickup.radius);
           pickup.vx *= Math.pow(0.18, dt);
           pickup.vy *= Math.pow(0.18, dt);
-          if (pickup.age > 0.35) {
+          if (canCollect && pickup.age > 0.35) {
             const dx = p.x - pickup.x;
             const dy = p.y - pickup.y;
             const d = Math.hypot(dx, dy) || 1;
@@ -4345,7 +4821,7 @@
             pickup.x += (dx / d) * speed * dt;
             pickup.y += (dy / d) * speed * dt;
           }
-          if (Math.hypot(p.x - pickup.x, p.y - pickup.y) < p.radius + pickup.radius + 8) {
+          if (canCollect && Math.hypot(p.x - pickup.x, p.y - pickup.y) < p.radius + pickup.radius + 8) {
             this.collectRewardPickup(pickup);
             pickup.life = 0;
           }
@@ -4367,7 +4843,7 @@
       for (let i = 0; i < this.run.effects.length; i++) {
         const effect = this.run.effects[i];
         effect.time -= dt;
-        if (effect.type === "pull") {
+        if (effect.type === "pull" && !this.isMultiplayerClient()) {
           for (const enemy of this.run.enemies) {
             const d = Math.hypot(effect.x - enemy.x, effect.y - enemy.y);
             if (d < effect.radius) {
@@ -4379,7 +4855,7 @@
         }
         if (effect.type === "zone") {
           effect.tick -= dt;
-          if (effect.tick <= 0) {
+          if (effect.tick <= 0 && !this.isMultiplayerClient()) {
             effect.tick = 0.35;
             this.areaDamage(effect.x, effect.y, effect.radius, 20, effect.color, effect.kind);
           }
@@ -4387,11 +4863,15 @@
         if (effect.type === "danger" && effect.time <= 0.05 && !effect.done) {
           effect.done = true;
           this.addShockwave(effect.x, effect.y, effect.radius + 30, effect.color, 36);
-          if (Math.hypot(this.run.player.x - effect.x, this.run.player.y - effect.y) < effect.radius + this.run.player.radius) {
-            this.damagePlayer(effect.damage);
+          if (!this.isMultiplayerClient()) {
+            for (const target of this.combatTargets()) {
+              if (Math.hypot(target.x - effect.x, target.y - effect.y) < effect.radius + target.radius) {
+                this.damageCombatTarget(target, effect.damage);
+              }
+            }
           }
         }
-        if (effect.type === "gravityAnomaly") {
+        if (effect.type === "gravityAnomaly" && !this.isMultiplayerClient()) {
           effect.pulse -= dt;
           if (effect.pulse <= 0) {
             effect.pulse = 3.5;
@@ -4676,25 +5156,9 @@
     updateNetwork(dt) {
       this.networkTimer -= dt;
       if (this.networkTimer > 0 || !this.run) return;
-      this.networkTimer = 0.08;
+      this.networkTimer = 0.05;
       const p = this.run.player;
-      this.lobby.sendState({
-        x: p.x,
-        y: p.y,
-        hp: p.hp,
-        maxHp: p.maxHp,
-        damage: p.damage,
-        crit: p.crit,
-        color: this.save.customization.color,
-        characterId: p.characterId,
-        animation: p.animation,
-        animTime: p.animTime,
-        actionTime: p.actionTime,
-        actionTotal: p.actionTotal,
-        power: this.run.power.id,
-        facing: p.facing,
-        t: performance.now()
-      });
+      this.lobby.sendState(this.networkPlayerState(this.lobby.id, p));
       if (this.isMultiplayerHost()) {
         const snapshot = this.networkSnapshot();
         if (snapshot) this.lobby.broadcastSnapshot(snapshot);
@@ -4793,8 +5257,10 @@
       for (const drone of this.run.drones) this.drawDrone(ctx, drone);
       const actors = [...this.run.enemies, this.run.player].sort((a, b) => a.y - b.y);
       for (const actor of actors) {
-        if (actor === this.run.player) this.drawHero(ctx, actor.x, actor.y, 2.2, actor, this.run.power, this.save.customization);
-        else if (this.inView(actor.x, actor.y, actor.radius + 120)) this.drawEnemy(ctx, actor);
+        if (actor === this.run.player) {
+          this.drawHero(ctx, actor.x, actor.y, 2.2, actor, this.run.power, this.save.customization);
+          if (this.isMultiplayerRun()) this.drawNameTag(ctx, actor.x, actor.y - 58, actor.name || this.save.account.username || "Bạn", true);
+        } else if (this.inView(actor.x, actor.y, actor.radius + 120)) this.drawEnemy(ctx, actor);
       }
       for (const remote of this.remotePlayers.values()) {
         if (!this.inView(remote.x, remote.y, 120)) continue;
@@ -4807,6 +5273,7 @@
           hp: remote.hp,
           characterId: remote.characterId
         }, powerById(remote.power), { ...this.save.customization, color: remote.color });
+        this.drawNameTag(ctx, remote.x, remote.y - 54, remote.name || "Người chơi", false);
       }
       this.drawSlashes(ctx);
       this.drawShockwaves(ctx);
@@ -4921,6 +5388,12 @@
             ctx.fillRect(-8, -2, 16, 4);
             ctx.fillRect(4, -8, 4, 16);
           }
+          if (pickup.ownerName) {
+            ctx.font = "800 10px ui-sans-serif, system-ui";
+            ctx.textAlign = "center";
+            ctx.fillStyle = pickup.ownerId === this.lobby.id ? "#f2bf63" : "#f3ead7";
+            ctx.fillText(String(pickup.ownerName).slice(0, 12), 0, 32);
+          }
         } else {
           ctx.globalAlpha = clamp(pickup.life, 0, 1);
           ctx.fillStyle = "#70e083";
@@ -5002,6 +5475,21 @@
       ctx.fillRect(drone.x - 7, drone.y - 7, 14, 14);
       ctx.fillStyle = "#ffffff";
       ctx.fillRect(drone.x - 2, drone.y - 2, 4, 4);
+      ctx.restore();
+    }
+
+    drawNameTag(ctx, x, y, name, self = false) {
+      const label = String(name).slice(0, 18);
+      ctx.save();
+      ctx.font = "800 12px ui-sans-serif, system-ui";
+      const w = Math.max(48, ctx.measureText(label).width + 16);
+      ctx.fillStyle = self ? "rgba(242,191,99,0.82)" : "rgba(8,10,16,0.78)";
+      ctx.fillRect(x - w / 2, y - 16, w, 18);
+      ctx.strokeStyle = self ? "#f2bf63" : "rgba(255,255,255,0.22)";
+      ctx.strokeRect(x - w / 2, y - 16, w, 18);
+      ctx.fillStyle = self ? "#111521" : "#f3ead7";
+      ctx.textAlign = "center";
+      ctx.fillText(label, x, y - 3);
       ctx.restore();
     }
 

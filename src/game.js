@@ -7,7 +7,7 @@
   const ROOM_PAD = 86;
   const SAVE_KEY = "soulrift-save-v1";
   const SIGNAL_RELAY_URL = "https://ntfy.sh";
-  const APP_VERSION = "20260603-stable-world-sync-18";
+  const APP_VERSION = "20260603-lobby-presence-19";
   const VERSION_CHECK_INTERVAL = 15000;
 
   const RARITY = {
@@ -818,6 +818,8 @@
       this.remoteSignal = null;
       this.signalTopic = "";
       this.signalSince = 0;
+      this.presenceTimer = 0;
+      this.lastLobbyAt = 0;
       this.seenSignals = new Set();
       this.peers = new Map();
       this.joinRetryTimers = [];
@@ -859,6 +861,8 @@
       this.host = true;
       this.code = this.makeCode();
       this.ready = false;
+      this.presenceTimer = 0;
+      this.lastLobbyAt = Date.now();
       this.slots = [{ ...this.playerProfile(), ready: true, vote: this.mapVote, host: true }];
       this.openSignal();
       this.game.toast(`Đã tạo phòng ${this.code}`);
@@ -875,6 +879,8 @@
       this.host = false;
       this.code = normalized;
       this.ready = false;
+      this.presenceTimer = 0;
+      this.lastLobbyAt = 0;
       this.slots = [{ ...this.playerProfile(), ready: false, vote: this.mapVote, host: false }];
       this.openSignal();
       this.announceJoin();
@@ -887,7 +893,7 @@
         if (!this.host && this.code) this.sendSignal({ type: "hello", ...this.playerProfile() });
       };
       hello();
-      this.joinRetryTimers.push(setTimeout(hello, 350), setTimeout(hello, 1000));
+      this.joinRetryTimers.push(setTimeout(hello, 350), setTimeout(hello, 1000), setTimeout(hello, 2200), setTimeout(hello, 4200));
     }
 
     close() {
@@ -903,7 +909,24 @@
       if (this.remoteSignal) this.remoteSignal.close();
       this.remoteSignal = null;
       this.signalTopic = "";
+      this.presenceTimer = 0;
+      this.lastLobbyAt = 0;
       this.seenSignals.clear();
+    }
+
+    updatePresence(dt) {
+      if (!this.code || this.game.mode !== "lobby") return;
+      this.presenceTimer -= dt;
+      if (this.presenceTimer > 0) return;
+      this.presenceTimer = this.host ? 0.9 : 0.65;
+      this.syncOwnSlot();
+      if (this.host) {
+        this.pruneStaleSlots();
+        this.broadcastLobby();
+        return;
+      }
+      this.sendSignal({ type: "hello", ...this.playerProfile(), ready: this.ready, vote: this.mapVote });
+      this.broadcastReady();
     }
 
     openSignal() {
@@ -967,7 +990,7 @@
         this.upsertSlot({
           id: message.from,
           name: message.name || `Người chơi ${this.slots.length + 1}`,
-          ready: false,
+          ready: Boolean(message.ready),
           vote: this.mapVote,
           powerId: message.powerId || "",
           characterId: message.characterId || "swordsman",
@@ -986,6 +1009,7 @@
 
       if (message.type === "lobby" && !this.host && Array.isArray(message.slots)) {
         this.slots = message.slots;
+        this.lastLobbyAt = Date.now();
         if (message.mapVote) this.mapVote = message.mapVote;
         this.game.renderLobby();
       }
@@ -1121,6 +1145,7 @@
       }
       if (message.type === "lobby" && !this.host && Array.isArray(message.slots)) {
         this.slots = message.slots;
+        this.lastLobbyAt = Date.now();
         if (message.mapVote) this.mapVote = message.mapVote;
         this.game.renderLobby();
       }
@@ -1156,12 +1181,22 @@
     upsertSlot(slot) {
       const existing = this.slots.find((entry) => entry.id === slot.id);
       const fallback = existing?.name || `Người chơi ${this.slots.length + 1}`;
-      const cleanSlot = { ...slot, name: this.slotName(slot, fallback) };
+      const cleanSlot = { ...slot, name: this.slotName(slot, fallback), seenAt: Date.now() };
       if (existing) {
         Object.assign(existing, cleanSlot);
       } else if (this.slots.length < 4) {
         this.slots.push(cleanSlot);
       }
+    }
+
+    pruneStaleSlots() {
+      if (!this.host) return;
+      const now = Date.now();
+      this.slots = this.slots.filter((slot) => {
+        if (!slot || slot.host) return true;
+        if (this.hasOpenPeer(slot.id)) return true;
+        return now - (slot.seenAt || 0) < 12000;
+      });
     }
 
     toggleReady() {
@@ -2042,6 +2077,7 @@
         this.toastTimer -= dt;
         if (this.toastTimer <= 0) this.toastEl.classList.add("hidden");
       }
+      this.lobby.updatePresence(dt);
       if (this.mode === "game" && this.run) this.update(dt);
       this.audio.update(dt);
       this.render();

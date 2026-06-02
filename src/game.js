@@ -1440,7 +1440,10 @@
 
     worldViewScale() {
       if (!this.run || !this.isMobileDevice()) return 1;
-      return Math.min(window.innerWidth, window.innerHeight) <= 430 ? 0.78 : 0.82;
+      const shortSide = Math.min(window.innerWidth, window.innerHeight);
+      if (shortSide <= 380) return 0.62;
+      if (shortSide <= 430) return 0.66;
+      return 0.7;
     }
 
     worldViewWidth() {
@@ -1449,6 +1452,22 @@
 
     worldViewHeight() {
       return this.height / this.worldViewScale();
+    }
+
+    mobileCameraLead(player) {
+      if (!this.isMobileDevice()) return { x: 0, y: 0 };
+      const moveMag = Math.hypot(this.input.touch.x, this.input.touch.y);
+      let dx = 0;
+      let dy = 0;
+      if (moveMag > 0.12) {
+        dx = this.input.touch.x / moveMag;
+        dy = this.input.touch.y / moveMag;
+      } else {
+        dx = Math.cos(player.facing || 0);
+        dy = Math.sin(player.facing || 0);
+      }
+      const amount = Math.min(this.worldViewWidth(), this.worldViewHeight()) * 0.12;
+      return { x: dx * amount, y: dy * amount };
     }
 
     updatePerformanceState(dt) {
@@ -2996,8 +3015,9 @@
       const player = this.run.player;
       const viewW = this.worldViewWidth();
       const viewH = this.worldViewHeight();
-      const targetX = clamp(player.x - viewW / 2, 0, Math.max(0, WORLD_W - viewW));
-      const targetY = clamp(player.y - viewH / 2, 0, Math.max(0, WORLD_H - viewH));
+      const lead = this.mobileCameraLead(player);
+      const targetX = clamp(player.x + lead.x - viewW / 2, 0, Math.max(0, WORLD_W - viewW));
+      const targetY = clamp(player.y + lead.y - viewH / 2, 0, Math.max(0, WORLD_H - viewH));
       this.camera.x += (targetX - this.camera.x) * Math.min(1, dt * 8);
       this.camera.y += (targetY - this.camera.y) * Math.min(1, dt * 8);
       this.camera.shake = Math.max(0, this.camera.shake - dt * 34);

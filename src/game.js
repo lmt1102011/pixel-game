@@ -7,8 +7,10 @@
   const ROOM_PAD = 86;
   const SAVE_KEY = "soulrift-save-v1";
   const SIGNAL_RELAY_URL = "https://ntfy.sh";
-  const APP_VERSION = "20260603-world-doors-22";
+  const APP_VERSION = "20260603-status-lobby-23";
   const VERSION_CHECK_INTERVAL = 15000;
+  const DIRECTORY_TOPIC = "soulrift-directory";
+  const ROOM_CODE_RE = /^[A-Z0-9]{4,12}$/;
 
   const RARITY = {
     common: { label: "Thường", color: "#d4d7df", rate: 1 },
@@ -849,12 +851,15 @@
       this.code = "";
       this.host = false;
       this.ready = false;
+      this.joinPending = false;
+      this.joinStartedAt = 0;
       this.mapVote = "forest";
       this.signal = null;
       this.remoteSignal = null;
       this.signalTopic = "";
       this.signalSince = 0;
       this.presenceTimer = 0;
+      this.directoryTimer = 0;
       this.lastLobbyAt = 0;
       this.seenSignals = new Set();
       this.peers = new Map();
@@ -897,33 +902,45 @@
       this.host = true;
       this.code = this.makeCode();
       this.ready = false;
+      this.joinPending = false;
       this.presenceTimer = 0;
       this.lastLobbyAt = Date.now();
       this.slots = [{ ...this.playerProfile(), ready: true, vote: this.mapVote, host: true }];
       this.openSignal();
       this.game.rememberRoomCode(this.code);
+      this.updateDirectoryPresence(999);
       this.game.toast(`Đã tạo phòng ${this.code}`);
       this.game.renderLobby();
     }
 
     join(code) {
       const normalized = (code || "").trim().toUpperCase();
+      if (this.joinPending) {
+        this.game.toast(`Đang tìm phòng ${this.code}`);
+        this.game.showRoomFinder(false);
+        return;
+      }
       if (!normalized) {
         this.game.toast("Nhập mã phòng");
+        return;
+      }
+      if (!ROOM_CODE_RE.test(normalized)) {
+        this.game.toast("ID phòng không hợp lệ");
         return;
       }
       this.close();
       this.host = false;
       this.code = normalized;
       this.ready = false;
+      this.joinPending = true;
+      this.joinStartedAt = Date.now();
       this.presenceTimer = 0;
       this.lastLobbyAt = 0;
       this.slots = [{ ...this.playerProfile(), ready: false, vote: this.mapVote, host: false }];
       this.openSignal();
-      this.game.rememberRoomCode(this.code);
       this.announceJoin();
       this.game.toast(`Đang vào phòng ${this.code}`);
-      this.game.renderLobby();
+      this.game.showRoomFinder(false);
     }
 
     announceJoin() {
@@ -953,6 +970,8 @@
     }
 
     updatePresence(dt) {
+      this.updateDirectoryPresence(dt);
+      this.checkJoinTimeout();
       if (!this.code || this.game.mode !== "lobby") return;
       this.presenceTimer -= dt;
       if (this.presenceTimer > 0) return;
@@ -965,6 +984,42 @@
       }
       this.sendSignal({ type: "hello", ...this.playerProfile(), ready: this.ready, vote: this.mapVote });
       this.broadcastReady();
+    }
+
+    updateDirectoryPresence(dt) {
+      if (!this.host || !this.code || !window.fetch) return;
+      this.directoryTimer -= dt;
+      if (this.directoryTimer > 0) return;
+      this.directoryTimer = 2.2;
+      const payload = {
+        type: "roomPresence",
+        code: this.code,
+        hostName: this.playerName(),
+        players: this.slots.filter(Boolean).length,
+        maxPlayers: 4,
+        sentAt: Date.now(),
+        version: APP_VERSION
+      };
+      fetch(`${SIGNAL_RELAY_URL}/${DIRECTORY_TOPIC}`, {
+        method: "POST",
+        body: JSON.stringify(payload)
+      }).catch(() => {});
+    }
+
+    checkJoinTimeout() {
+      if (!this.joinPending || this.host || !this.code) return;
+      if (Date.now() - this.joinStartedAt < 6500) return;
+      if (this.lastLobbyAt > 0 || this.openPeerCount() > 0) {
+        this.joinPending = false;
+        return;
+      }
+      this.close();
+      this.code = "";
+      this.ready = false;
+      this.joinPending = false;
+      this.slots = [{ ...this.playerProfile(), ready: false, vote: this.mapVote, host: false }];
+      this.game.toast("Không tìm thấy phòng này");
+      if (this.game.mode === "lobby" || this.game.roomFinderOpen) this.game.showRoomFinder(false);
     }
 
     openSignal() {
@@ -1047,7 +1102,9 @@
 
       if (message.type === "lobby" && !this.host && Array.isArray(message.slots)) {
         this.slots = message.slots;
+        this.joinPending = false;
         this.lastLobbyAt = Date.now();
+        this.game.rememberRoomCode(this.code);
         if (message.mapVote) this.mapVote = message.mapVote;
         this.game.renderLobby();
       }
@@ -1128,10 +1185,12 @@
     bindChannel(peer) {
       if (!peer.channel) return;
       peer.channel.onopen = () => {
+        this.joinPending = false;
+        if (!this.host && this.code) this.game.rememberRoomCode(this.code);
         if (this.host) this.sendPeer(peer, { type: "lobby", slots: this.slots, mapVote: this.mapVote });
         else this.sendPeer(peer, { type: "ready", ...this.playerProfile(), ready: this.ready, vote: this.mapVote });
         this.game.toast("Đã kết nối người chơi");
-        if (this.game.mode === "lobby") this.game.renderLobby();
+        if (this.game.mode === "lobby" || this.game.roomFinderOpen) this.game.renderLobby();
       };
       peer.channel.onclose = () => {
         if (this.game.mode === "lobby") this.game.renderLobby();
@@ -1183,7 +1242,9 @@
       }
       if (message.type === "lobby" && !this.host && Array.isArray(message.slots)) {
         this.slots = message.slots;
+        this.joinPending = false;
         this.lastLobbyAt = Date.now();
+        this.game.rememberRoomCode(this.code);
         if (message.mapVote) this.mapVote = message.mapVote;
         this.game.renderLobby();
       }
@@ -1406,6 +1467,8 @@
         actions: new Set()
       };
       this.remotePlayers = new Map();
+      this.publicRooms = [];
+      this.roomFinderOpen = false;
       this.joystickTouchId = null;
       this.menuTime = 0;
       this.networkTimer = 0;
@@ -1414,6 +1477,7 @@
       this.toastTimer = 0;
       this.nextHudSkillAt = 0;
       this.hudSkillMarkup = "";
+      this.hudStatusMarkup = "";
       this.updateTimer = null;
       this.updateInProgress = false;
       this.perf = { avgDt: 1 / 60, quality: 1 };
@@ -1741,8 +1805,17 @@
       });
       this.canvas.addEventListener("contextmenu", (event) => event.preventDefault());
       this.screen.addEventListener("click", (event) => {
+        const statusTarget = event.target.closest("[data-status-index]");
+        if (statusTarget && this.mode === "status") {
+          this.showStatusEffects(Number(statusTarget.dataset.statusIndex || 0));
+          return;
+        }
         const target = event.target.closest("[data-action]");
         if (target) this.handleAction(target.dataset.action, target);
+      });
+      this.hud.addEventListener("click", (event) => {
+        const target = event.target.closest("[data-status-index]");
+        if (target) this.showStatusEffects(Number(target.dataset.statusIndex || 0));
       });
       this.screen.addEventListener("input", (event) => this.handleInput(event));
       this.bindTouchControls();
@@ -2154,47 +2227,10 @@
       this.mode = "menu";
       this.hud.classList.add("hidden");
       this.touchLayer.classList.add("hidden");
-      const progress = this.save.progression;
-      const xpNeed = this.xpToNextLevel(progress.level || 1);
-      const selectedPower = powerById(this.save.account.selectedPower);
-      const selectedText = this.save.account.selectedPower ? selectedPower.name : "Chưa chọn";
+      this.roomFinderOpen = false;
       this.setScreen(`
-        <section class="shell">
+        <section class="menu-only">
           ${this.navHtml("home")}
-          <div class="panel menu-stage home-panel">
-            <div class="home-grid">
-              <div class="home-card primary-home">
-                <p class="small">Tài khoản</p>
-                <h2>${this.save.account.username}</h2>
-                <p>Cấp ${progress.level || 1} - ${Math.floor(progress.xp || 0)}/${xpNeed} KN</p>
-                <p>Ải tốt nhất ${progress.bestStage + 1} - Trùm hạ ${progress.bossesDefeated}</p>
-              </div>
-              <div class="home-card">
-                <p class="small">Sức mạnh đang chọn</p>
-                <h3 style="color:${selectedPower.color}">${selectedText}</h3>
-                <p>${this.save.account.selectedPower ? selectedPower.passive : "Vào mục Sức Mạnh để quay và chọn."}</p>
-              </div>
-              <div class="home-card">
-                <p class="small">Lượt quay sức mạnh</p>
-                <h3>${this.save.account.powerSpins}</h3>
-                <p>Sức mạnh chỉ được quay ngoài ải.</p>
-              </div>
-              <div class="home-card">
-                <p class="small">Kho vật phẩm</p>
-                <h3>${this.save.inventory.length}</h3>
-                <p>Vật phẩm chỉ rơi sau khi vượt phòng.</p>
-              </div>
-              <div class="home-card">
-                <p class="small">Điểm nâng còn</p>
-                <h3>${progress.statPoints || 0}</h3>
-                <p>Mỗi lần lên cấp nhận thêm 1 điểm.</p>
-              </div>
-            </div>
-            <div class="menu-callout">
-              <h2>Khe nứt đã mở</h2>
-              <p>Chọn sức mạnh ở ngoài, vào ải, dọn phòng, nhận đồ rơi, rồi đi sâu hơn.</p>
-            </div>
-          </div>
         </section>
       `);
     }
@@ -2203,6 +2239,15 @@
       const item = (id, label, primary = false) => `
         <button class="btn ${primary ? "primary" : ""} ${active === id ? "active" : ""}" data-action="${id}">${label}</button>
       `;
+      if (active !== "home") {
+        return `
+          <nav class="main-nav back-nav">
+            <div class="nav-buttons">
+              <button class="btn" data-action="menu">THOÁT RA MENU</button>
+            </div>
+          </nav>
+        `;
+      }
       return `
         <nav class="main-nav">
           <div class="logo">
@@ -2308,6 +2353,7 @@
 
     showPlayMenu() {
       this.mode = "play";
+      this.roomFinderOpen = false;
       this.hud.classList.add("hidden");
       this.touchLayer.classList.add("hidden");
       this.setScreen(`
@@ -2339,6 +2385,7 @@
 
     showSoloMenu() {
       this.mode = "play";
+      this.roomFinderOpen = false;
       const selected = this.save.account.selectedPower ? powerById(this.save.account.selectedPower) : null;
       const difficultyCards = DIFFICULTIES.map((difficulty) => `
         <button class="choice-card" data-action="start-solo-difficulty" data-difficulty="${difficulty.id}">
@@ -2367,6 +2414,7 @@
 
     showMultiplayerHub() {
       this.mode = "play";
+      this.roomFinderOpen = false;
       this.setScreen(`
         <section class="shell">
           ${this.navHtml("play")}
@@ -2399,7 +2447,7 @@
       try {
         const raw = localStorage.getItem("soulrift-recent-rooms");
         const codes = raw ? JSON.parse(raw) : [];
-        return Array.isArray(codes) ? codes.filter(Boolean).slice(0, 6) : [];
+        return Array.isArray(codes) ? codes.map((code) => String(code || "").trim().toUpperCase()).filter((code) => ROOM_CODE_RE.test(code)).slice(0, 6) : [];
       } catch {
         return [];
       }
@@ -2407,7 +2455,7 @@
 
     rememberRoomCode(code) {
       const normalized = String(code || "").trim().toUpperCase();
-      if (!normalized) return;
+      if (!ROOM_CODE_RE.test(normalized)) return;
       const next = [normalized, ...this.recentRoomCodes().filter((entry) => entry !== normalized)].slice(0, 6);
       try {
         localStorage.setItem("soulrift-recent-rooms", JSON.stringify(next));
@@ -2416,17 +2464,73 @@
       }
     }
 
-    showRoomFinder() {
+    async refreshRoomDirectory() {
+      if (!window.fetch) return;
+      try {
+        const response = await fetch(`${SIGNAL_RELAY_URL}/${DIRECTORY_TOPIC}/json?poll=1&since=10m`, { cache: "no-store" });
+        if (!response.ok) return;
+        const text = await response.text();
+        const now = Date.now();
+        const rooms = new Map();
+        for (const line of text.split(/\r?\n/)) {
+          if (!line.trim()) continue;
+          let envelope = null;
+          try {
+            envelope = JSON.parse(line);
+          } catch {
+            continue;
+          }
+          const raw = typeof envelope.message === "string" ? envelope.message : "";
+          let payload = null;
+          try {
+            payload = JSON.parse(raw);
+          } catch {
+            continue;
+          }
+          if (payload?.type !== "roomPresence" || !payload.code) continue;
+          if (now - Number(payload.sentAt || 0) > 18000) continue;
+          const code = String(payload.code || "").trim().toUpperCase();
+          if (!ROOM_CODE_RE.test(code)) continue;
+          rooms.set(code, {
+            code,
+            hostName: payload.hostName || "Chủ phòng",
+            players: Number(payload.players) || 1,
+            maxPlayers: Number(payload.maxPlayers) || 4,
+            sentAt: Number(payload.sentAt) || now
+          });
+        }
+        this.publicRooms = [...rooms.values()].sort((a, b) => b.sentAt - a.sentAt);
+        if (this.mode === "play" && this.roomFinderOpen) this.showRoomFinder(false);
+      } catch {
+        // Public room discovery is optional; manual room IDs still work with validation.
+      }
+    }
+
+    showRoomFinder(fetchDirectory = true) {
       this.mode = "play";
-      const current = this.lobby.code ? [this.lobby.code] : [];
-      const rooms = [...current, ...this.recentRoomCodes().filter((code) => code !== this.lobby.code)].slice(0, 6);
+      this.roomFinderOpen = true;
+      const pendingCode = this.lobby.joinPending && this.lobby.code ? this.lobby.code : "";
+      const joinedCode = this.lobby.code && !this.lobby.joinPending ? this.lobby.code : "";
+      const current = joinedCode ? [joinedCode] : [];
+      const publicCodes = (this.publicRooms || []).map((room) => room.code).filter(Boolean);
+      const rooms = [...current, ...publicCodes, ...this.recentRoomCodes().filter((code) => code !== this.lobby.code)]
+        .filter((code, index, list) => list.indexOf(code) === index)
+        .slice(0, 8);
       const roomList = rooms.length ? rooms.map((code) => `
-        <button class="choice-card" data-action="${code === this.lobby.code ? "multiplayer" : "join-room"}" data-room-code="${code}">
+        <button class="choice-card" data-action="${code === joinedCode ? "multiplayer" : "join-room"}" data-room-code="${code}">
           <div class="card-icon">${code.slice(0, 2)}</div>
-          <h3>${code}</h3>
-          <p>${code === this.lobby.code ? (this.lobby.host ? "Phòng bạn đang tạo" : "Phòng đang tham gia") : "Phòng gần đây"}</p>
+          <div>
+            <h3>${code}</h3>
+            <p>${code === joinedCode ? (this.lobby.host ? "Phòng bạn đang tạo" : "Phòng đang tham gia") : publicCodes.includes(code) ? "Phòng online" : "Phòng gần đây"}</p>
+          </div>
         </button>
       `).join("") : `<div class="empty-state">Chưa có phòng nào được phát hiện trên máy này.</div>`;
+      const pendingNotice = pendingCode ? `
+        <div class="join-pending">
+          <b>Đang tìm phòng ${pendingCode}</b>
+          <span>Nếu ID không tồn tại, game sẽ tự hủy kết nối.</span>
+        </div>
+      ` : "";
       this.setScreen(`
         <section class="shell">
           ${this.navHtml("play")}
@@ -2438,14 +2542,42 @@
               </div>
               <button class="btn" data-action="play-multiplayer">TRỞ LẠI</button>
             </div>
-            <div class="grid cols-2">
-              <div>
-                <input id="roomCodeInput" class="field" placeholder="ID PHÒNG" maxlength="12" />
-                <button class="btn primary" data-action="join-room">VÀO PHÒNG</button>
+            <div class="room-finder-layout">
+              <div class="account-form">
+                <input id="roomCodeInput" class="field" placeholder="ID PHÒNG" maxlength="12" value="${pendingCode}" ${pendingCode ? "disabled" : ""} />
+                <button class="btn primary" data-action="join-room" ${pendingCode ? "disabled" : ""}>VÀO PHÒNG</button>
+                ${pendingNotice}
               </div>
-              ${roomList}
+              <div class="room-list">${roomList}</div>
             </div>
           </div>
+        </section>
+      `);
+      if (fetchDirectory) this.refreshRoomDirectory();
+    }
+
+    showStatusEffects(selectedIndex = 0) {
+      if (!this.run) return;
+      this.mode = "status";
+      const effects = (this.run.statusEffects || []).filter((effect) => effect.time > 0);
+      const cards = effects.map((effect, index) => `
+        <button class="choice-card ${index === selectedIndex ? "selected" : ""}" data-status-index="${index}" style="border-color:${effect.color || "#a169ff"}">
+          <div class="card-icon" style="color:${effect.color || "#a169ff"}">${effect.icon || effect.name.slice(0, 1)}</div>
+          <h3>${effect.name}</h3>
+          <p>${effect.text}</p>
+          <p class="small">Còn ${Math.max(0, Math.ceil(effect.time))} giây</p>
+        </button>
+      `).join("");
+      this.setScreen(`
+        <section class="wide-panel">
+          <div class="panel-header">
+            <div>
+              <h2 class="panel-title">Hiệu Ứng</h2>
+              <p class="panel-subtitle">Trạng thái giữ nguyên khi qua phòng và chỉ biến mất khi hết thời gian.</p>
+            </div>
+            <button class="btn" data-action="resume">ĐÓNG</button>
+          </div>
+          <div class="grid">${cards || `<div class="empty-state">Không có hiệu ứng nào.</div>`}</div>
         </section>
       `);
     }
@@ -2884,6 +3016,7 @@
     renderLobby() {
       this.mode = "lobby";
       this.hud.classList.add("hidden");
+      this.roomFinderOpen = false;
       if (this.lobby.code) this.lobby.syncOwnSlot();
       const isHost = this.lobby.host;
       const slots = Array.from({ length: 4 }, (_, index) => {
@@ -2929,7 +3062,7 @@
                 <p class="panel-subtitle">${isHost ? "Chủ phòng chọn ải và bắt đầu khi mọi người sẵn sàng." : "Bạn chỉ cần sẵn sàng, chủ phòng sẽ chọn ải và bắt đầu."}</p>
               </div>
             </div>
-            <div class="grid cols-2">
+            <div class="grid cols-2 ${this.lobby.code ? "hidden" : ""}">
               <button class="btn primary" data-action="create-room">TẠO PHÒNG</button>
               <div>
                 <input id="roomCodeInput" class="field" placeholder="MÃ PHÒNG" maxlength="12" />
@@ -3072,6 +3205,7 @@
         delayedStrikes: [],
         roomObjects: [],
         merchantOffers: [],
+        statusEffects: [],
         player: this.createPlayer(),
         curse: null,
         rewardQueue: [],
@@ -3231,6 +3365,12 @@
       ]);
     }
 
+    compactStatusEffect(effect) {
+      return this.compactFields(effect, [
+        "id", "kind", "name", "text", "color", "icon", "time", "maxTime"
+      ]);
+    }
+
     mergeNetworkActors(current, incoming, snapDistance = 520) {
       const previousById = new Map();
       for (const actor of current || []) {
@@ -3274,6 +3414,7 @@
         biomeId: this.run.biome.id,
         seed: this.run.seed,
         curse: this.run.curse ? { ...this.run.curse } : null,
+        statusEffects: this.run.statusEffects.map((effect) => this.compactStatusEffect(effect)),
         nextRooms: this.run.nextRooms.map((room) => ({ ...room })),
         players,
         currentRoom: this.run.currentRoom ? {
@@ -3319,6 +3460,7 @@
       this.run.roomClearTimer = Number.isFinite(snapshot.roomClearTimer) ? snapshot.roomClearTimer : this.run.roomClearTimer;
       if (Number.isFinite(snapshot.seed)) this.run.seed = snapshot.seed;
       this.run.curse = snapshot.curse ? { ...snapshot.curse } : null;
+      if (Array.isArray(snapshot.statusEffects)) this.run.statusEffects = snapshot.statusEffects.map((effect) => ({ ...effect }));
       if (Array.isArray(snapshot.nextRooms)) this.run.nextRooms = snapshot.nextRooms.map((room) => ({ ...room }));
       if (snapshot.currentRoom) {
         this.run.currentRoom = { ...(this.run.currentRoom || {}), ...snapshot.currentRoom };
@@ -3510,7 +3652,7 @@
         rewardOwners: []
       };
       this.run.roomNumber += 1;
-      this.run.curse = null;
+      this.syncStatusEffects();
       this.run.roomClearTimer = 0;
       this.run.enemies = [];
       this.run.projectiles = [];
@@ -3542,7 +3684,17 @@
     }
 
     applyCurse(curse) {
-      this.run.curse = curse;
+      const status = this.addStatusEffect({
+        id: curse.id,
+        kind: "curse",
+        name: curse.name,
+        text: curse.text,
+        color: curse.color,
+        icon: curse.name.slice(0, 1),
+        time: 95,
+        maxTime: 95
+      });
+      this.run.curse = status;
       if (curse.id === "halfHp") {
         this.run.player.hp = Math.min(this.run.player.hp, Math.ceil(this.run.player.maxHp * 0.5));
       }
@@ -3553,6 +3705,42 @@
         this.run.player.shield = Math.max(this.run.player.shield || 0, 28 + this.run.stage * 6);
       }
       this.toast(`Nguyền rủa: ${curse.name}`);
+    }
+
+    addStatusEffect(effect) {
+      this.run.statusEffects ||= [];
+      const existing = this.run.statusEffects.find((entry) => entry.id === effect.id && entry.kind === effect.kind);
+      const next = {
+        ...effect,
+        time: Number.isFinite(effect.time) ? effect.time : 60,
+        maxTime: Number.isFinite(effect.maxTime) ? effect.maxTime : (Number.isFinite(effect.time) ? effect.time : 60)
+      };
+      if (existing) Object.assign(existing, next);
+      else this.run.statusEffects.push(next);
+      this.syncStatusEffects();
+      return existing || next;
+    }
+
+    updateStatusEffects(dt) {
+      if (!this.run?.statusEffects?.length) return;
+      let write = 0;
+      for (const effect of this.run.statusEffects) {
+        effect.time -= dt;
+        if (effect.time > 0) this.run.statusEffects[write++] = effect;
+      }
+      this.run.statusEffects.length = write;
+      this.syncStatusEffects();
+    }
+
+    syncStatusEffects() {
+      if (!this.run) return;
+      const activeCurse = this.run.statusEffects?.find((effect) => effect.kind === "curse" && effect.time > 0);
+      this.run.curse = activeCurse ? {
+        id: activeCurse.id,
+        name: activeCurse.name,
+        text: activeCurse.text,
+        color: activeCurse.color
+      } : null;
     }
 
     spawnHazards() {
@@ -3773,6 +3961,7 @@
       this.updateEffects(dt);
       this.updateParticles(dt);
       this.updateDamageTexts(dt);
+      this.updateStatusEffects(dt);
       this.updateHud();
       this.updateNetwork(dt);
       this.updateNetworkInterpolation(dt);
@@ -4296,7 +4485,8 @@
       this.executePowerSkill(skill.key, power, { x, y, damage }, angle, { x: targetX, y: targetY }, {
         owner: "ally",
         remote: true,
-        damage
+        damage,
+        awakened: Boolean(skill.awakened)
       });
     }
 
@@ -4338,6 +4528,7 @@
         targetX: target.x,
         targetY: target.y,
         damage: player.damage,
+        awakened: Boolean(this.save.powers[power.id]?.awakened),
         color: this.save.customization.color,
         t: performance.now()
       });
@@ -4416,9 +4607,61 @@
       this.trimVisualList(this.run.slashes, this.isMobileDevice() ? 24 : 38);
     }
 
+    applyAwakenedSkillBonus(key, power, caster, angle, target, damage, owner = "player", remote = false) {
+      const kind = power.id;
+      const x = caster.x;
+      const y = caster.y;
+      const tx = target?.x ?? x + Math.cos(angle) * 220;
+      const ty = target?.y ?? y + Math.sin(angle) * 220;
+      const pulse = key === "q" ? 0.42 : key === "e" ? 0.34 : key === "r" ? 0.58 : 0.72;
+      this.addSkillShape(kind, `awakened-${key}`, key === "e" ? x : tx, key === "e" ? y : ty, angle, 135 + pulse * 130, 0.45 + pulse * 0.2);
+      if (kind === "fire") {
+        const px = x + Math.cos(angle) * (key === "r" ? 210 : 128);
+        const py = y + Math.sin(angle) * (key === "r" ? 210 : 128);
+        this.addTrailDamage(px, py, power.color);
+        this.areaDamage(px, py, 78 + pulse * 72, damage * (0.28 + pulse * 0.28), power.color, kind);
+      } else if (kind === "ice") {
+        this.areaDamage(tx, ty, 92 + pulse * 84, damage * (0.22 + pulse * 0.22), power.color, kind);
+        for (const enemy of this.run.enemies) if (Math.hypot(enemy.x - tx, enemy.y - ty) < 150 + pulse * 100) enemy.chill = Math.max(enemy.chill, 2.2 + pulse);
+        this.addShockwave(tx, ty, 120 + pulse * 80, power.color, 0);
+      } else if (kind === "lightning") {
+        this.burstLines(x, y, power.accent, key === "f" ? 10 : 5, 210 + pulse * 220, 0.16);
+        this.lineDamage(x, y, angle, 360 + pulse * 220, 30 + pulse * 20, damage * (0.24 + pulse * 0.2), power.color, kind, 5);
+      } else if (kind === "shadow") {
+        for (const offset of [-0.24, 0.24]) {
+          const a = angle + offset;
+          this.spawnProjectile({ owner, x, y, vx: Math.cos(a) * 720, vy: Math.sin(a) * 720, radius: 8, damage: damage * (0.28 + pulse * 0.18), life: 0.78, color: power.color, pierce: 2, kind });
+        }
+        for (const enemy of this.run.enemies) if (Math.hypot(enemy.x - tx, enemy.y - ty) < 170) enemy.mark += 2;
+      } else if (kind === "blood") {
+        this.coneDamage(x, y, angle, 170 + pulse * 120, Math.PI * 0.9, damage * (0.25 + pulse * 0.24), power.color, kind);
+        if (!remote) this.healPlayer(8 + damage * 0.14);
+      } else if (kind === "gravity") {
+        this.addEffect({ type: "pull", x: tx, y: ty, radius: 210 + pulse * 150, time: 0.85 + pulse * 0.65, color: power.color });
+        this.areaDamage(tx, ty, 95 + pulse * 60, damage * (0.24 + pulse * 0.24), power.color, kind);
+      } else if (kind === "crystal") {
+        for (let i = 0; i < 5; i++) {
+          const a = angle + (i - 2) * 0.16;
+          this.spawnProjectile({ owner, x: x + Math.cos(a) * 28, y: y + Math.sin(a) * 28, vx: Math.cos(a) * 760, vy: Math.sin(a) * 760, radius: 6, damage: damage * (0.18 + pulse * 0.16), life: 0.82, color: power.color, pierce: 1, kind });
+        }
+      } else if (kind === "nature") {
+        this.addEffect({ type: "zone", x: tx, y: ty, radius: 115 + pulse * 80, time: 2.2, tick: 0.2, color: power.color, kind });
+        if (!remote) this.healPlayer(10 + pulse * 18);
+      } else if (kind === "void") {
+        this.addEffect({ type: "pull", x: tx, y: ty, radius: 230 + pulse * 140, time: 1.0 + pulse * 0.55, color: power.color });
+        for (const enemy of this.run.enemies) if (Math.hypot(enemy.x - tx, enemy.y - ty) < 210 + pulse * 80) enemy.mark += 3;
+      } else if (kind === "time") {
+        this.areaDamage(x, y, 130 + pulse * 120, damage * (0.2 + pulse * 0.2), power.color, kind);
+        for (const enemy of this.run.enemies) if (Math.hypot(enemy.x - x, enemy.y - y) < 180 + pulse * 110) enemy.chill = Math.max(enemy.chill, 3.0 + pulse);
+        if (!remote && key !== "f") caster.cooldowns[key] = Math.max(0, caster.cooldowns[key] - 0.6);
+      }
+      this.camera.shake = Math.max(this.camera.shake, 5 + pulse * 7);
+    }
+
     executePowerSkill(key, power, caster, angle, target, options = {}) {
       const owner = options.owner || "player";
       const remote = Boolean(options.remote);
+      const awakened = Boolean(options.awakened ?? this.save.powers[power.id]?.awakened);
       const x = caster.x;
       const y = caster.y;
       const damage = Math.max(8, options.damage || caster.damage || this.run.player.damage) * (this.run.curse?.id === "manaDebt" ? 1.18 : 1);
@@ -4495,6 +4738,7 @@
           this.areaDamage(x, y, 175, damage * 0.95, power.color, kind);
           for (const enemy of this.run.enemies) if (Math.hypot(enemy.x - x, enemy.y - y) < 190) enemy.chill = Math.max(enemy.chill, 3.6);
         }
+        if (awakened) this.applyAwakenedSkillBonus(key, power, caster, angle, { x: tx, y: ty }, damage, owner, remote);
         this.camera.shake = Math.max(this.camera.shake, 7);
         this.audio.sfx(kind === "lightning" ? 520 : kind === "gravity" ? 110 : 260, kind === "fire" ? "sawtooth" : "triangle", 0.08, 0.1);
         return;
@@ -4548,6 +4792,7 @@
           }
           this.addShockwave(x, y, 150, power.color, 0);
         }
+        if (awakened) this.applyAwakenedSkillBonus(key, power, caster, angle, { x: tx, y: ty }, damage, owner, remote);
         this.audio.sfx(kind === "time" ? 190 : 180, "sine", 0.12, 0.08);
         return;
       }
@@ -4608,6 +4853,7 @@
           }
           for (const enemy of this.run.enemies) if (Math.hypot(enemy.x - x, enemy.y - y) < 250) enemy.chill = Math.max(enemy.chill, 2.8);
         }
+        if (awakened) this.applyAwakenedSkillBonus(key, power, caster, angle, { x: tx, y: ty }, damage, owner, remote);
         this.camera.shake = Math.max(this.camera.shake, 9);
         this.audio.sfx(kind === "lightning" ? 560 : kind === "gravity" || kind === "void" ? 90 : 120, "sawtooth", 0.14, 0.1);
         return;
@@ -4641,6 +4887,7 @@
         this.areaDamage(x, y, radius, awakened ? 170 : 120, power.accent, kind, true);
         this.addShockwave(x, y, radius + 80, power.accent, 64);
         this.addEffect({ type: "ultimate", x, y, radius, time: awakened ? 2.5 : 1.8, color: power.accent, kind });
+        if (awakened) this.applyAwakenedSkillBonus(key, power, caster, angle, { x, y }, damage, owner, remote);
         this.camera.shake = Math.max(this.camera.shake, 24);
         this.audio.sfx(kind === "time" ? 130 : 70, "sawtooth", 0.35, 0.18);
       }
@@ -5217,7 +5464,7 @@
       const doors = this.run.nextRooms;
       const spacing = doors.length > 2 ? 170 : 210;
       const baseX = WORLD_W / 2 - ((doors.length - 1) * spacing) / 2;
-      const y = ROOM_PAD + 135;
+      const y = ROOM_PAD + 105;
       this.run.roomObjects = this.run.roomObjects.filter((object) => object.type !== "nextDoor");
       doors.forEach((room, index) => {
         this.addRoomObject("nextDoor", {
@@ -6859,7 +7106,7 @@
       const energyBar = document.getElementById("energyBar");
       const hpText = document.getElementById("hpText");
       const energyText = document.getElementById("energyText");
-      const cursePill = document.getElementById("cursePill");
+      const statusStrip = document.getElementById("statusStrip");
       const roomPill = document.getElementById("roomPill");
       const objectivePill = document.getElementById("objectivePill");
       const hpWidth = `${clamp((p.hp / p.maxHp) * 100, 0, 100).toFixed(1)}%`;
@@ -6872,15 +7119,17 @@
       if (energyBar.style.width !== energyWidth) energyBar.style.width = energyWidth;
       if (hpText.textContent !== hpLabel) hpText.textContent = hpLabel;
       if (energyText.textContent !== energyLabel) energyText.textContent = energyLabel;
-      if (cursePill) {
-        if (this.run.curse) {
-          const curseLabel = `${this.run.curse.name}: ${this.run.curse.text}`;
-          cursePill.classList.remove("hidden");
-          cursePill.style.borderColor = this.run.curse.color || "#a169ff";
-          cursePill.style.color = this.run.curse.color || "#e5d6ff";
-          if (cursePill.textContent !== curseLabel) cursePill.textContent = curseLabel;
-        } else {
-          cursePill.classList.add("hidden");
+      if (statusStrip) {
+        const effects = (this.run.statusEffects || []).filter((effect) => effect.time > 0);
+        statusStrip.classList.toggle("hidden", effects.length === 0);
+        const statusMarkup = effects.map((effect, index) => `
+          <button class="status-icon" data-status-index="${index}" style="--status:${effect.color || "#a169ff"}">
+            ${effect.icon || effect.name.slice(0, 1)}
+          </button>
+        `).join("");
+        if (statusMarkup !== this.hudStatusMarkup) {
+          this.hudStatusMarkup = statusMarkup;
+          statusStrip.innerHTML = statusMarkup;
         }
       }
       if (roomPill.textContent !== roomLabel) roomPill.textContent = roomLabel;
@@ -7197,8 +7446,8 @@
     drawDoorObject(ctx, object) {
       const grow = clamp(object.grow || 0, 0, 1);
       const color = object.color || this.run.biome.accent;
-      const w = object.type === "bossGate" ? 118 : object.type === "bossExit" ? 92 : 78;
-      const h = object.type === "bossGate" ? 146 : object.type === "bossExit" ? 112 : 98;
+      const w = object.type === "bossGate" ? 118 : object.type === "bossExit" ? 92 : 84;
+      const h = object.type === "bossGate" ? 146 : object.type === "bossExit" ? 112 : 120;
       const y = object.y + (1 - grow) * 54;
       this.drawObjectAmbient(ctx, { ...object, y }, Math.max(w, h) * 0.62);
       ctx.save();

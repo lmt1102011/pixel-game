@@ -957,8 +957,14 @@
       if (message.type === "state") {
         this.game.remotePlayers.set(peer.remoteId, message.state);
       }
+      if (message.type === "attack" && this.host) {
+        this.game.handleRemoteAttack(peer.remoteId, message.attack);
+      }
+      if (message.type === "snapshot" && !this.host) {
+        this.game.applyNetworkSnapshot(message.snapshot);
+      }
       if (message.type === "start") {
-        this.game.startRun(powerById(message.powerId), message.biomeId);
+        this.game.startRun(powerById(message.powerId), message.biomeId, { multiplayer: true, host: false });
       }
     }
 
@@ -1010,6 +1016,18 @@
     sendState(state) {
       for (const peer of this.peers.values()) {
         this.sendPeer(peer, { type: "state", state });
+      }
+    }
+
+    sendAttack(attack) {
+      for (const peer of this.peers.values()) {
+        this.sendPeer(peer, { type: "attack", attack });
+      }
+    }
+
+    broadcastSnapshot(snapshot) {
+      for (const peer of this.peers.values()) {
+        this.sendPeer(peer, { type: "snapshot", snapshot });
       }
     }
 
@@ -2053,7 +2071,7 @@
       const selectedPower = powerById(powerId);
       const biomeId = this.lobby.mapVote || "forest";
       this.lobby.broadcastStart(selectedPower.id, biomeId);
-      this.startRun(selectedPower, biomeId);
+      this.startRun(selectedPower, biomeId, { multiplayer: true, host: true });
     }
 
     equipItem(itemId) {
@@ -2115,7 +2133,7 @@
       this.toastTimer = 2.2;
     }
 
-    startRun(power, forcedBiomeId = "") {
+    startRun(power, forcedBiomeId = "", options = {}) {
       this.audio.start();
       this.save.progression.runs += 1;
       const biomeIndex = Math.max(0, BIOMES.findIndex((biome) => biome.id === forcedBiomeId));
@@ -2127,6 +2145,8 @@
         stage: BIOMES.indexOf(startBiome),
         roomNumber: 0,
         roomsCleared: 0,
+        multiplayer: Boolean(options.multiplayer),
+        netHost: options.multiplayer ? Boolean(options.host) : true,
         flawless: true,
         biome: startBiome,
         currentRoom: null,
@@ -2156,6 +2176,63 @@
       this.touchLayer.classList.toggle("hidden", !matchMedia("(hover: none), (pointer: coarse)").matches);
       this.startRoom({ type: "normal", label: "Phòng Thường", icon: "X", color: "#c9d0db" });
       this.persist();
+    }
+
+    isMultiplayerRun() {
+      return Boolean(this.run?.multiplayer && this.lobby?.code);
+    }
+
+    isMultiplayerHost() {
+      return this.isMultiplayerRun() && this.run.netHost;
+    }
+
+    isMultiplayerClient() {
+      return this.isMultiplayerRun() && !this.run.netHost;
+    }
+
+    networkSnapshot() {
+      if (!this.run) return null;
+      return {
+        stage: this.run.stage,
+        roomsCleared: this.run.roomsCleared,
+        roomClearTimer: this.run.roomClearTimer,
+        biomeId: this.run.biome.id,
+        currentRoom: this.run.currentRoom ? {
+          type: this.run.currentRoom.type,
+          label: this.run.currentRoom.label,
+          icon: this.run.currentRoom.icon,
+          color: this.run.currentRoom.color,
+          cleared: this.run.currentRoom.cleared,
+          intro: this.run.currentRoom.intro,
+          rewardDropped: this.run.currentRoom.rewardDropped,
+          rewardClaimed: this.run.currentRoom.rewardClaimed,
+          nextOpened: this.run.currentRoom.nextOpened
+        } : null,
+        enemies: this.run.enemies.map((enemy) => ({ ...enemy })),
+        hazards: this.run.hazards.map((hazard) => ({ ...hazard })),
+        pickups: this.run.pickups.map((pickup) => ({ ...pickup })),
+        projectiles: this.run.projectiles.filter((projectile) => projectile.owner === "enemy").map((projectile) => ({ ...projectile })),
+        t: performance.now()
+      };
+    }
+
+    applyNetworkSnapshot(snapshot) {
+      if (!snapshot || !this.run || this.isMultiplayerHost()) return;
+      const biome = BIOMES.find((entry) => entry.id === snapshot.biomeId);
+      if (biome) this.run.biome = biome;
+      this.run.stage = Number.isFinite(snapshot.stage) ? snapshot.stage : this.run.stage;
+      this.run.roomsCleared = Number.isFinite(snapshot.roomsCleared) ? snapshot.roomsCleared : this.run.roomsCleared;
+      this.run.roomClearTimer = Number.isFinite(snapshot.roomClearTimer) ? snapshot.roomClearTimer : this.run.roomClearTimer;
+      if (snapshot.currentRoom) {
+        this.run.currentRoom = { ...(this.run.currentRoom || {}), ...snapshot.currentRoom };
+      }
+      if (Array.isArray(snapshot.enemies)) this.run.enemies = snapshot.enemies.map((enemy) => ({ ...enemy }));
+      if (Array.isArray(snapshot.hazards)) this.run.hazards = snapshot.hazards.map((hazard) => ({ ...hazard }));
+      if (Array.isArray(snapshot.pickups)) this.run.pickups = snapshot.pickups.map((pickup) => ({ ...pickup }));
+      if (Array.isArray(snapshot.projectiles)) {
+        const playerProjectiles = this.run.projectiles.filter((projectile) => projectile.owner === "player");
+        this.run.projectiles = [...playerProjectiles, ...snapshot.projectiles.map((projectile) => ({ ...projectile }))];
+      }
     }
 
     effectiveCharacterStats(character) {
@@ -2621,6 +2698,7 @@
       p.combo = Math.min(9, p.combo + 1);
       p.comboTimer = 1.15;
       this.addAttackDust(p.x + Math.cos(angle) * 24, p.y + Math.sin(angle) * 24, angle, character.id === "guardian");
+      if (this.isMultiplayerClient() && character.id !== "ranger") this.sendBasicAttackPacket(character, p, angle);
       if (character.id === "mage") {
         this.basicMageAttack(p, angle);
         return;
@@ -2742,6 +2820,7 @@
       });
       this.camera.shake = Math.max(this.camera.shake, 4);
       this.audio.sfx(330, "triangle", 0.06, 0.075);
+      if (this.isMultiplayerClient()) this.sendBasicAttackPacket(characterById("ranger"), p, angle, combo, damage);
     }
 
     basicAssassinAttack(p, angle) {
@@ -2767,6 +2846,63 @@
       if (hits > 0) {
         this.hitStop = Math.max(this.hitStop || 0, 0.045);
         this.camera.shake = Math.max(this.camera.shake, 5 + hits);
+      }
+    }
+
+    sendBasicAttackPacket(character, p, angle, combo = p.combo, damage = p.damage) {
+      if (!this.isMultiplayerClient()) return;
+      this.lobby.sendAttack({
+        characterId: character.id,
+        x: p.x,
+        y: p.y,
+        angle,
+        combo,
+        damage,
+        color: this.save.customization.color,
+        power: this.run.power.id,
+        t: performance.now()
+      });
+    }
+
+    handleRemoteAttack(remoteId, attack) {
+      if (!this.isMultiplayerHost() || !attack || !this.run?.enemies.length) return;
+      const character = characterById(attack.characterId);
+      const x = Number(attack.x);
+      const y = Number(attack.y);
+      const angle = Number(attack.angle);
+      if (![x, y, angle].every(Number.isFinite)) return;
+      const combo = clamp(Math.floor(Number(attack.combo || 1)), 1, 12);
+      const baseDamage = Math.max(1, Number(attack.damage) || character.stats.damage);
+      const dirX = Math.cos(angle);
+      const dirY = Math.sin(angle);
+      const hitOptions = { x: dirX, y: dirY, source: "remoteBasic", kind: character.id, combo };
+      const strike = (enemy, damage) => this.damageEnemy(enemy, damage, hitOptions);
+
+      if (character.id === "mage" || character.id === "ranger") {
+        const maxRange = character.id === "ranger" ? 880 : 620;
+        const width = character.id === "ranger" ? 26 : 34;
+        const damage = character.id === "ranger" ? baseDamage * (1.28 + combo * 0.045) : baseDamage * (1 + combo * 0.03);
+        const hits = [];
+        for (const enemy of this.run.enemies) {
+          const dx = enemy.x - x;
+          const dy = enemy.y - y;
+          const along = dx * dirX + dy * dirY;
+          const side = Math.abs(dx * -dirY + dy * dirX);
+          if (along > 0 && along < maxRange && side < enemy.radius + width) hits.push({ enemy, along });
+        }
+        hits.sort((a, b) => a.along - b.along).slice(0, character.id === "ranger" ? 2 : 1).forEach(({ enemy }) => strike(enemy, damage));
+        this.addBasicAttackBurst(x + dirX * 42, y + dirY * 42, angle, character.id, character.id === "ranger" ? 52 : 40);
+        return;
+      }
+
+      const range = character.id === "guardian" ? 72 : character.id === "assassin" ? 74 + Math.min(18, combo * 2) : 92 + Math.min(36, combo * 3);
+      const arc = character.id === "guardian" ? Math.PI * 0.5 : character.id === "assassin" ? Math.PI * 0.58 : Math.PI * 0.72;
+      const damage = character.id === "guardian" ? baseDamage * 1.15 : character.id === "assassin" ? baseDamage * (0.8 + combo * 0.025) : baseDamage * (1 + combo * 0.04);
+      this.addBasicAttackBurst(x + dirX * range * 0.42, y + dirY * range * 0.42, angle, character.id, range);
+      for (const enemy of [...this.run.enemies]) {
+        const d = Math.hypot(enemy.x - x, enemy.y - y);
+        const a = Math.atan2(enemy.y - y, enemy.x - x);
+        if (d < range + enemy.radius && Math.abs(angleDelta(a, angle)) < arc * 0.5) strike(enemy, damage);
       }
     }
 
@@ -4202,6 +4338,7 @@
       if (options.source === "basic") return "swordsman";
       if (options.source === "guardian") return "guardian";
       if (options.source === "assassin") return "assassin";
+      if (options.source === "remoteBasic") return options.kind || "swordsman";
       if (options.source === "projectile" && options.kind === "mageBasic") return "mage";
       if (options.source === "projectile" && options.kind === "rangerBasic") return "ranger";
       return "";
@@ -4332,6 +4469,8 @@
         y: p.y,
         hp: p.hp,
         maxHp: p.maxHp,
+        damage: p.damage,
+        crit: p.crit,
         color: this.save.customization.color,
         characterId: p.characterId,
         animation: p.animation,
@@ -4342,6 +4481,10 @@
         facing: p.facing,
         t: performance.now()
       });
+      if (this.isMultiplayerHost()) {
+        const snapshot = this.networkSnapshot();
+        if (snapshot) this.lobby.broadcastSnapshot(snapshot);
+      }
       for (const [id, remote] of [...this.remotePlayers]) {
         if (performance.now() - remote.t > 4000) this.remotePlayers.delete(id);
       }

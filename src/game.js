@@ -7,7 +7,7 @@
   const ROOM_PAD = 86;
   const SAVE_KEY = "soulrift-save-v1";
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
-  const APP_VERSION = "20260603-boss-variety-debuffs-52";
+  const APP_VERSION = "20260603-boss-fatigue-window-53";
   const VERSION_CHECK_INTERVAL = 15000;
   const UPDATE_ATTEMPT_KEY = "soulrift-update-attempt-v1";
   const DOOR_ENTER_TIME = 1.0;
@@ -4117,7 +4117,7 @@
         "role", "specialSkill", "ranged", "bulky", "elite", "boss", "attackCd", "skillCd", "windupType",
         "windupTime", "windupTotal", "windupAngle", "windupX", "windupY", "chargeTime",
         "chargeHit", "chargeDir", "chargeSpeed", "chargeDamage", "attackAnim", "attackDir", "facingDir",
-        "launch", "flash", "stun", "burn", "chill", "mark", "bleed", "bleedTick", "bleedDamage", "phase", "phaseLock", "bossDebuff", "aiTimer"
+        "launch", "flash", "stun", "burn", "chill", "mark", "bleed", "bleedTick", "bleedDamage", "phase", "phaseLock", "fatigueTime", "fatigueMax", "fatigueCounter", "bossDebuff", "aiTimer"
       ]);
     }
 
@@ -5047,6 +5047,9 @@
         bleedDamage: 0,
         phase: 1,
         phaseLock: 0,
+        fatigueTime: 0,
+        fatigueMax: 0,
+        fatigueCounter: 0,
         bossDebuff: bossDebuff.id,
         aiTimer: 0
       });
@@ -6432,6 +6435,7 @@
       const power = this.run.power;
       const crit = chance(p.crit + (options.source === "ultimate" ? 0.25 : 0) + (Number(options.critBonus) || 0));
       let damage = amount * (crit ? 2 : 1);
+      if (enemy.boss && enemy.fatigueTime > 0) damage *= 1.16;
       if (this.run.curse?.id === "doubleDamage") damage *= 2;
       if (this.run.curse?.id === "glassMight") damage *= 1.22;
       if (this.run.curse?.id === "explosive" && p.combo % 5 === 0) {
@@ -8262,6 +8266,43 @@
       this.addShockwave(enemy.x, enemy.y, 240, this.run.biome.accent, 0, { owner: "enemy" });
     }
 
+    bossFatigueThreshold(enemy) {
+      return Math.max(3, 5 - Math.min(2, (enemy.phase || 1) - 1));
+    }
+
+    bossFatigueDuration(enemy) {
+      return clamp(1.9 - (enemy.phase || 1) * 0.18, 1.25, 1.75);
+    }
+
+    startBossFatigue(enemy) {
+      const duration = this.bossFatigueDuration(enemy);
+      enemy.fatigueTime = duration;
+      enemy.fatigueMax = duration;
+      enemy.fatigueCounter = 0;
+      enemy.attackCd = Math.max(enemy.attackCd || 0, duration + 0.22);
+      enemy.phaseLock = Math.max(enemy.phaseLock || 0, duration);
+      enemy.attackAnim = 0;
+      enemy.vx *= 0.18;
+      enemy.vy *= 0.18;
+      this.addShockwave(enemy.x, enemy.y, 150, "#8feaff", 0, { owner: "enemy" });
+      for (let i = 0; i < 10 * this.save.settings.particles; i++) {
+        this.addParticle(enemy.x + rand(-enemy.radius, enemy.radius), enemy.y + rand(-enemy.radius, enemy.radius * 0.2), "#8feaff", rand(8, 18), rand(0.3, 0.72), i % 3 === 0 ? "ring" : "spark", -Math.PI / 2 + rand(-0.8, 0.8), rand(60, 150));
+      }
+    }
+
+    updateBossFatigue(enemy, dt) {
+      if (!enemy.fatigueTime || enemy.fatigueTime <= 0) return false;
+      enemy.fatigueTime = Math.max(0, enemy.fatigueTime - dt);
+      enemy.attackCd = Math.max(enemy.attackCd || 0, enemy.fatigueTime + 0.16);
+      enemy.phaseLock = Math.max(enemy.phaseLock || 0, enemy.fatigueTime);
+      this.steerEnemy(enemy, 0, 0, dt, 9);
+      if (chance(dt * 8)) {
+        const a = rand(-Math.PI, 0);
+        this.addParticle(enemy.x + rand(-enemy.radius * 0.55, enemy.radius * 0.55), enemy.y - enemy.radius * 0.35, "#8feaff", rand(7, 14), rand(0.28, 0.58), "ring", a, rand(35, 95));
+      }
+      return enemy.fatigueTime > 0;
+    }
+
     updateBoss(enemy, dt) {
       const p = this.nearestCombatTarget(enemy.x, enemy.y);
       if (!p) {
@@ -8272,6 +8313,7 @@
       const d = Math.hypot(p.x - enemy.x, p.y - enemy.y);
       const a = Math.atan2(p.y - enemy.y, p.x - enemy.x);
       enemy.facingDir = p.x >= enemy.x ? 1 : -1;
+      if (this.updateBossFatigue(enemy, dt)) return;
       const slow = enemy.chill > 0 ? 0.65 : 1;
       const desired = enemy.radius + p.radius + 150;
       if (d > desired + 20) {
@@ -8286,7 +8328,9 @@
         const cooldown = this.castBossPattern(enemy, this.pickBossPattern(enemy), a, p);
         enemy.attackAnim = 0.42;
         enemy.attackDir = a;
-        enemy.attackCd = Math.max(0.85, (cooldown || 1.6) - enemy.phase * 0.08);
+        enemy.fatigueCounter = (enemy.fatigueCounter || 0) + 1;
+        if (enemy.fatigueCounter >= this.bossFatigueThreshold(enemy)) this.startBossFatigue(enemy);
+        else enemy.attackCd = Math.max(0.85, (cooldown || 1.6) - enemy.phase * 0.08);
       }
       if (d < enemy.radius + p.radius + 8 && enemy.attackCd < 0.8) this.damageCombatTarget(p, enemy.damage * 0.75, enemy);
     }
@@ -10573,6 +10617,19 @@
         ctx.lineTo(18, -14);
         ctx.stroke();
       }
+      if (enemy.boss && enemy.fatigueTime > 0) {
+        const fatigueRatio = clamp(enemy.fatigueTime / (enemy.fatigueMax || enemy.fatigueTime || 1), 0, 1);
+        ctx.globalAlpha = 0.45 + fatigueRatio * 0.35;
+        ctx.strokeStyle = "#8feaff";
+        ctx.fillStyle = "#8feaff";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(0, -34, 10 + Math.sin(this.menuTime * 8) * 2, 0.15, Math.PI * 1.35);
+        ctx.stroke();
+        ctx.fillRect(-24, -34, 5, 8);
+        ctx.fillRect(20, -32, 4, 7);
+        ctx.globalAlpha = 1;
+      }
       if (enemy.attackAnim > 0) {
         const attackAlpha = clamp(enemy.attackAnim / (enemy.boss ? 0.42 : 0.32), 0, 1);
         ctx.save();
@@ -11442,7 +11499,15 @@
       ctx.fillStyle = "#f3ead7";
       ctx.font = "800 15px ui-sans-serif, system-ui";
       ctx.textAlign = "center";
-      ctx.fillText(`${boss.kind} - Pha ${boss.phase}`, x + w / 2, y - 10);
+      const tired = boss.fatigueTime > 0;
+      ctx.fillText(`${boss.kind} - Pha ${boss.phase}${tired ? " - Đang mệt" : ""}`, x + w / 2, y - 10);
+      if (tired) {
+        const fatigueRatio = clamp(boss.fatigueTime / (boss.fatigueMax || boss.fatigueTime || 1), 0, 1);
+        ctx.fillStyle = "rgba(143,234,255,0.22)";
+        ctx.fillRect(x, y + 21, w, 5);
+        ctx.fillStyle = "#8feaff";
+        ctx.fillRect(x, y + 21, w * fatigueRatio, 5);
+      }
       ctx.restore();
     }
 

@@ -7,8 +7,9 @@
   const ROOM_PAD = 86;
   const SAVE_KEY = "soulrift-save-v1";
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
-  const APP_VERSION = "20260603-clear-hazards-40";
+  const APP_VERSION = "20260603-update-loop-fix-41";
   const VERSION_CHECK_INTERVAL = 15000;
+  const UPDATE_ATTEMPT_KEY = "soulrift-update-attempt-v1";
   const DOOR_ENTER_TIME = 1.5;
   const DIRECTORY_TOPIC = "soulrift-directory-v2";
   const ROOM_CODE_RE = /^[A-Z0-9]{4,12}$/;
@@ -1846,6 +1847,7 @@
       const loaded = await this.store.load();
       this.save = mergeSave(defaultSave(), loaded);
       this.normalizeSave();
+      this.clearResolvedUpdateAttempt();
       this.startUpdateWatcher();
       this.mode = this.hasAccount() ? "menu" : "account";
       this.showMainMenu();
@@ -1871,15 +1873,64 @@
         if (!response.ok) return;
         const data = await response.json();
         const latest = String(data.version || "").trim();
-        if (latest && latest !== APP_VERSION) this.forceUpdate(latest);
+        if (!latest) return;
+        if (latest === APP_VERSION) {
+          this.clearResolvedUpdateAttempt();
+          return;
+        }
+        if (this.shouldForceUpdate(latest)) this.forceUpdate(latest);
       } catch {
         // Silent: update checks should never interrupt play if the network is unavailable.
+      }
+    }
+
+    versionRank(version) {
+      const text = String(version || "");
+      const date = Number((text.match(/^(\d{8})/) || [])[1] || 0);
+      const build = Number((text.match(/-(\d+)$/) || [])[1] || 0);
+      return date > 0 ? date * 1000 + build : 0;
+    }
+
+    shouldForceUpdate(latest) {
+      const latestRank = this.versionRank(latest);
+      const currentRank = this.versionRank(APP_VERSION);
+      if (latestRank && currentRank && latestRank <= currentRank) return false;
+      try {
+        const previous = JSON.parse(sessionStorage.getItem(UPDATE_ATTEMPT_KEY) || "null");
+        if (previous?.latest === latest && previous?.from === APP_VERSION) {
+          if (!this.updateLoopWarned) {
+            this.updateLoopWarned = true;
+            this.toast("Đã thử cập nhật nhưng trình duyệt vẫn giữ bản cũ. Hãy tải lại mạnh nếu cần.");
+          }
+          return false;
+        }
+      } catch {
+        sessionStorage.removeItem(UPDATE_ATTEMPT_KEY);
+      }
+      return true;
+    }
+
+    markUpdateAttempt(latest) {
+      try {
+        sessionStorage.setItem(UPDATE_ATTEMPT_KEY, JSON.stringify({ latest, from: APP_VERSION, t: Date.now() }));
+      } catch {
+        // Storage can be unavailable in some private modes; update still works without the loop guard.
+      }
+    }
+
+    clearResolvedUpdateAttempt() {
+      try {
+        const previous = JSON.parse(sessionStorage.getItem(UPDATE_ATTEMPT_KEY) || "null");
+        if (!previous || previous.latest === APP_VERSION) sessionStorage.removeItem(UPDATE_ATTEMPT_KEY);
+      } catch {
+        sessionStorage.removeItem(UPDATE_ATTEMPT_KEY);
       }
     }
 
     async forceUpdate(latest) {
       if (this.updateInProgress) return;
       this.updateInProgress = true;
+      this.markUpdateAttempt(latest);
       this.toast(`Có bản mới ${latest}. Đang cập nhật...`);
       try {
         if ("serviceWorker" in navigator) {

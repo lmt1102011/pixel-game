@@ -7,7 +7,7 @@
   const ROOM_PAD = 86;
   const SAVE_KEY = "soulrift-save-v1";
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
-  const APP_VERSION = "20260604-graphics-quality-64";
+  const APP_VERSION = "20260604-smart-auto-graphics-65";
   const VERSION_CHECK_INTERVAL = 15000;
   const UPDATE_ATTEMPT_KEY = "soulrift-update-attempt-v1";
   const DOOR_ENTER_TIME = 1.0;
@@ -1947,7 +1947,7 @@
       this.hudStatusMarkup = "";
       this.updateTimer = null;
       this.updateInProgress = false;
-      this.perf = { avgDt: 1 / 60, quality: 1 };
+      this.perf = { avgDt: 1 / 60, quality: 1, autoLevel: 5, displayedAutoLevel: 5 };
       this.bindEvents();
       this.resize();
       this.updateMobileGate();
@@ -2436,23 +2436,39 @@
         this.perf.quality = this.graphicsQualityFromLevel(this.save.settings.graphicsLevel);
         return;
       }
-      if (this.perf.avgDt > 0.024) {
-        this.perf.quality = clamp(this.perf.quality - frame * 0.74, 0.42, 1);
-      } else if (this.perf.avgDt < 0.0185) {
-        this.perf.quality = clamp(this.perf.quality + frame * 0.2, 0.42, 1);
+      const targetDt = this.isMobileDevice() ? 0.019 : 0.018;
+      const pressure = this.perf.avgDt - targetDt;
+      let nextLevel = Number.isFinite(this.perf.autoLevel) ? this.perf.autoLevel : 5;
+      if (pressure > 0.0015) {
+        const severity = clamp(pressure / 0.018, 0, 1);
+        nextLevel -= (0.35 + severity * 2.15) * frame;
+      } else if (pressure < -0.0018) {
+        const headroom = clamp((-pressure - 0.0018) / 0.008, 0, 1);
+        nextLevel += (0.12 + headroom * 0.52) * frame;
       }
+      this.perf.autoLevel = clamp(nextLevel, 1, 5);
+      this.perf.displayedAutoLevel = Math.round(this.perf.autoLevel * 10) / 10;
+      this.perf.quality = this.graphicsQualityFromLevel(this.perf.displayedAutoLevel);
     }
 
     graphicsQualityFromLevel(level = 5) {
       const table = [0.42, 0.56, 0.7, 0.86, 1];
-      const index = clamp(Math.round(Number(level || 5)), 1, 5) - 1;
-      return table[index] ?? 1;
+      const value = clamp(Number(level || 5), 1, 5);
+      const low = Math.floor(value);
+      const high = Math.min(5, low + 1);
+      const start = table[low - 1] ?? table[0];
+      const end = table[high - 1] ?? table[table.length - 1];
+      return start + (end - start) * (value - low);
     }
 
     applyGraphicsSettings() {
       this.normalizeSettings();
       if (this.save.settings.graphicsMode === "manual") {
         this.perf.quality = this.graphicsQualityFromLevel(this.save.settings.graphicsLevel);
+      } else if (!Number.isFinite(this.perf.autoLevel)) {
+        this.perf.autoLevel = this.save.settings.graphicsLevel;
+        this.perf.displayedAutoLevel = Math.round(this.perf.autoLevel * 10) / 10;
+        this.perf.quality = this.graphicsQualityFromLevel(this.perf.displayedAutoLevel);
       }
     }
 
@@ -3813,9 +3829,10 @@
 
     settingGraphicsMode(value = "auto") {
       const mode = value === "manual" ? "manual" : "auto";
+      const autoLevel = Number.isFinite(this.perf?.displayedAutoLevel) ? this.perf.displayedAutoLevel.toFixed(1) : "5.0";
       return `
         <label class="setting-row">
-          <div><h3>Chế độ đồ họa</h3><p>${mode === "manual" ? "Khóa chất lượng theo mức bên dưới." : "Tự động tối ưu theo FPS giống Roblox."}</p></div>
+          <div><h3>Chế độ đồ họa</h3><p>${mode === "manual" ? "Khóa chất lượng theo mức bên dưới." : `Tự động tối ưu mịn từng 0.1 mức theo FPS. Hiện ${autoLevel}/5.`}</p></div>
           <select class="field setting-select" data-setting="graphicsMode" data-setting-type="string">
             <option value="auto" ${mode === "auto" ? "selected" : ""}>Tự động</option>
             <option value="manual" ${mode === "manual" ? "selected" : ""}>Thủ công</option>
@@ -3843,11 +3860,12 @@
     refreshGraphicsSettingLabels() {
       const mode = this.save.settings.graphicsMode;
       const level = this.save.settings.graphicsLevel;
+      const autoLevel = Number.isFinite(this.perf?.displayedAutoLevel) ? this.perf.displayedAutoLevel.toFixed(1) : "5.0";
       const modeRow = this.screen.querySelector('[data-setting="graphicsMode"]')?.closest(".setting-row");
       const levelRow = this.screen.querySelector('[data-setting="graphicsLevel"]')?.closest(".setting-row");
       const modeText = modeRow?.querySelector("p");
       const levelText = levelRow?.querySelector("p");
-      if (modeText) modeText.textContent = mode === "manual" ? "Khóa chất lượng theo mức bên dưới." : "Tự động tối ưu theo FPS giống Roblox.";
+      if (modeText) modeText.textContent = mode === "manual" ? "Khóa chất lượng theo mức bên dưới." : `Tự động tối ưu mịn từng 0.1 mức theo FPS. Hiện ${autoLevel}/5.`;
       if (levelText) levelText.textContent = mode === "manual" ? `Mức ${level}/5 đang được áp dụng.` : `Mức ${level}/5 sẽ dùng khi chọn thủ công.`;
     }
 

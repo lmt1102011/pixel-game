@@ -7,7 +7,7 @@
   const ROOM_PAD = 86;
   const SAVE_KEY = "soulrift-save-v1";
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
-  const APP_VERSION = "20260604-domain-cinematic-59";
+  const APP_VERSION = "20260604-multiplayer-smooth-60";
   const VERSION_CHECK_INTERVAL = 15000;
   const UPDATE_ATTEMPT_KEY = "soulrift-update-attempt-v1";
   const DOOR_ENTER_TIME = 1.0;
@@ -22,6 +22,12 @@
   const DIRECTORY_HISTORY = "75s";
   const RUN_ITEM_LIMIT = 10;
   const RUN_EQUIP_LIMIT = 6;
+  const NET_STATE_PEER_INTERVAL = 1 / 30;
+  const NET_STATE_RELAY_INTERVAL = 0.12;
+  const NET_SNAPSHOT_PEER_INTERVAL = 0.12;
+  const NET_SNAPSHOT_RELAY_INTERVAL = 0.22;
+  const NET_REALTIME_BUFFER_LIMIT = 128 * 1024;
+  const NET_SNAPSHOT_STALE_MS = 1400;
 
   const RARITY = {
     common: { label: "Thường", color: "#d4d7df", rate: 1 },
@@ -1517,6 +1523,10 @@
       const stateRoom = Number(state.roomNumber);
       if (this.game.run && Number.isFinite(stateRoom) && stateRoom < this.game.run.roomNumber) return;
       const previous = this.game.remotePlayers.get(remoteId) || {};
+      const incomingSeq = Number(state.seq);
+      const previousSeq = Number(previous.seq);
+      const sameRoom = !Number.isFinite(stateRoom) || !Number.isFinite(Number(previous.roomNumber)) || stateRoom === Number(previous.roomNumber);
+      if (sameRoom && Number.isFinite(incomingSeq) && Number.isFinite(previousSeq) && incomingSeq <= previousSeq) return;
       const slot = this.slots.find((entry) => entry.id === remoteId);
       const x = Number(state.x);
       const y = Number(state.y);
@@ -1524,7 +1534,7 @@
       const nextY = Number.isFinite(y) ? y : previous.y;
       const previousDisplayX = Number.isFinite(previous.displayX) ? previous.displayX : (Number.isFinite(previous.x) ? previous.x : nextX);
       const previousDisplayY = Number.isFinite(previous.displayY) ? previous.displayY : (Number.isFinite(previous.y) ? previous.y : nextY);
-      const snap = !Number.isFinite(previousDisplayX) || !Number.isFinite(previousDisplayY) || Math.hypot(nextX - previousDisplayX, nextY - previousDisplayY) > 520;
+      const snap = !sameRoom || !Number.isFinite(previousDisplayX) || !Number.isFinite(previousDisplayY) || Math.hypot(nextX - previousDisplayX, nextY - previousDisplayY) > 760;
       this.game.remotePlayers.set(remoteId, {
         ...previous,
         ...state,
@@ -1834,7 +1844,7 @@
 
     sendSnapshot(remoteId, snapshot) {
       const peer = this.peers.get(remoteId);
-      if (peer) this.sendPeer(peer, { type: "snapshot", snapshot });
+      if (peer) this.sendPeer(peer, { type: "snapshot", snapshot, force: true });
       if (!this.hasOpenPeer(remoteId)) this.sendSignal({ type: "snapshot", snapshot }, remoteId);
     }
 
@@ -1864,8 +1874,23 @@
       return count;
     }
 
+    peerBufferedAmount(peer) {
+      const channel = peer?.channel;
+      const dataChannel = channel?._dc || channel?.dataChannel || channel?._channel || channel;
+      const buffered = Number(dataChannel?.bufferedAmount ?? channel?.bufferSize ?? 0);
+      return Number.isFinite(buffered) ? buffered : 0;
+    }
+
     sendPeer(peer, message) {
-      if (peer.channel?.readyState === "open" || peer.channel?.open === true) peer.channel.send(JSON.stringify({ from: this.id, roomSession: message.roomSession || this.roomSession || "", ...message }));
+      if (!(peer.channel?.readyState === "open" || peer.channel?.open === true)) return false;
+      const realtime = message.type === "state" || message.type === "snapshot";
+      if (realtime && !message.force && this.peerBufferedAmount(peer) > NET_REALTIME_BUFFER_LIMIT) return false;
+      try {
+        peer.channel.send(JSON.stringify({ from: this.id, roomSession: message.roomSession || this.roomSession || "", ...message }));
+        return true;
+      } catch {
+        return false;
+      }
     }
   }
 
@@ -1905,6 +1930,12 @@
       this.networkTimer = 0;
       this.snapshotTimer = 0;
       this.resyncTimer = 0;
+      this.networkSeq = 0;
+      this.snapshotSeq = 0;
+      this.lastAppliedSnapshotSeq = 0;
+      this.lastSnapshotReceivedAt = 0;
+      this.lastSnapshotRequestAt = 0;
+      this.lastLocalStateSent = null;
       this.chestOpenRequests = new Map();
       this.pauseOverlay = false;
       this.toastTimer = 0;
@@ -3961,6 +3992,15 @@
       };
       this.audio.setBiome(this.run.biome);
       this.applyEquippedItems();
+      this.networkSeq = 0;
+      this.snapshotSeq = 0;
+      this.lastAppliedSnapshotSeq = 0;
+      this.lastSnapshotReceivedAt = performance.now();
+      this.lastSnapshotRequestAt = 0;
+      this.lastLocalStateSent = null;
+      this.networkTimer = 0;
+      this.snapshotTimer = 0;
+      this.resyncTimer = 0;
       if (this.run.multiplayer) this.seedRemotePlayersFromLobby();
       else this.remotePlayers.clear();
       this.mode = "game";
@@ -3974,6 +4014,7 @@
         this.run.hazards = [];
         this.run.pickups = [];
         this.run.roomClearTimer = 0;
+        this.lobby.requestSnapshot();
       }
       this.persist();
     }
@@ -4062,6 +4103,7 @@
       return {
         id,
         name: extra.name || player.name || this.save.account.username || "Người chơi",
+        seq: Number.isFinite(extra.seq) ? extra.seq : (Number.isFinite(player.netSeq) ? player.netSeq : 0),
         roomNumber: this.run?.roomNumber || 0,
         x: player.x,
         y: player.y,
@@ -4085,7 +4127,8 @@
         spectateId: player.spectateId || extra.spectateId || (localState ? this.run?.spectateId : "") || "",
         power: extra.power || this.run.power.id,
         facing: player.facing,
-        t: performance.now()
+        t: performance.now(),
+        sentAt: Number.isFinite(extra.sentAt) ? extra.sentAt : performance.now()
       };
     }
 
@@ -4189,6 +4232,7 @@
 
     networkSnapshot(compact = false) {
       if (!this.run) return null;
+      const snapshotSeq = this.isMultiplayerHost() ? (this.snapshotSeq = (this.snapshotSeq || 0) + 1) : (this.snapshotSeq || 0);
       const players = [this.networkPlayerState()].filter(Boolean);
       for (const [id, state] of this.remotePlayers) {
         const slot = this.lobby.slots.find((entry) => entry.id === id);
@@ -4200,6 +4244,7 @@
         if (playerState) players.push(playerState);
       }
       return {
+        snapshotSeq,
         stage: this.run.stage,
         roomNumber: this.run.roomNumber,
         roomsCleared: this.run.roomsCleared,
@@ -4245,6 +4290,16 @@
 
     applyNetworkSnapshot(snapshot) {
       if (!snapshot || !this.run || this.isMultiplayerHost()) return;
+      this.lastSnapshotReceivedAt = performance.now();
+      const incomingSeq = Number(snapshot.snapshotSeq);
+      const incomingRoom = Number(snapshot.roomNumber);
+      if (
+        Number.isFinite(incomingSeq)
+        && Number.isFinite(this.lastAppliedSnapshotSeq)
+        && incomingSeq <= this.lastAppliedSnapshotSeq
+        && (!Number.isFinite(incomingRoom) || incomingRoom <= this.run.roomNumber)
+      ) return;
+      if (Number.isFinite(incomingSeq)) this.lastAppliedSnapshotSeq = incomingSeq;
       const biome = BIOMES.find((entry) => entry.id === snapshot.biomeId);
       if (biome) this.run.biome = biome;
       this.run.stage = Number.isFinite(snapshot.stage) ? snapshot.stage : this.run.stage;
@@ -4277,7 +4332,7 @@
       if (Array.isArray(snapshot.hazards)) this.run.hazards = snapshot.hazards.map((hazard) => ({ ...hazard }));
       if (Array.isArray(snapshot.roomObjects)) this.run.roomObjects = snapshot.roomObjects.map((object) => ({ ...object }));
       if (Array.isArray(snapshot.pickups)) this.run.pickups = snapshot.pickups.map((pickup) => ({ ...pickup }));
-      if (Array.isArray(snapshot.projectiles)) this.run.projectiles = snapshot.projectiles.map((projectile) => ({ ...projectile }));
+      if (Array.isArray(snapshot.projectiles)) this.run.projectiles = this.mergeNetworkActors(this.run.projectiles, snapshot.projectiles, 520);
       if (Array.isArray(snapshot.drones)) this.run.drones = snapshot.drones.map((drone) => ({ ...drone }));
       if (Array.isArray(snapshot.slashes)) this.run.slashes = snapshot.slashes.map((slash) => ({ ...slash }));
       if (Array.isArray(snapshot.shockwaves)) this.run.shockwaves = snapshot.shockwaves.map((wave) => this.restoreShockwave(wave));
@@ -9426,12 +9481,19 @@
       this.resyncTimer -= dt;
       if (!this.run || !this.isMultiplayerRun()) return;
       if (this.networkTimer <= 0) {
-        this.networkTimer = this.lobby.hasOpenPeers() ? 0.04 : 0.1;
+        this.networkTimer = this.lobby.hasOpenPeers() ? NET_STATE_PEER_INTERVAL : NET_STATE_RELAY_INTERVAL;
         const p = this.run.player;
-        this.lobby.sendState(this.networkPlayerState(this.lobby.id, p));
+        const state = this.networkPlayerState(this.lobby.id, p);
+        if (state && this.shouldSendNetworkState(state)) {
+          p.netSeq = (p.netSeq || 0) + 1;
+          state.seq = p.netSeq;
+          state.sentAt = performance.now();
+          this.lobby.sendState(state);
+          this.lastLocalStateSent = { ...state };
+        }
       }
       if (this.isMultiplayerHost() && this.lobby.guestCount() > 0 && this.snapshotTimer <= 0) {
-        this.snapshotTimer = this.lobby.hasOpenPeers() ? (this.perf.quality < 0.75 ? 0.16 : 0.1) : 0.18;
+        this.snapshotTimer = this.lobby.hasOpenPeers() ? (this.perf.quality < 0.75 ? 0.18 : NET_SNAPSHOT_PEER_INTERVAL) : NET_SNAPSHOT_RELAY_INTERVAL;
         const snapshot = this.networkSnapshot(true);
         if (snapshot) this.lobby.broadcastSnapshot(snapshot, snapshot);
       }
@@ -9441,6 +9503,23 @@
         if (!stillInRoom && performance.now() - remote.t > 4000) this.remotePlayers.delete(id);
       }
       this.ensureRemotePlayersFromLobby();
+    }
+
+    shouldSendNetworkState(state) {
+      const previous = this.lastLocalStateSent;
+      if (!previous) return true;
+      if ((performance.now() - Number(previous.sentAt || 0)) > 240) return true;
+      if (state.roomNumber !== previous.roomNumber) return true;
+      if (state.dead !== previous.dead || state.spectating !== previous.spectating || state.spectateId !== previous.spectateId) return true;
+      if (state.animation !== previous.animation || Math.abs((state.actionTime || 0) - (previous.actionTime || 0)) > 0.08) return true;
+      if (Math.abs((state.hp || 0) - (previous.hp || 0)) > 0.5 || Math.abs((state.energy || 0) - (previous.energy || 0)) > 1.2) return true;
+      if (Math.abs(angleDelta(state.facing || 0, previous.facing || 0)) > 0.08) return true;
+      const dx = (state.x || 0) - (previous.x || 0);
+      const dy = (state.y || 0) - (previous.y || 0);
+      if (dx * dx + dy * dy > 2.25) return true;
+      const dvx = (state.vx || 0) - (previous.vx || 0);
+      const dvy = (state.vy || 0) - (previous.vy || 0);
+      return dvx * dvx + dvy * dvy > 100;
     }
 
     expectedCombatRoom() {
@@ -9453,9 +9532,13 @@
     }
 
     maybeRequestNetworkResync(dt) {
-      if (!this.isMultiplayerClient() || !this.expectedCombatRoom()) return;
-      if (this.run.enemies.length > 0 || this.resyncTimer > 0) return;
-      this.resyncTimer = 0.75;
+      if (!this.isMultiplayerClient()) return;
+      const now = performance.now();
+      const missingSnapshot = this.lastSnapshotReceivedAt > 0 && now - this.lastSnapshotReceivedAt > NET_SNAPSHOT_STALE_MS;
+      const emptyCombat = this.expectedCombatRoom() && this.run.enemies.length === 0;
+      if ((!missingSnapshot && !emptyCombat) || this.resyncTimer > 0) return;
+      this.resyncTimer = missingSnapshot ? 0.9 : 0.75;
+      this.lastSnapshotRequestAt = now;
       this.lobby.requestSnapshot();
     }
 
@@ -9539,6 +9622,19 @@
         } else {
           enemy.displayX += (targetX - enemy.displayX) * enemyBlend;
           enemy.displayY += (targetY - enemy.displayY) * enemyBlend;
+        }
+      }
+      const projectileBlend = clamp(dt * 24, 0, 1);
+      for (const projectile of this.run.projectiles) {
+        const targetX = Number(projectile.x) + (Number(projectile.vx) || 0) * 0.045;
+        const targetY = Number(projectile.y) + (Number(projectile.vy) || 0) * 0.045;
+        if (!Number.isFinite(targetX) || !Number.isFinite(targetY)) continue;
+        if (!Number.isFinite(projectile.displayX) || !Number.isFinite(projectile.displayY)) {
+          projectile.displayX = targetX;
+          projectile.displayY = targetY;
+        } else {
+          projectile.displayX += (targetX - projectile.displayX) * projectileBlend;
+          projectile.displayY += (targetY - projectile.displayY) * projectileBlend;
         }
       }
     }
@@ -10423,7 +10519,9 @@
     }
 
     drawProjectile(ctx, projectile) {
-      if (!this.inView(projectile.x, projectile.y, projectile.radius + 120)) return;
+      const drawX = Number.isFinite(projectile.displayX) ? projectile.displayX : projectile.x;
+      const drawY = Number.isFinite(projectile.displayY) ? projectile.displayY : projectile.y;
+      if (!this.inView(drawX, drawY, projectile.radius + 120)) return;
       ctx.save();
       const angle = Number.isFinite(projectile.angle) ? projectile.angle : Math.atan2(projectile.vy || 0, projectile.vx || 1);
       const tail = clamp(Math.hypot(projectile.vx || 0, projectile.vy || 0) / 45, 8, 28);
@@ -10435,12 +10533,12 @@
         ctx.lineWidth = Math.max(2, projectile.radius * 0.45);
         ctx.globalAlpha = 0.48;
         ctx.beginPath();
-        ctx.moveTo(projectile.x - Math.cos(angle) * tail, projectile.y - Math.sin(angle) * tail);
-        ctx.lineTo(projectile.x, projectile.y);
+        ctx.moveTo(drawX - Math.cos(angle) * tail, drawY - Math.sin(angle) * tail);
+        ctx.lineTo(drawX, drawY);
         ctx.stroke();
       }
       ctx.globalAlpha = 1;
-      ctx.translate(projectile.x, projectile.y);
+      ctx.translate(drawX, drawY);
       ctx.rotate(angle);
       ctx.fillStyle = projectile.color;
       if (projectile.kind === "phantomSlash") {

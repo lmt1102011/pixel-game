@@ -7,7 +7,7 @@
   const ROOM_PAD = 86;
   const SAVE_KEY = "soulrift-save-v1";
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
-  const APP_VERSION = "20260603-gold-chest-stamina-39";
+  const APP_VERSION = "20260603-clear-hazards-40";
   const VERSION_CHECK_INTERVAL = 15000;
   const DOOR_ENTER_TIME = 1.5;
   const DIRECTORY_TOPIC = "soulrift-directory-v2";
@@ -6363,8 +6363,13 @@
 
     clearRoom() {
       const room = this.run.currentRoom;
-      if (!room || room.cleared) return;
+      if (!room) return;
+      if (room.cleared) {
+        this.clearRoomHazards();
+        return;
+      }
       room.cleared = true;
+      this.clearRoomHazards();
       this.save.progression.roomsCleared += 1;
       this.run.roomsCleared += 1;
       this.save.progression.bestStage = Math.max(this.save.progression.bestStage, this.run.stage);
@@ -6381,6 +6386,15 @@
         room.rewardClaimed = true;
       }
       if (room.rewardClaimed) this.openNextRoomsAfterReward();
+    }
+
+    clearRoomHazards() {
+      if (!this.run?.hazards?.length) return;
+      for (const hazard of this.run.hazards) {
+        if (!this.inView(hazard.x, hazard.y, hazard.radius + 80)) continue;
+        this.addParticle(hazard.x, hazard.y, "#dfe6ef", 14, 0.36, "ring");
+      }
+      this.run.hazards = [];
     }
 
     roomDropsReward(room) {

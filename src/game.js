@@ -7,7 +7,7 @@
   const ROOM_PAD = 86;
   const SAVE_KEY = "soulrift-save-v1";
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
-  const APP_VERSION = "20260603-no-enemy-friendly-fire-51";
+  const APP_VERSION = "20260603-boss-variety-debuffs-52";
   const VERSION_CHECK_INTERVAL = 15000;
   const UPDATE_ATTEMPT_KEY = "soulrift-update-attempt-v1";
   const DOOR_ENTER_TIME = 1.0;
@@ -283,6 +283,15 @@
     { id: "manaDebt", name: "Nợ Năng Lượng", text: "Kĩ năng gây mạnh hơn nhưng năng lượng hồi chậm hơn.", color: "#35d6c9" }
   ];
 
+  const BOSS_DEBUFFS = [
+    { id: "rootBind", name: "Rễ Trói", text: "Tốc độ chạy giảm trong thời gian ngắn.", color: "#78d36f", icon: "RỄ", duration: 9, chance: 0.34, speedMult: 0.84 },
+    { id: "frostLock", name: "Khóa Băng", text: "Năng lượng hồi chậm hơn.", color: "#8feaff", icon: "BĂNG", duration: 10, chance: 0.36, energyRegenMult: 0.58 },
+    { id: "cinderBrand", name: "Dấu Cháy", text: "Mất máu nhẹ theo từng nhịp.", color: "#ff944d", icon: "LỬA", duration: 7, chance: 0.32, dot: 2.2 },
+    { id: "staticCrack", name: "Nhiễu Tĩnh", text: "Đánh thường chậm hơn một chút.", color: "#fd57ff", icon: "SÉT", duration: 8, chance: 0.34, attackCdMult: 1.18 },
+    { id: "idolGaze", name: "Áp Lực Tượng", text: "Sát thương gây ra bị giảm nhẹ.", color: "#f4d26f", icon: "MẮT", duration: 9, chance: 0.35, damageMult: 0.88 },
+    { id: "voidHunger", name: "Đói Hư Không", text: "Hồi máu yếu hơn và khiên dễ vỡ hơn.", color: "#a169ff", icon: "HƯ", duration: 10, chance: 0.3, healMult: 0.62, shieldMult: 0.82 }
+  ];
+
   const ITEMS = [
     {
       id: "swiftBoots",
@@ -365,6 +374,46 @@
       text: "Có thêm khiên và giảm sát thương nhận vào, đổi lại chạy chậm hơn."
     },
     {
+      id: "thornSoles",
+      name: "Đế Gai Tro",
+      slot: "Assist",
+      rarity: "rare",
+      icon: "GAI",
+      text: "Lướt để lại vệt sát thương, đổi lại mất một ít năng lượng tối đa."
+    },
+    {
+      id: "echoCharm",
+      name: "Bùa Dội Nhịp",
+      slot: "Assist",
+      rarity: "epic",
+      icon: "DỘI",
+      text: "Mỗi ba đòn thường tạo sóng xung kích, nhưng nhịp đánh nặng hơn chút."
+    },
+    {
+      id: "glassFang",
+      name: "Nanh Kính",
+      slot: "Assist",
+      rarity: "epic",
+      icon: "NANH",
+      text: "Tăng mạnh sát thương, nhưng nhận thêm một ít sát thương."
+    },
+    {
+      id: "marrowMagnet",
+      name: "Nam Châm Tủy",
+      slot: "Assist",
+      rarity: "rare",
+      icon: "HÚT",
+      text: "Tăng tầm hút rương và vật phẩm, đổi lại giảm nhẹ máu tối đa."
+    },
+    {
+      id: "pulseBattery",
+      name: "Pin Xung",
+      slot: "Assist",
+      rarity: "legendary",
+      icon: "XUNG",
+      text: "Tăng năng lượng tối đa và hồi năng lượng, đổi lại cơ thể mỏng hơn."
+    },
+    {
       id: "merchantEdge",
       name: "Dầu Mài Khe Nứt",
       slot: "Assist",
@@ -390,6 +439,24 @@
       icon: "PIN",
       merchantOnly: true,
       text: "Hàng thương nhân: tăng năng lượng tối đa và tốc độ hồi năng lượng."
+    },
+    {
+      id: "wardEngine",
+      name: "Động Cơ Hộ Thuẫn",
+      slot: "Assist",
+      rarity: "legendary",
+      icon: "MÁY",
+      merchantOnly: true,
+      text: "Hàng thương nhân: nhận khiên lớn và hồi năng lượng tốt hơn, nhưng chạy nặng hơn."
+    },
+    {
+      id: "curseCompass",
+      name: "La Bàn Nguyền",
+      slot: "Assist",
+      rarity: "mythic",
+      icon: "NGUYỀN",
+      merchantOnly: true,
+      text: "Hàng thương nhân: tăng may mắn và sát thương, đổi lại phòng thủ mỏng hơn."
     },
     {
       id: "divineSigil",
@@ -593,6 +660,10 @@
 
   function itemById(id) {
     return ITEMS.find((item) => item.id === id) || null;
+  }
+
+  function bossDebuffById(id) {
+    return BOSS_DEBUFFS.find((effect) => effect.id === id) || null;
   }
 
   function accountKey(username) {
@@ -1327,7 +1398,7 @@
       if (message.type === "dropItem" && this.host) this.game.handleRemoteDropItem(message.from, message.itemId, message.x, message.y, message.facing);
       if (message.type === "chooseDoor" && this.host) this.game.handleRemoteDoorChoice(message.from, message.objectId, message.room);
       if (message.type === "leaveRun") this.game.handleRemoteLeaveRun(message.from);
-      if (message.type === "damage" && !this.host) this.game.applyHostDamage(message.amount);
+      if (message.type === "damage" && !this.host) this.game.applyHostDamage(message.amount, message.debuffId);
       if (message.type === "snapshot" && !this.host) this.game.applyNetworkSnapshot(message.snapshot);
       if (message.type === "needSnapshot" && this.host) this.game.sendNetworkSnapshotTo(message.from);
 
@@ -1517,7 +1588,7 @@
         this.game.handleRemoteSkill(senderId, message.skill);
       }
       if (message.type === "damage" && !this.host) {
-        this.game.applyHostDamage(message.amount);
+        this.game.applyHostDamage(message.amount, message.debuffId);
       }
       if (message.type === "collect" && this.host) {
         this.game.handleRemoteCollect(senderId, message.pickupId);
@@ -1704,10 +1775,10 @@
       if (!this.host && !this.hasOpenPeers()) this.sendSignal({ type: "skill", skill }, this.hostId());
     }
 
-    sendDamage(remoteId, amount) {
+    sendDamage(remoteId, amount, debuffId = "") {
       const peer = this.peers.get(remoteId);
-      if (peer) this.sendPeer(peer, { type: "damage", amount });
-      if (!this.hasOpenPeer(remoteId)) this.sendSignal({ type: "damage", amount }, remoteId);
+      if (peer) this.sendPeer(peer, { type: "damage", amount, debuffId });
+      if (!this.hasOpenPeer(remoteId)) this.sendSignal({ type: "damage", amount, debuffId }, remoteId);
     }
 
     sendCollect(pickupId) {
@@ -4046,13 +4117,13 @@
         "role", "specialSkill", "ranged", "bulky", "elite", "boss", "attackCd", "skillCd", "windupType",
         "windupTime", "windupTotal", "windupAngle", "windupX", "windupY", "chargeTime",
         "chargeHit", "chargeDir", "chargeSpeed", "chargeDamage", "attackAnim", "attackDir", "facingDir",
-        "launch", "flash", "stun", "burn", "chill", "mark", "bleed", "bleedTick", "bleedDamage", "phase", "phaseLock", "aiTimer"
+        "launch", "flash", "stun", "burn", "chill", "mark", "bleed", "bleedTick", "bleedDamage", "phase", "phaseLock", "bossDebuff", "aiTimer"
       ]);
     }
 
     compactProjectile(projectile) {
       return this.compactFields(projectile, [
-        "id", "owner", "x", "y", "vx", "vy", "radius", "damage", "life", "age", "angle", "color", "pierce", "kind", "visualOnly", "visualImpact"
+        "id", "owner", "x", "y", "vx", "vy", "radius", "damage", "life", "age", "angle", "color", "pierce", "kind", "bossDebuff", "visualOnly", "visualImpact"
       ]);
     }
 
@@ -4130,7 +4201,7 @@
         seed: this.run.seed,
         leaderId: this.run.leaderId || this.lobby.id,
         curse: this.run.curse ? { ...this.run.curse } : null,
-        statusEffects: this.run.statusEffects.filter((effect) => effect.kind !== "assist").map((effect) => this.compactStatusEffect(effect)),
+        statusEffects: this.run.statusEffects.filter((effect) => !["assist", "bossDebuff"].includes(effect.kind)).map((effect) => this.compactStatusEffect(effect)),
         nextRooms: this.run.nextRooms.map((room) => ({ ...room })),
         players,
         currentRoom: this.run.currentRoom ? {
@@ -4178,8 +4249,8 @@
       if (snapshot.leaderId != null) this.run.leaderId = snapshot.leaderId || "";
       this.run.curse = snapshot.curse ? { ...snapshot.curse } : null;
       if (Array.isArray(snapshot.statusEffects)) {
-        const localAssists = (this.run.statusEffects || []).filter((effect) => effect.kind === "assist" && effect.time > 0);
-        this.run.statusEffects = [...snapshot.statusEffects.map((effect) => ({ ...effect })), ...localAssists];
+        const localEffects = (this.run.statusEffects || []).filter((effect) => ["assist", "bossDebuff"].includes(effect.kind) && effect.time > 0);
+        this.run.statusEffects = [...snapshot.statusEffects.map((effect) => ({ ...effect })), ...localEffects];
       }
       if (Array.isArray(snapshot.nextRooms)) this.run.nextRooms = snapshot.nextRooms.map((room) => ({ ...room }));
       if (snapshot.currentRoom) {
@@ -4493,6 +4564,32 @@
         player.stats.damageTakenMult *= 0.9;
         player.speed *= 0.95;
       }
+      if (item.id === "thornSoles") {
+        player.stats.burnDash = true;
+        player.speed *= 1.06;
+        player.maxEnergy = Math.max(35, player.maxEnergy - 8);
+        player.energy = Math.min(player.energy, player.maxEnergy);
+      }
+      if (item.id === "echoCharm") {
+        player.stats.shockwaveCombo = true;
+        player.basicAttackCd *= 1.06;
+      }
+      if (item.id === "glassFang") {
+        player.damage += 5.2;
+        player.stats.damageTakenMult *= 1.1;
+      }
+      if (item.id === "marrowMagnet") {
+        player.stats.magnetBonus += 240;
+        player.maxHp = Math.max(45, player.maxHp - 8);
+        player.hp = Math.min(player.hp, player.maxHp);
+      }
+      if (item.id === "pulseBattery") {
+        player.maxEnergy += 22;
+        player.energy += 22;
+        player.stats.energyRegenMult *= 1.16;
+        player.maxHp = Math.max(45, player.maxHp - 8);
+        player.hp = Math.min(player.hp, player.maxHp);
+      }
       if (item.id === "merchantEdge") {
         player.damage += 5;
         player.crit += 0.05;
@@ -4506,6 +4603,16 @@
         player.energy += 24;
         player.stats.energyRegenMult *= 1.18;
         player.damage += 2;
+      }
+      if (item.id === "wardEngine") {
+        player.shield = Math.max(player.shield || 0, 72 + this.run.stage * 9);
+        player.stats.energyRegenMult *= 1.12;
+        player.speed *= 0.94;
+      }
+      if (item.id === "curseCompass") {
+        player.damage += 4;
+        player.stats.rewardLuck += 0.24;
+        player.stats.damageTakenMult *= 1.08;
       }
       if (item.id === "divineSigil") player.stats.divineSigil = true;
     }
@@ -4558,7 +4665,9 @@
       if (this.run.enemies.length === 0 && ["healing", "secret"].includes(type)) {
         this.run.roomClearTimer = 0.6;
       }
-      this.toast(`${this.run.biome.name}: ${this.run.currentRoom.label || title(type)}`);
+      const bossDebuff = type === "boss" ? bossDebuffById(this.run.enemies.find((enemy) => enemy.boss)?.bossDebuff) : null;
+      const bossNote = bossDebuff ? ` - Ấn ${bossDebuff.name}` : "";
+      this.toast(`${this.run.biome.name}: ${this.run.currentRoom.label || title(type)}${bossNote}`);
     }
 
     applyCurse(curse) {
@@ -4599,10 +4708,100 @@
       return existing || next;
     }
 
+    activeBossDebuffs() {
+      return (this.run?.statusEffects || []).filter((effect) => effect.kind === "bossDebuff" && effect.time > 0);
+    }
+
+    bossDebuffModifiers() {
+      const mods = {
+        speedMult: 1,
+        energyRegenMult: 1,
+        damageMult: 1,
+        attackCdMult: 1,
+        healMult: 1,
+        shieldMult: 1,
+        damageTakenMult: 1
+      };
+      for (const effect of this.activeBossDebuffs()) {
+        const data = bossDebuffById(effect.id);
+        if (!data) continue;
+        if (data.speedMult) mods.speedMult *= data.speedMult;
+        if (data.energyRegenMult) mods.energyRegenMult *= data.energyRegenMult;
+        if (data.damageMult) mods.damageMult *= data.damageMult;
+        if (data.attackCdMult) mods.attackCdMult *= data.attackCdMult;
+        if (data.healMult) mods.healMult *= data.healMult;
+        if (data.shieldMult) mods.shieldMult *= data.shieldMult;
+        if (data.damageTakenMult) mods.damageTakenMult *= data.damageTakenMult;
+      }
+      return mods;
+    }
+
+    playerDamageOutputMult() {
+      return this.bossDebuffModifiers().damageMult || 1;
+    }
+
+    applyBossDebuff(debuffOrId) {
+      if (!this.run) return null;
+      const debuff = typeof debuffOrId === "string" ? bossDebuffById(debuffOrId) : debuffOrId;
+      if (!debuff) return null;
+      const wasActive = (this.run.statusEffects || []).some((effect) => effect.kind === "bossDebuff" && effect.id === debuff.id && effect.time > 0);
+      const status = this.addStatusEffect({
+        id: debuff.id,
+        kind: "bossDebuff",
+        name: debuff.name,
+        text: debuff.text,
+        color: debuff.color,
+        icon: debuff.icon || debuff.name.slice(0, 1),
+        time: debuff.duration || 8,
+        maxTime: debuff.duration || 8
+      });
+      if (!wasActive) this.toast(`Bất lợi: ${debuff.name}`);
+      return status;
+    }
+
+    bossDebuffFromSource(source = null) {
+      if (!source) return null;
+      if (source.bossDebuff) return bossDebuffById(source.bossDebuff);
+      if (source.boss || source.kind === "boss") {
+        const boss = this.run?.enemies?.find((enemy) => enemy.boss);
+        return bossDebuffById(boss?.bossDebuff);
+      }
+      return null;
+    }
+
+    rollBossDebuffFromSource(source = null) {
+      const debuff = this.bossDebuffFromSource(source);
+      if (!debuff) return null;
+      const chanceBonus = Math.min(0.08, (this.run?.stage || 0) * 0.015);
+      return chance((debuff.chance || 0.32) + chanceBonus) ? debuff : null;
+    }
+
+    maybeApplyBossDebuffFromSource(source = null) {
+      const debuff = this.rollBossDebuffFromSource(source);
+      if (debuff) this.applyBossDebuff(debuff);
+      return debuff;
+    }
+
+    updateBossDebuffTick(effect, dt) {
+      const debuff = bossDebuffById(effect.id);
+      const p = this.run?.player;
+      if (!debuff?.dot || !p || p.dead) return;
+      effect.tick = Number.isFinite(effect.tick) ? effect.tick - dt : 0;
+      if (effect.tick > 0) return;
+      effect.tick = 0.72;
+      const damage = debuff.dot * (1 + (this.run.stage || 0) * 0.12);
+      p.hp -= damage;
+      this.run.flawless = false;
+      this.addImpact(p.x, p.y, debuff.color, damage, false);
+      if (chance(0.6)) this.addParticle(p.x + rand(-12, 12), p.y + rand(-18, 8), debuff.color, 12, 0.42, "spark");
+      if (p.hp <= 0) this.playerDeath();
+    }
+
     updateStatusEffects(dt) {
       if (!this.run?.statusEffects?.length) return;
       let write = 0;
       for (const effect of this.run.statusEffects) {
+        if (effect.kind === "bossDebuff") this.updateBossDebuffTick(effect, dt);
         effect.time -= dt;
         if (effect.time > 0) this.run.statusEffects[write++] = effect;
       }
@@ -4814,7 +5013,9 @@
 
     spawnBoss() {
       const biome = this.run.biome;
-      const hp = (1180 + this.run.stage * 360) * (this.run.difficulty?.enemyHp || 1);
+      const partySize = this.isMultiplayerRun() ? Math.max(1, (this.lobby.slots || []).filter(Boolean).length) : 1;
+      const hp = (1480 + this.run.stage * 470) * (this.run.difficulty?.enemyHp || 1) * (1 + (partySize - 1) * 0.42);
+      const bossDebuff = pick(BOSS_DEBUFFS);
       this.run.enemies.push({
         id: uid("boss"),
         kind: biome.boss,
@@ -4826,7 +5027,7 @@
         hp,
         maxHp: hp,
         speed: 62 + this.run.stage * 5,
-        damage: (28 + this.run.stage * 6) * (this.run.difficulty?.enemyDamage || 1),
+        damage: (30 + this.run.stage * 6.8) * (this.run.difficulty?.enemyDamage || 1),
         ranged: true,
         bulky: true,
         elite: true,
@@ -4846,6 +5047,7 @@
         bleedDamage: 0,
         phase: 1,
         phaseLock: 0,
+        bossDebuff: bossDebuff.id,
         aiTimer: 0
       });
       this.camera.shake = 18;
@@ -5157,7 +5359,8 @@
       this.updatePendingBasicAttack(p, dt);
       p.dashCd = Math.max(0, p.dashCd - dt);
       p.energyRegenDelay = Math.max(0, (p.energyRegenDelay || 0) - dt);
-      const regenRate = ((this.run.curse?.id === "manaDebt" ? 5.9 : 8.6) + (this.run.power.id === "time" ? 1.35 : 0)) * (p.stats.energyRegenMult || 1);
+      const debuffMods = this.bossDebuffModifiers();
+      const regenRate = ((this.run.curse?.id === "manaDebt" ? 5.9 : 8.6) + (this.run.power.id === "time" ? 1.35 : 0)) * (p.stats.energyRegenMult || 1) * (debuffMods.energyRegenMult || 1);
       if (p.energyRegenDelay <= 0) p.energy = Math.min(p.maxEnergy, p.energy + dt * regenRate);
       for (const key of Object.keys(p.cooldowns)) p.cooldowns[key] = Math.max(0, p.cooldowns[key] - dt);
 
@@ -5182,7 +5385,7 @@
       }
       if (p.pendingBasicAttack) p.facing = p.pendingBasicAttack.angle;
 
-      let speed = p.speed;
+      let speed = p.speed * (debuffMods.speedMult || 1);
       if (this.run.power.id === "time") speed += 18;
       if (p.dashTime > 0) {
         p.dashTime -= dt;
@@ -5272,7 +5475,7 @@
         return;
       }
       p.facing = angle;
-      p.attackCd = (p.basicAttackCd || character.stats.attackCd) * (this.run.curse?.id === "ironPulse" ? 1.14 : 1);
+      p.attackCd = (p.basicAttackCd || character.stats.attackCd) * (this.run.curse?.id === "ironPulse" ? 1.14 : 1) * (this.bossDebuffModifiers().attackCdMult || 1);
       p.animation = "attack";
       p.actionTotal = character.id === "guardian" ? 0.7 : character.id === "mage" ? 0.6 : character.id === "ranger" ? 0.72 : character.id === "assassin" ? 0.44 : 0.58;
       p.actionTime = p.actionTotal;
@@ -5304,7 +5507,7 @@
     basicSwordAttack(p, angle) {
       const range = 92 + Math.min(36, p.combo * 3);
       const arc = Math.PI * 0.72;
-      const damage = p.damage * (1 + p.combo * 0.04);
+      const damage = p.damage * this.playerDamageOutputMult() * (1 + p.combo * 0.04);
       this.addBasicAttackBurst(p.x + Math.cos(angle) * range * 0.4, p.y + Math.sin(angle) * range * 0.4, angle, "swordsman", range);
       this.audio.sfx(220 + p.combo * 22, "sawtooth", 0.04, 0.08);
       let hits = 0;
@@ -5349,7 +5552,7 @@
           hits++;
           enemy.stun = Math.max(enemy.stun, enemy.boss ? 0.08 : 0.38);
           enemy.launch = Math.max(enemy.launch || 0, enemy.boss ? 0.12 : 0.45);
-          this.damageEnemy(enemy, p.damage * 1.15, {
+          this.damageEnemy(enemy, p.damage * this.playerDamageOutputMult() * 1.15, {
             x: Math.cos(angle) * 1.6,
             y: Math.sin(angle) * 1.6,
             source: "guardian",
@@ -5391,7 +5594,7 @@
     }
 
     basicMageAttack(p, angle) {
-      const damage = p.damage * (1 + p.combo * 0.03);
+      const damage = p.damage * this.playerDamageOutputMult() * (1 + p.combo * 0.03);
       const radius = 12;
       this.addBasicAttackBurst(p.x + Math.cos(angle) * 34, p.y + Math.sin(angle) * 34, angle, "mage", radius * 3.2);
       this.spawnProjectile({
@@ -5416,7 +5619,7 @@
     }
 
     fireRangerShot(p, angle, combo = p.combo) {
-      const damage = p.damage * (1.28 + combo * 0.045);
+      const damage = p.damage * this.playerDamageOutputMult() * (1.28 + combo * 0.045);
       const radius = 7;
       this.addBasicAttackBurst(p.x + Math.cos(angle) * 38, p.y + Math.sin(angle) * 38, angle, "ranger", radius * 7.4);
       this.spawnProjectile({
@@ -5441,7 +5644,7 @@
     basicAssassinAttack(p, angle) {
       const range = 88 + Math.min(24, p.combo * 2);
       const arc = Math.PI * 0.72;
-      const damage = p.damage * (0.8 + p.combo * 0.025);
+      const damage = p.damage * this.playerDamageOutputMult() * (0.8 + p.combo * 0.025);
       const flurry = chance(0.2);
       this.audio.sfx(360 + p.combo * 18, "triangle", 0.035, 0.055);
       const hits = this.performAssassinSlash(p.x, p.y, angle, range, arc, damage, p.combo);
@@ -5511,7 +5714,7 @@
       this.run.delayedStrikes.length = write;
     }
 
-    sendBasicAttackPacket(character, p, angle, combo = p.combo, damage = p.damage) {
+    sendBasicAttackPacket(character, p, angle, combo = p.combo, damage = p.damage * this.playerDamageOutputMult()) {
       if (!this.isMultiplayerClient()) return;
       this.lobby.sendAttack({
         characterId: character.id,
@@ -5712,7 +5915,7 @@
         angle,
         targetX: target.x,
         targetY: target.y,
-        damage: player.damage,
+        damage: player.damage * this.playerDamageOutputMult(),
         awakened: Boolean(this.save.powers[power.id]?.awakened),
         color: this.save.customization.color,
         t: performance.now()
@@ -5849,7 +6052,8 @@
       const awakened = Boolean(options.awakened ?? this.save.powers[power.id]?.awakened);
       const x = caster.x;
       const y = caster.y;
-      const damage = Math.max(8, options.damage || caster.damage || this.run.player.damage) * (this.run.curse?.id === "manaDebt" ? 1.18 : 1);
+      const outputMult = remote ? 1 : this.playerDamageOutputMult();
+      const damage = Math.max(8, options.damage || caster.damage || this.run.player.damage) * (this.run.curse?.id === "manaDebt" ? 1.18 : 1) * outputMult;
       const tx = target?.x ?? x + Math.cos(angle) * 240;
       const ty = target?.y ?? y + Math.sin(angle) * 240;
       const forwardX = x + Math.cos(angle) * 145;
@@ -6397,10 +6601,13 @@
       if (this.run.curse?.id === "doubleDamage") damage *= 2;
       if (this.run.curse?.id === "ironPulse") damage *= 0.76;
       damage *= p.stats.damageTakenMult || 1;
+      const debuffMods = this.bossDebuffModifiers();
+      damage *= debuffMods.damageTakenMult || 1;
       let absorbed = 0;
       if (p.shield > 0) {
-        absorbed = Math.min(p.shield, damage);
-        p.shield -= absorbed;
+        const shieldEfficiency = debuffMods.shieldMult || 1;
+        absorbed = Math.min(p.shield * shieldEfficiency, damage);
+        p.shield -= absorbed / shieldEfficiency;
         damage -= absorbed;
       }
       if (damage <= 0) {
@@ -6415,6 +6622,7 @@
       this.run.flawless = false;
       this.camera.shake = Math.max(this.camera.shake, 13);
       this.addImpact(p.x, p.y, "#ff4b55", damage, false);
+      this.maybeApplyBossDebuffFromSource(source);
       if (this.run.curse?.id === "lifesteal" && source) source.hp = Math.min(source.maxHp, source.hp + damage * 0.35);
       if (this.run.curse?.id === "teleport" && chance(0.24)) {
         p.x = rand(ROOM_PAD + 120, WORLD_W - ROOM_PAD - 120);
@@ -6430,8 +6638,9 @@
       if (!this.run) return;
       const p = this.run.player;
       if (p.dead) return;
-      p.hp = Math.min(p.maxHp, p.hp + amount);
-      if (amount >= 2) this.addParticle(p.x, p.y - 18, "#70e083", 18, 0.6, "plus");
+      const healed = amount * (this.bossDebuffModifiers().healMult || 1);
+      p.hp = Math.min(p.maxHp, p.hp + healed);
+      if (healed >= 2) this.addParticle(p.x, p.y - 18, "#70e083", 18, 0.6, "plus");
     }
 
     killEnemy(enemy) {
@@ -7468,12 +7677,14 @@
         }
         remote.t = performance.now();
       }
-      this.lobby.sendDamage(target.id, amount);
+      const debuff = this.rollBossDebuffFromSource(source);
+      this.lobby.sendDamage(target.id, amount, debuff?.id || "");
     }
 
-    applyHostDamage(amount) {
+    applyHostDamage(amount, debuffId = "") {
       if (!this.isMultiplayerClient() || !this.run) return;
       this.damagePlayer(Math.max(0, Number(amount) || 0));
+      if (debuffId) this.applyBossDebuff(debuffId);
     }
 
     updateEnemies(dt) {
@@ -7846,6 +8057,211 @@
       }
     }
 
+    pickBossPattern(enemy) {
+      const patterns = ["ring", "slam", "line"];
+      if (enemy.phase >= 2) patterns.push("spiral", "rain");
+      if (enemy.phase >= 3) patterns.push("cross", "summon");
+      const biomePatterns = {
+        forest: ["roots", "rain"],
+        frozen: ["frostFan", "cross"],
+        lava: ["meteors", "spiral"],
+        neon: ["grid", "spiral"],
+        temple: ["pillars", "cross"]
+      }[this.run.biome.id] || [];
+      return pick(patterns.concat(biomePatterns));
+    }
+
+    bossDanger(enemy, x, y, radius, time, damageMult = 1, color = this.run.biome.accent) {
+      this.addEffect({
+        type: "danger",
+        x,
+        y,
+        radius,
+        time,
+        color,
+        damage: enemy.damage * damageMult,
+        boss: true,
+        owner: "enemy",
+        bossDebuff: enemy.bossDebuff
+      });
+    }
+
+    bossLineDanger(enemy, x, y, angle, length, width, time, damageMult = 1, color = this.run.biome.accent) {
+      this.addEffect({
+        type: "lineTell",
+        x,
+        y,
+        angle,
+        length,
+        width,
+        time,
+        maxTime: time,
+        color,
+        damage: enemy.damage * damageMult,
+        boss: true,
+        owner: "enemy",
+        bossDebuff: enemy.bossDebuff
+      });
+    }
+
+    spawnBossProjectile(enemy, angle, speed, damageMult = 1, radius = 10, life = 2.7, color = this.run.biome.accent) {
+      this.spawnProjectile({
+        owner: "enemy",
+        x: enemy.x + Math.cos(angle) * enemy.radius,
+        y: enemy.y + Math.sin(angle) * enemy.radius,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed,
+        radius,
+        damage: enemy.damage * damageMult,
+        life,
+        color,
+        pierce: 0,
+        kind: "boss",
+        bossDebuff: enemy.bossDebuff
+      });
+    }
+
+    castBossPattern(enemy, pattern, angle, target) {
+      if (pattern === "ring") {
+        this.bossRing(enemy, 10 + enemy.phase * 4);
+        return 1.55;
+      }
+      if (pattern === "slam") {
+        this.bossSlam(enemy);
+        return 1.42;
+      }
+      if (pattern === "line") {
+        this.bossLine(enemy, angle);
+        return 1.45;
+      }
+      if (pattern === "spiral") {
+        this.bossSpiral(enemy);
+        return 1.82;
+      }
+      if (pattern === "rain") {
+        this.bossRain(enemy, target);
+        return 1.95;
+      }
+      if (pattern === "cross") {
+        this.bossCross(enemy, angle);
+        return 1.85;
+      }
+      if (pattern === "summon") {
+        this.bossCallMinions(enemy);
+        return 2.28;
+      }
+      if (pattern === "roots") {
+        this.bossRootBloom(enemy, target);
+        return 1.78;
+      }
+      if (pattern === "frostFan") {
+        this.bossFrostFan(enemy, angle);
+        return 1.68;
+      }
+      if (pattern === "meteors") {
+        this.bossMeteors(enemy, target);
+        return 2.02;
+      }
+      if (pattern === "grid") {
+        this.bossNeonGrid(enemy, target);
+        return 1.95;
+      }
+      if (pattern === "pillars") {
+        this.bossTemplePillars(enemy, target);
+        return 2.05;
+      }
+      this.bossLine(enemy, angle);
+      return 1.55;
+    }
+
+    bossSpiral(enemy) {
+      const count = 9 + enemy.phase * 4;
+      const offset = this.menuTime * 0.8 + enemy.phase * 0.36;
+      for (let i = 0; i < count; i++) {
+        const a = offset + (i / count) * TAU;
+        this.spawnBossProjectile(enemy, a, 245 + enemy.phase * 32, 0.62, 9, 3.6);
+      }
+      this.addShockwave(enemy.x, enemy.y, 210, this.run.biome.accent, 0, { owner: "enemy" });
+    }
+
+    bossRain(enemy, target) {
+      if (!target) return;
+      const count = 3 + enemy.phase;
+      for (let i = 0; i < count; i++) {
+        const spread = i === 0 ? 0 : 110 + i * 18;
+        const x = clamp(target.x + rand(-spread, spread), ROOM_PAD + 90, WORLD_W - ROOM_PAD - 90);
+        const y = clamp(target.y + rand(-spread, spread), ROOM_PAD + 90, WORLD_H - ROOM_PAD - 90);
+        this.bossDanger(enemy, x, y, 92 + enemy.phase * 10, 0.72 + i * 0.06, 0.74, this.run.biome.accent);
+      }
+    }
+
+    bossCross(enemy, angle) {
+      const count = enemy.phase >= 3 ? 4 : 2;
+      for (let i = 0; i < count; i++) {
+        const a = angle + (i / count) * Math.PI;
+        this.bossLineDanger(enemy, enemy.x - Math.cos(a) * 360, enemy.y - Math.sin(a) * 360, a, 720, 38 + enemy.phase * 4, 0.68, 0.78, this.run.biome.accent);
+      }
+      this.addShockwave(enemy.x, enemy.y, 150, this.run.biome.accent, 0, { owner: "enemy" });
+    }
+
+    bossRootBloom(enemy, target) {
+      if (!target) return;
+      for (let i = 0; i < 4; i++) {
+        const a = (i / 4) * TAU + this.menuTime * 0.3;
+        const x = clamp(target.x + Math.cos(a) * (80 + i * 16), ROOM_PAD + 80, WORLD_W - ROOM_PAD - 80);
+        const y = clamp(target.y + Math.sin(a) * (80 + i * 16), ROOM_PAD + 80, WORLD_H - ROOM_PAD - 80);
+        this.bossDanger(enemy, x, y, 72 + enemy.phase * 10, 0.66 + i * 0.08, 0.56, "#78d36f");
+      }
+    }
+
+    bossFrostFan(enemy, angle) {
+      const count = 5 + enemy.phase;
+      const spread = 0.16;
+      for (let i = 0; i < count; i++) {
+        const a = angle + (i - (count - 1) / 2) * spread;
+        this.spawnBossProjectile(enemy, a, 310 + enemy.phase * 24, 0.56, 11, 3.2, "#8feaff");
+      }
+    }
+
+    bossMeteors(enemy, target) {
+      if (!target) return;
+      const count = 4 + enemy.phase;
+      for (let i = 0; i < count; i++) {
+        const x = clamp(target.x + rand(-230, 230), ROOM_PAD + 80, WORLD_W - ROOM_PAD - 80);
+        const y = clamp(target.y + rand(-170, 170), ROOM_PAD + 80, WORLD_H - ROOM_PAD - 80);
+        this.bossDanger(enemy, x, y, 86 + enemy.phase * 12, 0.62 + i * 0.07, 0.68, "#ff8d3d");
+      }
+    }
+
+    bossNeonGrid(enemy, target) {
+      if (!target) return;
+      this.bossLineDanger(enemy, ROOM_PAD + 80, target.y, 0, WORLD_W - ROOM_PAD * 2 - 160, 34 + enemy.phase * 5, 0.7, 0.62, "#fd57ff");
+      this.bossLineDanger(enemy, target.x, ROOM_PAD + 80, Math.PI / 2, WORLD_H - ROOM_PAD * 2 - 160, 34 + enemy.phase * 5, 0.82, 0.62, "#8ff7ff");
+      if (enemy.phase >= 3) this.bossLineDanger(enemy, enemy.x - 350, enemy.y - 350, Math.PI / 4, 990, 30, 0.92, 0.55, "#fd57ff");
+    }
+
+    bossTemplePillars(enemy, target) {
+      const center = target || enemy;
+      const count = 5 + enemy.phase;
+      for (let i = 0; i < count; i++) {
+        const a = (i / count) * TAU;
+        const x = clamp(center.x + Math.cos(a) * 145, ROOM_PAD + 80, WORLD_W - ROOM_PAD - 80);
+        const y = clamp(center.y + Math.sin(a) * 145, ROOM_PAD + 80, WORLD_H - ROOM_PAD - 80);
+        this.bossDanger(enemy, x, y, 64 + enemy.phase * 8, 0.58 + i * 0.04, 0.58, "#f4d26f");
+      }
+    }
+
+    bossCallMinions(enemy) {
+      const limit = this.isMobileDevice() ? 7 : 9;
+      const existing = this.run.enemies.filter((entry) => !entry.boss).length;
+      const count = Math.max(0, Math.min(2 + enemy.phase, limit - existing));
+      for (let i = 0; i < count; i++) {
+        const pos = this.edgePosition(pick(["top", "bottom", "left", "right"]));
+        this.run.enemies.push(this.createEnemy(pick(this.run.biome.enemies), pos.x, pos.y, true));
+      }
+      this.addShockwave(enemy.x, enemy.y, 240, this.run.biome.accent, 0, { owner: "enemy" });
+    }
+
     updateBoss(enemy, dt) {
       const p = this.nearestCombatTarget(enemy.x, enemy.y);
       if (!p) {
@@ -7867,13 +8283,10 @@
       }
       enemy.attackCd -= dt;
       if (enemy.attackCd <= 0 && enemy.phaseLock <= 0) {
-        const pattern = randi(0, enemy.phase + 1);
-        if (pattern === 0) this.bossRing(enemy, 10 + enemy.phase * 4);
-        if (pattern === 1) this.bossSlam(enemy);
-        if (pattern >= 2) this.bossLine(enemy, a);
+        const cooldown = this.castBossPattern(enemy, this.pickBossPattern(enemy), a, p);
         enemy.attackAnim = 0.42;
         enemy.attackDir = a;
-        enemy.attackCd = Math.max(0.65, 1.7 - enemy.phase * 0.22);
+        enemy.attackCd = Math.max(0.85, (cooldown || 1.6) - enemy.phase * 0.08);
       }
       if (d < enemy.radius + p.radius + 8 && enemy.attackCd < 0.8) this.damageCombatTarget(p, enemy.damage * 0.75, enemy);
     }
@@ -7900,19 +8313,7 @@
     bossRing(enemy, count) {
       for (let i = 0; i < count; i++) {
         const angle = (i / count) * TAU + this.menuTime * 0.2;
-        this.spawnProjectile({
-          owner: "enemy",
-          x: enemy.x,
-          y: enemy.y,
-          vx: Math.cos(angle) * (230 + enemy.phase * 25),
-          vy: Math.sin(angle) * (230 + enemy.phase * 25),
-          radius: 10,
-          damage: enemy.damage,
-          life: 4,
-          color: this.run.biome.accent,
-          pierce: 0,
-          kind: "boss"
-        });
+        this.spawnBossProjectile(enemy, angle, 230 + enemy.phase * 25, 1, 10, 4);
       }
       this.addShockwave(enemy.x, enemy.y, 180, this.run.biome.accent, 0, { owner: "enemy" });
     }
@@ -7920,25 +8321,13 @@
     bossSlam(enemy) {
       const target = this.nearestCombatTarget(enemy.x, enemy.y);
       if (!target) return;
-      this.addEffect({ type: "danger", x: target.x, y: target.y, radius: 135 + enemy.phase * 25, time: 0.8, color: "#ff4b55", damage: enemy.damage * 1.6 });
+      this.bossDanger(enemy, target.x, target.y, 135 + enemy.phase * 25, 0.8, 1.6, "#ff4b55");
     }
 
     bossLine(enemy, angle) {
       for (let i = -1; i <= 1; i++) {
         const a = angle + i * 0.22;
-        this.spawnProjectile({
-          owner: "enemy",
-          x: enemy.x + Math.cos(a) * enemy.radius,
-          y: enemy.y + Math.sin(a) * enemy.radius,
-          vx: Math.cos(a) * 420,
-          vy: Math.sin(a) * 420,
-          radius: 13,
-          damage: enemy.damage * 1.15,
-          life: 2.7,
-          color: this.run.biome.accent,
-          pierce: 0,
-          kind: "boss"
-        });
+        this.spawnBossProjectile(enemy, a, 420, 1.15, 13, 2.7);
       }
     }
 
@@ -8355,6 +8744,29 @@
       this.run.pickups.length = pickupWrite;
     }
 
+    resolveHostileLineEffect(effect) {
+      const angle = effect.angle || 0;
+      const sx = effect.x;
+      const sy = effect.y;
+      const ex = sx + Math.cos(angle) * (effect.length || 0);
+      const ey = sy + Math.sin(angle) * (effect.length || 0);
+      const width = Math.max(6, (effect.width || 20) * 0.5);
+      for (const target of this.combatTargets()) {
+        const hit = this.segmentCircleHit(sx, sy, ex, ey, target.x, target.y, target.radius + width);
+        if (hit) {
+          if (!this.tryGuardianEffectReflect(target, effect)) this.damageCombatTarget(target, effect.damage, effect);
+        }
+      }
+      const color = effect.color || this.run.biome.accent;
+      for (let i = 0; i < 8 * this.save.settings.particles; i++) {
+        const t = rand(0.08, 0.92);
+        const x = sx + (ex - sx) * t + rand(-width, width);
+        const y = sy + (ey - sy) * t + rand(-width, width);
+        this.addParticle(x, y, color, rand(7, 16), rand(0.22, 0.48), "spark", angle, rand(60, 180));
+      }
+      this.camera.shake = Math.max(this.camera.shake, 8);
+    }
+
     updateEffects(dt) {
       if (!this.run) return;
       let write = 0;
@@ -8388,6 +8800,10 @@
               }
             }
           }
+        }
+        if (effect.type === "lineTell" && effect.owner === "enemy" && effect.damage > 0 && effect.time <= 0.05 && !effect.done) {
+          effect.done = true;
+          if (!this.isMultiplayerClient()) this.resolveHostileLineEffect(effect);
         }
         if (effect.type === "gravityAnomaly" && !this.isMultiplayerClient()) {
           effect.pulse -= dt;

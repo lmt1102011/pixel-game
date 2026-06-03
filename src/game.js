@@ -7,10 +7,13 @@
   const ROOM_PAD = 86;
   const SAVE_KEY = "soulrift-save-v1";
   const SIGNAL_RELAY_URL = "https://ntfy.sh";
-  const APP_VERSION = "20260603-lobby-start-sync-25";
+  const APP_VERSION = "20260603-room-relay-ttl-26";
   const VERSION_CHECK_INTERVAL = 15000;
-  const DIRECTORY_TOPIC = "soulrift-directory";
+  const DIRECTORY_TOPIC = "soulrift-directory-v2";
   const ROOM_CODE_RE = /^[A-Z0-9]{4,12}$/;
+  const ROOM_TTL_MS = 45000;
+  const SIGNAL_HISTORY = "2m";
+  const DIRECTORY_HISTORY = "75s";
 
   const RARITY = {
     common: { label: "Thường", color: "#d4d7df", rate: 1 },
@@ -864,6 +867,7 @@
       this.presenceTimer = 0;
       this.directoryTimer = 0;
       this.lastLobbyAt = 0;
+      this.emptySince = 0;
       this.seenSignals = new Set();
       this.peers = new Map();
       this.joinRetryTimers = [];
@@ -911,13 +915,14 @@
       this.ready = false;
       this.joinPending = false;
       this.presenceTimer = 0;
+      this.emptySince = Date.now();
       this.lastLobbyAt = Date.now();
       this.slots = [{ ...this.playerProfile(), ready: true, vote: this.mapVote, host: true }];
       this.openSignal();
       this.game.rememberRoomCode(this.code);
-      this.updateDirectoryPresence(999);
       this.game.toast(`Đã tạo phòng ${this.code}`);
       this.game.renderLobby();
+      this.publishDirectoryPresence(true);
     }
 
     join(code) {
@@ -968,6 +973,7 @@
     }
 
     close() {
+      if (this.host && this.code) this.publishDirectoryPresence(false);
       for (const peer of this.peers.values()) {
         peer.channel?.close();
         peer.pc?.close();
@@ -990,6 +996,7 @@
       this.remotePollTimer = 0;
       this.remotePollBusy = false;
       this.presenceTimer = 0;
+      this.emptySince = 0;
       this.lastLobbyAt = 0;
       this.seenSignals.clear();
     }
@@ -1017,13 +1024,25 @@
       this.directoryTimer -= dt;
       if (this.directoryTimer > 0) return;
       this.directoryTimer = 1.35;
+      this.publishDirectoryPresence(this.game.mode === "lobby");
+    }
+
+    publishDirectoryPresence(open = true) {
+      if (!this.host || !this.code || !window.fetch) return;
+      const guests = this.guestCount();
+      const now = Date.now();
+      if (guests > 0) this.emptySince = 0;
+      else if (!this.emptySince) this.emptySince = now;
       const payload = {
         type: "roomPresence",
         code: this.code,
         hostName: this.playerName(),
+        open: Boolean(open),
+        emptySince: this.emptySince || 0,
+        emptyFor: this.emptySince ? now - this.emptySince : 0,
         players: this.slots.filter(Boolean).length,
         maxPlayers: 4,
-        sentAt: Date.now(),
+        sentAt: now,
         version: APP_VERSION
       };
       fetch(`${SIGNAL_RELAY_URL}/${DIRECTORY_TOPIC}`, {
@@ -1054,7 +1073,7 @@
         return;
       }
       this.signalSince = Date.now() - 15000;
-      this.remotePollSince = this.signalSince;
+      this.remotePollSince = 0;
       this.signalTopic = `soulrift-${this.code.toLowerCase()}`;
       if ("BroadcastChannel" in window) {
         this.signal = new BroadcastChannel(this.signalTopic);
@@ -1065,7 +1084,7 @@
 
     openRemoteSignal() {
       if (!("EventSource" in window) || !window.fetch || !this.signalTopic) return;
-      const since = Math.floor(this.signalSince / 1000);
+      const since = SIGNAL_HISTORY;
       const url = `${SIGNAL_RELAY_URL}/${encodeURIComponent(this.signalTopic)}/sse?since=${since}`;
       this.remoteSignal = new EventSource(url);
       this.remoteSignal.onmessage = (event) => this.onRemoteSignal(event);
@@ -1089,7 +1108,7 @@
       this.remotePollTimer = this.joinPending ? 0.55 : this.host ? 0.85 : 1.2;
       this.remotePollBusy = true;
       try {
-        const since = Math.floor((this.remotePollSince || this.signalSince || Date.now() - 30000) / 1000);
+        const since = this.remotePollSince ? Math.floor(this.remotePollSince / 1000) : SIGNAL_HISTORY;
         const response = await fetch(`${SIGNAL_RELAY_URL}/${encodeURIComponent(this.signalTopic)}/json?poll=1&since=${since}`, { cache: "no-store" });
         if (!response.ok) return;
         const text = await response.text();
@@ -1112,9 +1131,9 @@
       try {
         if (!envelope || (envelope.event && envelope.event !== "message")) return;
         const payload = typeof envelope.message === "string" ? JSON.parse(envelope.message) : envelope.message;
-        if (!payload || (payload.sentAt && payload.sentAt < this.signalSince)) return;
+        if (!payload) return;
         const relayTime = Number(envelope.time || 0) * 1000;
-        this.remotePollSince = Math.max(this.remotePollSince || 0, Number(payload.sentAt || 0) + 1, relayTime + 1);
+        this.remotePollSince = Math.max(this.remotePollSince || 0, relayTime + 1);
         await this.onSignal(payload);
       } catch {
         // Ignore unrelated public relay messages.
@@ -1583,6 +1602,8 @@
       this.remotePlayers = new Map();
       this.publicRooms = [];
       this.roomFinderOpen = false;
+      this.roomDirectoryTimer = 0;
+      this.roomDirectoryBusy = false;
       this.joystickTouchId = null;
       this.menuTime = 0;
       this.networkTimer = 0;
@@ -2315,6 +2336,7 @@
         if (this.toastTimer <= 0) this.toastEl.classList.add("hidden");
       }
       this.lobby.updatePresence(dt);
+      this.updateRoomDirectory(dt);
       if (this.mode === "game" && this.run) this.update(dt);
       this.audio.update(dt);
       this.render();
@@ -2590,10 +2612,24 @@
       }
     }
 
+    updateRoomDirectory(dt) {
+      if (!this.roomFinderOpen) {
+        this.roomDirectoryTimer = 0;
+        return;
+      }
+      this.roomDirectoryTimer -= dt;
+      if (this.roomDirectoryTimer > 0) return;
+      this.roomDirectoryTimer = 3.5;
+      this.refreshRoomDirectory();
+    }
+
     async refreshRoomDirectory() {
-      if (!window.fetch) return;
+      if (!window.fetch || this.roomDirectoryBusy) return;
+      this.roomDirectoryBusy = true;
+      const controller = "AbortController" in window ? new AbortController() : null;
+      const timeout = controller ? setTimeout(() => controller.abort(), 4500) : 0;
       try {
-        const response = await fetch(`${SIGNAL_RELAY_URL}/${DIRECTORY_TOPIC}/json?poll=1&since=10m`, { cache: "no-store" });
+        const response = await fetch(`${SIGNAL_RELAY_URL}/${DIRECTORY_TOPIC}/json?poll=1&since=${DIRECTORY_HISTORY}`, { cache: "no-store", signal: controller?.signal });
         if (!response.ok) return;
         const text = await response.text();
         const now = Date.now();
@@ -2614,21 +2650,40 @@
             continue;
           }
           if (payload?.type !== "roomPresence" || !payload.code) continue;
-          if (now - Number(payload.sentAt || 0) > 60000) continue;
           const code = String(payload.code || "").trim().toUpperCase();
           if (!ROOM_CODE_RE.test(code)) continue;
+          if (payload.open === false) {
+            rooms.delete(code);
+            continue;
+          }
+          const relayTime = Number(envelope.time || 0) * 1000;
+          const seenAt = relayTime || Number(payload.sentAt || 0) || now;
+          if (now - seenAt > ROOM_TTL_MS) continue;
+          const players = Math.max(0, Number(payload.players) || 0);
+          if (players <= 0) continue;
+          const emptySince = Number(payload.emptySince || 0);
+          const emptyFor = Math.max(0, Number(payload.emptyFor || 0));
+          if (players <= 1 && (emptyFor > ROOM_TTL_MS || (!payload.emptyFor && emptySince && now - emptySince > ROOM_TTL_MS))) {
+            rooms.delete(code);
+            continue;
+          }
           rooms.set(code, {
             code,
             hostName: payload.hostName || "Chủ phòng",
-            players: Number(payload.players) || 1,
+            players,
             maxPlayers: Number(payload.maxPlayers) || 4,
-            sentAt: Number(payload.sentAt) || now
+            sentAt: seenAt,
+            emptySince,
+            emptyFor
           });
         }
         this.publicRooms = [...rooms.values()].sort((a, b) => b.sentAt - a.sentAt);
         if (this.mode === "play" && this.roomFinderOpen) this.showRoomFinder(false);
       } catch {
         // Public room discovery is optional; manual room IDs still work with validation.
+      } finally {
+        if (timeout) clearTimeout(timeout);
+        this.roomDirectoryBusy = false;
       }
     }
 
@@ -2638,8 +2693,14 @@
       const pendingCode = this.lobby.joinPending && this.lobby.code ? this.lobby.code : "";
       const joinedCode = this.lobby.code && !this.lobby.joinPending ? this.lobby.code : "";
       const current = joinedCode ? [joinedCode] : [];
-      const publicCodes = (this.publicRooms || []).map((room) => room.code).filter(Boolean);
-      const rooms = [...current, ...publicCodes, ...this.recentRoomCodes().filter((code) => code !== this.lobby.code)]
+      const now = Date.now();
+      this.publicRooms = (this.publicRooms || []).filter((room) => (
+        room?.code
+        && now - Number(room.sentAt || 0) <= ROOM_TTL_MS
+        && !(Number(room.players || 0) <= 1 && Number(room.emptyFor || 0) > ROOM_TTL_MS)
+      ));
+      const publicCodes = this.publicRooms.map((room) => room.code).filter(Boolean);
+      const rooms = [...current, ...publicCodes]
         .filter((code, index, list) => list.indexOf(code) === index)
         .slice(0, 8);
       const roomList = rooms.length ? rooms.map((code) => `
@@ -2647,7 +2708,7 @@
           <div class="card-icon">${code.slice(0, 2)}</div>
           <div>
             <h3>${code}</h3>
-            <p>${code === joinedCode ? (this.lobby.host ? "Phòng bạn đang tạo" : "Phòng đang tham gia") : publicCodes.includes(code) ? "Phòng online" : "Phòng gần đây"}</p>
+            <p>${code === joinedCode ? (this.lobby.host ? "Phòng bạn đang tạo" : "Phòng đang tham gia") : "Phòng online"}</p>
           </div>
         </button>
       `).join("") : `<div class="empty-state">Chưa có phòng nào được phát hiện trên máy này.</div>`;
@@ -3233,6 +3294,7 @@
       const selectedPower = powerById(powerId);
       const biomeId = this.lobby.mapVote || "forest";
       const seed = Math.random();
+      this.lobby.publishDirectoryPresence(false);
       this.lobby.broadcastStart(selectedPower.id, biomeId, seed, this.lobby.slots);
       this.startRun(selectedPower, biomeId, { multiplayer: true, host: true, seed });
     }

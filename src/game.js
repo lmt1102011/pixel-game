@@ -7,7 +7,7 @@
   const ROOM_PAD = 86;
   const SAVE_KEY = "soulrift-save-v1";
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
-  const APP_VERSION = "20260603-combat-vfx-balance-45";
+  const APP_VERSION = "20260603-slash-bleed-46";
   const VERSION_CHECK_INTERVAL = 15000;
   const UPDATE_ATTEMPT_KEY = "soulrift-update-attempt-v1";
   const DOOR_ENTER_TIME = 1.0;
@@ -4016,7 +4016,7 @@
         "role", "specialSkill", "ranged", "bulky", "elite", "boss", "attackCd", "skillCd", "windupType",
         "windupTime", "windupTotal", "windupAngle", "windupX", "windupY", "chargeTime",
         "chargeHit", "chargeDir", "chargeSpeed", "chargeDamage", "attackAnim", "attackDir", "facingDir",
-        "launch", "flash", "stun", "burn", "chill", "mark", "phase", "phaseLock", "aiTimer"
+        "launch", "flash", "stun", "burn", "chill", "mark", "bleed", "bleedTick", "bleedDamage", "phase", "phaseLock", "aiTimer"
       ]);
     }
 
@@ -4774,6 +4774,9 @@
         burn: 0,
         chill: 0,
         mark: 0,
+        bleed: 0,
+        bleedTick: 0,
+        bleedDamage: 0,
         phase: 1,
         aiTimer: rand(0, 1)
       };
@@ -4808,6 +4811,9 @@
         burn: 0,
         chill: 0,
         mark: 0,
+        bleed: 0,
+        bleedTick: 0,
+        bleedDamage: 0,
         phase: 1,
         phaseLock: 0,
         aiTimer: 0
@@ -6203,6 +6209,8 @@
       if (power.id === "blood" || p.stats.lifeSteal) {
         this.healPlayer(damage * (power.id === "blood" ? 0.05 : p.stats.lifeSteal));
       }
+      const assassinBasic = options.source === "assassin" || (options.source === "remoteBasic" && options.kind === "assassin");
+      if (assassinBasic && enemy.hp > 0 && chance(0.25)) this.applyAssassinBleed(enemy, damage, options);
       if (crit && (p.stats.chainCrit || power.id === "lightning")) this.chainLightning(enemy, damage * 0.45);
       if (enemy.chill > 0 && enemy.hp <= 0 && p.stats.fracture) this.fracture(enemy);
       p.ult = clamp(p.ult + (crit ? 5 : 3), 0, 100);
@@ -6215,6 +6223,35 @@
         this.addBasicHitSpark(enemy.x, enemy.y, hitAngle, basicKind, options.source === "guardian" || crit);
       }
       if (enemy.boss) this.checkBossPhase(enemy);
+      if (enemy.hp <= 0) this.killEnemy(enemy);
+    }
+
+    applyAssassinBleed(enemy, damage, options = {}) {
+      enemy.bleed = Math.max(enemy.bleed || 0, enemy.boss ? 2.4 : 3.2);
+      enemy.bleedTick = Math.min(Number(enemy.bleedTick || 0.45), 0.32);
+      enemy.bleedDamage = Math.max(enemy.bleedDamage || 0, Math.max(1.2, damage * (enemy.boss ? 0.09 : 0.14)));
+      const angle = Math.atan2(options.y || 0, options.x || 1);
+      this.addBasicHitSpark(enemy.x, enemy.y, angle + 0.22, "assassin", false);
+      for (let i = 0; i < 5 * this.save.settings.particles; i++) {
+        this.addParticle(enemy.x + rand(-enemy.radius * 0.4, enemy.radius * 0.4), enemy.y + rand(-enemy.radius * 0.5, enemy.radius * 0.35), "#b01d45", rand(5, 11), rand(0.22, 0.42), "spark", angle + Math.PI + rand(-0.8, 0.8), rand(60, 160));
+      }
+    }
+
+    tickEnemyBleed(enemy, dt) {
+      if (!enemy || enemy.bleed <= 0) return;
+      enemy.bleed = Math.max(0, enemy.bleed - dt);
+      if (enemy.bleed <= 0) {
+        enemy.bleedDamage = 0;
+        enemy.bleedTick = 0;
+        return;
+      }
+      enemy.bleedTick = Math.max(0, Number(enemy.bleedTick || 0) - dt);
+      if (enemy.bleedTick > 0) return;
+      enemy.bleedTick = 0.46;
+      const damage = Math.max(1, Number(enemy.bleedDamage || 1));
+      enemy.hp -= damage;
+      enemy.flash = Math.max(enemy.flash || 0, 0.08);
+      if (chance(0.65)) this.addParticle(enemy.x + rand(-enemy.radius * 0.35, enemy.radius * 0.35), enemy.y + rand(-enemy.radius * 0.45, enemy.radius * 0.3), "#b01d45", rand(5, 10), rand(0.18, 0.36), "spark", -Math.PI / 2 + rand(-0.8, 0.8), rand(35, 100));
       if (enemy.hp <= 0) this.killEnemy(enemy);
     }
 
@@ -7409,6 +7446,10 @@
         if (enemy.burn > 0) {
           enemy.burn -= dt;
           if (chance(dt * 5)) this.damageEnemy(enemy, 2.2 + this.run.stage, { x: 0, y: 0, source: "burn", kind: "fire" });
+        }
+        if (enemy.bleed > 0) {
+          this.tickEnemyBleed(enemy, dt);
+          if (enemy.hp <= 0) continue;
         }
         if (enemy.chill > 0) enemy.chill -= dt;
         if (enemy.mark > 0 && enemy.mark >= 4) {
@@ -9983,6 +10024,16 @@
         ctx.strokeStyle = "#8f72ff";
         ctx.strokeRect(-22, -29, 44, 50);
       }
+      if (enemy.bleed > 0) {
+        ctx.strokeStyle = "#d12a54";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(-17, -20);
+        ctx.lineTo(14, 10);
+        ctx.moveTo(-9, 14);
+        ctx.lineTo(18, -14);
+        ctx.stroke();
+      }
       if (enemy.attackAnim > 0) {
         const attackAlpha = clamp(enemy.attackAnim / (enemy.boss ? 0.42 : 0.32), 0, 1);
         ctx.save();
@@ -10227,12 +10278,11 @@
             ctx.strokeStyle = effect.color || "#dfe6ef";
             ctx.lineWidth = 2.5;
             ctx.beginPath();
-            ctx.moveTo(-length * 0.18, -width * 1.12);
-            ctx.quadraticCurveTo(length * 0.3, -width * 0.86, length * 0.92, -width * 0.16);
-            ctx.lineTo(length * 1.08, 0);
-            ctx.lineTo(length * 0.92, width * 0.16);
-            ctx.quadraticCurveTo(length * 0.3, width * 0.86, -length * 0.18, width * 1.12);
-            ctx.quadraticCurveTo(length * 0.1, 0, -length * 0.18, -width * 1.12);
+            ctx.moveTo(-length * 0.44, -width * 0.9);
+            ctx.quadraticCurveTo(length * 0.3, -width * 1.32, length * 0.88, -width * 0.24);
+            ctx.quadraticCurveTo(length * 0.52, 0, length * 0.88, width * 0.24);
+            ctx.quadraticCurveTo(length * 0.3, width * 1.32, -length * 0.44, width * 0.9);
+            ctx.quadraticCurveTo(-length * 0.12, 0, -length * 0.44, -width * 0.9);
             ctx.closePath();
             ctx.fill();
             ctx.stroke();
@@ -10240,8 +10290,8 @@
             ctx.strokeStyle = "#ffffff";
             ctx.lineWidth = 2;
             ctx.beginPath();
-            ctx.moveTo(-length * 0.04, -width * 0.82);
-            ctx.quadraticCurveTo(length * 0.38, -width * 0.3, length * 0.88, width * 0.44);
+            ctx.moveTo(-length * 0.22, -width * 0.64);
+            ctx.quadraticCurveTo(length * 0.32, -width * 0.32, length * 0.72, width * 0.52);
             ctx.stroke();
             ctx.globalAlpha = alpha * 0.5;
             ctx.lineWidth = 3;
@@ -10301,44 +10351,65 @@
               ctx.stroke();
             }
           } else if (effect.kind === "assassin") {
-            ctx.lineCap = "round";
-            ctx.strokeStyle = effect.accent || "#ffffff";
-            ctx.shadowBlur = this.glow(22);
-            ctx.lineWidth = 8;
-            ctx.beginPath();
-            ctx.moveTo(-31, -25);
-            ctx.lineTo(31, 25);
-            ctx.moveTo(-31, 25);
-            ctx.lineTo(31, -25);
-            ctx.stroke();
-            ctx.globalAlpha = alpha * 0.76;
+            ctx.lineCap = "butt";
+            ctx.lineJoin = "miter";
+            ctx.fillStyle = effect.accent || "#ffffff";
             ctx.strokeStyle = effect.color || "#b8b7ff";
-            ctx.lineWidth = 4;
-            ctx.beginPath();
-            ctx.moveTo(-22, -18);
-            ctx.lineTo(22, 18);
-            ctx.moveTo(-22, 18);
-            ctx.lineTo(22, -18);
-            ctx.stroke();
+            ctx.shadowBlur = this.glow(22);
+            for (let i = -1; i <= 1; i += 2) {
+              ctx.save();
+              ctx.rotate(i * 0.72);
+              ctx.beginPath();
+              ctx.moveTo(-34, -5);
+              ctx.lineTo(24, -4);
+              ctx.lineTo(38, 0);
+              ctx.lineTo(24, 4);
+              ctx.lineTo(-34, 5);
+              ctx.lineTo(-41, 0);
+              ctx.closePath();
+              ctx.fill();
+              ctx.stroke();
+              ctx.restore();
+            }
+            ctx.globalAlpha = alpha * 0.76;
+            ctx.strokeStyle = "#ffffff";
+            ctx.lineWidth = 2;
+            for (let i = -1; i <= 1; i += 2) {
+              ctx.save();
+              ctx.rotate(i * 0.72);
+              ctx.beginPath();
+              ctx.moveTo(-24, 0);
+              ctx.lineTo(25, 0);
+              ctx.stroke();
+              ctx.restore();
+            }
             ctx.globalAlpha = alpha;
             ctx.fillStyle = "#ffffff";
             ctx.fillRect(-6, -6, 12, 12);
           } else {
-            ctx.lineCap = "round";
-            ctx.lineWidth = effect.heavy ? 7 : 5;
+            ctx.lineCap = "butt";
+            ctx.lineJoin = "miter";
+            ctx.fillStyle = effect.accent || "#ffffff";
+            ctx.strokeStyle = effect.color || "#f3ead7";
+            ctx.lineWidth = 2;
             ctx.beginPath();
-            ctx.moveTo(-length * 0.34, -spread * 1.05);
-            ctx.quadraticCurveTo(length * 0.16, -spread * 1.35, length * 0.58, spread * 0.58);
+            ctx.moveTo(-length * 0.36, -spread * 0.9);
+            ctx.quadraticCurveTo(length * 0.18, -spread * 1.45, length * 0.74, -spread * 0.16);
+            ctx.lineTo(length * 0.88, 0);
+            ctx.lineTo(length * 0.74, spread * 0.16);
+            ctx.quadraticCurveTo(length * 0.18, spread * 1.45, -length * 0.36, spread * 0.9);
+            ctx.quadraticCurveTo(-length * 0.12, 0, -length * 0.36, -spread * 0.9);
+            ctx.closePath();
+            ctx.fill();
             ctx.stroke();
             ctx.globalAlpha = alpha * 0.72;
-            ctx.strokeStyle = effect.accent || "#ffffff";
-            ctx.lineWidth = effect.heavy ? 4 : 3;
+            ctx.strokeStyle = "#ffffff";
+            ctx.lineWidth = 2;
             ctx.beginPath();
-            ctx.moveTo(-length * 0.22, spread * 0.8);
-            ctx.quadraticCurveTo(length * 0.04, spread * 0.2, length * 0.42, -spread * 0.48);
+            ctx.moveTo(-length * 0.2, -spread * 0.58);
+            ctx.quadraticCurveTo(length * 0.2, -spread * 0.22, length * 0.56, spread * 0.5);
             ctx.stroke();
             ctx.globalAlpha = alpha * 0.75;
-            ctx.fillRect(-7, -7, 14, 14);
           }
         }
         if (effect.type === "castBurst") {

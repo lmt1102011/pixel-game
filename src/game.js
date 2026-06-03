@@ -7,7 +7,7 @@
   const ROOM_PAD = 86;
   const SAVE_KEY = "soulrift-save-v1";
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
-  const APP_VERSION = "20260603-drop-items-no-magnet-34";
+  const APP_VERSION = "20260603-live-pause-spectate-chests-35";
   const VERSION_CHECK_INTERVAL = 15000;
   const DOOR_ENTER_TIME = 1.5;
   const DIRECTORY_TOPIC = "soulrift-directory-v2";
@@ -1777,6 +1777,7 @@
       this.snapshotTimer = 0;
       this.resyncTimer = 0;
       this.chestOpenRequests = new Map();
+      this.pauseOverlay = false;
       this.toastTimer = 0;
       this.nextHudSkillAt = 0;
       this.hudSkillMarkup = "";
@@ -2408,6 +2409,7 @@
 
     triggerTouchAction(action) {
       if (!this.run || this.mode !== "game") return;
+      if (this.pauseOverlay || this.run.player.dead) return;
       if (action === "attack") this.attackBasic();
       if (action === "dash") this.dash();
       if (["q", "e", "r", "f"].includes(action)) this.useSkill(action);
@@ -2417,6 +2419,7 @@
 
     triggerQuickAction(action) {
       if (!this.run || this.mode !== "game") return;
+      if (this.pauseOverlay || this.run.player.dead) return;
       if (action === "bag") this.showRunInventory();
       if (action === "pause") this.showPause();
     }
@@ -2500,11 +2503,12 @@
       this.input.keys.add(event.code);
       if (event.repeat) return;
       if (event.code === "Escape") {
-        if (this.mode === "game") this.showPause();
+        if (this.pauseOverlay) this.resumeGame();
+        else if (this.mode === "game") this.showPause();
         else if (this.mode === "pause") this.resumeGame();
         else this.showMainMenu();
       }
-      if (!this.run || this.mode !== "game") return;
+      if (!this.run || this.mode !== "game" || this.pauseOverlay || this.run.player.dead) return;
       if (event.code === "Space") this.dash();
       if (event.code === "KeyQ") this.useSkill("q");
       if (event.code === "KeyE") this.useSkill("e");
@@ -2558,7 +2562,7 @@
 
     updateQuickActions() {
       if (!this.quickActions) return;
-      const visible = Boolean(this.run && this.mode === "game");
+      const visible = Boolean(this.run && this.mode === "game" && !this.pauseOverlay && !this.run.player.dead);
       this.quickActions.classList.toggle("hidden", !visible);
       this.quickActions.setAttribute("aria-hidden", visible ? "false" : "true");
     }
@@ -2572,6 +2576,7 @@
         this.run = null;
         this.remotePlayers.clear();
       }
+      this.pauseOverlay = false;
       this.mode = "menu";
       this.hud.classList.add("hidden");
       this.touchLayer.classList.add("hidden");
@@ -2661,7 +2666,10 @@
       if (action === "settings") this.showSettings();
       if (action === "multiplayer") this.renderLobby();
       if (action === "menu") this.showMainMenu();
+      if (action === "exit-run") this.showMainMenu();
       if (action === "resume") this.resumeGame();
+      if (action === "spectate-run") this.startSpectating();
+      if (action === "cycle-spectate") this.cycleSpectateTarget();
       if (action === "restart") this.startSelectedRun();
       if (action === "choose-power") this.selectPower(target.dataset.power);
       if (action === "spin-power") this.spinPower();
@@ -3645,6 +3653,7 @@
       const startBiome = BIOMES[biomeIndex >= 0 ? biomeIndex : 0];
       const difficulty = DIFFICULTIES.find((entry) => entry.id === options.difficulty) || DIFFICULTIES[1];
       this.chestOpenRequests.clear();
+      this.pauseOverlay = false;
       this.run = {
         seed: Number.isFinite(options.seed) ? options.seed : Math.random(),
         power,
@@ -3677,6 +3686,9 @@
         runItems: [],
         runGold: 0,
         pendingDoor: null,
+        spectating: false,
+        spectateId: "",
+        spectateIndex: 0,
         player: this.createPlayer(),
         curse: null,
         rewardQueue: [],
@@ -3755,6 +3767,7 @@
 
     networkPlayerState(id = this.lobby.id, player = this.run?.player, extra = {}) {
       if (!player) return null;
+      const localState = id === this.lobby.id;
       return {
         id,
         name: extra.name || player.name || this.save.account.username || "Người chơi",
@@ -3775,6 +3788,9 @@
         actionTime: player.actionTime,
         actionTotal: player.actionTotal,
         guardianParry: player.guardianParry || 0,
+        dead: Boolean(player.dead),
+        spectating: Boolean(player.spectating || extra.spectating || (localState && this.run?.spectating)),
+        spectateId: player.spectateId || extra.spectateId || (localState ? this.run?.spectateId : "") || "",
         power: extra.power || this.run.power.id,
         facing: player.facing,
         t: performance.now()
@@ -3952,7 +3968,8 @@
       }
       if (this.run.roomNumber !== previousRoomNumber && this.run.currentRoom && !this.run.currentRoom.cleared) {
         this.mode = "game";
-        this.setScreen("");
+        if (this.run.player.dead && this.run.spectating) this.showSpectatePanel();
+        else this.setScreen("");
         this.hud.classList.remove("hidden");
       }
       if (Array.isArray(snapshot.enemies)) this.run.enemies = this.mergeNetworkActors(this.run.enemies, snapshot.enemies, 620);
@@ -4065,6 +4082,10 @@
         pendingBasicAttack: null,
         ult: 0,
         shield: 0,
+        dead: false,
+        deathTime: 0,
+        spectating: false,
+        spectateId: "",
         animation: "idle",
         animTime: 0,
         actionTime: 0,
@@ -4616,7 +4637,7 @@
       this.updateSlashes(worldDt);
       this.updateTrails(worldDt);
       this.updateShockwaves(worldDt);
-      if (this.input.mouse.left) this.attackBasic();
+      if (this.input.mouse.left && !this.pauseOverlay && !player.dead) this.attackBasic();
       if (player.comboTimer > 0) player.comboTimer -= worldDt;
       else player.combo = 0;
       if (!this.isMultiplayerClient()) this.ensureRoomClearState(worldDt);
@@ -4682,13 +4703,72 @@
       }
     }
 
+    aliveActor(actor) {
+      return Boolean(actor && !actor.dead && Number(actor.hp ?? 1) > 0);
+    }
+
+    playerByNetworkId(id) {
+      if (!this.run || !id) return null;
+      if (id === this.lobby.id) return this.run.player;
+      return this.remotePlayers.get(id) || null;
+    }
+
+    displayActorPosition(actor) {
+      return {
+        x: Number.isFinite(actor?.displayX) ? actor.displayX : Number(actor?.x || 0),
+        y: Number.isFinite(actor?.displayY) ? actor.displayY : Number(actor?.y || 0)
+      };
+    }
+
+    livingSpectateTargets() {
+      if (!this.run || !this.isMultiplayerRun()) return [];
+      const targets = [];
+      for (const [id, remote] of this.remotePlayers) {
+        if (id !== this.lobby.id && this.aliveActor(remote)) {
+          targets.push({ id, name: remote.name || "Người chơi", actor: remote });
+        }
+      }
+      return targets;
+    }
+
+    setSpectateTarget(step = 0, force = false) {
+      const targets = this.livingSpectateTargets();
+      if (!targets.length) {
+        this.run.spectateId = "";
+        this.run.player.spectateId = "";
+        return null;
+      }
+      let index = targets.findIndex((target) => target.id === this.run.spectateId);
+      if (index < 0 || force) index = clamp(this.run.spectateIndex || 0, 0, targets.length - 1);
+      else index = (index + step + targets.length) % targets.length;
+      this.run.spectateIndex = index;
+      this.run.spectateId = targets[index].id;
+      this.run.player.spectating = true;
+      this.run.player.spectateId = targets[index].id;
+      return targets[index];
+    }
+
+    currentSpectateTarget() {
+      if (!this.run?.spectating) return null;
+      const current = this.playerByNetworkId(this.run.spectateId || this.run.player.spectateId);
+      if (this.aliveActor(current)) return current;
+      const next = this.setSpectateTarget(0, true);
+      return next?.actor || null;
+    }
+
+    cameraTargetActor() {
+      if (!this.run) return null;
+      if (this.run.player.dead && this.run.spectating) return this.currentSpectateTarget() || this.run.player;
+      return this.run.player;
+    }
+
     updateCamera(dt) {
       if (!this.run) {
         this.camera.x = 0;
         this.camera.y = 0;
         return;
       }
-      const player = this.run.player;
+      const player = this.cameraTargetActor() || this.run.player;
       const viewW = this.worldViewWidth();
       const viewH = this.worldViewHeight();
       const lead = this.mobileCameraLead(player);
@@ -4711,6 +4791,15 @@
       p.invuln = Math.max(0, p.invuln - dt);
       p.guardianParry = Math.max(0, (p.guardianParry || 0) - dt);
       p.attackCd = Math.max(0, p.attackCd - dt);
+      if (p.dead) {
+        p.vx = 0;
+        p.vy = 0;
+        p.dashTime = 0;
+        p.pendingBasicAttack = null;
+        p.animation = "death";
+        p.deathTime = (p.deathTime || 0) + dt;
+        return;
+      }
       this.updatePendingBasicAttack(p, dt);
       p.dashCd = Math.max(0, p.dashCd - dt);
       p.energyRegenDelay = Math.max(0, (p.energyRegenDelay || 0) - dt);
@@ -4784,7 +4873,7 @@
 
     dash() {
       const p = this.run?.player;
-      if (!p || p.dashCd > 0 || p.energy < 12) return;
+      if (!p || p.dead || this.pauseOverlay || p.dashCd > 0 || p.energy < 12) return;
       let dx = 0;
       let dy = 0;
       if (this.input.keys.has("KeyW")) dy -= 1;
@@ -4820,7 +4909,7 @@
 
     attackBasic() {
       const p = this.run?.player;
-      if (!p || p.attackCd > 0 || this.run.currentRoom.intro > 0) return;
+      if (!p || p.dead || this.pauseOverlay || p.attackCd > 0 || this.run.currentRoom.intro > 0) return;
       const character = characterById(p.characterId);
       const angle = this.basicAimAngle(p);
       const mageBasicCost = 7;
@@ -4986,7 +5075,7 @@
         damage,
         life: 0.88,
         color: "#ff9f43",
-        pierce: 1,
+        pierce: 0,
         critBonus: 0.28,
         kind: "rangerBasic"
       });
@@ -5125,7 +5214,7 @@
           const side = Math.abs(dx * -dirY + dy * dirX);
           if (along > 0 && along < maxRange && side < enemy.radius + width) hits.push({ enemy, along });
         }
-        hits.sort((a, b) => a.along - b.along).slice(0, character.id === "ranger" ? 2 : 1).forEach(({ enemy }) => {
+        hits.sort((a, b) => a.along - b.along).slice(0, 1).forEach(({ enemy }) => {
           strike(enemy, damage);
           if (character.id === "mage" && chance(0.25)) {
             this.areaDamage(enemy.x, enemy.y, 72, damage * 0.1, "#83e8ff", "mageBasic");
@@ -5224,7 +5313,7 @@
 
     useSkill(key) {
       const p = this.run?.player;
-      if (!p) return;
+      if (!p || p.dead || this.pauseOverlay) return;
       const cost = { q: 18, e: 24, r: 34, f: 0 }[key];
       const cooldown = { q: 3.2, e: 5.4, r: 8.6, f: 0.8 }[key];
       if (key !== "f" && (p.cooldowns[key] > 0 || p.energy < cost)) return;
@@ -5906,6 +5995,7 @@
 
     damagePlayer(amount, source = null) {
       const p = this.run.player;
+      if (!p || p.dead) return;
       if (this.tryGuardianReflect(p, amount, source)) return;
       if (p.invuln > 0) return;
       let damage = amount;
@@ -5944,6 +6034,7 @@
     healPlayer(amount) {
       if (!this.run) return;
       const p = this.run.player;
+      if (p.dead) return;
       p.hp = Math.min(p.maxHp, p.hp + amount);
       if (amount >= 2) this.addParticle(p.x, p.y - 18, "#70e083", 18, 0.6, "plus");
     }
@@ -6162,7 +6253,7 @@
     }
 
     pickupTarget(pickup) {
-      if (!pickup?.ownerId || pickup.ownerId === this.lobby.id) return this.run.player;
+      if (!pickup?.ownerId || pickup.ownerId === this.lobby.id) return this.run.player.dead ? null : this.run.player;
       if (this.isMultiplayerHost()) return this.remotePlayers.get(pickup.ownerId) || null;
       return null;
     }
@@ -6208,6 +6299,7 @@
       if (!chest || chest.opened) return;
       chest.opened = true;
       chest.life = 0;
+      const color = chest.color || "#f2bf63";
       const rewards = [
         { reward: chest.chestReward, countsForClaim: true, container: chest.chestReward?.type === "item" ? "looseItem" : "material" },
         { reward: chest.coinReward, countsForClaim: false, container: "coin" }
@@ -6215,13 +6307,13 @@
       const lootBase = rand(0, TAU);
       rewards.forEach((entry, index) => {
         const spreadAngle = lootBase + (index / Math.max(1, rewards.length)) * TAU + rand(-0.45, 0.45);
-        const burst = 380 + index * 85 + rand(0, 110);
+        const burst = 430 + index * 95 + rand(0, 130);
         this.run.pickups.push({
           id: uid(entry.container === "coin" ? "coin" : "loot"),
           x: chest.x,
-          y: chest.y - 6,
+          y: chest.y - 12,
           vx: Math.cos(spreadAngle) * burst + rand(-24, 24),
-          vy: Math.sin(spreadAngle) * burst - 155 + rand(-32, 22),
+          vy: Math.sin(spreadAngle) * burst * 0.58 - 235 + rand(-52, 18),
           type: "reward",
           container: entry.container,
           ownerId: chest.ownerId || "",
@@ -6231,14 +6323,23 @@
           radius: entry.container === "coin" ? 14 : 17,
           life: 90,
           age: 0,
-          magnetDelay: 0.82 + index * 0.12,
+          magnetDelay: 0.96 + index * 0.14,
           color: this.rewardColor(entry.reward)
         });
       });
-      const color = chest.color || "#f2bf63";
-      this.addShockwave(chest.x, chest.y, 96, color, 0);
-      for (let i = 0; i < 12 * this.save.settings.particles; i++) {
-        this.addParticle(chest.x + rand(-18, 18), chest.y + rand(-12, 12), i % 2 ? color : "#8b5128", rand(8, 18), rand(0.28, 0.62), i % 4 === 0 ? "ring" : "spark");
+      this.addShockwave(chest.x, chest.y, 118, color, 0);
+      for (let i = 0; i < 18 * this.save.settings.particles; i++) {
+        const a = -Math.PI / 2 + rand(-1.25, 1.25);
+        this.addParticle(
+          chest.x + rand(-20, 20),
+          chest.y + rand(-16, 10),
+          i % 3 === 0 ? "#5a321c" : i % 3 === 1 ? color : "#fff0ad",
+          rand(8, 22),
+          rand(0.3, 0.72),
+          i % 5 === 0 ? "ring" : "spark",
+          a,
+          rand(90, 280)
+        );
       }
       this.audio.sfx(420, "triangle", 0.09, 0.09);
     }
@@ -6719,19 +6820,22 @@
         this.showMainMenu();
         return;
       }
+      this.pauseOverlay = false;
       this.mode = "game";
       this.setScreen("");
       this.hud.classList.remove("hidden");
     }
 
     showPause() {
-      this.mode = "pause";
+      if (!this.run || this.run.player.dead) return;
+      this.pauseOverlay = true;
+      this.mode = "game";
       this.setScreen(`
         <section class="wide-panel">
           <div class="panel-header">
             <div>
-              <h2 class="panel-title">Tạm Dừng</h2>
-              <p class="panel-subtitle">${this.run.biome.name} - lối chơi ${this.run.power.name}</p>
+              <h2 class="panel-title">Tùy Chọn</h2>
+              <p class="panel-subtitle">${this.run.biome.name} - trận vẫn tiếp diễn phía sau.</p>
             </div>
           </div>
           <div class="grid cols-2">
@@ -6763,6 +6867,29 @@
     }
 
     playerDeath() {
+      if (!this.run || this.run.player.dead) return;
+      const p = this.run.player;
+      p.hp = 0;
+      p.dead = true;
+      p.deathTime = 0;
+      p.spectating = false;
+      p.spectateId = "";
+      p.vx = 0;
+      p.vy = 0;
+      p.pendingBasicAttack = null;
+      p.animation = "death";
+      p.actionTotal = 0.9;
+      p.actionTime = p.actionTotal;
+      this.run.spectating = false;
+      this.run.spectateId = "";
+      this.pauseOverlay = false;
+      this.input.mouse.left = false;
+      this.camera.shake = Math.max(this.camera.shake, 16);
+      this.addShockwave(p.x, p.y, 130, "#d9fbff", 0);
+      if (this.isMultiplayerRun()) this.lobby.sendState(this.networkPlayerState(this.lobby.id, p));
+      this.persist();
+      this.showDeathChoices();
+      return;
       this.mode = "dead";
       this.run.player.animation = "death";
       this.persist();
@@ -6782,19 +6909,92 @@
       `);
     }
 
+    showDeathChoices() {
+      if (!this.run) return;
+      const canWatch = this.livingSpectateTargets().length > 0;
+      this.mode = "game";
+      this.hud.classList.remove("hidden");
+      this.setScreen(`
+        <section class="wide-panel death-panel">
+          <div class="panel-header">
+            <div>
+              <h2 class="panel-title">Đã Gục Xuống</h2>
+              <p class="panel-subtitle">Tầng ${this.run.stage + 1}, đã vượt ${this.run.roomsCleared} phòng. Bạn có thể rời lượt chơi hoặc xem đồng đội còn sống.</p>
+            </div>
+          </div>
+          <div class="grid cols-2">
+            <button class="btn danger" data-action="exit-run">THOÁT</button>
+            <button class="btn primary" data-action="spectate-run" ${canWatch ? "" : "disabled"}>XEM</button>
+          </div>
+        </section>
+      `);
+    }
+
+    startSpectating() {
+      if (!this.run?.player.dead) return;
+      const target = this.setSpectateTarget(0, true);
+      if (!target) {
+        this.toast("Không có đồng đội còn sống để xem");
+        this.showDeathChoices();
+        return;
+      }
+      this.run.spectating = true;
+      this.run.player.spectating = true;
+      this.pauseOverlay = false;
+      this.mode = "game";
+      this.hud.classList.remove("hidden");
+      if (this.isMultiplayerRun()) this.lobby.sendState(this.networkPlayerState(this.lobby.id, this.run.player));
+      this.showSpectatePanel();
+    }
+
+    showSpectatePanel() {
+      if (!this.run?.player.dead) return;
+      const target = this.currentSpectateTarget();
+      const name = target?.name || "đồng đội";
+      this.setScreen(`
+        <section class="wide-panel spectator-panel">
+          <div class="panel-header">
+            <div>
+              <h2 class="panel-title">Đang Xem</h2>
+              <p class="panel-subtitle">Camera đang theo ${name}. Linh hồn của bạn sẽ bay quanh người đang xem.</p>
+            </div>
+          </div>
+          <div class="grid cols-2">
+            <button class="btn" data-action="cycle-spectate">ĐỔI NGƯỜI XEM</button>
+            <button class="btn danger" data-action="exit-run">THOÁT</button>
+          </div>
+        </section>
+      `);
+    }
+
+    cycleSpectateTarget() {
+      if (!this.run?.player.dead) return;
+      const target = this.setSpectateTarget(1);
+      if (!target) {
+        this.run.spectating = false;
+        this.run.player.spectating = false;
+        this.toast("Không còn đồng đội để xem");
+        this.showDeathChoices();
+        return;
+      }
+      if (this.isMultiplayerRun()) this.lobby.sendState(this.networkPlayerState(this.lobby.id, this.run.player));
+      this.showSpectatePanel();
+    }
+
     combatTargets() {
       if (!this.run) return [];
-      const targets = [{ id: this.lobby.id, local: true, radius: this.run.player.radius, ...this.run.player }];
+      const targets = [];
+      if (this.aliveActor(this.run.player)) targets.push({ id: this.lobby.id, local: true, radius: this.run.player.radius, ...this.run.player });
       if (this.isMultiplayerHost()) {
         for (const [id, remote] of this.remotePlayers) {
-          if ((remote.hp ?? 1) > 0) targets.push({ id, local: false, radius: 22, ...remote });
+          if (this.aliveActor(remote)) targets.push({ id, local: false, radius: 22, ...remote });
         }
       }
       return targets;
     }
 
     nearestCombatTarget(x, y, fallback = this.run?.player) {
-      let best = fallback;
+      let best = null;
       let bestD = Infinity;
       for (const target of this.combatTargets()) {
         const d = Math.hypot(target.x - x, target.y - y);
@@ -6803,7 +7003,7 @@
           best = target;
         }
       }
-      return best || fallback;
+      return best || (this.aliveActor(fallback) ? fallback : null);
     }
 
     damageCombatTarget(target, amount, source = null) {
@@ -6815,9 +7015,16 @@
       if (remote && this.tryGuardianReflect(remote, amount, source)) return;
       if (remote) {
         remote.hp = Math.max(0, (remote.hp ?? target.maxHp ?? 1) - amount);
-        remote.animation = "damage";
-        remote.actionTime = 0.28;
-        remote.actionTotal = 0.28;
+        if (remote.hp <= 0) {
+          remote.dead = true;
+          remote.animation = "death";
+          remote.actionTime = 0.9;
+          remote.actionTotal = 0.9;
+        } else {
+          remote.animation = "damage";
+          remote.actionTime = 0.28;
+          remote.actionTotal = 0.28;
+        }
         remote.t = performance.now();
       }
       this.lobby.sendDamage(target.id, amount);
@@ -6857,7 +7064,7 @@
         enemy.vy *= Math.pow(0.35, dt);
         enemy.x = clamp(enemy.x + enemy.vx * dt, ROOM_PAD + enemy.radius, WORLD_W - ROOM_PAD - enemy.radius);
         enemy.y = clamp(enemy.y + enemy.vy * dt, ROOM_PAD + enemy.radius, WORLD_H - ROOM_PAD - enemy.radius);
-        this.keepEnemyOutOfPlayer(enemy, p);
+        if (!p.dead) this.keepEnemyOutOfPlayer(enemy, p);
       }
     }
 
@@ -6868,6 +7075,7 @@
     }
 
     keepEnemyOutOfPlayer(enemy, player) {
+      if (!player) return;
       const dx = player.x - enemy.x;
       const dy = player.y - enemy.y;
       const d = Math.hypot(dx, dy) || 1;
@@ -6884,6 +7092,10 @@
 
     updateEnemyAi(enemy, dt) {
       const p = this.nearestCombatTarget(enemy.x, enemy.y);
+      if (!p) {
+        this.steerEnemy(enemy, 0, 0, dt, 5);
+        return;
+      }
       const d = Math.hypot(p.x - enemy.x, p.y - enemy.y);
       const a = Math.atan2(p.y - enemy.y, p.x - enemy.x);
       const slow = enemy.chill > 0 ? 0.48 : 1;
@@ -6980,6 +7192,10 @@
 
     updateEnemyCharge(enemy, dt, player) {
       if (!enemy.chargeTime || enemy.chargeTime <= 0) return false;
+      if (!player) {
+        enemy.chargeTime = 0;
+        return false;
+      }
       enemy.chargeTime -= dt;
       const speed = enemy.chargeSpeed || (enemy.elite ? 380 : 330);
       enemy.vx += (Math.cos(enemy.chargeDir) * speed - enemy.vx) * clamp(dt * 8, 0, 1);
@@ -7188,6 +7404,10 @@
 
     updateBoss(enemy, dt) {
       const p = this.nearestCombatTarget(enemy.x, enemy.y);
+      if (!p) {
+        this.steerEnemy(enemy, 0, 0, dt, 4);
+        return;
+      }
       enemy.phaseLock = Math.max(0, enemy.phaseLock - dt);
       const d = Math.hypot(p.x - enemy.x, p.y - enemy.y);
       const a = Math.atan2(p.y - enemy.y, p.x - enemy.x);
@@ -7254,6 +7474,7 @@
 
     bossSlam(enemy) {
       const target = this.nearestCombatTarget(enemy.x, enemy.y);
+      if (!target) return;
       this.addEffect({ type: "danger", x: target.x, y: target.y, radius: 135 + enemy.phase * 25, time: 0.8, color: "#ff4b55", damage: enemy.damage * 1.6 });
     }
 
@@ -7301,44 +7522,79 @@
       }
     }
 
+    segmentCircleHit(x1, y1, x2, y2, cx, cy, radius) {
+      const sx = x2 - x1;
+      const sy = y2 - y1;
+      const lenSq = sx * sx + sy * sy;
+      const t = lenSq > 0 ? clamp(((cx - x1) * sx + (cy - y1) * sy) / lenSq, 0, 1) : 1;
+      const x = x1 + sx * t;
+      const y = y1 + sy * t;
+      const d = Math.hypot(cx - x, cy - y);
+      return d < radius ? { t, x, y, d } : null;
+    }
+
+    firstProjectileEnemyHit(projectile, fromX, fromY) {
+      let best = null;
+      for (const enemy of this.run.enemies) {
+        if (projectile.hitIds?.includes(enemy.id)) continue;
+        const hit = this.segmentCircleHit(fromX, fromY, projectile.x, projectile.y, enemy.x, enemy.y, enemy.radius + projectile.radius);
+        if (hit && (!best || hit.t < best.t)) best = { ...hit, enemy };
+      }
+      return best;
+    }
+
+    firstProjectileTargetHit(projectile, fromX, fromY) {
+      let best = null;
+      for (const target of this.combatTargets()) {
+        const hit = this.segmentCircleHit(fromX, fromY, projectile.x, projectile.y, target.x, target.y, target.radius + projectile.radius);
+        if (hit && (!best || hit.t < best.t)) best = { ...hit, target };
+      }
+      return best;
+    }
+
     updateProjectiles(dt) {
-      const p = this.run.player;
       let write = 0;
       for (let i = 0; i < this.run.projectiles.length; i++) {
         const projectile = this.run.projectiles[i];
         projectile.age += dt;
         projectile.life -= dt;
+        const fromX = projectile.x;
+        const fromY = projectile.y;
         projectile.x += projectile.vx * dt;
         projectile.y += projectile.vy * dt;
         if (this.inView(projectile.x, projectile.y, 90) && chance((this.isMobileDevice() ? 18 : 30) * dt)) {
           this.addParticle(projectile.x, projectile.y, projectile.color, projectile.radius * 0.9, 0.25, "dot");
         }
-        if ((projectile.owner === "player" || projectile.owner === "ally") && !projectile.visualOnly && !this.isMultiplayerClient()) {
-          for (const enemy of this.run.enemies) {
-            if (Math.hypot(enemy.x - projectile.x, enemy.y - projectile.y) < enemy.radius + projectile.radius) {
-              const len = Math.hypot(projectile.vx, projectile.vy) || 1;
-              this.damageEnemy(enemy, projectile.damage, { x: projectile.vx / len, y: projectile.vy / len, source: "projectile", kind: projectile.kind, critBonus: projectile.critBonus || 0 });
-              if (projectile.kind === "mageBasic" && chance(0.25)) {
-                this.areaDamage(projectile.x, projectile.y, 72, projectile.damage * 0.1, projectile.color, "mageBasic");
-                this.addShockwave(projectile.x, projectile.y, 92, projectile.color, 0);
-              }
-              projectile.pierce -= 1;
-              if (projectile.kind === "gravity" || projectile.kind === "void") this.addShockwave(projectile.x, projectile.y, 90, projectile.color, 18);
-              if (projectile.pierce < 0) projectile.life = 0;
-              break;
+        if (projectile.visualOnly) {
+          // Visual-only packets mirror remote attacks; collision is already decided by the owner.
+        } else if ((projectile.owner === "player" || projectile.owner === "ally") && !this.isMultiplayerClient()) {
+          const hit = this.firstProjectileEnemyHit(projectile, fromX, fromY);
+          if (hit) {
+            projectile.x = hit.x;
+            projectile.y = hit.y;
+            projectile.hitIds = projectile.hitIds || [];
+            if (hit.enemy.id) projectile.hitIds.push(hit.enemy.id);
+            const len = Math.hypot(projectile.vx, projectile.vy) || 1;
+            this.damageEnemy(hit.enemy, projectile.damage, { x: projectile.vx / len, y: projectile.vy / len, source: "projectile", kind: projectile.kind, critBonus: projectile.critBonus || 0 });
+            if (projectile.kind === "mageBasic" && chance(0.25)) {
+              this.areaDamage(projectile.x, projectile.y, 72, projectile.damage * 0.1, projectile.color, "mageBasic");
+              this.addShockwave(projectile.x, projectile.y, 92, projectile.color, 0);
             }
+            projectile.pierce -= 1;
+            if (projectile.kind === "gravity" || projectile.kind === "void") this.addShockwave(projectile.x, projectile.y, 90, projectile.color, 18);
+            if (projectile.pierce < 0) projectile.life = 0;
           }
-        } else if (!this.isMultiplayerClient()) {
+        } else if (projectile.owner === "enemy" && !this.isMultiplayerClient()) {
           let reflected = false;
-          for (const target of this.combatTargets()) {
-            if (Math.hypot(target.x - projectile.x, target.y - projectile.y) < target.radius + projectile.radius) {
-              if (this.tryGuardianProjectileReflect(target, projectile)) {
-                reflected = true;
-              } else {
-                this.damageCombatTarget(target, projectile.damage, projectile);
-                projectile.life = 0;
-              }
-              break;
+          const hit = this.firstProjectileTargetHit(projectile, fromX, fromY);
+          if (hit) {
+            projectile.x = hit.x;
+            projectile.y = hit.y;
+            if (this.tryGuardianProjectileReflect(hit.target, projectile)) {
+              reflected = true;
+            } else {
+              this.damageCombatTarget(hit.target, projectile.damage, projectile);
+              projectile.life = 0;
             }
           }
           if (reflected) {
@@ -8202,7 +8458,10 @@
       for (const projectile of this.run.projectiles) this.drawProjectile(ctx, projectile);
       for (const drone of this.run.drones) this.drawDrone(ctx, drone);
       const actorY = (actor) => Number.isFinite(actor.displayY) ? actor.displayY : actor.y;
-      const actors = [...this.run.enemies, this.run.player].sort((a, b) => actorY(a) - actorY(b));
+      const localGhost = this.run.player.dead && this.run.spectating;
+      const actors = [...this.run.enemies];
+      if (!localGhost) actors.push(this.run.player);
+      actors.sort((a, b) => actorY(a) - actorY(b));
       for (const actor of actors) {
         if (actor === this.run.player) {
           this.drawHero(ctx, actor.x, actor.y, 2.2, actor, this.run.power, this.save.customization);
@@ -8216,17 +8475,29 @@
       for (const remote of this.remotePlayers.values()) {
         const remoteX = Number.isFinite(remote.displayX) ? remote.displayX : remote.x;
         const remoteY = Number.isFinite(remote.displayY) ? remote.displayY : remote.y;
+        if (remote.dead && remote.spectating) {
+          const target = this.playerByNetworkId(remote.spectateId);
+          const pos = this.displayActorPosition(this.aliveActor(target) ? target : remote);
+          if (this.inView(pos.x, pos.y, 160)) this.drawSoulGhost(ctx, pos.x, pos.y, remote.name || "Người chơi", false, remote.color || "#d9fbff");
+          continue;
+        }
         if (!this.inView(remoteX, remoteY, 120)) continue;
         this.drawHero(ctx, remoteX, remoteY, 2.0, {
           facing: remote.facing,
-          animation: remote.animation || "run",
+          animation: remote.dead ? "death" : remote.animation || "run",
           animTime: remote.animTime || this.menuTime,
           actionTime: remote.actionTime || 0,
           actionTotal: remote.actionTotal || 0,
           hp: remote.hp,
+          dead: remote.dead,
           characterId: remote.characterId
         }, powerById(remote.power), { ...this.save.customization, color: remote.color });
         this.drawNameTag(ctx, remoteX, remoteY - 54, remote.name || "Người chơi", false, remote.hp, remote.maxHp);
+      }
+      if (localGhost) {
+        const target = this.currentSpectateTarget();
+        const pos = this.displayActorPosition(this.aliveActor(target) ? target : this.run.player);
+        if (this.inView(pos.x, pos.y, 170)) this.drawSoulGhost(ctx, pos.x, pos.y, this.save.account.username || "Bạn", true, this.save.customization.color || "#d9fbff");
       }
       this.drawSlashes(ctx);
       this.drawShockwaves(ctx);
@@ -8340,27 +8611,48 @@
           } else if (pickup.container === "woodChest" || pickup.container === "goldChest") {
             const opening = pickup.opening ? clamp(1 - (pickup.openTimer || 0) / 0.42, 0, 1) : 0;
             const gold = pickup.container === "goldChest";
+            const bodyLift = Math.sin(opening * Math.PI) * 3;
+            const lidAngle = -opening * 1.18;
+            ctx.translate(0, bodyLift);
+            ctx.fillStyle = "rgba(0,0,0,0.34)";
+            ctx.beginPath();
+            ctx.ellipse(0, 18, 24, 6, 0, 0, TAU);
+            ctx.fill();
             ctx.fillStyle = gold ? "#b9892f" : "#8b5128";
             ctx.strokeStyle = gold ? "#fff0ad" : "#f2bf63";
             ctx.lineWidth = 3;
-            ctx.fillRect(-18, -7, 36, 22);
-            ctx.strokeRect(-18, -7, 36, 22);
+            roundPixel(ctx, -20, -6, 40, 23, 3);
+            ctx.strokeRect(-20, -6, 40, 23);
+            ctx.fillStyle = gold ? "#f2bf63" : "#f4d26f";
+            ctx.fillRect(-22, 1, 44, 4);
+            ctx.fillStyle = "rgba(255,255,255,0.18)";
+            ctx.fillRect(-16, -3, 32, 3);
             ctx.save();
-            ctx.translate(0, -7);
-            ctx.rotate(-opening * 0.9);
-            ctx.translate(0, 7);
+            ctx.translate(-20, -6);
+            ctx.rotate(lidAngle);
+            ctx.translate(20, 6);
             ctx.fillStyle = gold ? "#f2bf63" : "#5a321c";
             ctx.beginPath();
-            ctx.moveTo(-17, -7);
-            ctx.quadraticCurveTo(0, -24, 17, -7);
+            ctx.moveTo(-20, -6);
+            ctx.quadraticCurveTo(0, -28 - opening * 8, 20, -6);
+            ctx.lineTo(20, 0);
+            ctx.quadraticCurveTo(0, -18 - opening * 6, -20, 0);
             ctx.closePath();
             ctx.fill();
             ctx.stroke();
+            ctx.fillStyle = gold ? "#fff0ad" : "#d6a052";
+            ctx.fillRect(-14, -8, 28, 4);
             ctx.restore();
+            if (opening > 0) {
+              ctx.globalAlpha = 0.35 * opening;
+              ctx.fillStyle = color;
+              ctx.beginPath();
+              ctx.ellipse(0, -5, 22 + opening * 8, 9 + opening * 5, 0, 0, TAU);
+              ctx.fill();
+              ctx.globalAlpha = 0.92;
+            }
             ctx.fillStyle = color;
-            ctx.fillRect(-4, -2, 8, 9);
-            ctx.fillStyle = "#f4d26f";
-            ctx.fillRect(-20, 1, 40, 4);
+            ctx.fillRect(-5, -1 + opening * 5, 10, 10);
             ctx.font = "900 9px ui-sans-serif, system-ui";
             ctx.textAlign = "center";
             ctx.fillStyle = "#fff6d2";
@@ -8768,6 +9060,39 @@
       ctx.restore();
     }
 
+    drawSoulGhost(ctx, targetX, targetY, name, self = false, color = "#d9fbff") {
+      const t = this.menuTime * (self ? 2.6 : 2.2) + String(name || "").length * 0.17;
+      const x = targetX + Math.cos(t) * 46;
+      const y = targetY - 34 + Math.sin(t * 1.25) * 20;
+      ctx.save();
+      ctx.translate(Math.round(x), Math.round(y));
+      ctx.globalAlpha = self ? 0.9 : 0.72;
+      ctx.shadowColor = color;
+      ctx.shadowBlur = this.glow(18);
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      ctx.ellipse(0, 0, 10, 14, 0, 0, TAU);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.moveTo(-8, 8);
+      ctx.quadraticCurveTo(-2, 20, 4, 8);
+      ctx.quadraticCurveTo(9, 2, 8, -2);
+      ctx.closePath();
+      ctx.fill();
+      ctx.globalAlpha = 1;
+      ctx.fillStyle = "#101521";
+      ctx.fillRect(-4, -3, 3, 3);
+      ctx.fillRect(3, -3, 3, 3);
+      ctx.strokeStyle = "#ffffff";
+      ctx.lineWidth = 2;
+      ctx.globalAlpha = 0.55;
+      ctx.beginPath();
+      ctx.arc(0, 2, 15 + Math.sin(t * 2) * 2, 0, TAU);
+      ctx.stroke();
+      ctx.restore();
+      this.drawNameTag(ctx, x, y - 24, name || "Linh hồn", self);
+    }
+
     drawHero(ctx, x, y, scale, actor, power, custom) {
       const t = this.menuTime;
       const facing = actor.facing || 0;
@@ -8782,6 +9107,7 @@
       const castFrame = anim === "skill" && actionProgress >= 0.18 && actionProgress < 0.72 ? 1 : 0;
       const ultFrame = anim === "ultimate" ? (actionProgress < 0.24 ? 0.35 : actionProgress < 0.72 ? 1 : 0.45) : 0;
       const damageFrame = anim === "damage" && actionProgress < 0.62 ? 1 : 0;
+      const deathProgress = anim === "death" ? (actor.actionTime > 0 ? 1 - clamp(actor.actionTime / Math.max(0.1, actionTotal), 0, 1) : 1) : 0;
       const stepStride = Math.round(Math.sin(phase * (anim === "run" ? 12 : anim === "walk" ? 8 : 3)) * 2) / 2;
       const stride = ["walk", "run", "idle"].includes(anim) ? stepStride : 0;
       const bob = stride * (anim === "idle" ? 1 : anim === "walk" ? 2 : anim === "run" ? 3 : 0) - (hitFrame ? 3 : holdFrame ? 2 : 0) + (recoilFrame ? 1 : 0);
@@ -8795,6 +9121,11 @@
       ctx.save();
       ctx.translate(Math.round(x), Math.round(y + bob));
       ctx.scale(scale, scale);
+      if (deathProgress > 0) {
+        ctx.translate(-dir * deathProgress * 4, deathProgress * 12);
+        ctx.rotate(dir * deathProgress * 1.25);
+        ctx.scale(1 + deathProgress * 0.06, 1 - deathProgress * 0.18);
+      }
       ctx.translate(bodyShift, 0);
       ctx.scale(squashX, squashY);
       ctx.rotate(lean);

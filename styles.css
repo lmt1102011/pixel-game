@@ -373,6 +373,21 @@ button {
   overflow-y: auto;
 }
 
+.death-panel,
+.spectator-panel {
+  width: min(560px, 100%);
+  min-height: auto;
+}
+
+.spectator-panel {
+  padding: 12px;
+  background: rgba(10, 13, 20, 0.76);
+}
+
+.spectator-panel .panel-header {
+  margin-bottom: 10px;
+}
+
 .panel-header {
   display: flex;
   align-items: center;

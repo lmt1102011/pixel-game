@@ -7,7 +7,7 @@
   const ROOM_PAD = 86;
   const SAVE_KEY = "soulrift-save-v1";
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
-  const APP_VERSION = "20260603-sharp-weapons-48";
+  const APP_VERSION = "20260603-center-party-49";
   const VERSION_CHECK_INTERVAL = 15000;
   const UPDATE_ATTEMPT_KEY = "soulrift-update-attempt-v1";
   const DOOR_ENTER_TIME = 1.0;
@@ -1439,6 +1439,8 @@
 
     applyRemoteState(remoteId, state) {
       if (!remoteId || !state) return;
+      const stateRoom = Number(state.roomNumber);
+      if (this.game.run && Number.isFinite(stateRoom) && stateRoom < this.game.run.roomNumber) return;
       const previous = this.game.remotePlayers.get(remoteId) || {};
       const slot = this.slots.find((entry) => entry.id === remoteId);
       const x = Number(state.x);
@@ -3913,6 +3915,33 @@
       return this.isMultiplayerRun() && !this.run.netHost;
     }
 
+    centerActorInRoom(actor, syncDisplay = false) {
+      if (!actor) return;
+      actor.x = WORLD_W / 2;
+      actor.y = WORLD_H / 2;
+      actor.vx = 0;
+      actor.vy = 0;
+      actor.dashTime = 0;
+      actor.pendingBasicAttack = null;
+      if (syncDisplay || Number.isFinite(actor.displayX) || Number.isFinite(actor.displayY)) {
+        actor.displayX = actor.x;
+        actor.displayY = actor.y;
+      }
+      actor.t = performance.now();
+    }
+
+    centerPartyInRoom() {
+      if (!this.run) return;
+      this.centerActorInRoom(this.run.player);
+      if (!this.isMultiplayerHost()) return;
+      for (const remote of this.remotePlayers.values()) {
+        this.centerActorInRoom(remote, true);
+        remote.animation = remote.dead ? remote.animation : "idle";
+        remote.actionTime = 0;
+        remote.actionTotal = 0;
+      }
+    }
+
     seedRemotePlayersFromLobby() {
       if (!this.isMultiplayerRun()) return;
       const slots = (this.lobby.slots || []).filter((slot) => slot?.id && slot.id !== this.lobby.id);
@@ -3958,6 +3987,7 @@
       return {
         id,
         name: extra.name || player.name || this.save.account.username || "Người chơi",
+        roomNumber: this.run?.roomNumber || 0,
         x: player.x,
         y: player.y,
         vx: player.vx || 0,
@@ -4157,6 +4187,7 @@
       }
       if (this.run.roomNumber !== previousRoomNumber && this.run.currentRoom && !this.run.currentRoom.cleared) {
         this.mode = "game";
+        this.centerActorInRoom(this.run.player);
         if (this.run.player.dead && this.run.spectating) this.showSpectatePanel();
         else this.setScreen("");
         this.hud.classList.remove("hidden");
@@ -4511,8 +4542,7 @@
       this.run.roomObjects = [];
       this.run.merchantOffers = [];
       this.run.pendingDoor = null;
-      this.run.player.x = WORLD_W / 2;
-      this.run.player.y = WORLD_H / 2;
+      this.centerPartyInRoom();
       this.run.player.invuln = 1;
       this.run.player.pendingBasicAttack = null;
       if (type === "healing") this.revivePartyForHealing();

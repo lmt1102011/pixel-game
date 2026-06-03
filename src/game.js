@@ -7,7 +7,7 @@
   const ROOM_PAD = 86;
   const SAVE_KEY = "soulrift-save-v1";
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
-  const APP_VERSION = "20260603-power-domain-ultimates-54";
+  const APP_VERSION = "20260603-boss-fatigue-traps-55";
   const VERSION_CHECK_INTERVAL = 15000;
   const UPDATE_ATTEMPT_KEY = "soulrift-update-attempt-v1";
   const DOOR_ENTER_TIME = 1.0;
@@ -8344,7 +8344,8 @@
     }
 
     bossFatigueDuration(enemy) {
-      return clamp(1.9 - (enemy.phase || 1) * 0.18, 1.25, 1.75);
+      const phase = clamp(enemy.phase || 1, 1, 3);
+      return rand(3.0, 4.5 - (phase - 1) * 0.35);
     }
 
     startBossFatigue(enemy) {
@@ -9722,17 +9723,146 @@
         }[hazard.type] || this.run.biome.accent;
         const r = hazard.radius + Math.sin(hazard.pulse * 3) * 6;
         ctx.save();
-        ctx.globalAlpha = 0.65;
+        ctx.translate(hazard.x, hazard.y);
+        ctx.rotate(hazard.pulse * (hazard.type === "blade" ? 1.8 : 0.18));
+        ctx.shadowColor = color;
+        ctx.shadowBlur = this.glow(14);
+        ctx.globalAlpha = 0.5;
+        ctx.fillStyle = "#080a0f";
+        ctx.beginPath();
+        ctx.arc(0, 0, r * 1.02, 0, TAU);
+        ctx.fill();
+        ctx.globalAlpha = 0.76;
         ctx.strokeStyle = color;
         ctx.lineWidth = 3;
         ctx.beginPath();
-        ctx.arc(hazard.x, hazard.y, r, 0, TAU);
+        ctx.arc(0, 0, r, 0, TAU);
         ctx.stroke();
-        ctx.globalAlpha = 0.18;
-        ctx.fillStyle = color;
-        ctx.beginPath();
-        ctx.arc(hazard.x, hazard.y, r, 0, TAU);
-        ctx.fill();
+        if (hazard.type === "thorn") {
+          ctx.fillStyle = "#172517";
+          ctx.globalAlpha = 0.9;
+          ctx.beginPath();
+          ctx.arc(0, 0, r * 0.72, 0, TAU);
+          ctx.fill();
+          ctx.fillStyle = color;
+          for (let i = 0; i < 12; i++) {
+            const a = (i / 12) * TAU;
+            ctx.save();
+            ctx.rotate(a);
+            ctx.beginPath();
+            ctx.moveTo(r * 0.22, -4);
+            ctx.lineTo(r * 0.88, 0);
+            ctx.lineTo(r * 0.22, 4);
+            ctx.closePath();
+            ctx.fill();
+            ctx.restore();
+          }
+          ctx.strokeStyle = "#d7ffd0";
+          ctx.globalAlpha = 0.45;
+          for (let i = -2; i <= 2; i++) {
+            ctx.beginPath();
+            ctx.moveTo(-r * 0.5, i * r * 0.16);
+            ctx.lineTo(r * 0.5, -i * r * 0.16);
+            ctx.stroke();
+          }
+        } else if (hazard.type === "ice") {
+          ctx.fillStyle = "rgba(131,232,255,0.22)";
+          ctx.globalAlpha = 0.95;
+          ctx.beginPath();
+          ctx.moveTo(0, -r * 0.78);
+          ctx.lineTo(r * 0.68, -r * 0.2);
+          ctx.lineTo(r * 0.42, r * 0.68);
+          ctx.lineTo(-r * 0.48, r * 0.56);
+          ctx.lineTo(-r * 0.72, -r * 0.12);
+          ctx.closePath();
+          ctx.fill();
+          ctx.strokeStyle = "#d9fbff";
+          ctx.lineWidth = 2;
+          for (let i = 0; i < 6; i++) {
+            const a = (i / 6) * TAU;
+            ctx.beginPath();
+            ctx.moveTo(Math.cos(a) * r * 0.12, Math.sin(a) * r * 0.12);
+            ctx.lineTo(Math.cos(a) * r * 0.78, Math.sin(a) * r * 0.78);
+            ctx.stroke();
+          }
+        } else if (hazard.type === "lava") {
+          ctx.fillStyle = "#3b140f";
+          ctx.globalAlpha = 0.98;
+          ctx.beginPath();
+          for (let i = 0; i < 14; i++) {
+            const a = (i / 14) * TAU;
+            const rr = r * (0.66 + (i % 2) * 0.18);
+            const x = Math.cos(a) * rr;
+            const y = Math.sin(a) * rr;
+            if (i === 0) ctx.moveTo(x, y);
+            else ctx.lineTo(x, y);
+          }
+          ctx.closePath();
+          ctx.fill();
+          ctx.fillStyle = color;
+          ctx.globalAlpha = 0.72;
+          for (let i = 0; i < 4; i++) {
+            const a = hazard.pulse * 1.4 + (i / 4) * TAU;
+            ctx.beginPath();
+            ctx.ellipse(Math.cos(a) * r * 0.28, Math.sin(a) * r * 0.22, r * 0.22, r * 0.08, a, 0, TAU);
+            ctx.fill();
+          }
+          ctx.strokeStyle = "#ffd6a5";
+          ctx.globalAlpha = 0.65;
+          ctx.beginPath();
+          ctx.moveTo(-r * 0.5, -r * 0.15);
+          ctx.lineTo(-r * 0.1, r * 0.1);
+          ctx.lineTo(r * 0.35, -r * 0.22);
+          ctx.lineTo(r * 0.52, r * 0.18);
+          ctx.stroke();
+        } else if (hazard.type === "voltage") {
+          ctx.fillStyle = "rgba(20,17,46,0.92)";
+          ctx.globalAlpha = 1;
+          ctx.rotate(Math.PI / 4);
+          ctx.fillRect(-r * 0.42, -r * 0.42, r * 0.84, r * 0.84);
+          ctx.strokeStyle = color;
+          ctx.lineWidth = 4;
+          ctx.strokeRect(-r * 0.42, -r * 0.42, r * 0.84, r * 0.84);
+          ctx.rotate(-Math.PI / 4);
+          ctx.strokeStyle = "#f5e7ff";
+          ctx.lineWidth = 3;
+          for (let i = 0; i < 3; i++) {
+            const a = hazard.pulse * 2 + (i / 3) * TAU;
+            ctx.beginPath();
+            ctx.moveTo(Math.cos(a) * r * 0.16, Math.sin(a) * r * 0.16);
+            ctx.lineTo(Math.cos(a + 0.22) * r * 0.44, Math.sin(a + 0.22) * r * 0.44);
+            ctx.lineTo(Math.cos(a - 0.18) * r * 0.74, Math.sin(a - 0.18) * r * 0.74);
+            ctx.stroke();
+          }
+        } else if (hazard.type === "blade") {
+          ctx.fillStyle = "#2b2f38";
+          ctx.globalAlpha = 0.96;
+          ctx.beginPath();
+          ctx.arc(0, 0, r * 0.42, 0, TAU);
+          ctx.fill();
+          ctx.fillStyle = color;
+          for (let i = 0; i < 10; i++) {
+            ctx.save();
+            ctx.rotate((i / 10) * TAU);
+            ctx.beginPath();
+            ctx.moveTo(r * 0.38, -r * 0.1);
+            ctx.lineTo(r * 0.92, 0);
+            ctx.lineTo(r * 0.38, r * 0.1);
+            ctx.closePath();
+            ctx.fill();
+            ctx.restore();
+          }
+          ctx.fillStyle = "#f8f0c6";
+          ctx.beginPath();
+          ctx.arc(0, 0, r * 0.16, 0, TAU);
+          ctx.fill();
+        } else {
+          ctx.globalAlpha = 0.18;
+          ctx.fillStyle = color;
+          ctx.beginPath();
+          ctx.arc(0, 0, r, 0, TAU);
+          ctx.fill();
+        }
         ctx.restore();
       }
     }

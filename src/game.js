@@ -7,7 +7,7 @@
   const ROOM_PAD = 86;
   const SAVE_KEY = "soulrift-save-v1";
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
-  const APP_VERSION = "20260603-slash-bleed-46";
+  const APP_VERSION = "20260603-forward-x-slash-47";
   const VERSION_CHECK_INTERVAL = 15000;
   const UPDATE_ATTEMPT_KEY = "soulrift-update-attempt-v1";
   const DOOR_ENTER_TIME = 1.0;
@@ -5426,13 +5426,23 @@
     }
 
     performAssassinSlash(x, y, angle, range, arc, damage, combo = 1) {
-      this.addBasicAttackBurst(x + Math.cos(angle) * range * 0.42, y + Math.sin(angle) * range * 0.42, angle, "assassin", range);
+      const centerX = x + Math.cos(angle) * range * 0.62;
+      const centerY = y + Math.sin(angle) * range * 0.62;
+      const armHalf = range * 0.56;
+      const hitWidth = 20;
+      this.addBasicAttackBurst(centerX, centerY, angle, "assassin", range);
       this.audio.sfx(410 + combo * 12, "triangle", 0.025, 0.045);
       let hits = 0;
       for (const enemy of [...this.run.enemies]) {
-        const d = Math.hypot(enemy.x - x, enemy.y - y);
-        const a = Math.atan2(enemy.y - y, enemy.x - x);
-        if (d < range + enemy.radius && Math.abs(angleDelta(a, angle)) < arc * 0.5) {
+        const hit = [-0.62, 0.62].some((offset) => {
+          const a = angle + offset;
+          const sx = centerX - Math.cos(a) * armHalf;
+          const sy = centerY - Math.sin(a) * armHalf;
+          const ex = centerX + Math.cos(a) * armHalf;
+          const ey = centerY + Math.sin(a) * armHalf;
+          return this.segmentCircleHit(sx, sy, ex, ey, enemy.x, enemy.y, enemy.radius + hitWidth);
+        });
+        if (hit) {
           hits++;
           this.damageEnemy(enemy, damage, {
             x: Math.cos(angle) * 1.15,
@@ -10241,16 +10251,17 @@
             ctx.fillStyle = effect.accent || "#ffffff";
             ctx.strokeStyle = effect.color || "#b8b7ff";
             ctx.lineWidth = 2;
+            const bladeLen = length * 0.62;
             for (let i = -1; i <= 1; i += 2) {
               ctx.save();
-              ctx.rotate(i * 0.58);
+              ctx.rotate(i * 0.62);
               ctx.beginPath();
-              ctx.moveTo(-length * 0.52, -width * 0.16);
-              ctx.lineTo(length * 0.78, -width * 0.11);
-              ctx.lineTo(length * 0.98, 0);
-              ctx.lineTo(length * 0.78, width * 0.11);
-              ctx.lineTo(-length * 0.52, width * 0.16);
-              ctx.lineTo(-length * 0.62, 0);
+              ctx.moveTo(-bladeLen, -width * 0.15);
+              ctx.lineTo(bladeLen * 0.78, -width * 0.1);
+              ctx.lineTo(bladeLen, 0);
+              ctx.lineTo(bladeLen * 0.78, width * 0.1);
+              ctx.lineTo(-bladeLen, width * 0.15);
+              ctx.lineTo(-bladeLen * 1.08, 0);
               ctx.closePath();
               ctx.fill();
               ctx.stroke();
@@ -10261,10 +10272,10 @@
             ctx.lineWidth = 2;
             for (let i = -1; i <= 1; i += 2) {
               ctx.save();
-              ctx.rotate(i * 0.58);
+              ctx.rotate(i * 0.62);
               ctx.beginPath();
-              ctx.moveTo(-length * 0.38, 0);
-              ctx.lineTo(length * 0.72, 0);
+              ctx.moveTo(-bladeLen * 0.72, 0);
+              ctx.lineTo(bladeLen * 0.72, 0);
               ctx.stroke();
               ctx.restore();
             }
@@ -10272,35 +10283,28 @@
             ctx.fillStyle = effect.accent || "#ffffff";
             ctx.fillRect(-5, -5, 10, 10);
           } else {
+            const slashRadius = length * 0.86;
+            const start = -1.08;
+            const end = 1.08;
             ctx.lineCap = "butt";
             ctx.lineJoin = "miter";
-            ctx.fillStyle = effect.accent || "#ffffff";
-            ctx.strokeStyle = effect.color || "#dfe6ef";
-            ctx.lineWidth = 2.5;
+            ctx.strokeStyle = effect.accent || "#ffffff";
+            ctx.lineWidth = width * 0.72;
             ctx.beginPath();
-            ctx.moveTo(-length * 0.44, -width * 0.9);
-            ctx.quadraticCurveTo(length * 0.3, -width * 1.32, length * 0.88, -width * 0.24);
-            ctx.quadraticCurveTo(length * 0.52, 0, length * 0.88, width * 0.24);
-            ctx.quadraticCurveTo(length * 0.3, width * 1.32, -length * 0.44, width * 0.9);
-            ctx.quadraticCurveTo(-length * 0.12, 0, -length * 0.44, -width * 0.9);
-            ctx.closePath();
-            ctx.fill();
+            ctx.arc(-length * 0.2, 0, slashRadius, start, end);
             ctx.stroke();
             ctx.globalAlpha = alpha * 0.75;
+            ctx.strokeStyle = effect.color || "#dfe6ef";
+            ctx.lineWidth = width * 0.28;
+            ctx.beginPath();
+            ctx.arc(-length * 0.2, 0, slashRadius * 0.78, start + 0.1, end - 0.1);
+            ctx.stroke();
+            ctx.globalAlpha = alpha * 0.9;
             ctx.strokeStyle = "#ffffff";
             ctx.lineWidth = 2;
             ctx.beginPath();
-            ctx.moveTo(-length * 0.22, -width * 0.64);
-            ctx.quadraticCurveTo(length * 0.32, -width * 0.32, length * 0.72, width * 0.52);
+            ctx.arc(-length * 0.2, 0, slashRadius * 0.92, start + 0.18, end - 0.18);
             ctx.stroke();
-            ctx.globalAlpha = alpha * 0.5;
-            ctx.lineWidth = 3;
-            for (let i = -1; i <= 1; i += 2) {
-              ctx.beginPath();
-              ctx.moveTo(length * 0.34, i * width * 0.64);
-              ctx.lineTo(length * 0.66, i * width * 0.18);
-              ctx.stroke();
-            }
           }
         }
         if (effect.type === "hitSpark") {
@@ -10387,27 +10391,21 @@
             ctx.fillStyle = "#ffffff";
             ctx.fillRect(-6, -6, 12, 12);
           } else {
+            const cutRadius = length * 0.72;
+            const start = -0.95;
+            const end = 0.95;
             ctx.lineCap = "butt";
             ctx.lineJoin = "miter";
-            ctx.fillStyle = effect.accent || "#ffffff";
             ctx.strokeStyle = effect.color || "#f3ead7";
-            ctx.lineWidth = 2;
+            ctx.lineWidth = effect.heavy ? 8 : 6;
             ctx.beginPath();
-            ctx.moveTo(-length * 0.36, -spread * 0.9);
-            ctx.quadraticCurveTo(length * 0.18, -spread * 1.45, length * 0.74, -spread * 0.16);
-            ctx.lineTo(length * 0.88, 0);
-            ctx.lineTo(length * 0.74, spread * 0.16);
-            ctx.quadraticCurveTo(length * 0.18, spread * 1.45, -length * 0.36, spread * 0.9);
-            ctx.quadraticCurveTo(-length * 0.12, 0, -length * 0.36, -spread * 0.9);
-            ctx.closePath();
-            ctx.fill();
+            ctx.arc(-length * 0.18, 0, cutRadius, start, end);
             ctx.stroke();
             ctx.globalAlpha = alpha * 0.72;
             ctx.strokeStyle = "#ffffff";
             ctx.lineWidth = 2;
             ctx.beginPath();
-            ctx.moveTo(-length * 0.2, -spread * 0.58);
-            ctx.quadraticCurveTo(length * 0.2, -spread * 0.22, length * 0.56, spread * 0.5);
+            ctx.arc(-length * 0.18, 0, cutRadius * 0.82, start + 0.1, end - 0.1);
             ctx.stroke();
             ctx.globalAlpha = alpha * 0.75;
           }

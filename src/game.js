@@ -7,7 +7,7 @@
   const ROOM_PAD = 86;
   const SAVE_KEY = "soulrift-save-v1";
   const SIGNAL_RELAY_URL = "https://ntfy.sh";
-  const APP_VERSION = "20260603-boss-mobile-lobby-24";
+  const APP_VERSION = "20260603-lobby-start-sync-25";
   const VERSION_CHECK_INTERVAL = 15000;
   const DIRECTORY_TOPIC = "soulrift-directory";
   const ROOM_CODE_RE = /^[A-Z0-9]{4,12}$/;
@@ -867,6 +867,10 @@
       this.seenSignals = new Set();
       this.peers = new Map();
       this.joinRetryTimers = [];
+      this.readyRetryTimers = [];
+      this.startRetryTimers = [];
+      this.lastStartMessage = null;
+      this.lastStartAt = 0;
       this.slots = [{ ...this.playerProfile(), ready: false, vote: this.mapVote, host: true }];
     }
 
@@ -948,15 +952,17 @@
 
     announceJoin() {
       const hello = () => {
-        if (!this.host && this.code) this.sendSignal({ type: "hello", ...this.playerProfile() });
+        if (!this.host && this.code) this.sendSignal({ type: "hello", ...this.playerProfile(), ready: this.ready, vote: this.mapVote });
       };
       hello();
       this.joinRetryTimers.push(
-        setTimeout(hello, 350),
-        setTimeout(hello, 1000),
-        setTimeout(hello, 2200),
-        setTimeout(hello, 4200),
-        setTimeout(hello, 7000),
+        setTimeout(hello, 120),
+        setTimeout(hello, 320),
+        setTimeout(hello, 700),
+        setTimeout(hello, 1300),
+        setTimeout(hello, 2300),
+        setTimeout(hello, 3800),
+        setTimeout(hello, 6500),
         setTimeout(hello, 10500)
       );
     }
@@ -968,6 +974,12 @@
       }
       for (const timer of this.joinRetryTimers) clearTimeout(timer);
       this.joinRetryTimers = [];
+      for (const timer of this.readyRetryTimers) clearTimeout(timer);
+      this.readyRetryTimers = [];
+      for (const timer of this.startRetryTimers) clearTimeout(timer);
+      this.startRetryTimers = [];
+      this.lastStartMessage = null;
+      this.lastStartAt = 0;
       this.peers.clear();
       if (this.signal) this.signal.close();
       this.signal = null;
@@ -1139,7 +1151,7 @@
           characterId: message.characterId || "swordsman",
           host: false
         });
-        this.game.renderLobby();
+        this.renderLobbyIfVisible();
         const peer = this.ensurePeer(message.from, true);
         if (!peer.pc.localDescription && peer.pc.signalingState === "stable") {
           const offer = await peer.pc.createOffer();
@@ -1156,7 +1168,7 @@
         this.lastLobbyAt = Date.now();
         this.game.rememberRoomCode(this.code);
         if (message.mapVote) this.mapVote = message.mapVote;
-        this.game.renderLobby();
+        this.renderLobbyIfVisible();
       }
 
       if (message.type === "ready" && this.host) {
@@ -1170,14 +1182,11 @@
           host: false
         });
         this.broadcastLobby();
-        this.game.renderLobby();
+        this.renderLobbyIfVisible();
       }
 
       if (message.type === "start" && !this.host) {
-        if (this.game.run?.multiplayer && this.game.run.seed === message.seed) return;
-        if (Array.isArray(message.slots)) this.slots = message.slots;
-        const ownPowerId = this.game.save.account.selectedPower || message.powerId;
-        this.game.startRun(powerById(ownPowerId), message.biomeId, { multiplayer: true, host: false, seed: message.seed });
+        this.handleStart(message);
       }
 
       if (message.type === "state") this.applyRemoteState(message.from, message.state);
@@ -1237,10 +1246,16 @@
       peer.channel.onopen = () => {
         this.joinPending = false;
         if (!this.host && this.code) this.game.rememberRoomCode(this.code);
-        if (this.host) this.sendPeer(peer, { type: "lobby", slots: this.slots, mapVote: this.mapVote });
-        else this.sendPeer(peer, { type: "ready", ...this.playerProfile(), ready: this.ready, vote: this.mapVote });
+        if (this.host) {
+          this.sendPeer(peer, { type: "lobby", slots: this.slots, mapVote: this.mapVote });
+          if (this.lastStartMessage && Date.now() - this.lastStartAt < 15000) this.sendPeer(peer, this.lastStartMessage);
+        }
+        else {
+          this.sendPeer(peer, { type: "hello", ...this.playerProfile(), ready: this.ready, vote: this.mapVote });
+          this.sendPeer(peer, { type: "ready", ...this.playerProfile(), ready: this.ready, vote: this.mapVote });
+        }
         this.game.toast("Đã kết nối người chơi");
-        if (this.game.mode === "lobby" || this.game.roomFinderOpen) this.game.renderLobby();
+        this.renderLobbyIfVisible();
       };
       peer.channel.onclose = () => {
         if (this.game.mode === "lobby") this.game.renderLobby();
@@ -1288,7 +1303,20 @@
           host: Boolean(message.host)
         });
         if (this.host) this.broadcastLobby();
-        this.game.renderLobby();
+        this.renderLobbyIfVisible();
+      }
+      if (message.type === "hello" && this.host) {
+        this.upsertSlot({
+          id: peer.remoteId,
+          name: message.name || "Người chơi",
+          ready: Boolean(message.ready),
+          vote: this.mapVote,
+          powerId: message.powerId || "",
+          characterId: message.characterId || "swordsman",
+          host: false
+        });
+        this.broadcastLobby();
+        this.renderLobbyIfVisible();
       }
       if (message.type === "lobby" && !this.host && Array.isArray(message.slots)) {
         this.slots = message.slots;
@@ -1296,7 +1324,7 @@
         this.lastLobbyAt = Date.now();
         this.game.rememberRoomCode(this.code);
         if (message.mapVote) this.mapVote = message.mapVote;
-        this.game.renderLobby();
+        this.renderLobbyIfVisible();
       }
       if (message.type === "state") {
         this.applyRemoteState(peer.remoteId, message.state);
@@ -1320,11 +1348,25 @@
         this.game.sendNetworkSnapshotTo(peer.remoteId);
       }
       if (message.type === "start") {
-        if (this.game.run?.multiplayer && this.game.run.seed === message.seed) return;
-        if (Array.isArray(message.slots)) this.slots = message.slots;
-        const ownPowerId = this.game.save.account.selectedPower || message.powerId;
-        this.game.startRun(powerById(ownPowerId), message.biomeId, { multiplayer: true, host: false, seed: message.seed });
+        this.handleStart(message);
       }
+    }
+
+    handleStart(message) {
+      if (this.host || !message?.seed) return;
+      if (this.game.run?.multiplayer && this.game.run.seed === message.seed) return;
+      if (Array.isArray(message.slots)) this.slots = message.slots;
+      this.joinPending = false;
+      this.lastLobbyAt = Date.now();
+      if (this.code) this.game.rememberRoomCode(this.code);
+      const ownPowerId = this.game.save.account.selectedPower || message.powerId;
+      const startPower = powerById(ownPowerId || message.powerId);
+      this.game.toast("Chủ phòng đã bắt đầu");
+      this.game.startRun(startPower, message.biomeId, { multiplayer: true, host: false, seed: message.seed });
+    }
+
+    renderLobbyIfVisible() {
+      if (this.game.mode === "lobby" || this.game.roomFinderOpen) this.game.renderLobby();
     }
 
     upsertSlot(slot) {
@@ -1352,8 +1394,7 @@
       if (this.host) return;
       this.ready = !this.ready;
       this.syncOwnSlot();
-      this.broadcastReady();
-      this.broadcastLobby();
+      this.sendReadyBurst();
       this.game.renderLobby();
     }
 
@@ -1378,6 +1419,20 @@
       }
     }
 
+    sendReadyBurst() {
+      for (const timer of this.readyRetryTimers) clearTimeout(timer);
+      this.readyRetryTimers = [];
+      const send = () => {
+        if (this.host || !this.code) return;
+        this.sendSignal({ type: "hello", ...this.playerProfile(), ready: this.ready, vote: this.mapVote });
+        this.broadcastReady();
+      };
+      send();
+      for (const delay of [120, 320, 700, 1300, 2300, 3800]) {
+        this.readyRetryTimers.push(setTimeout(send, delay));
+      }
+    }
+
     broadcastLobby() {
       if (!this.host) return;
       if (this.code) this.sendSignal({ type: "lobby", slots: this.slots, mapVote: this.mapVote });
@@ -1387,9 +1442,18 @@
     }
 
     broadcastStart(powerId, biomeId, seed, slots = this.slots) {
-      if (this.code) this.sendSignal({ type: "start", powerId, biomeId, seed, slots });
-      for (const peer of this.peers.values()) {
-        this.sendPeer(peer, { type: "start", powerId, biomeId, seed, slots });
+      for (const timer of this.startRetryTimers) clearTimeout(timer);
+      this.startRetryTimers = [];
+      const message = { type: "start", powerId, biomeId, seed, slots };
+      this.lastStartMessage = message;
+      this.lastStartAt = Date.now();
+      const send = () => {
+        if (this.code) this.sendSignal(message);
+        for (const peer of this.peers.values()) this.sendPeer(peer, message);
+      };
+      send();
+      for (const delay of [160, 360, 760, 1400, 2400, 3800, 5600]) {
+        this.startRetryTimers.push(setTimeout(send, delay));
       }
     }
 

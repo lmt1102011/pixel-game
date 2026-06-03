@@ -7,7 +7,7 @@
   const ROOM_PAD = 86;
   const SAVE_KEY = "soulrift-save-v1";
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
-  const APP_VERSION = "20260604-power-tabs-awakening-66";
+  const APP_VERSION = "20260604-power-buttons-cleanup-67";
   const VERSION_CHECK_INTERVAL = 15000;
   const UPDATE_ATTEMPT_KEY = "soulrift-update-attempt-v1";
   const DOOR_ENTER_TIME = 1.0;
@@ -3493,17 +3493,18 @@
       const activeAwakened = this.powerAwakeningActive(power.id);
       const awakened = meta.awakened ? (activeAwakened ? "Đang dùng thức tỉnh" : "Đã thức tỉnh - đang dùng bản thường") : RARITY[meta.rarity]?.label || title(meta.rarity);
       const showActions = owned && options.actions !== false;
-      const selectButton = showActions ? `<button class="btn primary" data-action="${action}" data-power="${power.id}" ${selected ? "disabled" : ""}>${selected ? "ĐANG CHỌN" : "CHỌN"}</button>` : "";
-      const awakenedButton = showActions && meta.awakened
+      const selectButton = showActions && (!selected || options.showSelectedButton !== false) ? `<button class="btn primary" data-action="${action}" data-power="${power.id}" ${selected ? "disabled" : ""}>${selected ? "ĐANG CHỌN" : "CHỌN"}</button>` : "";
+      const awakenedButton = showActions && meta.awakened && (!activeAwakened || options.showAwakenedNormalButton !== false)
         ? `<button class="btn" data-action="toggle-awakened-power" data-power="${power.id}">${activeAwakened ? "DÙNG BẢN THƯỜNG" : "DÙNG THỨC TỈNH"}</button>`
         : "";
+      const actionButtons = `${selectButton}${awakenedButton}`;
       return `
         <div class="choice-card power-card rarity-${meta.rarity} ${owned ? "" : "locked"} ${selected ? "selected" : ""}">
           ${this.powerIllustration(power)}
           <h3 style="color:${power.color}">${power.name}</h3>
           <p>${power.passive}</p>
           <p class="small">${owned ? `Cấp ${meta.level} - ${awakened}` : "Chưa sở hữu"}${selected ? " - Đang chọn" : ""}</p>
-          ${showActions ? `<div class="item-actions">${selectButton}${awakenedButton}</div>` : ""}
+          ${actionButtons ? `<div class="item-actions">${actionButtons}</div>` : ""}
         </div>
       `;
     }
@@ -3839,7 +3840,10 @@
       const ownedPowers = POWERS.filter((power) => this.save.account.ownedPowers.includes(power.id));
       const ownedCount = ownedPowers.length;
       const selected = this.save.account.selectedPower ? powerById(this.save.account.selectedPower) : null;
-      const rows = ownedPowers.map((power) => this.powerCard(power, "choose-power")).join("");
+      const rows = ownedPowers.map((power) => this.powerCard(power, "choose-power", {
+        showSelectedButton: false,
+        showAwakenedNormalButton: false
+      })).join("");
       this.setScreen(`
         <section class="shell">
           ${this.navHtml("character")}

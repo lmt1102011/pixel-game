@@ -6,8 +6,8 @@
   const WORLD_H = 1160;
   const ROOM_PAD = 86;
   const SAVE_KEY = "soulrift-save-v1";
-  const SIGNAL_RELAY_URL = "https://ntfy.sh";
-  const APP_VERSION = "20260603-room-relay-ttl-26";
+  const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
+  const APP_VERSION = "20260603-peerjs-room-reload-27";
   const VERSION_CHECK_INTERVAL = 15000;
   const DIRECTORY_TOPIC = "soulrift-directory-v2";
   const ROOM_CODE_RE = /^[A-Z0-9]{4,12}$/;
@@ -859,6 +859,7 @@
       this.mapVote = "forest";
       this.signal = null;
       this.remoteSignal = null;
+      this.remoteSignals = [];
       this.signalTopic = "";
       this.signalSince = 0;
       this.remotePollSince = 0;
@@ -870,6 +871,8 @@
       this.emptySince = 0;
       this.seenSignals = new Set();
       this.peers = new Map();
+      this.peerJs = null;
+      this.peerJsRoomId = "";
       this.joinRetryTimers = [];
       this.readyRetryTimers = [];
       this.startRetryTimers = [];
@@ -908,6 +911,10 @@
       return code;
     }
 
+    roomPeerId(code = this.code) {
+      return `soulrift-${String(code || "").trim().toLowerCase()}`;
+    }
+
     create() {
       this.close();
       this.host = true;
@@ -919,6 +926,7 @@
       this.lastLobbyAt = Date.now();
       this.slots = [{ ...this.playerProfile(), ready: true, vote: this.mapVote, host: true }];
       this.openSignal();
+      this.openPeerJsHost();
       this.game.rememberRoomCode(this.code);
       this.game.toast(`Đã tạo phòng ${this.code}`);
       this.game.renderLobby();
@@ -950,9 +958,53 @@
       this.lastLobbyAt = 0;
       this.slots = [{ ...this.playerProfile(), ready: false, vote: this.mapVote, host: false }];
       this.openSignal();
+      this.openPeerJsClient();
       this.announceJoin();
       this.game.toast(`Đang vào phòng ${this.code}`);
       this.game.showRoomFinder(false);
+    }
+
+    openPeerJsHost() {
+      if (!window.Peer || !this.host || !this.code) return;
+      this.peerJsRoomId = this.roomPeerId();
+      try {
+        this.peerJs = new Peer(this.peerJsRoomId, { debug: 0 });
+        this.peerJs.on("open", () => {
+          this.game.toast(`Phòng ${this.code} đã sẵn sàng`);
+          this.publishDirectoryPresence(true);
+        });
+        this.peerJs.on("connection", (conn) => this.bindPeerJsConnection(conn));
+        this.peerJs.on("error", (error) => {
+          if (/unavailable-id|taken/i.test(String(error?.type || error?.message || ""))) this.game.toast("Mã phòng bị trùng, hãy tạo lại phòng");
+        });
+      } catch {
+        // Relay signaling remains available when PeerJS cannot start.
+      }
+    }
+
+    openPeerJsClient() {
+      if (!window.Peer || this.host || !this.code) return;
+      try {
+        this.peerJs = new Peer(undefined, { debug: 0 });
+        this.peerJs.on("open", () => {
+          this.connectPeerJsRoom();
+          for (const delay of [500, 1200, 2400, 4200, 7000, 10500]) {
+            this.joinRetryTimers.push(setTimeout(() => this.connectPeerJsRoom(), delay));
+          }
+        });
+      } catch {
+        // Relay signaling remains available when PeerJS cannot start.
+      }
+    }
+
+    connectPeerJsRoom() {
+      if (!this.peerJs || this.host || !this.code || this.hasOpenPeers()) return;
+      try {
+        const conn = this.peerJs.connect(this.roomPeerId(), { reliable: true });
+        this.bindPeerJsConnection(conn);
+      } catch {
+        // Retry timers and relay signaling continue.
+      }
     }
 
     announceJoin() {
@@ -987,10 +1039,21 @@
       this.lastStartMessage = null;
       this.lastStartAt = 0;
       this.peers.clear();
+      if (this.peerJs) {
+        try {
+          this.peerJs.destroy();
+        } catch {
+          // PeerJS cleanup is best-effort.
+        }
+      }
+      this.peerJs = null;
+      this.peerJsRoomId = "";
       if (this.signal) this.signal.close();
       this.signal = null;
       if (this.remoteSignal) this.remoteSignal.close();
       this.remoteSignal = null;
+      for (const signal of this.remoteSignals || []) signal.close();
+      this.remoteSignals = [];
       this.signalTopic = "";
       this.remotePollSince = 0;
       this.remotePollTimer = 0;
@@ -1045,10 +1108,12 @@
         sentAt: now,
         version: APP_VERSION
       };
-      fetch(`${SIGNAL_RELAY_URL}/${DIRECTORY_TOPIC}`, {
-        method: "POST",
-        body: JSON.stringify(payload)
-      }).catch(() => {});
+      for (const relay of SIGNAL_RELAY_URLS) {
+        fetch(`${relay}/${DIRECTORY_TOPIC}`, {
+          method: "POST",
+          body: JSON.stringify(payload)
+        }).catch(() => {});
+      }
     }
 
     checkJoinTimeout() {
@@ -1085,12 +1150,21 @@
     openRemoteSignal() {
       if (!("EventSource" in window) || !window.fetch || !this.signalTopic) return;
       const since = SIGNAL_HISTORY;
-      const url = `${SIGNAL_RELAY_URL}/${encodeURIComponent(this.signalTopic)}/sse?since=${since}`;
-      this.remoteSignal = new EventSource(url);
-      this.remoteSignal.onmessage = (event) => this.onRemoteSignal(event);
-      this.remoteSignal.onerror = () => {
-        if (this.game.mode === "lobby") this.game.renderLobby();
-      };
+      this.remoteSignals = [];
+      for (const relay of SIGNAL_RELAY_URLS) {
+        try {
+          const url = `${relay}/${encodeURIComponent(this.signalTopic)}/sse?since=${since}`;
+          const signal = new EventSource(url);
+          signal.onmessage = (event) => this.onRemoteSignal(event);
+          signal.onerror = () => {
+            if (this.game.mode === "lobby") this.game.renderLobby();
+          };
+          this.remoteSignals.push(signal);
+          if (!this.remoteSignal) this.remoteSignal = signal;
+        } catch {
+          // Try the next relay.
+        }
+      }
     }
 
     onRemoteSignal(event) {
@@ -1109,15 +1183,21 @@
       this.remotePollBusy = true;
       try {
         const since = this.remotePollSince ? Math.floor(this.remotePollSince / 1000) : SIGNAL_HISTORY;
-        const response = await fetch(`${SIGNAL_RELAY_URL}/${encodeURIComponent(this.signalTopic)}/json?poll=1&since=${since}`, { cache: "no-store" });
-        if (!response.ok) return;
-        const text = await response.text();
-        for (const line of text.split(/\r?\n/)) {
-          if (!line.trim()) continue;
+        for (const relay of SIGNAL_RELAY_URLS) {
           try {
-            await this.handleRemoteEnvelope(JSON.parse(line));
+            const response = await fetch(`${relay}/${encodeURIComponent(this.signalTopic)}/json?poll=1&since=${since}`, { cache: "no-store" });
+            if (!response.ok) continue;
+            const text = await response.text();
+            for (const line of text.split(/\r?\n/)) {
+              if (!line.trim()) continue;
+              try {
+                await this.handleRemoteEnvelope(JSON.parse(line));
+              } catch {
+                // Relay polling can include stale or malformed public messages.
+              }
+            }
           } catch {
-            // Relay polling can include stale or malformed public messages.
+            // Try the next relay.
           }
         }
       } catch {
@@ -1144,10 +1224,12 @@
       const payload = { ...message, from: this.id, target, sentAt: Date.now(), signalId: message.signalId || uid("signal") };
       if (this.signal) this.signal.postMessage(payload);
       if (window.fetch && this.signalTopic) {
-        fetch(`${SIGNAL_RELAY_URL}/${encodeURIComponent(this.signalTopic)}`, {
-          method: "POST",
-          body: JSON.stringify(payload)
-        }).catch(() => {});
+        for (const relay of SIGNAL_RELAY_URLS) {
+          fetch(`${relay}/${encodeURIComponent(this.signalTopic)}`, {
+            method: "POST",
+            body: JSON.stringify(payload)
+          }).catch(() => {});
+        }
       }
     }
 
@@ -1288,6 +1370,40 @@
       };
     }
 
+    bindPeerJsConnection(conn) {
+      if (!conn) return;
+      const remoteId = conn.peer || uid("peerjs");
+      const peer = { pc: null, channel: conn, remoteId, peerJs: true };
+      this.peers.set(remoteId, peer);
+      conn.on("open", () => {
+        this.joinPending = false;
+        if (!this.host && this.code) this.game.rememberRoomCode(this.code);
+        if (this.host) {
+          this.sendPeer(peer, { type: "lobby", slots: this.slots, mapVote: this.mapVote });
+          if (this.lastStartMessage && Date.now() - this.lastStartAt < 15000) this.sendPeer(peer, this.lastStartMessage);
+        } else {
+          this.sendPeer(peer, { type: "hello", ...this.playerProfile(), ready: this.ready, vote: this.mapVote });
+          this.sendPeer(peer, { type: "ready", ...this.playerProfile(), ready: this.ready, vote: this.mapVote });
+        }
+        this.game.toast("Đã kết nối người chơi");
+        this.renderLobbyIfVisible();
+      });
+      conn.on("data", (data) => {
+        try {
+          const message = typeof data === "string" ? JSON.parse(data) : data;
+          this.onPeer(message, peer);
+        } catch {
+          // Ignore malformed PeerJS messages.
+        }
+      });
+      conn.on("close", () => {
+        if (this.game.mode === "lobby") this.game.renderLobby();
+      });
+      conn.on("error", () => {
+        if (this.joinPending) this.joinRetryTimers.push(setTimeout(() => this.connectPeerJsRoom(), 900));
+      });
+    }
+
     applyRemoteState(remoteId, state) {
       if (!remoteId || !state) return;
       const previous = this.game.remotePlayers.get(remoteId) || {};
@@ -1311,9 +1427,15 @@
     }
 
     onPeer(message, peer) {
+      const senderId = message?.from || message?.id || peer.remoteId;
+      if (senderId && senderId !== peer.remoteId) {
+        this.peers.delete(peer.remoteId);
+        peer.remoteId = senderId;
+        this.peers.set(senderId, peer);
+      }
       if (message.type === "ready") {
         this.upsertSlot({
-          id: peer.remoteId,
+          id: senderId,
           name: message.name || "Người chơi",
           ready: Boolean(message.ready),
           vote: this.host ? this.mapVote : (message.vote || this.mapVote),
@@ -1326,7 +1448,7 @@
       }
       if (message.type === "hello" && this.host) {
         this.upsertSlot({
-          id: peer.remoteId,
+          id: senderId,
           name: message.name || "Người chơi",
           ready: Boolean(message.ready),
           vote: this.mapVote,
@@ -1346,25 +1468,25 @@
         this.renderLobbyIfVisible();
       }
       if (message.type === "state") {
-        this.applyRemoteState(peer.remoteId, message.state);
+        this.applyRemoteState(senderId, message.state);
       }
       if (message.type === "attack" && this.host) {
-        this.game.handleRemoteAttack(peer.remoteId, message.attack);
+        this.game.handleRemoteAttack(senderId, message.attack);
       }
       if (message.type === "skill" && this.host) {
-        this.game.handleRemoteSkill(peer.remoteId, message.skill);
+        this.game.handleRemoteSkill(senderId, message.skill);
       }
       if (message.type === "damage" && !this.host) {
         this.game.applyHostDamage(message.amount);
       }
       if (message.type === "collect" && this.host) {
-        this.game.handleRemoteCollect(peer.remoteId, message.pickupId);
+        this.game.handleRemoteCollect(senderId, message.pickupId);
       }
       if (message.type === "snapshot" && !this.host) {
         this.game.applyNetworkSnapshot(message.snapshot);
       }
       if (message.type === "needSnapshot" && this.host) {
-        this.game.sendNetworkSnapshotTo(peer.remoteId);
+        this.game.sendNetworkSnapshotTo(senderId);
       }
       if (message.type === "start") {
         this.handleStart(message);
@@ -1486,7 +1608,7 @@
 
     hasOpenPeer(remoteId) {
       const peer = this.peers.get(remoteId);
-      return peer?.channel?.readyState === "open";
+      return peer?.channel?.readyState === "open" || peer?.channel?.open === true;
     }
 
     sendState(state) {
@@ -1556,7 +1678,7 @@
 
     hasOpenPeers() {
       for (const peer of this.peers.values()) {
-        if (peer.channel?.readyState === "open") return true;
+        if (peer.channel?.readyState === "open" || peer.channel?.open === true) return true;
       }
       return false;
     }
@@ -1564,13 +1686,13 @@
     openPeerCount() {
       let count = 0;
       for (const peer of this.peers.values()) {
-        if (peer.channel?.readyState === "open") count++;
+        if (peer.channel?.readyState === "open" || peer.channel?.open === true) count++;
       }
       return count;
     }
 
     sendPeer(peer, message) {
-      if (peer.channel?.readyState === "open") peer.channel.send(JSON.stringify(message));
+      if (peer.channel?.readyState === "open" || peer.channel?.open === true) peer.channel.send(JSON.stringify({ from: this.id, ...message }));
     }
   }
 
@@ -2438,6 +2560,12 @@
       if (action === "play-solo") this.showSoloMenu();
       if (action === "play-multiplayer") this.showMultiplayerHub();
       if (action === "find-room") this.showRoomFinder();
+      if (action === "reload-rooms") {
+        this.publicRooms = [];
+        this.roomDirectoryTimer = 0;
+        this.toast("Đang tải lại danh sách phòng");
+        this.showRoomFinder();
+      }
       if (action === "create-room-from-play") {
         this.lobby.create();
         this.renderLobby();
@@ -2626,63 +2754,70 @@
     async refreshRoomDirectory() {
       if (!window.fetch || this.roomDirectoryBusy) return;
       this.roomDirectoryBusy = true;
-      const controller = "AbortController" in window ? new AbortController() : null;
-      const timeout = controller ? setTimeout(() => controller.abort(), 4500) : 0;
       try {
-        const response = await fetch(`${SIGNAL_RELAY_URL}/${DIRECTORY_TOPIC}/json?poll=1&since=${DIRECTORY_HISTORY}`, { cache: "no-store", signal: controller?.signal });
-        if (!response.ok) return;
-        const text = await response.text();
         const now = Date.now();
         const rooms = new Map();
-        for (const line of text.split(/\r?\n/)) {
-          if (!line.trim()) continue;
-          let envelope = null;
+        for (const relay of SIGNAL_RELAY_URLS) {
+          const controller = "AbortController" in window ? new AbortController() : null;
+          const timeout = controller ? setTimeout(() => controller.abort(), 4500) : 0;
           try {
-            envelope = JSON.parse(line);
+            const response = await fetch(`${relay}/${DIRECTORY_TOPIC}/json?poll=1&since=${DIRECTORY_HISTORY}`, { cache: "no-store", signal: controller?.signal });
+            if (!response.ok) continue;
+            const text = await response.text();
+            for (const line of text.split(/\r?\n/)) {
+              if (!line.trim()) continue;
+              let envelope = null;
+              try {
+                envelope = JSON.parse(line);
+              } catch {
+                continue;
+              }
+              const raw = typeof envelope.message === "string" ? envelope.message : "";
+              let payload = null;
+              try {
+                payload = JSON.parse(raw);
+              } catch {
+                continue;
+              }
+              if (payload?.type !== "roomPresence" || !payload.code) continue;
+              const code = String(payload.code || "").trim().toUpperCase();
+              if (!ROOM_CODE_RE.test(code)) continue;
+              if (payload.open === false) {
+                rooms.delete(code);
+                continue;
+              }
+              const relayTime = Number(envelope.time || 0) * 1000;
+              const seenAt = relayTime || Number(payload.sentAt || 0) || now;
+              if (now - seenAt > ROOM_TTL_MS) continue;
+              const players = Math.max(0, Number(payload.players) || 0);
+              if (players <= 0) continue;
+              const emptySince = Number(payload.emptySince || 0);
+              const emptyFor = Math.max(0, Number(payload.emptyFor || 0));
+              if (players <= 1 && (emptyFor > ROOM_TTL_MS || (!payload.emptyFor && emptySince && now - emptySince > ROOM_TTL_MS))) {
+                rooms.delete(code);
+                continue;
+              }
+              rooms.set(code, {
+                code,
+                hostName: payload.hostName || "Chủ phòng",
+                players,
+                maxPlayers: Number(payload.maxPlayers) || 4,
+                sentAt: seenAt,
+                emptySince,
+                emptyFor
+              });
+            }
           } catch {
-            continue;
+            // Try the next relay.
+          } finally {
+            if (timeout) clearTimeout(timeout);
           }
-          const raw = typeof envelope.message === "string" ? envelope.message : "";
-          let payload = null;
-          try {
-            payload = JSON.parse(raw);
-          } catch {
-            continue;
-          }
-          if (payload?.type !== "roomPresence" || !payload.code) continue;
-          const code = String(payload.code || "").trim().toUpperCase();
-          if (!ROOM_CODE_RE.test(code)) continue;
-          if (payload.open === false) {
-            rooms.delete(code);
-            continue;
-          }
-          const relayTime = Number(envelope.time || 0) * 1000;
-          const seenAt = relayTime || Number(payload.sentAt || 0) || now;
-          if (now - seenAt > ROOM_TTL_MS) continue;
-          const players = Math.max(0, Number(payload.players) || 0);
-          if (players <= 0) continue;
-          const emptySince = Number(payload.emptySince || 0);
-          const emptyFor = Math.max(0, Number(payload.emptyFor || 0));
-          if (players <= 1 && (emptyFor > ROOM_TTL_MS || (!payload.emptyFor && emptySince && now - emptySince > ROOM_TTL_MS))) {
-            rooms.delete(code);
-            continue;
-          }
-          rooms.set(code, {
-            code,
-            hostName: payload.hostName || "Chủ phòng",
-            players,
-            maxPlayers: Number(payload.maxPlayers) || 4,
-            sentAt: seenAt,
-            emptySince,
-            emptyFor
-          });
         }
         this.publicRooms = [...rooms.values()].sort((a, b) => b.sentAt - a.sentAt);
         if (this.mode === "play" && this.roomFinderOpen) this.showRoomFinder(false);
       } catch {
         // Public room discovery is optional; manual room IDs still work with validation.
       } finally {
-        if (timeout) clearTimeout(timeout);
         this.roomDirectoryBusy = false;
       }
     }
@@ -2727,7 +2862,10 @@
                 <h2 class="panel-title">Tìm Phòng</h2>
                 <p class="panel-subtitle">Nhập ID phòng hoặc chọn phòng đang có.</p>
               </div>
-              <button class="btn" data-action="play-multiplayer">TRỞ LẠI</button>
+              <div class="header-actions">
+                <button class="btn icon-label" data-action="reload-rooms"><span class="btn-icon">↻</span> TẢI LẠI</button>
+                <button class="btn" data-action="play-multiplayer">TRỞ LẠI</button>
+              </div>
             </div>
             <div class="room-finder-layout">
               <div class="account-form">

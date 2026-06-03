@@ -377,6 +377,31 @@ button {
   margin-bottom: 14px;
 }
 
+.header-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.icon-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn-icon {
+  display: inline-grid;
+  width: 24px;
+  height: 24px;
+  place-items: center;
+  border: 1px solid rgba(99, 255, 203, 0.34);
+  color: #cbfff0;
+  font-size: 18px;
+  font-weight: 900;
+  line-height: 1;
+}
+
 .panel-title {
   margin: 0;
   color: var(--ink);

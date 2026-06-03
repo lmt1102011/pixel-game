@@ -7,7 +7,7 @@
   const ROOM_PAD = 86;
   const SAVE_KEY = "soulrift-save-v1";
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
-  const APP_VERSION = "20260603-live-pause-spectate-chests-35";
+  const APP_VERSION = "20260603-spectate-room-session-36";
   const VERSION_CHECK_INTERVAL = 15000;
   const DOOR_ENTER_TIME = 1.5;
   const DIRECTORY_TOPIC = "soulrift-directory-v2";
@@ -878,6 +878,7 @@
       this.startRetryTimers = [];
       this.lastStartMessage = null;
       this.lastStartAt = 0;
+      this.roomSession = "";
       this.slots = [{ ...this.playerProfile(), ready: false, vote: this.mapVote, host: true }];
     }
 
@@ -919,6 +920,7 @@
       this.close();
       this.host = true;
       this.code = this.makeCode();
+      this.roomSession = uid("room");
       this.ready = false;
       this.joinPending = false;
       this.presenceTimer = 0;
@@ -951,6 +953,7 @@
       this.close();
       this.host = false;
       this.code = normalized;
+      this.roomSession = "";
       this.ready = false;
       this.joinPending = true;
       this.joinStartedAt = Date.now();
@@ -1038,6 +1041,7 @@
       this.startRetryTimers = [];
       this.lastStartMessage = null;
       this.lastStartAt = 0;
+      this.roomSession = "";
       this.peers.clear();
       if (this.peerJs) {
         try {
@@ -1062,6 +1066,17 @@
       this.emptySince = 0;
       this.lastLobbyAt = 0;
       this.seenSignals.clear();
+    }
+
+    leaveRoom() {
+      this.close();
+      this.code = "";
+      this.host = false;
+      this.ready = false;
+      this.joinPending = false;
+      this.joinStartedAt = 0;
+      this.roomSession = "";
+      this.slots = [{ ...this.playerProfile(), ready: false, vote: this.mapVote, host: false }];
     }
 
     updatePresence(dt) {
@@ -1099,8 +1114,10 @@
       const payload = {
         type: "roomPresence",
         code: this.code,
+        roomSession: this.roomSession || "",
         hostName: this.playerName(),
         open: Boolean(open),
+        running: !open || this.game.mode === "game",
         emptySince: this.emptySince || 0,
         emptyFor: this.emptySince ? now - this.emptySince : 0,
         players: this.slots.filter(Boolean).length,
@@ -1227,7 +1244,7 @@
     }
 
     sendSignal(message, target = "") {
-      const payload = { ...message, from: this.id, target, sentAt: Date.now(), signalId: message.signalId || uid("signal") };
+      const payload = { ...message, from: this.id, target, sentAt: Date.now(), signalId: message.signalId || uid("signal"), roomSession: message.roomSession || this.roomSession || "" };
       if (this.signal) this.signal.postMessage(payload);
       if (window.fetch && this.signalTopic) {
         for (const relay of SIGNAL_RELAY_URLS) {
@@ -1247,6 +1264,9 @@
         this.seenSignals.add(message.signalId);
         if (this.seenSignals.size > 300) this.seenSignals.clear();
       }
+      const scopedTypes = new Set(["state", "attack", "skill", "collect", "openChest", "dropItem", "damage", "snapshot", "needSnapshot"]);
+      if (message.roomSession && this.roomSession && message.roomSession !== this.roomSession && scopedTypes.has(message.type)) return;
+      if (message.type === "start" && (!message.roomSession || !this.roomSession || message.roomSession !== this.roomSession)) return;
 
       if (message.type === "hello" && this.host) {
         this.upsertSlot({
@@ -1270,6 +1290,7 @@
       }
 
       if (message.type === "lobby" && !this.host && Array.isArray(message.slots)) {
+        if (message.roomSession) this.roomSession = message.roomSession;
         this.slots = message.slots;
         this.joinPending = false;
         this.lastLobbyAt = Date.now();
@@ -1442,6 +1463,9 @@
         peer.remoteId = senderId;
         this.peers.set(senderId, peer);
       }
+      const scopedTypes = new Set(["state", "attack", "skill", "collect", "openChest", "dropItem", "damage", "snapshot", "needSnapshot"]);
+      if (message.roomSession && this.roomSession && message.roomSession !== this.roomSession && scopedTypes.has(message.type)) return;
+      if (message.type === "start" && (!message.roomSession || !this.roomSession || message.roomSession !== this.roomSession)) return;
       if (message.type === "ready") {
         this.upsertSlot({
           id: senderId,
@@ -1469,6 +1493,7 @@
         this.renderLobbyIfVisible();
       }
       if (message.type === "lobby" && !this.host && Array.isArray(message.slots)) {
+        if (message.roomSession) this.roomSession = message.roomSession;
         this.slots = message.slots;
         this.joinPending = false;
         this.lastLobbyAt = Date.now();
@@ -1511,6 +1536,7 @@
 
     handleStart(message) {
       if (this.host || !message?.seed) return;
+      if (!message.roomSession || !this.roomSession || message.roomSession !== this.roomSession) return;
       if (this.game.run?.multiplayer && this.game.run.seed === message.seed) return;
       if (Array.isArray(message.slots)) this.slots = message.slots;
       this.joinPending = false;
@@ -1615,7 +1641,7 @@
     broadcastStart(powerId, biomeId, seed, slots = this.slots, difficultyId = this.difficultyVote) {
       for (const timer of this.startRetryTimers) clearTimeout(timer);
       this.startRetryTimers = [];
-      const message = { type: "start", powerId, biomeId, seed, slots, difficultyId };
+      const message = { type: "start", powerId, biomeId, seed, slots, difficultyId, roomSession: this.roomSession };
       this.lastStartMessage = message;
       this.lastStartAt = Date.now();
       const send = () => {
@@ -1736,7 +1762,7 @@
     }
 
     sendPeer(peer, message) {
-      if (peer.channel?.readyState === "open" || peer.channel?.open === true) peer.channel.send(JSON.stringify({ from: this.id, ...message }));
+      if (peer.channel?.readyState === "open" || peer.channel?.open === true) peer.channel.send(JSON.stringify({ from: this.id, roomSession: message.roomSession || this.roomSession || "", ...message }));
     }
   }
 
@@ -2419,7 +2445,12 @@
 
     triggerQuickAction(action) {
       if (!this.run || this.mode !== "game") return;
-      if (this.pauseOverlay || this.run.player.dead) return;
+      if (this.run.player.dead) {
+        if (this.run.spectating && action === "cycle-spectate") this.cycleSpectateTarget();
+        if (action === "exit-run") this.showMainMenu();
+        return;
+      }
+      if (this.pauseOverlay) return;
       if (action === "bag") this.showRunInventory();
       if (action === "pause") this.showPause();
     }
@@ -2562,7 +2593,32 @@
 
     updateQuickActions() {
       if (!this.quickActions) return;
-      const visible = Boolean(this.run && this.mode === "game" && !this.pauseOverlay && !this.run.player.dead);
+      const spectating = Boolean(this.run && this.mode === "game" && this.run.player.dead && this.run.spectating);
+      const visible = Boolean(this.run && this.mode === "game" && !this.pauseOverlay && (!this.run.player.dead || spectating));
+      const buttons = this.quickActions.querySelectorAll("button");
+      if (buttons.length >= 2) {
+        if (spectating) {
+          if (buttons[0].dataset.quick !== "cycle-spectate") {
+            buttons[0].dataset.quick = "cycle-spectate";
+            buttons[0].setAttribute("aria-label", "Đổi người xem");
+            buttons[0].innerHTML = `<span class="quick-text">ĐỔI</span>`;
+            buttons[1].dataset.quick = "exit-run";
+            buttons[1].setAttribute("aria-label", "Thoát lượt chơi");
+            buttons[1].innerHTML = `<span class="quick-text">THOÁT</span>`;
+          }
+          this.quickActions.classList.add("spectating");
+        } else if (buttons[0].dataset.quick !== "bag") {
+          buttons[0].dataset.quick = "bag";
+          buttons[0].setAttribute("aria-label", "Túi");
+          buttons[0].innerHTML = `<span class="touch-icon bag-icon" aria-hidden="true"></span>`;
+          buttons[1].dataset.quick = "pause";
+          buttons[1].setAttribute("aria-label", "Tạm dừng");
+          buttons[1].innerHTML = `<span class="touch-icon pause-icon" aria-hidden="true"></span>`;
+          this.quickActions.classList.remove("spectating");
+        } else {
+          this.quickActions.classList.remove("spectating");
+        }
+      }
       this.quickActions.classList.toggle("hidden", !visible);
       this.quickActions.setAttribute("aria-hidden", visible ? "false" : "true");
     }
@@ -2576,6 +2632,7 @@
         this.run = null;
         this.remotePlayers.clear();
       }
+      if (this.lobby?.code || this.lobby?.joinPending) this.lobby.leaveRoom();
       this.pauseOverlay = false;
       this.mode = "menu";
       this.hud.classList.add("hidden");
@@ -2885,12 +2942,14 @@
             if (payload?.type !== "roomPresence" || !payload.code) continue;
             const code = String(payload.code || "").trim().toUpperCase();
             if (!ROOM_CODE_RE.test(code)) continue;
-            if (payload.open === false) {
-              rooms.delete(code);
-              continue;
-            }
             const relayTime = Number(envelope.time || 0) * 1000;
             const seenAt = relayTime || Number(payload.sentAt || 0) || now;
+            const previous = rooms.get(code);
+            if (previous && seenAt <= Number(previous.sentAt || 0)) continue;
+            if (payload.open === false || payload.running) {
+              rooms.set(code, { code, closed: true, sentAt: seenAt });
+              continue;
+            }
             if (now - seenAt > ROOM_TTL_MS) continue;
             const players = Math.max(0, Number(payload.players) || 0);
             if (players <= 0) continue;
@@ -2911,7 +2970,7 @@
             });
           }
         }
-        this.publicRooms = [...rooms.values()].sort((a, b) => b.sentAt - a.sentAt);
+        this.publicRooms = [...rooms.values()].filter((room) => !room.closed).sort((a, b) => b.sentAt - a.sentAt);
         if (this.mode === "play" && this.roomFinderOpen) this.showRoomFinder(false);
       } catch {
         // Public room discovery is optional; manual room IDs still work with validation.
@@ -2930,6 +2989,8 @@
       const now = Date.now();
       this.publicRooms = (this.publicRooms || []).filter((room) => (
         room?.code
+        && !room.closed
+        && !room.running
         && now - Number(room.sentAt || 0) <= ROOM_TTL_MS
         && !(Number(room.players || 0) <= 1 && Number(room.emptyFor || 0) > ROOM_TTL_MS)
       ));
@@ -3586,6 +3647,7 @@
       const difficultyId = this.lobby.difficultyVote || "normal";
       const seed = Math.random();
       this.lobby.publishDirectoryPresence(false);
+      this.publicRooms = (this.publicRooms || []).filter((room) => room?.code !== this.lobby.code);
       this.lobby.broadcastStart(selectedPower.id, biomeId, seed, this.lobby.slots, difficultyId);
       this.startRun(selectedPower, biomeId, { multiplayer: true, host: true, seed, difficulty: difficultyId });
     }
@@ -6951,20 +7013,9 @@
       if (!this.run?.player.dead) return;
       const target = this.currentSpectateTarget();
       const name = target?.name || "đồng đội";
-      this.setScreen(`
-        <section class="wide-panel spectator-panel">
-          <div class="panel-header">
-            <div>
-              <h2 class="panel-title">Đang Xem</h2>
-              <p class="panel-subtitle">Camera đang theo ${name}. Linh hồn của bạn sẽ bay quanh người đang xem.</p>
-            </div>
-          </div>
-          <div class="grid cols-2">
-            <button class="btn" data-action="cycle-spectate">ĐỔI NGƯỜI XEM</button>
-            <button class="btn danger" data-action="exit-run">THOÁT</button>
-          </div>
-        </section>
-      `);
+      this.setScreen("");
+      this.toast(`Đang xem ${name}`);
+      this.updateQuickActions();
     }
 
     cycleSpectateTarget() {

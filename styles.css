@@ -1583,6 +1583,16 @@ button {
   border-color: rgba(99, 255, 203, 0.58);
 }
 
+.quick-actions.spectating button {
+  width: 64px;
+}
+
+.quick-text {
+  font-size: 10px;
+  font-weight: 950;
+  letter-spacing: 0;
+}
+
 .touch-icon {
   position: relative;
   z-index: 1;

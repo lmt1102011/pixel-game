@@ -7,7 +7,7 @@
   const ROOM_PAD = 86;
   const SAVE_KEY = "soulrift-save-v1";
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
-  const APP_VERSION = "20260604-multiplayer-smooth-60";
+  const APP_VERSION = "20260604-easier-boss-61";
   const VERSION_CHECK_INTERVAL = 15000;
   const UPDATE_ATTEMPT_KEY = "soulrift-update-attempt-v1";
   const DOOR_ENTER_TIME = 1.0;
@@ -5079,7 +5079,7 @@
       this.run.enemies = this.run.enemies.filter((enemy) => enemy.boss);
       if (this.run.enemies.some((enemy) => enemy.boss)) return;
       const partySize = this.isMultiplayerRun() ? Math.max(1, (this.lobby.slots || []).filter(Boolean).length) : 1;
-      const hp = (1480 + this.run.stage * 470) * (this.run.difficulty?.enemyHp || 1) * (1 + (partySize - 1) * 0.42);
+      const hp = (1180 + this.run.stage * 360) * (this.run.difficulty?.enemyHp || 1) * (1 + (partySize - 1) * 0.34);
       const bossDebuff = pick(BOSS_DEBUFFS);
       this.run.enemies.push({
         id: uid("boss"),
@@ -8480,7 +8480,7 @@
 
     bossFatigueDuration(enemy) {
       const phase = clamp(enemy.phase || 1, 1, 3);
-      return rand(3.0, 4.5 - (phase - 1) * 0.35);
+      return rand(4.2, 6.0 - (phase - 1) * 0.45);
     }
 
     startBossFatigue(enemy) {

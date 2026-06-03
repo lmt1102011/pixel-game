@@ -7,7 +7,7 @@
   const ROOM_PAD = 86;
   const SAVE_KEY = "soulrift-save-v1";
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
-  const APP_VERSION = "20260603-smaller-crossbow-42";
+  const APP_VERSION = "20260603-ranger-shot-force-43";
   const VERSION_CHECK_INTERVAL = 15000;
   const UPDATE_ATTEMPT_KEY = "soulrift-update-attempt-v1";
   const DOOR_ENTER_TIME = 1.5;
@@ -4022,7 +4022,7 @@
 
     compactProjectile(projectile) {
       return this.compactFields(projectile, [
-        "id", "owner", "x", "y", "vx", "vy", "radius", "damage", "life", "age", "color", "pierce", "kind", "visualOnly", "visualImpact"
+        "id", "owner", "x", "y", "vx", "vy", "radius", "damage", "life", "age", "angle", "color", "pierce", "kind", "visualOnly", "visualImpact"
       ]);
     }
 
@@ -7913,6 +7913,7 @@
       if (!hit) return false;
       projectile.x = hit.x;
       projectile.y = hit.y;
+      projectile.angle = Math.atan2(projectile.vy || 0, projectile.vx || 1);
       projectile.vx = 0;
       projectile.vy = 0;
       projectile.life = Math.min(projectile.life, 0.035);
@@ -9398,7 +9399,7 @@
     drawProjectile(ctx, projectile) {
       if (!this.inView(projectile.x, projectile.y, projectile.radius + 120)) return;
       ctx.save();
-      const angle = Math.atan2(projectile.vy || 0, projectile.vx || 1);
+      const angle = Number.isFinite(projectile.angle) ? projectile.angle : Math.atan2(projectile.vy || 0, projectile.vx || 1);
       const tail = clamp(Math.hypot(projectile.vx || 0, projectile.vy || 0) / 45, 8, 28);
       const hideTail = projectile.kind === "mageBasic" || projectile.kind === "rangerBasic";
       ctx.shadowColor = projectile.color;
@@ -9439,21 +9440,30 @@
         ctx.stroke();
       } else if (projectile.kind === "rangerBasic") {
         ctx.shadowBlur = this.glow(10);
+        ctx.globalAlpha = 0.42;
+        ctx.strokeStyle = projectile.color;
+        ctx.lineWidth = Math.max(3, projectile.radius * 0.52);
+        ctx.lineCap = "round";
+        ctx.beginPath();
+        ctx.moveTo(-projectile.radius * 4.3, 0);
+        ctx.lineTo(-projectile.radius * 1.2, 0);
+        ctx.stroke();
+        ctx.globalAlpha = 1;
         ctx.fillStyle = "#f3ead7";
-        ctx.fillRect(-projectile.radius * 1.4, -projectile.radius * 0.22, projectile.radius * 3.4, projectile.radius * 0.44);
+        ctx.fillRect(-projectile.radius * 2.8, -projectile.radius * 0.22, projectile.radius * 5.6, projectile.radius * 0.44);
         ctx.fillStyle = projectile.color;
         ctx.beginPath();
-        ctx.moveTo(projectile.radius * 2.2, 0);
-        ctx.lineTo(projectile.radius * 0.8, -projectile.radius * 0.78);
-        ctx.lineTo(projectile.radius * 1.02, -projectile.radius * 0.18);
-        ctx.lineTo(-projectile.radius * 1.4, -projectile.radius * 0.18);
-        ctx.lineTo(-projectile.radius * 1.4, projectile.radius * 0.18);
-        ctx.lineTo(projectile.radius * 1.02, projectile.radius * 0.18);
-        ctx.lineTo(projectile.radius * 0.8, projectile.radius * 0.78);
+        ctx.moveTo(projectile.radius * 3.25, 0);
+        ctx.lineTo(projectile.radius * 1.55, -projectile.radius * 0.82);
+        ctx.lineTo(projectile.radius * 1.82, -projectile.radius * 0.2);
+        ctx.lineTo(-projectile.radius * 2.85, -projectile.radius * 0.18);
+        ctx.lineTo(-projectile.radius * 2.85, projectile.radius * 0.18);
+        ctx.lineTo(projectile.radius * 1.82, projectile.radius * 0.2);
+        ctx.lineTo(projectile.radius * 1.55, projectile.radius * 0.82);
         ctx.closePath();
         ctx.fill();
         ctx.fillStyle = "#ffffff";
-        ctx.fillRect(-projectile.radius * 0.6, -1, projectile.radius * 2.0, 2);
+        ctx.fillRect(-projectile.radius * 1.7, -1, projectile.radius * 3.9, 2);
       } else if (projectile.kind === "crystal" || projectile.kind === "enemySniper") {
         ctx.fillRect(-projectile.radius, -projectile.radius * 0.35, projectile.radius * 2.4, projectile.radius * 0.7);
         ctx.beginPath();
@@ -9709,28 +9719,51 @@
         const pull = anim === "attack"
           ? (actionProgress < 0.58 ? clamp(actionProgress / 0.58, 0, 1) : clamp((0.86 - actionProgress) / 0.28, 0, 1))
           : 0;
+        const snap = anim === "attack" && actionProgress >= 0.54
+          ? Math.sin(clamp((actionProgress - 0.54) / 0.22, 0, 1) * Math.PI)
+          : 0;
         const nockX = 10 - pull * 20;
         ctx.rotate(facing);
-        ctx.translate(3, 0);
-        ctx.scale(0.82, 0.82);
+        ctx.translate(3 - snap * 8, snap * Math.sin(t * 70) * 0.8);
+        ctx.scale(0.82 + snap * 0.04, 0.82 - snap * 0.02);
         ctx.fillStyle = "#2f3546";
         ctx.fillRect(-8, -3, 46, 6);
         ctx.fillRect(0, -6, 12, 12);
         ctx.strokeStyle = character.color;
-        ctx.lineWidth = 5;
+        ctx.lineWidth = 5 + snap * 1.2;
         ctx.beginPath();
-        ctx.moveTo(20, -18);
-        ctx.lineTo(36, -8);
-        ctx.lineTo(36, 8);
-        ctx.lineTo(20, 18);
+        ctx.moveTo(20 - pull * 2, -18 - pull * 4 + snap * 5);
+        ctx.lineTo(36 + snap * 5, -8);
+        ctx.lineTo(36 + snap * 5, 8);
+        ctx.lineTo(20 - pull * 2, 18 + pull * 4 - snap * 5);
         ctx.stroke();
         ctx.strokeStyle = "#dfe8ef";
-        ctx.lineWidth = 2;
+        ctx.lineWidth = 2 + snap;
         ctx.beginPath();
-        ctx.moveTo(22, -17);
+        ctx.moveTo(22 + snap * 2, -17);
         ctx.lineTo(nockX, 0);
-        ctx.lineTo(22, 17);
+        ctx.lineTo(22 + snap * 2, 17);
         ctx.stroke();
+        if (snap > 0.05) {
+          ctx.save();
+          ctx.globalCompositeOperation = "lighter";
+          ctx.globalAlpha = 0.35 + snap * 0.35;
+          ctx.fillStyle = power.accent;
+          ctx.beginPath();
+          ctx.moveTo(35, -7);
+          ctx.lineTo(58 + snap * 18, 0);
+          ctx.lineTo(35, 7);
+          ctx.closePath();
+          ctx.fill();
+          ctx.strokeStyle = "#ffffff";
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.moveTo(28, 0);
+          ctx.lineTo(64 + snap * 22, 0);
+          ctx.stroke();
+          ctx.restore();
+        }
+        ctx.globalAlpha = Math.max(0.18, 1 - snap * 0.78);
         ctx.fillStyle = power.accent;
         ctx.fillRect(nockX, -2, 46 + pull * 12, 4);
         ctx.beginPath();
@@ -9739,6 +9772,7 @@
         ctx.lineTo(nockX + 39 + pull * 12, 6);
         ctx.closePath();
         ctx.fill();
+        ctx.globalAlpha = 1;
       } else if (character.id === "assassin") {
         const fan = hitFrame ? 0.98 : holdFrame ? 0.74 : recoilFrame ? 0.28 : 0.38;
         const extend = hitFrame ? 8 : holdFrame ? 5 : 0;

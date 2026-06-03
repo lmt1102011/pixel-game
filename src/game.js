@@ -7,7 +7,7 @@
   const ROOM_PAD = 86;
   const SAVE_KEY = "soulrift-save-v1";
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
-  const APP_VERSION = "20260603-revive-leader-enemy-roles-37";
+  const APP_VERSION = "20260603-chest-boss-projectile-fixes-38";
   const VERSION_CHECK_INTERVAL = 15000;
   const DOOR_ENTER_TIME = 1.5;
   const DIRECTORY_TOPIC = "soulrift-directory-v2";
@@ -3971,13 +3971,13 @@
 
     compactProjectile(projectile) {
       return this.compactFields(projectile, [
-        "id", "owner", "x", "y", "vx", "vy", "radius", "damage", "life", "age", "color", "pierce", "kind", "visualOnly"
+        "id", "owner", "x", "y", "vx", "vy", "radius", "damage", "life", "age", "color", "pierce", "kind", "visualOnly", "visualImpact"
       ]);
     }
 
     compactPickup(pickup) {
       return this.compactFields(pickup, [
-        "id", "type", "container", "ownerId", "ownerName", "dropperId", "x", "y", "vx", "vy", "radius", "life", "age", "color", "collected", "countsForClaim", "opening", "opened", "openTimer", "stationary", "settleTime", "settleTotal", "magnetDelay", "dropGrace", "noMagnet", "reward", "chestReward", "coinReward"
+        "id", "type", "container", "ownerId", "ownerName", "dropperId", "x", "y", "vx", "vy", "radius", "life", "age", "color", "collected", "countsForClaim", "opening", "opened", "openTimer", "stationary", "settleTime", "settleTotal", "scatterTime", "scatterTotal", "magnetDelay", "dropGrace", "noMagnet", "requiresMagnetPickup", "magnetStarted", "reward", "chestReward", "coinReward"
       ]);
     }
 
@@ -6315,7 +6315,7 @@
       if (enemy.boss) {
         this.onBossDefeated(enemy);
         return;
-      } else if (chance(0.08)) this.run.pickups.push({ x: enemy.x, y: enemy.y, type: "heal", radius: 12, life: 8 });
+      }
       if (this.run.enemies.length === 0 && !this.run.currentRoom?.cleared) {
         this.spawnRoomReward(enemy.x, enemy.y);
         this.run.roomClearTimer = 0.35;
@@ -6331,9 +6331,9 @@
       if (this.run.currentRoom) this.run.currentRoom.bossDefeated = true;
       const x = enemy?.x ?? WORLD_W / 2;
       const y = enemy?.y ?? WORLD_H / 2;
-      this.spawnBossExit(x, y);
+      this.claimBossExitReward(x, y);
       this.addShockwave(x, y, 520, "#f2bf63", 88);
-      this.toast("Boss gục xuống. Cổng thưởng đã mở.");
+      this.toast("Boss gục xuống. Rương vàng đã rơi.");
     }
 
     claimBossExitReward(x = this.run.player.x, y = this.run.player.y) {
@@ -6610,7 +6610,12 @@
           radius: entry.container === "coin" ? 14 : 17,
           life: 90,
           age: 0,
-          magnetDelay: 0.96 + index * 0.14,
+          scatterTime: 0.58 + index * 0.04,
+          scatterTotal: 0.58 + index * 0.04,
+          magnetDelay: 0.72 + index * 0.08,
+          dropGrace: 0.96 + index * 0.1,
+          requiresMagnetPickup: true,
+          magnetStarted: false,
           color: this.rewardColor(entry.reward)
         });
       });
@@ -7823,17 +7828,38 @@
       const x = x1 + sx * t;
       const y = y1 + sy * t;
       const d = Math.hypot(cx - x, cy - y);
-      return d < radius ? { t, x, y, d } : null;
+      return d <= radius ? { t, x, y, d } : null;
     }
 
     firstProjectileEnemyHit(projectile, fromX, fromY) {
       let best = null;
       for (const enemy of this.run.enemies) {
         if (projectile.hitIds?.includes(enemy.id)) continue;
-        const hit = this.segmentCircleHit(fromX, fromY, projectile.x, projectile.y, enemy.x, enemy.y, enemy.radius + projectile.radius);
+        const hitPadding = projectile.kind === "rangerBasic" ? 10 : projectile.kind === "mageBasic" ? 6 : 4;
+        const hit = this.segmentCircleHit(fromX, fromY, projectile.x, projectile.y, enemy.x, enemy.y, enemy.radius + projectile.radius + hitPadding);
         if (hit && (!best || hit.t < best.t)) best = { ...hit, enemy };
       }
       return best;
+    }
+
+    stopVisualProjectileAtEnemy(projectile, fromX, fromY) {
+      const hit = this.firstProjectileEnemyHit(projectile, fromX, fromY);
+      if (!hit) return false;
+      projectile.x = hit.x;
+      projectile.y = hit.y;
+      projectile.vx = 0;
+      projectile.vy = 0;
+      projectile.life = Math.min(projectile.life, 0.035);
+      projectile.hitIds = projectile.hitIds || [];
+      if (hit.enemy.id) projectile.hitIds.push(hit.enemy.id);
+      if (!projectile.visualImpact) {
+        projectile.visualImpact = true;
+        this.addShockwave(projectile.x, projectile.y, projectile.kind === "rangerBasic" ? 42 : 54, projectile.color || "#ffffff", 0);
+        for (let i = 0; i < 5 * this.save.settings.particles; i++) {
+          this.addParticle(projectile.x, projectile.y, projectile.color || "#ffffff", rand(5, 12), rand(0.18, 0.36), "spark");
+        }
+      }
+      return true;
     }
 
     firstProjectileTargetHit(projectile, fromX, fromY) {
@@ -7858,8 +7884,8 @@
         if (this.inView(projectile.x, projectile.y, 90) && chance((this.isMobileDevice() ? 18 : 30) * dt)) {
           this.addParticle(projectile.x, projectile.y, projectile.color, projectile.radius * 0.9, 0.25, "dot");
         }
-        if (projectile.visualOnly) {
-          // Visual-only packets mirror remote attacks; collision is already decided by the owner.
+        if (projectile.visualOnly || ((projectile.owner === "player" || projectile.owner === "ally") && this.isMultiplayerClient())) {
+          this.stopVisualProjectileAtEnemy(projectile, fromX, fromY);
         } else if ((projectile.owner === "player" || projectile.owner === "ally") && !this.isMultiplayerClient()) {
           const hit = this.firstProjectileEnemyHit(projectile, fromX, fromY);
           if (hit) {
@@ -8086,7 +8112,18 @@
           const target = this.pickupTarget(pickup);
           const canCollect = !pickup.ownerId || pickup.ownerId === this.lobby.id;
           if (Number(pickup.dropGrace || 0) > 0) pickup.dropGrace = Math.max(0, Number(pickup.dropGrace || 0) - dt);
-          if ((chest || pickup.noMagnet) && Number(pickup.settleTime || 0) > 0) {
+          if (!chest && Number(pickup.scatterTime || 0) > 0) {
+            pickup.scatterTime = Math.max(0, Number(pickup.scatterTime || 0) - dt);
+            pickup.vy = (pickup.vy || 0) + 230 * dt;
+            pickup.x = clamp(pickup.x + (pickup.vx || 0) * dt, ROOM_PAD + pickup.radius, WORLD_W - ROOM_PAD - pickup.radius);
+            pickup.y = clamp(pickup.y + (pickup.vy || 0) * dt, ROOM_PAD + pickup.radius, WORLD_H - ROOM_PAD - pickup.radius);
+            pickup.vx *= Math.pow(0.2, dt);
+            pickup.vy *= Math.pow(0.2, dt);
+            if (pickup.scatterTime <= 0) {
+              pickup.vx *= 0.35;
+              pickup.vy *= 0.25;
+            }
+          } else if ((chest || pickup.noMagnet) && Number(pickup.settleTime || 0) > 0) {
             pickup.settleTime = Math.max(0, Number(pickup.settleTime || 0) - dt);
             pickup.x = clamp(pickup.x + (pickup.vx || 0) * dt, ROOM_PAD + pickup.radius, WORLD_W - ROOM_PAD - pickup.radius);
             pickup.y = clamp(pickup.y + (pickup.vy || 0) * dt, ROOM_PAD + pickup.radius, WORLD_H - ROOM_PAD - pickup.radius);
@@ -8139,13 +8176,17 @@
             const speed = roomCleared ? 360 + pull * 760 : 130 + pull * 420;
             pickup.x += (dx / d) * speed * dt;
             pickup.y += (dy / d) * speed * dt;
+            pickup.magnetStarted = true;
           }
-          if (!chest && canCollect && Number(pickup.dropGrace || 0) <= 0 && Math.hypot(p.x - pickup.x, p.y - pickup.y) < p.radius + pickup.radius + 8) {
+          const canPickupNow = !pickup.requiresMagnetPickup || pickup.magnetStarted;
+          if (!chest && canCollect && canPickupNow && Number(pickup.dropGrace || 0) <= 0 && Math.hypot(p.x - pickup.x, p.y - pickup.y) < p.radius + pickup.radius + 8) {
             if (this.collectRewardPickup(pickup)) pickup.life = 0;
           }
         } else {
+          if (pickup.collected) continue;
           pickup.life -= dt;
-          if (Math.hypot(p.x - pickup.x, p.y - pickup.y) < p.radius + pickup.radius) {
+          if (!this.isMultiplayerClient() && !p.dead && Math.hypot(p.x - pickup.x, p.y - pickup.y) < p.radius + pickup.radius) {
+            pickup.collected = true;
             this.healPlayer(20);
             pickup.life = 0;
           }

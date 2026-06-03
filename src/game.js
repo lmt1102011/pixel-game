@@ -7,7 +7,7 @@
   const ROOM_PAD = 86;
   const SAVE_KEY = "soulrift-save-v1";
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
-  const APP_VERSION = "20260603-boss-fatigue-traps-55";
+  const APP_VERSION = "20260604-clearer-smaller-domains-56";
   const VERSION_CHECK_INTERVAL = 15000;
   const UPDATE_ATTEMPT_KEY = "soulrift-update-attempt-v1";
   const DOOR_ENTER_TIME = 1.0;
@@ -6302,9 +6302,9 @@
 
       if (key === "f") {
         const awakened = this.save.powers[power.id]?.awakened;
-        const radius = awakened ? 430 : 340;
+        const radius = awakened ? 330 : 280;
         this.addSkillShape(kind, "ultimate", x, y, angle, radius, awakened ? 1.25 : 1.0);
-        this.powerCastVfx(power, x, y, angle, radius, awakened ? 2.4 : 1.8, !remote);
+        this.powerCastVfx(power, x, y, angle, radius, awakened ? 2.4 : 1.8, !remote, { visualOnly: true });
         if (kind === "blood" && !remote) this.healPlayer(70);
         if (kind === "nature" && !remote) this.healPlayer(95);
         if (kind === "time" && !remote) {
@@ -6318,15 +6318,8 @@
             if (Math.hypot(enemy.x - x, enemy.y - y) < radius + 40) enemy.chill = Math.max(enemy.chill, kind === "time" ? 5 : 3.5);
           }
         }
-        if (kind === "lightning") this.burstLines(x, y, power.accent, 12, radius + 80, 0.22);
-        if (kind === "crystal") {
-          for (let i = 0; i < 14; i++) {
-            const a = (i / 14) * TAU;
-            this.spawnProjectile({ owner, x, y, vx: Math.cos(a) * 520, vy: Math.sin(a) * 520, radius: 8, damage: 38, life: 1.15, color: power.color, pierce: 2, kind });
-          }
-        }
-        this.areaDamage(x, y, radius, awakened ? 170 : 120, power.accent, kind, true);
-        this.addShockwave(x, y, radius + 80, power.accent, 64);
+        if (kind === "lightning") this.burstLines(x, y, power.accent, 10, radius + 35, 0.2);
+        this.addShockwave(x, y, radius + 45, power.accent, 0);
         this.addEffect({
           type: "ultimate",
           domain: true,
@@ -6334,16 +6327,16 @@
           casterId,
           x,
           y,
-          radius: radius + 70,
+          radius: radius + 35,
           time: 6,
           maxTime: 6,
-          tick: 0,
+          tick: this.powerDomainTickRate(kind),
           color: power.accent,
           accent: power.color,
           kind,
-          damage: damage * (awakened ? 0.34 : 0.26),
-          damageBoost: awakened ? 1.32 : 1.24,
-          areaBoost: awakened ? 1.28 : 1.2
+          damage: damage * (awakened ? 0.3 : 0.22),
+          damageBoost: awakened ? 1.3 : 1.22,
+          areaBoost: awakened ? 1.22 : 1.15
         });
         if (awakened) this.applyAwakenedSkillBonus(key, power, caster, angle, { x, y }, damage, owner, remote);
         this.camera.shake = Math.max(this.camera.shake, 24);
@@ -6352,7 +6345,7 @@
       this.skillAreaScale = previousSkillAreaScale;
     }
 
-    powerCastVfx(power, x, y, angle = 0, radius = 150, intensity = 1, healNature = true) {
+    powerCastVfx(power, x, y, angle = 0, radius = 150, intensity = 1, healNature = true, options = {}) {
       const kind = power.id;
       this.addEffect({
         type: "powerGlyph",
@@ -6438,7 +6431,7 @@
           this.trimVisualList(this.run.slashes, this.isMobileDevice() ? 24 : 38);
         }
       }
-      if (kind === "fire") this.addTrailDamage(x + Math.cos(angle) * 36, y + Math.sin(angle) * 36, power.color);
+      if (kind === "fire" && !options.visualOnly) this.addTrailDamage(x + Math.cos(angle) * 36, y + Math.sin(angle) * 36, power.color);
       if (kind === "gravity" || kind === "void" || kind === "time") this.addShockwave(x, y, radius * (kind === "time" ? 1.1 : 0.9), power.color, 0);
       if (kind === "nature" && healNature) this.healPlayer(1 + intensity);
     }
@@ -8938,17 +8931,36 @@
           const d = Math.hypot(enemy.x - effect.x, enemy.y - effect.y);
           if (d >= radius + enemy.radius) continue;
           const force = Math.max(0.32, 1 - d / Math.max(1, radius));
-          const damage = (effect.damage || 18) * force;
-          this.damageEnemy(enemy, damage, {
-            x: (enemy.x - effect.x) / (d || 1),
-            y: (enemy.y - effect.y) / (d || 1),
-            source: "domain",
-            kind
-          });
+          const baseDamage = (effect.damage || 18) * force;
+          let domainDamage = 0;
           if (kind === "fire") enemy.burn = Math.max(enemy.burn || 0, 2.2);
-          if (kind === "ice" || kind === "time") enemy.chill = Math.max(enemy.chill || 0, kind === "time" ? 2.8 : 2.4);
+          if (kind === "fire") domainDamage = baseDamage * 0.72;
+          if (kind === "ice") {
+            enemy.chill = Math.max(enemy.chill || 0, 2.4);
+            domainDamage = baseDamage * 0.28;
+          }
+          if (kind === "lightning") domainDamage = baseDamage * 1.05;
           if (kind === "shadow" || kind === "void") enemy.mark += kind === "void" ? 2 : 1;
-          if (kind === "nature") enemy.stun = Math.max(enemy.stun || 0, enemy.boss ? 0.04 : 0.16);
+          if (kind === "shadow") domainDamage = baseDamage * 0.45;
+          if (kind === "blood") domainDamage = baseDamage * 0.58;
+          if (kind === "gravity") domainDamage = baseDamage * 0.32;
+          if (kind === "nature") {
+            enemy.stun = Math.max(enemy.stun || 0, enemy.boss ? 0.04 : 0.16);
+            domainDamage = baseDamage * 0.24;
+          }
+          if (kind === "void") domainDamage = baseDamage * 0.44;
+          if (kind === "time") {
+            enemy.chill = Math.max(enemy.chill || 0, 2.8);
+            domainDamage = baseDamage * 0.22;
+          }
+          if (domainDamage > 0) {
+            this.damageEnemy(enemy, domainDamage, {
+              x: (enemy.x - effect.x) / (d || 1),
+              y: (enemy.y - effect.y) / (d || 1),
+              source: "domain",
+              kind
+            });
+          }
         }
         if (kind === "lightning") this.burstLines(effect.x, effect.y, color, 4, radius * 0.72, 0.11);
         if (kind === "crystal") {
@@ -11056,27 +11068,39 @@
         if (effect.type === "ultimate" && effect.domain) {
           const lifeRatio = clamp(effect.time / (effect.maxTime || 6), 0, 1);
           const progress = 1 - lifeRatio;
-          const pulse = Math.sin(this.menuTime * 6 + progress * 2) * 10;
+          const pulse = Math.sin(this.menuTime * 6 + progress * 2) * 4;
           const r = Math.max(16, effect.radius + pulse);
-          ctx.globalAlpha = 0.24 + lifeRatio * 0.16;
-          ctx.lineWidth = 6;
+          ctx.globalAlpha = 0.5 + lifeRatio * 0.22;
+          ctx.lineWidth = 8;
           ctx.beginPath();
           ctx.arc(effect.x, effect.y, r, 0, TAU);
           ctx.stroke();
-          ctx.globalAlpha = 0.08 + lifeRatio * 0.05;
+          ctx.strokeStyle = effect.accent || "#ffffff";
+          ctx.globalAlpha = 0.44;
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.arc(effect.x, effect.y, r - 10, 0, TAU);
+          ctx.stroke();
+          ctx.fillStyle = effect.color;
+          ctx.globalAlpha = 0.045 + lifeRatio * 0.035;
+          ctx.beginPath();
+          ctx.arc(effect.x, effect.y, r, 0, TAU);
           ctx.fill();
-          ctx.globalAlpha = 0.26;
+          ctx.globalAlpha = 0.34;
+          ctx.strokeStyle = effect.color;
           ctx.lineWidth = 2;
           for (let i = 0; i < 10; i++) {
             const a = (i / 10) * TAU + this.menuTime * 0.22 * (effect.kind === "time" ? -1 : 1);
             ctx.beginPath();
-            ctx.moveTo(effect.x + Math.cos(a) * r * 0.28, effect.y + Math.sin(a) * r * 0.28);
-            ctx.lineTo(effect.x + Math.cos(a) * r * 0.94, effect.y + Math.sin(a) * r * 0.94);
+            ctx.moveTo(effect.x + Math.cos(a) * r * 0.45, effect.y + Math.sin(a) * r * 0.45);
+            ctx.lineTo(effect.x + Math.cos(a) * r * 0.97, effect.y + Math.sin(a) * r * 0.97);
             ctx.stroke();
           }
-          ctx.globalAlpha = 0.42;
+          ctx.globalAlpha = 0.5;
+          ctx.strokeStyle = effect.accent || effect.color;
+          ctx.lineWidth = 3;
           ctx.beginPath();
-          ctx.arc(effect.x, effect.y, r * (0.42 + 0.08 * Math.sin(this.menuTime * 4)), 0, TAU);
+          ctx.arc(effect.x, effect.y, r * (0.5 + 0.04 * Math.sin(this.menuTime * 4)), 0, TAU);
           ctx.stroke();
         } else if (["pull", "zone", "danger", "ultimate"].includes(effect.type)) {
           const pulse = Math.sin(this.menuTime * 8) * 8;

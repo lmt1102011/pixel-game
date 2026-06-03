@@ -7,12 +7,13 @@
   const ROOM_PAD = 86;
   const SAVE_KEY = "soulrift-save-v1";
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
-  const APP_VERSION = "20260604-easier-boss-61";
+  const APP_VERSION = "20260604-domain-collapse-63";
   const VERSION_CHECK_INTERVAL = 15000;
   const UPDATE_ATTEMPT_KEY = "soulrift-update-attempt-v1";
   const DOOR_ENTER_TIME = 1.0;
-  const DOMAIN_CUTIN_TIME = 1.15;
-  const DOMAIN_GROW_TIME = 0.85;
+  const DOMAIN_CUTIN_TIME = 1.35;
+  const DOMAIN_GROW_TIME = 1.55;
+  const DOMAIN_SHRINK_TIME = 0.95;
   const DOMAIN_DURATION = 10;
   const DOMAIN_ENERGY_COST_RATIO = 0.62;
   const DIRECTORY_TOPIC = "soulrift-directory-v2";
@@ -4446,6 +4447,7 @@
         animTime: 0,
         actionTime: 0,
         actionTotal: 0,
+        domainLock: 0,
         facing: 0,
         stats: this.defaultCombatStats(),
         cooldowns: {
@@ -4697,6 +4699,7 @@
       };
       this.run.roomNumber += 1;
       this.syncStatusEffects();
+      this.clearRoomSkillEffects();
       this.run.roomClearTimer = 0;
       this.run.enemies = [];
       this.run.projectiles = [];
@@ -4730,6 +4733,13 @@
       const bossDebuff = type === "boss" ? bossDebuffById(this.run.enemies.find((enemy) => enemy.boss)?.bossDebuff) : null;
       const bossNote = bossDebuff ? ` - Ấn ${bossDebuff.name}` : "";
       this.toast(`${this.run.biome.name}: ${this.run.currentRoom.label || title(type)}${bossNote}`);
+    }
+
+    clearRoomSkillEffects() {
+      if (!this.run) return;
+      const persistentEffects = new Set(["gravityAnomaly", "divinePassive"]);
+      this.run.effects = (this.run.effects || []).filter((effect) => persistentEffects.has(effect.type));
+      this.run.drones = (this.run.drones || []).filter((drone) => !drone.temporary);
     }
 
     applyCurse(curse) {
@@ -5415,6 +5425,7 @@
       p.invuln = Math.max(0, p.invuln - dt);
       p.guardianParry = Math.max(0, (p.guardianParry || 0) - dt);
       p.attackCd = Math.max(0, p.attackCd - dt);
+      p.domainLock = Math.max(0, (p.domainLock || 0) - dt);
       if (p.dead) {
         p.vx = 0;
         p.vy = 0;
@@ -5422,6 +5433,14 @@
         p.pendingBasicAttack = null;
         p.animation = "death";
         p.deathTime = (p.deathTime || 0) + dt;
+        return;
+      }
+      if (p.domainLock > 0) {
+        p.vx = 0;
+        p.vy = 0;
+        p.dashTime = 0;
+        p.pendingBasicAttack = null;
+        p.animation = "ultimate";
         return;
       }
       this.updatePendingBasicAttack(p, dt);
@@ -5932,8 +5951,8 @@
         characterId: character.id,
         color: skill.color || remote.color || "#d8b46a",
         animation: skill.key === "f" ? "ultimate" : "skill",
-        actionTotal: skill.key === "f" ? DOMAIN_CUTIN_TIME + 0.35 : 0.42,
-        actionTime: skill.key === "f" ? DOMAIN_CUTIN_TIME + 0.35 : 0.42,
+        actionTotal: skill.key === "f" ? DOMAIN_CUTIN_TIME + DOMAIN_GROW_TIME + 0.15 : 0.42,
+        actionTime: skill.key === "f" ? DOMAIN_CUTIN_TIME + DOMAIN_GROW_TIME + 0.15 : 0.42,
         facing: angle,
         t: performance.now()
       });
@@ -5975,8 +5994,9 @@
       p.energyRegenDelay = Math.max(p.energyRegenDelay || 0, key === "f" ? 2.15 : key === "r" ? 1.45 : key === "e" ? 1.25 : 1.05);
       p.cooldowns[key] = cooldown;
       p.animation = key === "f" ? "ultimate" : "skill";
-      p.actionTotal = key === "f" ? DOMAIN_CUTIN_TIME + 0.35 : key === "r" ? 0.48 : 0.38;
+      p.actionTotal = key === "f" ? DOMAIN_CUTIN_TIME + DOMAIN_GROW_TIME + 0.15 : key === "r" ? 0.48 : 0.38;
       p.actionTime = p.actionTotal;
+      if (key === "f") p.domainLock = Math.max(p.domainLock || 0, DOMAIN_CUTIN_TIME + DOMAIN_GROW_TIME + 0.15);
       const power = this.run.power;
       const aim = this.skillAimAngle(p);
       const target = this.skillTargetPoint(p, aim, 250);
@@ -6050,11 +6070,19 @@
       const finalRadius = Number(effect?.radius) || 320;
       const growTotal = Math.max(0, Number(effect?.growTotal) || 0);
       const growTime = Math.max(0, Number(effect?.growTime) || 0);
-      if (growTotal <= 0 || growTime <= 0) return finalRadius;
       const startRadius = Math.max(8, Number(effect.startRadius) || 24);
-      const progress = clamp(1 - growTime / growTotal, 0, 1);
-      const eased = 1 - Math.pow(1 - progress, 3);
-      return startRadius + (finalRadius - startRadius) * eased;
+      if (growTotal > 0 && growTime > 0) {
+        const progress = clamp(1 - growTime / growTotal, 0, 1);
+        const eased = 1 - Math.pow(1 - progress, 3);
+        return startRadius + (finalRadius - startRadius) * eased;
+      }
+      const shrinkTotal = Math.max(0, Number(effect?.shrinkTotal) || 0);
+      if (!(effect?.castDelay > 0) && shrinkTotal > 0 && Number(effect?.time) <= shrinkTotal) {
+        const progress = clamp(Number(effect.time) / shrinkTotal, 0, 1);
+        const eased = 1 - Math.pow(1 - progress, 2);
+        return startRadius + (finalRadius - startRadius) * eased;
+      }
+      return finalRadius;
     }
 
     activePowerDomain(kind, caster, casterId = this.lobby.id) {
@@ -6065,6 +6093,7 @@
         && effect.kind === kind
         && effect.time > 0
         && !(effect.castDelay > 0)
+        && !(effect.shrinkTotal > 0 && effect.time <= effect.shrinkTotal)
         && (!effect.casterId || !casterId || effect.casterId === casterId)
         && Math.hypot(caster.x - effect.x, caster.y - effect.y) < this.powerDomainRadius(effect) + (caster.radius || 22)
       )) || null;
@@ -6079,6 +6108,18 @@
         active: true,
         domain
       };
+    }
+
+    ultimateGainPaused() {
+      const p = this.run?.player;
+      if (!p) return false;
+      if ((p.domainLock || 0) > 0) return true;
+      return (this.run.effects || []).some((effect) => (
+        effect.type === "ultimate"
+        && effect.domain
+        && (!effect.casterId || effect.casterId === this.lobby.id)
+        && ((effect.castDelay || 0) > 0 || (effect.growTime || 0) > 0)
+      ));
     }
 
     coneDamage(x, y, angle, range, arc, damage, color, kind) {
@@ -6417,12 +6458,14 @@
           y,
           radius: radius + 35,
           startRadius: 26,
-          time: DOMAIN_DURATION + DOMAIN_CUTIN_TIME,
-          maxTime: DOMAIN_DURATION + DOMAIN_CUTIN_TIME,
+          time: DOMAIN_DURATION + DOMAIN_CUTIN_TIME + DOMAIN_SHRINK_TIME,
+          maxTime: DOMAIN_DURATION + DOMAIN_CUTIN_TIME + DOMAIN_SHRINK_TIME,
           domainDuration: DOMAIN_DURATION,
           castDelay: DOMAIN_CUTIN_TIME,
           growTime: DOMAIN_GROW_TIME,
           growTotal: DOMAIN_GROW_TIME,
+          shrinkTime: DOMAIN_SHRINK_TIME,
+          shrinkTotal: DOMAIN_SHRINK_TIME,
           tick: this.powerDomainTickRate(kind),
           color: power.accent,
           accent: power.color,
@@ -6661,7 +6704,7 @@
       if (assassinBasic && enemy.hp > 0 && chance(0.25)) this.applyAssassinBleed(enemy, damage, options);
       if (crit && (p.stats.chainCrit || power.id === "lightning")) this.chainLightning(enemy, damage * 0.45);
       if (enemy.chill > 0 && enemy.hp <= 0 && p.stats.fracture) this.fracture(enemy);
-      if (options.source !== "domain") p.ult = clamp(p.ult + (crit ? 5 : 3), 0, 100);
+      if (options.source !== "domain" && !this.ultimateGainPaused()) p.ult = clamp(p.ult + (crit ? 5 : 3), 0, 100);
       const basicKind = this.basicHitKind(options);
       const basicHit = Boolean(basicKind);
       const impactColor = basicHit ? (crit ? "#fff1b8" : "#f3ead7") : crit ? power.accent : power.color;
@@ -9055,7 +9098,16 @@
         return;
       }
       if (effect.growTime > 0) effect.growTime = Math.max(0, effect.growTime - dt);
+      const shrinkTotal = Math.max(0, Number(effect.shrinkTotal) || 0);
+      const shrinking = shrinkTotal > 0 && effect.time <= shrinkTotal;
       const radius = this.powerDomainRadius(effect);
+      if (shrinking) {
+        if (chance(0.35 * clamp(this.perf?.quality ?? 1, 0.35, 1))) {
+          const a = rand(0, TAU);
+          this.addParticle(effect.x + Math.cos(a) * radius, effect.y + Math.sin(a) * radius, color, rand(7, 15), rand(0.22, 0.45), this.powerDomainParticleKind(kind), a + Math.PI, rand(50, 135));
+        }
+        return;
+      }
       if (!this.isMultiplayerClient() && (kind === "gravity" || kind === "void" || kind === "time")) {
         for (const enemy of this.run.enemies) {
           const d = Math.hypot(enemy.x - effect.x, enemy.y - effect.y);
@@ -11307,6 +11359,7 @@
           ctx.beginPath();
           ctx.arc(effect.x, effect.y, r * (0.5 + 0.04 * Math.sin(this.menuTime * 4)), 0, TAU);
           ctx.stroke();
+          this.drawDomainPowerSigils(ctx, effect, r, growProgress);
         } else if (["pull", "zone", "danger", "ultimate"].includes(effect.type)) {
           const pulse = Math.sin(this.menuTime * 8) * 8;
           ctx.beginPath();
@@ -11610,6 +11663,136 @@
         if (effect.type === "powerGlyph") this.drawPowerGlyph(ctx, effect);
         ctx.restore();
       }
+    }
+
+    drawDomainPowerSigils(ctx, effect, radius, growProgress = 1) {
+      const kind = effect.kind || "fire";
+      const power = powerById(kind);
+      const shrinkTotal = Math.max(0, Number(effect.shrinkTotal) || 0);
+      const shrinkProgress = shrinkTotal > 0 && Number(effect.time) <= shrinkTotal ? clamp(Number(effect.time) / shrinkTotal, 0, 1) : 1;
+      const count = effect.awakened ? 4 : 3;
+      const orbit = Math.max(28, Math.min(84, radius * 0.22));
+      const size = Math.max(8, Math.min(16, radius * 0.045));
+      const spin = this.menuTime * (kind === "time" ? -1.35 : 1.25);
+      const centerSize = Math.max(24, Math.min(48, radius * 0.14)) * (0.62 + growProgress * 0.38) * (0.78 + shrinkProgress * 0.22);
+      ctx.save();
+      ctx.translate(effect.x, effect.y);
+      ctx.globalCompositeOperation = "lighter";
+      ctx.globalAlpha = (0.46 + growProgress * 0.34) * Math.max(0.2, shrinkProgress);
+      ctx.fillStyle = power.color;
+      ctx.strokeStyle = power.accent;
+      ctx.lineWidth = Math.max(2, centerSize * 0.08);
+      ctx.shadowColor = power.accent;
+      ctx.shadowBlur = this.glow(18);
+      ctx.beginPath();
+      ctx.arc(0, 0, centerSize * 1.28, 0, TAU);
+      ctx.stroke();
+      ctx.rotate(spin * 0.42);
+      this.drawPowerIconShape(ctx, kind, centerSize, power.color, power.accent);
+      ctx.restore();
+      ctx.save();
+      ctx.translate(effect.x, effect.y);
+      ctx.rotate(spin);
+      ctx.globalCompositeOperation = "lighter";
+      ctx.globalAlpha = (0.55 + growProgress * 0.25) * Math.max(0.25, shrinkProgress);
+      for (let i = 0; i < count; i++) {
+        const a = (i / count) * TAU;
+        ctx.save();
+        ctx.translate(Math.cos(a) * orbit, Math.sin(a) * orbit);
+        ctx.rotate(-spin + a * 0.35);
+        this.drawPowerIconShape(ctx, kind, size, power.color, power.accent);
+        ctx.restore();
+      }
+      ctx.restore();
+    }
+
+    drawPowerIconShape(ctx, kind, size, color, accent) {
+      ctx.save();
+      ctx.strokeStyle = accent || color;
+      ctx.fillStyle = color;
+      ctx.lineWidth = Math.max(2, size * 0.2);
+      ctx.lineCap = "round";
+      ctx.lineJoin = "round";
+      ctx.shadowColor = color;
+      ctx.shadowBlur = this.glow(10);
+      if (kind === "fire") {
+        ctx.beginPath();
+        ctx.moveTo(0, -size);
+        ctx.lineTo(size * 0.62, size * 0.45);
+        ctx.lineTo(0, size * 0.9);
+        ctx.lineTo(-size * 0.62, size * 0.45);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+      } else if (kind === "ice") {
+        for (let i = 0; i < 6; i++) {
+          const a = (i / 6) * TAU;
+          ctx.beginPath();
+          ctx.moveTo(Math.cos(a) * size * 0.25, Math.sin(a) * size * 0.25);
+          ctx.lineTo(Math.cos(a) * size, Math.sin(a) * size);
+          ctx.stroke();
+        }
+      } else if (kind === "lightning") {
+        ctx.beginPath();
+        ctx.moveTo(-size * 0.55, -size * 0.75);
+        ctx.lineTo(size * 0.05, -size * 0.2);
+        ctx.lineTo(-size * 0.1, size * 0.05);
+        ctx.lineTo(size * 0.62, size * 0.75);
+        ctx.stroke();
+      } else if (kind === "shadow") {
+        ctx.rotate(Math.PI / 4);
+        ctx.fillRect(-size * 0.68, -size * 0.68, size * 1.36, size * 1.36);
+        ctx.strokeRect(-size * 0.68, -size * 0.68, size * 1.36, size * 1.36);
+      } else if (kind === "blood") {
+        ctx.beginPath();
+        ctx.moveTo(0, -size);
+        ctx.bezierCurveTo(size * 0.8, -size * 0.08, size * 0.58, size, 0, size);
+        ctx.bezierCurveTo(-size * 0.58, size, -size * 0.8, -size * 0.08, 0, -size);
+        ctx.fill();
+        ctx.stroke();
+      } else if (kind === "gravity") {
+        ctx.strokeRect(-size * 0.72, -size * 0.72, size * 1.44, size * 1.44);
+        ctx.beginPath();
+        ctx.arc(0, 0, size * 0.42, 0, TAU);
+        ctx.stroke();
+      } else if (kind === "crystal") {
+        ctx.beginPath();
+        ctx.moveTo(0, -size);
+        ctx.lineTo(size * 0.72, 0);
+        ctx.lineTo(0, size);
+        ctx.lineTo(-size * 0.72, 0);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+      } else if (kind === "nature") {
+        ctx.beginPath();
+        ctx.ellipse(0, 0, size * 0.55, size, 0.65, 0, TAU);
+        ctx.fill();
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(-size * 0.28, size * 0.58);
+        ctx.lineTo(size * 0.35, -size * 0.62);
+        ctx.stroke();
+      } else if (kind === "void") {
+        ctx.beginPath();
+        ctx.arc(0, 0, size * 0.86, 0, TAU);
+        ctx.stroke();
+        ctx.rotate(Math.PI / 4);
+        ctx.strokeRect(-size * 0.45, -size * 0.45, size * 0.9, size * 0.9);
+      } else if (kind === "time") {
+        ctx.beginPath();
+        ctx.arc(0, 0, size * 0.86, 0, TAU);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.lineTo(0, -size * 0.58);
+        ctx.moveTo(0, 0);
+        ctx.lineTo(size * 0.48, size * 0.24);
+        ctx.stroke();
+      } else {
+        ctx.strokeRect(-size * 0.6, -size * 0.6, size * 1.2, size * 1.2);
+      }
+      ctx.restore();
     }
 
     drawSkillShape(ctx, effect) {

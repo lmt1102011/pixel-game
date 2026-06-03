@@ -537,6 +537,37 @@ button {
   font-size: 12px;
 }
 
+.book-icon {
+  position: relative;
+  width: 22px;
+  height: 18px;
+  display: inline-block;
+  margin-right: 6px;
+  border: 2px solid currentColor;
+  border-radius: 2px 5px 5px 2px;
+  vertical-align: -4px;
+}
+
+.book-icon::before {
+  content: "";
+  position: absolute;
+  left: 8px;
+  top: -2px;
+  bottom: -2px;
+  border-left: 2px solid currentColor;
+}
+
+.book-icon::after {
+  content: "";
+  position: absolute;
+  right: 3px;
+  top: 4px;
+  width: 5px;
+  height: 2px;
+  background: currentColor;
+  box-shadow: 0 5px 0 currentColor;
+}
+
 .account-panel {
   align-self: center;
 }
@@ -571,6 +602,21 @@ button {
   justify-content: space-between;
   gap: 12px;
   margin-bottom: 14px;
+}
+
+.owned-power-grid {
+  display: grid;
+  grid-template-columns: minmax(240px, 420px);
+  justify-content: center;
+  gap: 12px;
+}
+
+.power-card .mini-ill {
+  margin-inline: auto;
+}
+
+.power-card .item-actions {
+  justify-content: center;
 }
 
 .choice-card.selected {
@@ -647,6 +693,141 @@ button {
   top: 5px;
   width: 3px;
   height: 48px;
+}
+
+.power-ill {
+  isolation: isolate;
+}
+
+.power-ill .sigil-core {
+  z-index: 3;
+  inset: 33px 6px 4px;
+  font-size: 9px;
+  letter-spacing: 0;
+}
+
+.power-ill .sigil-ring,
+.power-ill .sigil-ray {
+  opacity: 0.25;
+}
+
+.sigil-mark {
+  position: absolute;
+  z-index: 2;
+  left: 50%;
+  top: 45%;
+  width: 30px;
+  height: 30px;
+  transform: translate(-50%, -50%);
+  border: 4px solid var(--ill);
+  box-shadow: 0 0 14px color-mix(in srgb, var(--ill), transparent 28%);
+}
+
+.sigil-mark.sub {
+  display: none;
+  opacity: 0.8;
+}
+
+.power-fire .sigil-mark.main {
+  width: 24px;
+  height: 34px;
+  border: 0;
+  background: var(--ill);
+  clip-path: polygon(50% 0, 78% 34%, 63% 34%, 86% 100%, 50% 78%, 14% 100%, 37% 34%, 22% 34%);
+}
+
+.power-fire .sigil-mark.sub {
+  display: block;
+  width: 12px;
+  height: 20px;
+  border: 0;
+  background: var(--ill2);
+  clip-path: polygon(50% 0, 88% 100%, 50% 76%, 12% 100%);
+}
+
+.power-ice .sigil-mark.main {
+  border: 0;
+  background:
+    linear-gradient(var(--ill), var(--ill)) 50% 0 / 4px 100% no-repeat,
+    linear-gradient(90deg, var(--ill), var(--ill)) 0 50% / 100% 4px no-repeat;
+}
+
+.power-ice .sigil-mark.sub {
+  display: block;
+  width: 34px;
+  height: 4px;
+  border: 0;
+  background: var(--ill2);
+  transform: translate(-50%, -50%) rotate(45deg);
+  box-shadow: 0 0 0 0, 0 0 14px color-mix(in srgb, var(--ill), transparent 28%);
+}
+
+.power-lightning .sigil-mark.main {
+  width: 24px;
+  height: 38px;
+  border: 0;
+  background: var(--ill);
+  clip-path: polygon(58% 0, 15% 48%, 46% 48%, 32% 100%, 86% 38%, 54% 38%);
+}
+
+.power-shadow .sigil-mark.main {
+  border-radius: 50%;
+  border-width: 0;
+  background: var(--ill);
+  box-shadow: inset -10px 0 0 rgba(0, 0, 0, 0.72), 0 0 14px color-mix(in srgb, var(--ill), transparent 28%);
+}
+
+.power-blood .sigil-mark.main {
+  width: 25px;
+  height: 36px;
+  border: 0;
+  background: var(--ill);
+  clip-path: polygon(50% 0, 82% 44%, 76% 78%, 50% 100%, 24% 78%, 18% 44%);
+}
+
+.power-gravity .sigil-mark.main {
+  border-radius: 50%;
+}
+
+.power-gravity .sigil-mark.sub {
+  display: block;
+  width: 42px;
+  height: 42px;
+  transform: translate(-50%, -50%) rotate(45deg);
+  border-width: 2px;
+}
+
+.power-crystal .sigil-mark.main {
+  width: 25px;
+  height: 38px;
+  transform: translate(-50%, -50%) rotate(45deg);
+}
+
+.power-nature .sigil-mark.main {
+  width: 34px;
+  height: 24px;
+  border-radius: 90% 0 90% 0;
+  transform: translate(-50%, -50%) rotate(-22deg);
+}
+
+.power-void .sigil-mark.main {
+  border-radius: 50%;
+  border-style: double;
+  border-width: 7px;
+}
+
+.power-time .sigil-mark.main {
+  border-radius: 50%;
+}
+
+.power-time .sigil-mark.sub {
+  display: block;
+  width: 4px;
+  height: 22px;
+  border: 0;
+  background: var(--ill2);
+  transform: translate(-50%, -58%);
+  box-shadow: 10px 15px 0 -1px var(--ill2);
 }
 
 .item-shape {
@@ -1431,6 +1612,22 @@ button {
   gap: 10px;
 }
 
+.awakening-list {
+  display: grid;
+  gap: 10px;
+}
+
+.awakening-list .power-row {
+  display: grid;
+  grid-template-columns: 82px minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+}
+
+.awakening-list .mini-ill {
+  margin: 0;
+}
+
 .section-label {
   margin: 18px 0 10px;
   color: var(--gold);
@@ -2008,6 +2205,14 @@ button {
 
   .setting-row {
     grid-template-columns: 1fr;
+  }
+
+  .awakening-list .power-row {
+    grid-template-columns: 1fr;
+  }
+
+  .awakening-list .mini-ill {
+    margin-bottom: 6px;
   }
 
   .hud {

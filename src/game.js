@@ -7,7 +7,7 @@
   const ROOM_PAD = 86;
   const SAVE_KEY = "soulrift-save-v1";
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
-  const APP_VERSION = "20260604-smart-auto-graphics-65";
+  const APP_VERSION = "20260604-power-tabs-awakening-66";
   const VERSION_CHECK_INTERVAL = 15000;
   const UPDATE_ATTEMPT_KEY = "soulrift-update-attempt-v1";
   const DOOR_ENTER_TIME = 1.0;
@@ -741,6 +741,8 @@
           {
             level: 1,
             awakened: false,
+            useAwakened: false,
+            awakenFails: 0,
             mastery: 0,
             rarity: power.rarity,
             unlocked: false
@@ -2074,7 +2076,8 @@
         this.save.account.selectedCharacter = "swordsman";
       }
       for (const power of POWERS) {
-        this.save.powers[power.id] ||= { level: 1, awakened: false, mastery: 0, rarity: power.rarity, unlocked: false };
+        this.save.powers[power.id] ||= { level: 1, awakened: false, useAwakened: false, awakenFails: 0, mastery: 0, rarity: power.rarity, unlocked: false };
+        this.normalizePowerMeta(this.save.powers[power.id], power);
         this.save.powers[power.id].rarity ||= power.rarity;
         this.save.powers[power.id].unlocked = this.save.account.ownedPowers.includes(power.id);
       }
@@ -2155,7 +2158,8 @@
         this.save.account.selectedPower = keep || "";
       }
       for (const power of POWERS) {
-        this.save.powers[power.id] ||= { level: 1, awakened: false, mastery: 0, rarity: power.rarity, unlocked: false };
+        this.save.powers[power.id] ||= { level: 1, awakened: false, useAwakened: false, awakenFails: 0, mastery: 0, rarity: power.rarity, unlocked: false };
+        this.normalizePowerMeta(this.save.powers[power.id], power);
         this.save.powers[power.id].unlocked = this.save.account.ownedPowers.includes(power.id);
       }
       this.save.inventory = [];
@@ -2164,6 +2168,29 @@
       this.save.materials.gold = Math.max(0, Math.floor(Number(this.save.materials.gold || 0)));
       this.normalizeSettings();
       this.normalizeStatPoints();
+    }
+
+    normalizePowerMeta(meta, power) {
+      if (!meta || !power) return;
+      meta.level = Math.max(1, Math.floor(Number(meta.level || 1)));
+      meta.mastery = Math.max(0, Number(meta.mastery || 0));
+      meta.rarity ||= power.rarity;
+      meta.awakened = Boolean(meta.awakened);
+      meta.awakenFails = Math.max(0, Math.floor(Number(meta.awakenFails || 0)));
+      meta.useAwakened = meta.awakened ? meta.useAwakened !== false : false;
+    }
+
+    awakeningRate(powerId) {
+      const power = powerById(powerId);
+      const meta = this.save.powers?.[power.id] || {};
+      const base = Number(RARITY[meta.rarity || power.rarity]?.rate || 0.3);
+      const bonus = Math.min(0.55, Math.max(0, Number(meta.awakenFails || 0)) * 0.08);
+      return clamp(base + bonus, 0.05, base >= 0.99 ? 1 : 0.95);
+    }
+
+    powerAwakeningActive(powerId) {
+      const meta = this.save.powers?.[powerId];
+      return Boolean(meta?.awakened && meta.useAwakened !== false);
     }
 
     normalizeSettings() {
@@ -2994,6 +3021,8 @@
       if (action === "cycle-spectate") this.cycleSpectateTarget();
       if (action === "restart") this.startSelectedRun();
       if (action === "choose-power") this.selectPower(target.dataset.power);
+      if (action === "power-book") this.showPowerBook();
+      if (action === "toggle-awakened-power") this.toggleAwakenedPower(target.dataset.power);
       if (action === "spin-power") this.spinPower();
       if (action === "buy-merchant-offer") this.buyMerchantOffer(target.dataset.offer);
       if (action === "merchant-tab") this.showMerchantShop(target.dataset.tab || "buy");
@@ -3058,7 +3087,8 @@
       if (target.dataset.custom) {
         this.save.customization[target.dataset.custom] = target.value;
         this.persist();
-        this.showCharacter(true);
+        if (this.mode === "custom") this.showCustomization(true);
+        else this.showCharacter(true);
       }
     }
 
@@ -3371,6 +3401,24 @@
       this.showPowers();
     }
 
+    toggleAwakenedPower(powerId) {
+      const power = powerById(powerId);
+      const meta = this.save.powers[power.id];
+      if (!this.save.account.ownedPowers.includes(power.id)) {
+        this.toast("Bạn chưa sở hữu sức mạnh này");
+        return;
+      }
+      if (!meta?.awakened) {
+        this.toast("Sức mạnh này chưa thức tỉnh");
+        return;
+      }
+      meta.useAwakened = !this.powerAwakeningActive(power.id);
+      this.persist();
+      this.toast(`${power.name}: ${meta.useAwakened ? "đang dùng bản thức tỉnh" : "đang dùng bản thường"}`);
+      if (this.mode === "awakening") this.showAwakening();
+      else this.showPowers();
+    }
+
     selectCharacter(characterId) {
       const character = characterById(characterId);
       this.save.account.selectedCharacter = character.id;
@@ -3397,7 +3445,7 @@
       this.save.progression.statUpgrades[stat] = current + 1;
       this.persist();
       this.toast(`Đã nâng ${upgrade.label}`);
-      this.showCharacter(true);
+      this.showStatPoints(true);
     }
 
     resetStatPoints() {
@@ -3411,7 +3459,7 @@
       this.save.progression.statPoints += spent;
       this.persist();
       this.toast(`Đã hoàn ${spent} điểm nâng`);
-      this.showCharacter(true);
+      this.showStatPoints(true);
     }
 
     spinPower() {
@@ -3438,30 +3486,37 @@
       this.showPowers();
     }
 
-    powerCard(power, action) {
+    powerCard(power, action = "choose-power", options = {}) {
       const meta = this.save.powers[power.id] || { level: 1, awakened: false, rarity: power.rarity };
       const owned = this.save.account?.ownedPowers?.includes(power.id);
       const selected = this.save.account?.selectedPower === power.id;
-      const awakened = meta.awakened ? "Đã thức tỉnh" : RARITY[meta.rarity]?.label || title(meta.rarity);
-      const tag = owned ? "button" : "div";
-      const actionAttrs = owned ? `data-action="${action}" data-power="${power.id}"` : "";
+      const activeAwakened = this.powerAwakeningActive(power.id);
+      const awakened = meta.awakened ? (activeAwakened ? "Đang dùng thức tỉnh" : "Đã thức tỉnh - đang dùng bản thường") : RARITY[meta.rarity]?.label || title(meta.rarity);
+      const showActions = owned && options.actions !== false;
+      const selectButton = showActions ? `<button class="btn primary" data-action="${action}" data-power="${power.id}" ${selected ? "disabled" : ""}>${selected ? "ĐANG CHỌN" : "CHỌN"}</button>` : "";
+      const awakenedButton = showActions && meta.awakened
+        ? `<button class="btn" data-action="toggle-awakened-power" data-power="${power.id}">${activeAwakened ? "DÙNG BẢN THƯỜNG" : "DÙNG THỨC TỈNH"}</button>`
+        : "";
       return `
-        <${tag} class="choice-card power-card rarity-${meta.rarity} ${owned ? "" : "locked"} ${selected ? "selected" : ""}" ${actionAttrs}>
+        <div class="choice-card power-card rarity-${meta.rarity} ${owned ? "" : "locked"} ${selected ? "selected" : ""}">
           ${this.powerIllustration(power)}
           <h3 style="color:${power.color}">${power.name}</h3>
           <p>${power.passive}</p>
           <p class="small">${owned ? `Cấp ${meta.level} - ${awakened}` : "Chưa sở hữu"}${selected ? " - Đang chọn" : ""}</p>
-        </${tag}>
+          ${showActions ? `<div class="item-actions">${selectButton}${awakenedButton}</div>` : ""}
+        </div>
       `;
     }
 
     powerIllustration(power) {
       return `
-        <div class="mini-ill power-ill" style="--ill:${power.color}; --ill2:${power.accent}">
+        <div class="mini-ill power-ill power-${power.id}" style="--ill:${power.color}; --ill2:${power.accent}">
           <span class="sigil-core">${power.icon}</span>
           <span class="sigil-ring"></span>
           <span class="sigil-ray one"></span>
           <span class="sigil-ray two"></span>
+          <span class="sigil-mark main"></span>
+          <span class="sigil-mark sub"></span>
         </div>
       `;
     }
@@ -3480,6 +3535,8 @@
     characterTabs(active = "character") {
       const tabs = [
         ["character", "Nhân vật"],
+        ["stats", "Điểm nâng"],
+        ["custom", "Tùy biến"],
         ["inventory", "Kho nguyên liệu"],
         ["powers", "Sức mạnh"],
         ["awakening", "Thức tỉnh"]
@@ -3495,6 +3552,8 @@
       if (tab === "inventory") this.showInventory();
       else if (tab === "powers") this.showPowers();
       else if (tab === "awakening") this.showAwakening();
+      else if (tab === "stats") this.showStatPoints();
+      else if (tab === "custom") this.showCustomization();
       else this.showCharacter();
     }
 
@@ -3511,22 +3570,7 @@
     showCharacter(preserveScroll = false) {
       this.mode = "character";
       const scroll = preserveScroll ? this.captureScreenScroll() : null;
-      const colors = ["#d8b46a", "#f06d6d", "#61d6b4", "#7fa8ff", "#f2f0e6", "#a169ff", "#ff9f43", "#202335"];
-      const options = {
-        eyes: ["ember", "void", "frost", "focus"],
-        mouth: ["scar", "mask", "smirk", "grim"],
-        aura: ["gold", "crimson", "teal", "violet"],
-        accessory: ["cape", "horns", "halo", "scarf"],
-        trail: ["sparks", "smoke", "runes", "shards"]
-      };
-      const swatches = colors.map((color) => `
-        <button class="swatch ${this.save.customization.color === color ? "active" : ""}" style="--swatch:${color}" data-action="set-color" onclick="this.dispatchEvent(new Event('input', {bubbles:true}))">
-          <input class="hidden" data-custom="color" value="${color}" />
-        </button>
-      `).join("");
       const selectedCharacter = characterById(this.save.account.selectedCharacter);
-      const progress = this.save.progression;
-      const xpNeed = this.xpToNextLevel(progress.level || 1);
       const characterCards = CHARACTER_TYPES.map((character) => `
         <button class="character-card ${selectedCharacter.id === character.id ? "selected" : ""}" data-action="select-character" data-character="${character.id}" style="--char:${character.color}">
           <div class="character-icon">${character.icon}</div>
@@ -3540,6 +3584,36 @@
           </div>
         </button>
       `).join("");
+      this.setScreen(`
+        <section class="shell">
+          ${this.navHtml("character")}
+          <div class="panel">
+            <div class="panel-header">
+              <div>
+                <h2 class="panel-title">Nhân Vật</h2>
+                <p class="panel-subtitle">Chọn class sẽ mang vào ải. Điểm nâng và tùy biến đã tách sang tab riêng.</p>
+              </div>
+            </div>
+            ${this.characterTabs("character")}
+            <div class="character-layout">
+              ${this.characterPreviewHtml()}
+              <div class="character-controls">
+                <h3>Kiểu Nhân Vật</h3>
+                <div class="character-card-grid">${characterCards}</div>
+              </div>
+            </div>
+          </div>
+        </section>
+      `);
+      this.restoreScreenScroll(scroll);
+    }
+
+    showStatPoints(preserveScroll = false) {
+      this.mode = "stats";
+      const scroll = preserveScroll ? this.captureScreenScroll() : null;
+      this.normalizeStatPoints();
+      const progress = this.save.progression;
+      const xpNeed = this.xpToNextLevel(progress.level || 1);
       const points = progress.statPoints || 0;
       const spent = this.spentStatPoints();
       const statRows = STAT_POINT_UPGRADES.map((upgrade) => {
@@ -3554,6 +3628,61 @@
           </div>
         `;
       }).join("");
+      this.setScreen(`
+        <section class="shell">
+          ${this.navHtml("character")}
+          <div class="panel">
+            <div class="panel-header">
+              <div>
+                <h2 class="panel-title">Điểm Nâng</h2>
+                <p class="panel-subtitle">Mỗi cấp thêm 1 điểm. Điểm nâng không giới hạn, hệ số tăng nhẹ để không phá game.</p>
+              </div>
+            </div>
+            ${this.characterTabs("stats")}
+            <div class="character-layout">
+              ${this.characterPreviewHtml()}
+              <div class="character-controls">
+                <div class="stat-point-panel">
+                  <div class="stat-point-head">
+                    <div>
+                      <b>Cấp ${progress.level || 1} - còn ${points} điểm</b>
+                      <span>KN ${Math.floor(progress.xp || 0)}/${xpNeed}. Đã cộng ${spent} điểm.</span>
+                    </div>
+                    <button class="btn" data-action="reset-stat-points" ${spent <= 0 ? "disabled" : ""}>HOÀN ĐIỂM</button>
+                  </div>
+                  <div class="stat-upgrade-grid">${statRows}</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      `);
+      this.restoreScreenScroll(scroll);
+    }
+
+    customizationOptionData() {
+      return {
+        eyes: ["ember", "void", "frost", "focus"],
+        mouth: ["scar", "mask", "smirk", "grim"],
+        aura: ["gold", "crimson", "teal", "violet"],
+        accessory: ["cape", "horns", "halo", "scarf"],
+        trail: ["sparks", "smoke", "runes", "shards"]
+      };
+    }
+
+    customizationSwatchesHtml() {
+      const colors = ["#d8b46a", "#f06d6d", "#61d6b4", "#7fa8ff", "#f2f0e6", "#a169ff", "#ff9f43", "#202335"];
+      return colors.map((color) => `
+        <button class="swatch ${this.save.customization.color === color ? "active" : ""}" style="--swatch:${color}" data-action="set-color" onclick="this.dispatchEvent(new Event('input', {bubbles:true}))">
+          <input class="hidden" data-custom="color" value="${color}" />
+        </button>
+      `).join("");
+    }
+
+    showCustomization(preserveScroll = false) {
+      this.mode = "custom";
+      const scroll = preserveScroll ? this.captureScreenScroll() : null;
+      const options = this.customizationOptionData();
       const selects = Object.entries(options).map(([key, values]) => `
         <label class="setting-row">
           <div><h3>${customLabel(key)}</h3><p>${values.map(customLabel).join(" / ")}</p></div>
@@ -3568,29 +3697,16 @@
           <div class="panel">
             <div class="panel-header">
               <div>
-                <h2 class="panel-title">Nhân Vật</h2>
+                <h2 class="panel-title">Tùy Biến</h2>
                 <p class="panel-subtitle">Màu nhân vật, khuôn mặt, hào quang, phụ kiện và vệt lướt.</p>
               </div>
             </div>
-            ${this.characterTabs("character")}
+            ${this.characterTabs("custom")}
             <div class="character-layout">
               ${this.characterPreviewHtml()}
               <div class="character-controls">
-                <h3>Kiểu Nhân Vật</h3>
-                <div class="character-card-grid">${characterCards}</div>
-                <h3>Điểm Nâng</h3>
-                <div class="stat-point-panel">
-                  <div class="stat-point-head">
-                    <div>
-                      <b>Cấp ${progress.level || 1} - còn ${points} điểm</b>
-                      <span>KN ${Math.floor(progress.xp || 0)}/${xpNeed}. Đã cộng ${spent} điểm, không giới hạn số lần nâng.</span>
-                    </div>
-                    <button class="btn" data-action="reset-stat-points" ${spent <= 0 ? "disabled" : ""}>HOÀN ĐIỂM</button>
-                  </div>
-                  <div class="stat-upgrade-grid">${statRows}</div>
-                </div>
                 <h3>Màu</h3>
-                <div class="swatches">${swatches}</div>
+                <div class="swatches">${this.customizationSwatchesHtml()}</div>
                 <div class="grid">${selects}</div>
               </div>
             </div>
@@ -3603,7 +3719,7 @@
           const input = swatch.querySelector("input");
           this.save.customization.color = input.value;
           this.persist();
-          this.showCharacter(true);
+          this.showCustomization(true);
         }, { once: true });
       }
     }
@@ -3720,9 +3836,10 @@
 
     showPowers() {
       this.mode = "powers";
-      const ownedCount = this.save.account.ownedPowers.length;
+      const ownedPowers = POWERS.filter((power) => this.save.account.ownedPowers.includes(power.id));
+      const ownedCount = ownedPowers.length;
       const selected = this.save.account.selectedPower ? powerById(this.save.account.selectedPower) : null;
-      const rows = POWERS.map((power) => this.powerCard(power, "choose-power")).join("");
+      const rows = ownedPowers.map((power) => this.powerCard(power, "choose-power")).join("");
       this.setScreen(`
         <section class="shell">
           ${this.navHtml("character")}
@@ -3730,9 +3847,12 @@
             <div class="panel-header">
               <div>
                 <h2 class="panel-title">Sức Mạnh</h2>
-                <p class="panel-subtitle">Đã sở hữu ${ownedCount}/${POWERS.length} - Lượt quay còn ${this.save.account.powerSpins}</p>
+                <p class="panel-subtitle">Chỉ hiển thị ${ownedCount} sức mạnh đang sở hữu - Lượt quay còn ${this.save.account.powerSpins}</p>
               </div>
-              <button class="btn primary" data-action="spin-power">QUAY SỨC MẠNH</button>
+              <div class="header-actions">
+                <button class="btn icon-label" data-action="power-book"><span class="book-icon" aria-hidden="true"></span> TẤT CẢ</button>
+                <button class="btn primary" data-action="spin-power">QUAY SỨC MẠNH</button>
+              </div>
             </div>
             ${this.characterTabs("powers")}
             <div class="power-summary">
@@ -3742,6 +3862,27 @@
               </div>
               <button class="btn" data-action="play">VÀO ẢI</button>
             </div>
+            <div class="owned-power-grid">${rows || `<div class="empty-state">Bạn chưa sở hữu sức mạnh nào. Hãy quay sức mạnh trước.</div>`}</div>
+          </div>
+        </section>
+      `);
+    }
+
+    showPowerBook() {
+      this.mode = "powerBook";
+      const rows = POWERS.map((power) => this.powerCard(power, "choose-power", { actions: false })).join("");
+      this.setScreen(`
+        <section class="shell">
+          ${this.navHtml("character")}
+          <div class="panel">
+            <div class="panel-header">
+              <div>
+                <h2 class="panel-title">Sách Sức Mạnh</h2>
+                <p class="panel-subtitle">Toàn bộ sức mạnh có thể xuất hiện khi quay. Biểu tượng được làm riêng để dễ nhận diện.</p>
+              </div>
+              <button class="btn" data-action="powers">TRỞ LẠI</button>
+            </div>
+            ${this.characterTabs("powers")}
             <div class="grid cols-3">${rows}</div>
           </div>
         </section>
@@ -3751,16 +3892,25 @@
     showAwakening() {
       this.mode = "awakening";
       const mat = this.save.materials;
-      const rows = POWERS.map((power) => {
+      const ownedPowers = POWERS.filter((power) => this.save.account.ownedPowers.includes(power.id));
+      const rows = ownedPowers.map((power) => {
         const meta = this.save.powers[power.id];
-        const rate = RARITY[meta.rarity].rate;
-        const owned = this.save.account.ownedPowers.includes(power.id);
+        const rate = this.awakeningRate(power.id);
+        const activeAwakened = this.powerAwakeningActive(power.id);
         return `
-          <button class="power-row rarity-${meta.rarity} ${owned ? "" : "locked"}" data-action="awaken-power" data-power="${power.id}">
-            <h3 style="color:${power.color}">${power.name}</h3>
-            <p>${!owned ? "Chưa sở hữu sức mạnh này." : meta.awakened ? "Sức mạnh đã thức tỉnh: hào quang mới, nội tại mạnh hơn và tuyệt kỹ tiến hóa." : `Tỉ lệ thành công ${Math.round(rate * 100)}%. Cần 3 Lõi Trùm và 1 Tia Thần.`}</p>
-            <p class="small">Lõi Trùm ${mat.bossCore} - Tia Thần ${mat.divineSpark}</p>
-          </button>
+          <div class="power-row rarity-${meta.rarity}">
+            ${this.powerIllustration(power)}
+            <div>
+              <h3 style="color:${power.color}">${power.name}</h3>
+              <p>${meta.awakened ? `Đã thức tỉnh. Hiện đang dùng ${activeAwakened ? "bản thức tỉnh" : "bản thường"}.` : `Tỉ lệ hiện tại ${Math.round(rate * 100)}%. Thất bại ${meta.awakenFails || 0} lần sẽ cộng dồn tỉ lệ.`}</p>
+              <p class="small">Lõi Trùm ${mat.bossCore} - Tia Thần ${mat.divineSpark}</p>
+            </div>
+            <div class="item-actions">
+              ${meta.awakened
+                ? `<button class="btn primary" data-action="toggle-awakened-power" data-power="${power.id}">${activeAwakened ? "DÙNG BẢN THƯỜNG" : "DÙNG THỨC TỈNH"}</button>`
+                : `<button class="btn primary" data-action="awaken-power" data-power="${power.id}">THỨC TỈNH ${Math.round(rate * 100)}%</button>`}
+            </div>
+          </div>
         `;
       }).join("");
       this.setScreen(`
@@ -3770,11 +3920,11 @@
             <div class="panel-header">
               <div>
                 <h2 class="panel-title">Thức Tỉnh</h2>
-                <p class="panel-subtitle">Thường 100%, Hiếm 90%, Sử Thi 75%, Huyền Thoại 50%, Thần Thoại 30%, Thần Thánh 15%.</p>
+                <p class="panel-subtitle">Chỉ hiện sức mạnh bạn sở hữu. Mỗi lần thức tỉnh thất bại sẽ tăng thêm tỉ lệ cho lần sau.</p>
               </div>
             </div>
             ${this.characterTabs("awakening")}
-            <div class="grid">${rows}</div>
+            <div class="awakening-list">${rows || `<div class="empty-state">Bạn chưa sở hữu sức mạnh nào để thức tỉnh.</div>`}</div>
           </div>
         </section>
       `);
@@ -4006,13 +4156,16 @@
       }
       this.save.materials.bossCore -= 3;
       this.save.materials.divineSpark -= 1;
-      const rate = RARITY[meta.rarity].rate;
+      const rate = this.awakeningRate(powerId);
       if (chance(rate)) {
         meta.awakened = true;
+        meta.useAwakened = true;
+        meta.awakenFails = 0;
         meta.level += 2;
         this.toast(`${powerById(powerId).name} đã thức tỉnh`);
       } else {
-        this.toast("Thức tỉnh thất bại. Nguyên liệu đã bị tiêu hao.");
+        meta.awakenFails = Math.max(0, Number(meta.awakenFails || 0)) + 1;
+        this.toast(`Thức tỉnh thất bại. Tỉ lệ lần sau tăng lên ${Math.round(this.awakeningRate(powerId) * 100)}%.`);
       }
       this.persist();
       this.showAwakening();
@@ -6115,7 +6268,7 @@
         targetX: target.x,
         targetY: target.y,
         damage: player.damage * this.playerDamageOutputMult(),
-        awakened: Boolean(this.save.powers[power.id]?.awakened),
+        awakened: this.powerAwakeningActive(power.id),
         color: this.save.customization.color,
         casterAura: this.save.customization.aura || "",
         casterEyes: this.save.customization.eyes || "",
@@ -6323,7 +6476,7 @@
     executePowerSkill(key, power, caster, angle, target, options = {}) {
       const owner = options.owner || "player";
       const remote = Boolean(options.remote);
-      const awakened = Boolean(options.awakened ?? this.save.powers[power.id]?.awakened);
+      const awakened = Boolean(options.awakened ?? this.powerAwakeningActive(power.id));
       const x = caster.x;
       const y = caster.y;
       const outputMult = remote ? 1 : this.playerDamageOutputMult();
@@ -6531,7 +6684,7 @@
       }
 
       if (key === "f") {
-        const awakened = this.save.powers[power.id]?.awakened;
+        const awakened = Boolean(options.awakened ?? this.powerAwakeningActive(power.id));
         const radius = awakened ? 330 : 280;
         this.startDomainCinematic(power, caster, angle, options);
         this.freezeEnemiesForDomain(DOMAIN_CUTIN_TIME + 0.28, power.accent);
@@ -10889,7 +11042,7 @@
         ctx.stroke();
         ctx.globalAlpha = 1;
       }
-      if (custom.trail === "runes" || this.save.powers?.[power.id]?.awakened) {
+      if (custom.trail === "runes" || this.powerAwakeningActive(power.id)) {
         ctx.strokeStyle = auraColor;
         ctx.globalAlpha = 0.55;
         for (let i = 0; i < 3; i++) {

@@ -7,7 +7,7 @@
   const ROOM_PAD = 86;
   const SAVE_KEY = "soulrift-save-v1";
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
-  const APP_VERSION = "20260603-chest-boss-projectile-fixes-38";
+  const APP_VERSION = "20260603-gold-chest-stamina-39";
   const VERSION_CHECK_INTERVAL = 15000;
   const DOOR_ENTER_TIME = 1.5;
   const DIRECTORY_TOPIC = "soulrift-directory-v2";
@@ -5070,7 +5070,7 @@
       this.updatePendingBasicAttack(p, dt);
       p.dashCd = Math.max(0, p.dashCd - dt);
       p.energyRegenDelay = Math.max(0, (p.energyRegenDelay || 0) - dt);
-      const regenRate = ((this.run.curse?.id === "manaDebt" ? 5.2 : 7.6) + (this.run.power.id === "time" ? 1.2 : 0)) * (p.stats.energyRegenMult || 1);
+      const regenRate = ((this.run.curse?.id === "manaDebt" ? 5.9 : 8.6) + (this.run.power.id === "time" ? 1.35 : 0)) * (p.stats.energyRegenMult || 1);
       if (p.energyRegenDelay <= 0) p.energy = Math.min(p.maxEnergy, p.energy + dt * regenRate);
       for (const key of Object.keys(p.cooldowns)) p.cooldowns[key] = Math.max(0, p.cooldowns[key] - dt);
 
@@ -6552,7 +6552,8 @@
       if (now - last < 320) return;
       this.chestOpenRequests.set(pickup.id, now);
       pickup.opening = true;
-      pickup.openTimer = Math.min(Number(pickup.openTimer ?? 0.42), 0.34);
+      const openDuration = pickup.container === "goldChest" ? 0.62 : 0.42;
+      pickup.openTimer = Math.min(Number(pickup.openTimer ?? openDuration), openDuration);
       this.lobby.sendOpenChest(pickup.id, this.run.player.x, this.run.player.y);
     }
 
@@ -6577,9 +6578,9 @@
       if (![target.x, target.y].every(Number.isFinite)) return;
       const d = Math.hypot(target.x - chest.x, target.y - chest.y);
       if (d > (target.radius || 22) + chest.radius + 96) return;
+      if (chest.opening) return;
       chest.opening = true;
-      chest.openTimer = 0;
-      this.spawnLootFromChest(chest, target);
+      chest.openTimer = chest.container === "goldChest" ? 0.62 : 0.42;
     }
 
     spawnLootFromChest(chest, target = this.run.player) {
@@ -8150,17 +8151,20 @@
               if (d < target.radius + pickup.radius + 64 || pickup.opening) {
                 this.requestChestOpen(pickup);
                 if (pickup.opening) {
-                  pickup.openTimer = Math.max(0.08, Number(pickup.openTimer ?? 0.34) - dt);
+                  const openDuration = pickup.container === "goldChest" ? 0.62 : 0.42;
+                  pickup.openTimer = Math.max(0.08, Number(pickup.openTimer ?? openDuration) - dt);
                 }
               }
             } else if (Number(pickup.settleTime || 0) <= 0 && target && pickup.age > 0.45) {
               const d = Math.hypot(target.x - pickup.x, target.y - pickup.y);
               if (d < target.radius + pickup.radius + 54 || pickup.opening) {
+                const openDuration = pickup.container === "goldChest" ? 0.62 : 0.42;
                 pickup.opening = true;
-                pickup.openTimer = Math.max(0, Number(pickup.openTimer ?? 0.42) - dt);
-                if (chance(dt * 18)) {
+                pickup.openTimer = Math.max(0, Number(pickup.openTimer ?? openDuration) - dt);
+                if (chance(dt * (pickup.container === "goldChest" ? 32 : 18))) {
                   const a = rand(0, TAU);
-                  this.addParticle(pickup.x + Math.cos(a) * 18, pickup.y + Math.sin(a) * 8, pickup.color || "#f2bf63", rand(7, 15), rand(0.2, 0.45), "spark", a, rand(30, 90));
+                  const sparkColor = pickup.container === "goldChest" && chance(0.45) ? pick(["#fff6d2", "#f2bf63", "#ffffff"]) : (pickup.color || "#f2bf63");
+                  this.addParticle(pickup.x + Math.cos(a) * 18, pickup.y + Math.sin(a) * 8, sparkColor, rand(7, pickup.container === "goldChest" ? 20 : 15), rand(0.2, 0.5), pickup.container === "goldChest" && chance(0.28) ? "ring" : "spark", a, rand(30, 130));
                 }
                 if (pickup.openTimer <= 0) this.spawnLootFromChest(pickup, target);
               }
@@ -8959,50 +8963,92 @@
             ctx.textAlign = "center";
             ctx.fillText("$", 0, 5);
           } else if (pickup.container === "woodChest" || pickup.container === "goldChest") {
-            const opening = pickup.opening ? clamp(1 - (pickup.openTimer || 0) / 0.42, 0, 1) : 0;
             const gold = pickup.container === "goldChest";
-            const bodyLift = Math.sin(opening * Math.PI) * 3;
-            const lidAngle = -opening * 1.18;
+            const openDuration = gold ? 0.62 : 0.42;
+            const rawOpening = pickup.opening ? clamp(1 - Number(pickup.openTimer ?? openDuration) / openDuration, 0, 1) : 0;
+            const opening = gold ? 1 - Math.pow(1 - rawOpening, 2.4) : rawOpening;
+            const bodyLift = Math.sin(rawOpening * Math.PI) * (gold ? 5 : 3);
+            const lidAngle = -opening * (gold ? 1.45 : 1.18);
+            if (gold) ctx.shadowBlur = this.glow(20 + opening * 22);
             ctx.translate(0, bodyLift);
             ctx.fillStyle = "rgba(0,0,0,0.34)";
             ctx.beginPath();
-            ctx.ellipse(0, 18, 24, 6, 0, 0, TAU);
+            ctx.ellipse(0, 18, gold ? 28 : 24, gold ? 7 : 6, 0, 0, TAU);
             ctx.fill();
             ctx.fillStyle = gold ? "#b9892f" : "#8b5128";
             ctx.strokeStyle = gold ? "#fff0ad" : "#f2bf63";
-            ctx.lineWidth = 3;
-            roundPixel(ctx, -20, -6, 40, 23, 3);
-            ctx.strokeRect(-20, -6, 40, 23);
+            ctx.lineWidth = gold ? 3.5 : 3;
+            roundPixel(ctx, gold ? -23 : -20, -6, gold ? 46 : 40, 23, 3);
+            ctx.strokeRect(gold ? -23 : -20, -6, gold ? 46 : 40, 23);
             ctx.fillStyle = gold ? "#f2bf63" : "#f4d26f";
-            ctx.fillRect(-22, 1, 44, 4);
+            ctx.fillRect(gold ? -25 : -22, 1, gold ? 50 : 44, 4);
             ctx.fillStyle = "rgba(255,255,255,0.18)";
-            ctx.fillRect(-16, -3, 32, 3);
+            ctx.fillRect(gold ? -18 : -16, -3, gold ? 36 : 32, 3);
+            if (gold) {
+              ctx.fillStyle = "#6b3d13";
+              ctx.fillRect(-6, 4, 12, 11);
+              ctx.fillStyle = "#fff6d2";
+              ctx.fillRect(-3, 6, 6, 6);
+            }
+            if (gold && opening > 0) {
+              ctx.save();
+              ctx.globalCompositeOperation = "lighter";
+              ctx.globalAlpha = 0.16 + opening * 0.28;
+              ctx.fillStyle = "#fff0ad";
+              ctx.beginPath();
+              ctx.moveTo(-14, -7);
+              ctx.lineTo(-42 - opening * 8, -68 - opening * 24);
+              ctx.lineTo(42 + opening * 8, -68 - opening * 24);
+              ctx.lineTo(14, -7);
+              ctx.closePath();
+              ctx.fill();
+              ctx.strokeStyle = "#fff6d2";
+              ctx.lineWidth = 2;
+              for (let i = -2; i <= 2; i++) {
+                const sway = Math.sin(this.menuTime * 7 + i) * 0.08;
+                const a = -Math.PI / 2 + i * 0.18 + sway;
+                const inner = 12 + opening * 10;
+                const outer = 34 + opening * 30 + (2 - Math.abs(i)) * 5;
+                ctx.beginPath();
+                ctx.moveTo(Math.cos(a) * inner, -5 + Math.sin(a) * inner);
+                ctx.lineTo(Math.cos(a) * outer, -5 + Math.sin(a) * outer);
+                ctx.stroke();
+              }
+              for (let i = 0; i < 4; i++) {
+                const a = this.menuTime * 2.4 + i * TAU / 4;
+                const sx = Math.cos(a) * (18 + opening * 12);
+                const sy = -20 + Math.sin(a) * (7 + opening * 7);
+                ctx.fillStyle = i % 2 ? "#ffffff" : "#fff0ad";
+                ctx.fillRect(sx - 2, sy - 2, 4, 4);
+              }
+              ctx.restore();
+            }
             ctx.save();
-            ctx.translate(-20, -6);
+            ctx.translate(gold ? -23 : -20, -6 - (gold ? opening * 5 : 0));
             ctx.rotate(lidAngle);
-            ctx.translate(20, 6);
+            ctx.translate(gold ? 23 : 20, 6);
             ctx.fillStyle = gold ? "#f2bf63" : "#5a321c";
             ctx.beginPath();
-            ctx.moveTo(-20, -6);
-            ctx.quadraticCurveTo(0, -28 - opening * 8, 20, -6);
-            ctx.lineTo(20, 0);
-            ctx.quadraticCurveTo(0, -18 - opening * 6, -20, 0);
+            ctx.moveTo(gold ? -23 : -20, -6);
+            ctx.quadraticCurveTo(0, -28 - opening * (gold ? 15 : 8), gold ? 23 : 20, -6);
+            ctx.lineTo(gold ? 23 : 20, 0);
+            ctx.quadraticCurveTo(0, -18 - opening * (gold ? 10 : 6), gold ? -23 : -20, 0);
             ctx.closePath();
             ctx.fill();
             ctx.stroke();
             ctx.fillStyle = gold ? "#fff0ad" : "#d6a052";
-            ctx.fillRect(-14, -8, 28, 4);
+            ctx.fillRect(gold ? -17 : -14, -8, gold ? 34 : 28, 4);
             ctx.restore();
             if (opening > 0) {
-              ctx.globalAlpha = 0.35 * opening;
+              ctx.globalAlpha = (gold ? 0.55 : 0.35) * opening;
               ctx.fillStyle = color;
               ctx.beginPath();
-              ctx.ellipse(0, -5, 22 + opening * 8, 9 + opening * 5, 0, 0, TAU);
+              ctx.ellipse(0, -5, (gold ? 27 : 22) + opening * (gold ? 14 : 8), 9 + opening * (gold ? 8 : 5), 0, 0, TAU);
               ctx.fill();
               ctx.globalAlpha = 0.92;
             }
             ctx.fillStyle = color;
-            ctx.fillRect(-5, -1 + opening * 5, 10, 10);
+            ctx.fillRect(-5, -1 + opening * (gold ? 8 : 5), 10, 10);
             ctx.font = "900 9px ui-sans-serif, system-ui";
             ctx.textAlign = "center";
             ctx.fillStyle = "#fff6d2";

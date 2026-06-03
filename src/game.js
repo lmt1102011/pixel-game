@@ -7,10 +7,14 @@
   const ROOM_PAD = 86;
   const SAVE_KEY = "soulrift-save-v1";
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
-  const APP_VERSION = "20260604-subtle-domain-cast-58";
+  const APP_VERSION = "20260604-domain-cinematic-59";
   const VERSION_CHECK_INTERVAL = 15000;
   const UPDATE_ATTEMPT_KEY = "soulrift-update-attempt-v1";
   const DOOR_ENTER_TIME = 1.0;
+  const DOMAIN_CUTIN_TIME = 1.15;
+  const DOMAIN_GROW_TIME = 0.85;
+  const DOMAIN_DURATION = 10;
+  const DOMAIN_ENERGY_COST_RATIO = 0.62;
   const DIRECTORY_TOPIC = "soulrift-directory-v2";
   const ROOM_CODE_RE = /^[A-Z0-9]{4,12}$/;
   const ROOM_TTL_MS = 45000;
@@ -4117,7 +4121,7 @@
         "role", "specialSkill", "ranged", "bulky", "elite", "boss", "attackCd", "skillCd", "windupType",
         "windupTime", "windupTotal", "windupAngle", "windupX", "windupY", "chargeTime",
         "chargeHit", "chargeDir", "chargeSpeed", "chargeDamage", "attackAnim", "attackDir", "facingDir",
-        "launch", "flash", "stun", "burn", "chill", "mark", "bleed", "bleedTick", "bleedDamage", "phase", "phaseLock", "fatigueTime", "fatigueMax", "fatigueCounter", "bossDebuff", "aiTimer"
+        "launch", "flash", "stun", "domainFreeze", "burn", "chill", "mark", "bleed", "bleedTick", "bleedDamage", "phase", "phaseLock", "fatigueTime", "fatigueMax", "fatigueCounter", "bossDebuff", "aiTimer"
       ]);
     }
 
@@ -4148,7 +4152,7 @@
 
     networkEffects(compact = false) {
       const visibleTypes = new Set([
-        "pull", "zone", "danger", "ultimate", "skillShape", "castBurst", "castCone",
+        "pull", "zone", "danger", "ultimate", "domainCutin", "skillShape", "castBurst", "castCone",
         "powerGlyph", "attackBurst", "hitSpark", "lineTell"
       ]);
       const effects = this.run.effects.filter((effect) => visibleTypes.has(effect.type));
@@ -5873,8 +5877,8 @@
         characterId: character.id,
         color: skill.color || remote.color || "#d8b46a",
         animation: skill.key === "f" ? "ultimate" : "skill",
-        actionTotal: skill.key === "f" ? 0.72 : 0.42,
-        actionTime: skill.key === "f" ? 0.72 : 0.42,
+        actionTotal: skill.key === "f" ? DOMAIN_CUTIN_TIME + 0.35 : 0.42,
+        actionTime: skill.key === "f" ? DOMAIN_CUTIN_TIME + 0.35 : 0.42,
         facing: angle,
         t: performance.now()
       });
@@ -5884,8 +5888,19 @@
         remote: true,
         damage,
         casterId: remoteId,
-        awakened: Boolean(skill.awakened)
+        awakened: Boolean(skill.awakened),
+        characterId: character.id,
+        casterColor: skill.color || remote.color,
+        casterAura: skill.casterAura || "",
+        casterEyes: skill.casterEyes || "",
+        casterAccessory: skill.casterAccessory || "",
+        casterMouth: skill.casterMouth || "",
+        casterTrail: skill.casterTrail || ""
       });
+    }
+
+    ultimateEnergyCost(player) {
+      return Math.ceil(Math.max(0, player?.maxEnergy || 0) * DOMAIN_ENERGY_COST_RATIO);
     }
 
     useSkill(key) {
@@ -5893,13 +5908,19 @@
       if (!p || p.dead || this.pauseOverlay) return;
       const cost = { q: 18, e: 24, r: 34, f: 0 }[key];
       const cooldown = { q: 3.2, e: 5.4, r: 8.6, f: 0.8 }[key];
+      const ultimateCost = key === "f" ? this.ultimateEnergyCost(p) : 0;
       if (key !== "f" && (p.cooldowns[key] > 0 || p.energy < cost)) return;
       if (key === "f" && (p.cooldowns.f > 0 || p.ult < 100)) return;
+      if (key === "f" && p.energy < ultimateCost) {
+        this.toast(`Cần ${ultimateCost} năng lượng để thi triển lãnh địa`);
+        return;
+      }
       if (key !== "f") p.energy -= cost;
-      p.energyRegenDelay = Math.max(p.energyRegenDelay || 0, key === "r" ? 1.45 : key === "e" ? 1.25 : 1.05);
+      if (key === "f") p.energy = Math.max(0, p.energy - ultimateCost);
+      p.energyRegenDelay = Math.max(p.energyRegenDelay || 0, key === "f" ? 2.15 : key === "r" ? 1.45 : key === "e" ? 1.25 : 1.05);
       p.cooldowns[key] = cooldown;
       p.animation = key === "f" ? "ultimate" : "skill";
-      p.actionTotal = key === "f" ? 0.72 : key === "r" ? 0.48 : 0.38;
+      p.actionTotal = key === "f" ? DOMAIN_CUTIN_TIME + 0.35 : key === "r" ? 0.48 : 0.38;
       p.actionTime = p.actionTotal;
       const power = this.run.power;
       const aim = this.skillAimAngle(p);
@@ -5928,6 +5949,11 @@
         damage: player.damage * this.playerDamageOutputMult(),
         awakened: Boolean(this.save.powers[power.id]?.awakened),
         color: this.save.customization.color,
+        casterAura: this.save.customization.aura || "",
+        casterEyes: this.save.customization.eyes || "",
+        casterAccessory: this.save.customization.accessory || "",
+        casterMouth: this.save.customization.mouth || "",
+        casterTrail: this.save.customization.trail || "",
         t: performance.now()
       });
     }
@@ -5965,6 +5991,17 @@
       return Number.isFinite(this.skillAreaScale) ? this.skillAreaScale : 1;
     }
 
+    powerDomainRadius(effect) {
+      const finalRadius = Number(effect?.radius) || 320;
+      const growTotal = Math.max(0, Number(effect?.growTotal) || 0);
+      const growTime = Math.max(0, Number(effect?.growTime) || 0);
+      if (growTotal <= 0 || growTime <= 0) return finalRadius;
+      const startRadius = Math.max(8, Number(effect.startRadius) || 24);
+      const progress = clamp(1 - growTime / growTotal, 0, 1);
+      const eased = 1 - Math.pow(1 - progress, 3);
+      return startRadius + (finalRadius - startRadius) * eased;
+    }
+
     activePowerDomain(kind, caster, casterId = this.lobby.id) {
       if (!this.run || !caster) return null;
       return (this.run.effects || []).find((effect) => (
@@ -5972,8 +6009,9 @@
         && effect.domain
         && effect.kind === kind
         && effect.time > 0
+        && !(effect.castDelay > 0)
         && (!effect.casterId || !casterId || effect.casterId === casterId)
-        && Math.hypot(caster.x - effect.x, caster.y - effect.y) < effect.radius + (caster.radius || 22)
+        && Math.hypot(caster.x - effect.x, caster.y - effect.y) < this.powerDomainRadius(effect) + (caster.radius || 22)
       )) || null;
     }
 
@@ -6306,8 +6344,8 @@
       if (key === "f") {
         const awakened = this.save.powers[power.id]?.awakened;
         const radius = awakened ? 330 : 280;
-        this.addSkillShape(kind, "ultimate", x, y, angle, radius * 0.82, awakened ? 0.62 : 0.52, { subtle: true });
-        this.powerCastVfx(power, x, y, angle, radius, awakened ? 1.05 : 0.85, !remote, { visualOnly: true, subtle: true });
+        this.startDomainCinematic(power, caster, angle, options);
+        this.freezeEnemiesForDomain(DOMAIN_CUTIN_TIME + 0.28, power.accent);
         if (kind === "blood" && !remote) this.healPlayer(70);
         if (kind === "nature" && !remote) this.healPlayer(95);
         if (kind === "time" && !remote) {
@@ -6315,9 +6353,6 @@
           caster.cooldowns.e = 0;
           caster.cooldowns.r = 0;
         }
-        if (kind === "gravity" || kind === "void") this.addEffect({ type: "pull", x, y, radius: radius + 30, time: 1.15, color: power.color });
-        if (kind === "lightning") this.burstLines(x, y, power.accent, 4, radius * 0.58, 0.12);
-        this.addShockwave(x, y, radius + 18, power.accent, 0);
         this.addEffect({
           type: "ultimate",
           domain: true,
@@ -6326,21 +6361,61 @@
           x,
           y,
           radius: radius + 35,
-          time: 6,
-          maxTime: 6,
+          startRadius: 26,
+          time: DOMAIN_DURATION + DOMAIN_CUTIN_TIME,
+          maxTime: DOMAIN_DURATION + DOMAIN_CUTIN_TIME,
+          domainDuration: DOMAIN_DURATION,
+          castDelay: DOMAIN_CUTIN_TIME,
+          growTime: DOMAIN_GROW_TIME,
+          growTotal: DOMAIN_GROW_TIME,
           tick: this.powerDomainTickRate(kind),
           color: power.accent,
           accent: power.color,
           kind,
           damage: damage * (awakened ? 0.3 : 0.22),
           damageBoost: awakened ? 1.3 : 1.22,
-          areaBoost: awakened ? 1.22 : 1.15
+          areaBoost: awakened ? 1.22 : 1.15,
+          awakened: Boolean(awakened)
         });
-        if (awakened) this.applyAwakenedSkillBonus(key, power, caster, angle, { x, y }, damage, owner, remote);
-        this.camera.shake = Math.max(this.camera.shake, 12);
-        this.audio.sfx(kind === "time" ? 130 : 70, "sawtooth", 0.22, 0.12);
+        this.camera.shake = Math.max(this.camera.shake, 7);
+        this.audio.sfx(kind === "time" ? 130 : 70, "sawtooth", 0.2, 0.1);
       }
       this.skillAreaScale = previousSkillAreaScale;
+    }
+
+    startDomainCinematic(power, caster, angle = 0, options = {}) {
+      const localCaster = !options.remote && (!options.casterId || options.casterId === this.lobby.id);
+      const custom = localCaster ? this.save.customization : {};
+      this.addEffect({
+        type: "domainCutin",
+        kind: power.id,
+        x: caster.x,
+        y: caster.y,
+        angle,
+        time: DOMAIN_CUTIN_TIME,
+        maxTime: DOMAIN_CUTIN_TIME,
+        color: power.color,
+        accent: power.accent,
+        characterId: options.characterId || caster.characterId || this.run.player.characterId || "swordsman",
+        casterColor: options.casterColor || custom.color || "#d8b46a",
+        casterAura: options.casterAura || custom.aura || "",
+        casterEyes: options.casterEyes || custom.eyes || "",
+        casterAccessory: options.casterAccessory || custom.accessory || "",
+        casterMouth: options.casterMouth || custom.mouth || "",
+        casterTrail: options.casterTrail || custom.trail || ""
+      });
+      this.addParticle(caster.x, caster.y - 10, power.accent, 22, 0.42, "ring", angle, 30);
+    }
+
+    freezeEnemiesForDomain(time = DOMAIN_CUTIN_TIME, color = "#d9fbff") {
+      if (!this.run?.enemies?.length) return;
+      for (const enemy of this.run.enemies) {
+        enemy.domainFreeze = Math.max(enemy.domainFreeze || 0, time);
+        enemy.vx = 0;
+        enemy.vy = 0;
+        enemy.attackAnim = Math.max(enemy.attackAnim || 0, 0.12);
+        if (chance(0.7)) this.addParticle(enemy.x, enemy.y - enemy.radius * 0.35, color, rand(6, 14), rand(0.25, 0.5), "ring");
+      }
     }
 
     powerCastVfx(power, x, y, angle = 0, radius = 150, intensity = 1, healNature = true, options = {}) {
@@ -7781,6 +7856,13 @@
           enemy.mark = 0;
           this.damageEnemy(enemy, 38, { x: 0, y: 0, source: "mark", kind: "void" });
         }
+        if (enemy.domainFreeze > 0) {
+          enemy.domainFreeze = Math.max(0, enemy.domainFreeze - dt);
+          enemy.vx = 0;
+          enemy.vy = 0;
+          enemy.attackAnim = Math.max(enemy.attackAnim || 0, 0.08);
+          continue;
+        }
         if (enemy.stun > 0) continue;
         if (enemy.boss) this.updateBoss(enemy, dt);
         else this.updateEnemyAi(enemy, dt);
@@ -8912,8 +8994,13 @@
 
     updatePowerDomain(effect, dt) {
       const kind = effect.kind || "fire";
-      const radius = effect.radius || 360;
       const color = effect.color || powerById(kind).accent;
+      if (effect.castDelay > 0) {
+        effect.castDelay = Math.max(0, effect.castDelay - dt);
+        return;
+      }
+      if (effect.growTime > 0) effect.growTime = Math.max(0, effect.growTime - dt);
+      const radius = this.powerDomainRadius(effect);
       if (!this.isMultiplayerClient() && (kind === "gravity" || kind === "void" || kind === "time")) {
         for (const enemy of this.run.enemies) {
           const d = Math.hypot(enemy.x - effect.x, enemy.y - effect.y);
@@ -9497,12 +9584,13 @@
       const now = performance.now();
       if (now < this.nextHudSkillAt) return;
       this.nextHudSkillAt = now + (this.perf.quality < 0.7 ? 150 : 95);
+      const ultimateCost = this.ultimateEnergyCost(p);
       const skills = [
         ["ĐÁNH", this.run.power.skills.basic, this.run.player.attackCd, this.run.player.basicAttackCd || 0.38],
         ["Q", this.run.power.skills.q, p.cooldowns.q, 3.2],
         ["E", this.run.power.skills.e, p.cooldowns.e, 5.4],
         ["R", this.run.power.skills.r, p.cooldowns.r, 8.6],
-        ["F", `${this.run.power.skills.f} ${Math.floor(p.ult)}%`, p.ult >= 100 ? 0 : 1, 1]
+        ["F", `${this.run.power.skills.f} ${Math.floor(p.ult)}% - ${ultimateCost} NL`, p.ult >= 100 && p.energy >= ultimateCost ? 0 : 1, 1]
       ];
       if (mobileHud) {
         this.updateTouchCooldowns(skills);
@@ -9680,6 +9768,7 @@
       this.renderViewW = 0;
       this.renderViewH = 0;
       this.drawVignette(ctx);
+      this.drawDomainCutinOverlay(ctx);
     }
 
     drawRoom(ctx) {
@@ -11068,31 +11157,47 @@
         ctx.shadowBlur = this.glow(18);
         if (foreground) ctx.globalCompositeOperation = "lighter";
         if (effect.type === "ultimate" && effect.domain) {
-          const lifeRatio = clamp(effect.time / (effect.maxTime || 6), 0, 1);
+          if (effect.castDelay > 0) {
+            ctx.restore();
+            continue;
+          }
+          const domainDuration = Number(effect.domainDuration) || effect.maxTime || DOMAIN_DURATION;
+          const lifeRatio = clamp(Math.min(effect.time, domainDuration) / domainDuration, 0, 1);
           const progress = 1 - lifeRatio;
           const pulse = Math.sin(this.menuTime * 6 + progress * 2) * 4;
-          const r = Math.max(16, effect.radius + pulse);
-          ctx.globalAlpha = 0.5 + lifeRatio * 0.22;
-          ctx.lineWidth = 8;
+          const growTotal = Math.max(0, Number(effect.growTotal) || 0);
+          const growProgress = growTotal > 0 ? clamp(1 - Math.max(0, Number(effect.growTime) || 0) / growTotal, 0, 1) : 1;
+          const r = Math.max(16, this.powerDomainRadius(effect) + pulse);
+          ctx.globalAlpha = 0.42 + lifeRatio * 0.2;
+          ctx.lineWidth = effect.awakened ? 9 : 7;
           ctx.beginPath();
           ctx.arc(effect.x, effect.y, r, 0, TAU);
           ctx.stroke();
+          if (growProgress < 1) {
+            ctx.globalAlpha = 0.62 * (1 - growProgress * 0.35);
+            ctx.strokeStyle = effect.accent || "#ffffff";
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.arc(effect.x, effect.y, r + 16 + growProgress * 18, 0, TAU);
+            ctx.stroke();
+          }
           ctx.strokeStyle = effect.accent || "#ffffff";
-          ctx.globalAlpha = 0.44;
+          ctx.globalAlpha = 0.38;
           ctx.lineWidth = 2;
           ctx.beginPath();
           ctx.arc(effect.x, effect.y, r - 10, 0, TAU);
           ctx.stroke();
           ctx.fillStyle = effect.color;
-          ctx.globalAlpha = 0.045 + lifeRatio * 0.035;
+          ctx.globalAlpha = 0.035 + lifeRatio * 0.03;
           ctx.beginPath();
           ctx.arc(effect.x, effect.y, r, 0, TAU);
           ctx.fill();
-          ctx.globalAlpha = 0.34;
+          ctx.globalAlpha = 0.3;
           ctx.strokeStyle = effect.color;
           ctx.lineWidth = 2;
-          for (let i = 0; i < 10; i++) {
-            const a = (i / 10) * TAU + this.menuTime * 0.22 * (effect.kind === "time" ? -1 : 1);
+          const rays = effect.awakened ? 12 : 9;
+          for (let i = 0; i < rays; i++) {
+            const a = (i / rays) * TAU + this.menuTime * 0.22 * (effect.kind === "time" ? -1 : 1);
             ctx.beginPath();
             ctx.moveTo(effect.x + Math.cos(a) * r * 0.45, effect.y + Math.sin(a) * r * 0.45);
             ctx.lineTo(effect.x + Math.cos(a) * r * 0.97, effect.y + Math.sin(a) * r * 0.97);
@@ -11933,6 +12038,97 @@
       }
       ctx.restore();
     }
+
+    drawDomainCutinOverlay(ctx) {
+      if (!this.run?.effects?.length) return;
+      const effect = [...this.run.effects].reverse().find((entry) => entry.type === "domainCutin" && entry.time > 0);
+      if (!effect) return;
+      const progress = clamp(1 - effect.time / Math.max(0.1, effect.maxTime || DOMAIN_CUTIN_TIME), 0, 1);
+      const fadeIn = clamp(progress / 0.22, 0, 1);
+      const fadeOut = clamp(effect.time / 0.22, 0, 1);
+      const alpha = Math.min(fadeIn, fadeOut);
+      const power = powerById(effect.kind || this.run.power.id);
+      const panelH = clamp(this.height * 0.34, 150, 250);
+      const panelY = this.height * 0.5 - panelH * 0.5;
+      const sweep = easeOutCubic(progress);
+      ctx.save();
+      ctx.globalAlpha = alpha;
+      ctx.fillStyle = "rgba(0,0,0,0.56)";
+      ctx.fillRect(0, 0, this.width, this.height);
+      ctx.fillStyle = "rgba(4,6,12,0.96)";
+      ctx.fillRect(0, panelY, this.width, panelH);
+      ctx.strokeStyle = effect.accent || power.accent;
+      ctx.lineWidth = 3;
+      ctx.globalAlpha = alpha * 0.9;
+      ctx.beginPath();
+      ctx.moveTo(0, panelY);
+      ctx.lineTo(this.width, panelY);
+      ctx.moveTo(0, panelY + panelH);
+      ctx.lineTo(this.width, panelY + panelH);
+      ctx.stroke();
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(0, panelY, this.width, panelH);
+      ctx.clip();
+      const centerX = this.width * (0.34 + 0.08 * sweep);
+      const centerY = panelY + panelH * 0.66;
+      const stripeCount = this.isMobileDevice() ? 14 : 22;
+      for (let i = 0; i < stripeCount; i++) {
+        const y = panelY + ((i * 37 + this.menuTime * 260) % (panelH + 90)) - 45;
+        const x = (i * 91 + progress * this.width * 0.45) % (this.width + 160) - 80;
+        ctx.globalAlpha = alpha * (i % 3 === 0 ? 0.3 : 0.14);
+        ctx.strokeStyle = i % 3 === 0 ? (effect.accent || power.accent) : (effect.color || power.color);
+        ctx.lineWidth = i % 3 === 0 ? 3 : 2;
+        ctx.beginPath();
+        ctx.moveTo(x - 180, y + 70);
+        ctx.lineTo(x + 260, y - 36);
+        ctx.stroke();
+      }
+      const flareX = this.width * (0.12 + sweep * 0.62);
+      const gradient = ctx.createLinearGradient(flareX - 140, 0, flareX + 180, 0);
+      gradient.addColorStop(0, "rgba(255,255,255,0)");
+      gradient.addColorStop(0.5, hexToRgba(effect.accent || power.accent, 0.42));
+      gradient.addColorStop(1, "rgba(255,255,255,0)");
+      ctx.globalAlpha = alpha;
+      ctx.fillStyle = gradient;
+      ctx.fillRect(flareX - 160, panelY, 340, panelH);
+      ctx.globalAlpha = alpha;
+      const custom = {
+        color: effect.casterColor || this.save.customization.color || "#d8b46a",
+        aura: effect.casterAura || this.save.customization.aura || "",
+        eyes: effect.casterEyes || this.save.customization.eyes || "",
+        accessory: effect.casterAccessory || "",
+        mouth: effect.casterMouth || "",
+        trail: effect.casterTrail || ""
+      };
+      const actor = {
+        facing: effect.angle || 0,
+        animation: "ultimate",
+        actionTime: Math.max(0.05, effect.time),
+        actionTotal: effect.maxTime || DOMAIN_CUTIN_TIME,
+        characterId: effect.characterId || this.run.player.characterId
+      };
+      ctx.save();
+      ctx.translate((1 - fadeIn) * -80 + Math.sin(progress * Math.PI) * 16, 0);
+      this.drawHero(ctx, centerX, centerY, this.isMobileDevice() ? 3.0 : 3.55, actor, power, custom);
+      ctx.restore();
+      ctx.globalAlpha = alpha * 0.8;
+      ctx.strokeStyle = effect.accent || power.accent;
+      ctx.lineWidth = 2;
+      const ringX = this.width * (0.68 + 0.08 * (1 - sweep));
+      const ringY = panelY + panelH * 0.52;
+      for (let i = 0; i < 3; i++) {
+        const r = 34 + i * 24 + sweep * 42;
+        ctx.beginPath();
+        ctx.arc(ringX, ringY, r, -Math.PI * 0.85 + progress * 0.7, Math.PI * 0.85 + progress * 0.7);
+        ctx.stroke();
+      }
+      ctx.restore();
+      ctx.globalAlpha = alpha * 0.18;
+      ctx.fillStyle = effect.color || power.color;
+      ctx.fillRect(0, panelY + panelH - 10, this.width * sweep, 10);
+      ctx.restore();
+    }
   }
 
   function roundPixel(ctx, x, y, w, h, r) {
@@ -11943,6 +12139,22 @@
       return;
     }
     ctx.fillRect(x, y, w, h);
+  }
+
+  function easeOutCubic(value) {
+    const t = clamp(value, 0, 1);
+    return 1 - Math.pow(1 - t, 3);
+  }
+
+  function hexToRgba(hex, alpha = 1) {
+    const text = String(hex || "").trim();
+    const match = /^#?([0-9a-f]{6})$/i.exec(text);
+    if (!match) return `rgba(255,255,255,${clamp(alpha, 0, 1)})`;
+    const value = Number.parseInt(match[1], 16);
+    const r = (value >> 16) & 255;
+    const g = (value >> 8) & 255;
+    const b = value & 255;
+    return `rgba(${r},${g},${b},${clamp(alpha, 0, 1)})`;
   }
 
   window.addEventListener("DOMContentLoaded", () => {

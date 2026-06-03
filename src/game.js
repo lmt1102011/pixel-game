@@ -7,7 +7,7 @@
   const ROOM_PAD = 86;
   const SAVE_KEY = "soulrift-save-v1";
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
-  const APP_VERSION = "20260603-peerjs-room-reload-27";
+  const APP_VERSION = "20260603-assist-chest-economy-28";
   const VERSION_CHECK_INTERVAL = 15000;
   const DIRECTORY_TOPIC = "soulrift-directory-v2";
   const ROOM_CODE_RE = /^[A-Z0-9]{4,12}$/;
@@ -264,7 +264,7 @@
   const DIFFICULTIES = [
     { id: "easy", label: "Dễ", text: "Quái yếu hơn, phù hợp để thử nhân vật và power.", enemyHp: 0.82, enemyDamage: 0.84, countBonus: -1, rewardBonus: -0.06 },
     { id: "normal", label: "Thường", text: "Nhịp chuẩn của Soulrift.", enemyHp: 1, enemyDamage: 1, countBonus: 0, rewardBonus: 0 },
-    { id: "hard", label: "Khó", text: "Quái dai và đau hơn, đổi lại đồ rơi tốt hơn.", enemyHp: 1.22, enemyDamage: 1.16, countBonus: 1, rewardBonus: 0.12 }
+    { id: "hard", label: "Khó", text: "Quái dai và đau hơn, đổi lại rương, tiền và nguyên liệu tốt hơn.", enemyHp: 1.22, enemyDamage: 1.16, countBonus: 1, rewardBonus: 0.12 }
   ];
 
   const CURSES = [
@@ -281,127 +281,120 @@
 
   const ITEMS = [
     {
-      id: "ashenSabre",
-      name: "Kiếm Tàn Tro",
-      slot: "Weapon",
+      id: "swiftBoots",
+      name: "Giày Gió Lệch",
+      slot: "Assist",
       rarity: "rare",
-      icon: "AS",
-      text: "Lướt để lại vệt lửa, đòn cơ bản gây thiêu đốt."
+      icon: "GIÀY",
+      text: "Tăng mạnh tốc độ chạy nhưng giảm năng lượng tối đa trong lượt."
     },
     {
-      id: "stormPistol",
-      name: "Súng Bão Sét",
-      slot: "Weapon",
-      rarity: "epic",
-      icon: "SP",
-      text: "Chí mạng bắn thêm một viên sét lan."
-    },
-    {
-      id: "mourningAxe",
-      name: "Rìu Tang Lễ",
-      slot: "Weapon",
-      rarity: "legendary",
-      icon: "MA",
-      text: "Đòn combo thứ ba tạo sóng chém rộng."
-    },
-    {
-      id: "mirrorMail",
-      name: "Giáp Gương",
-      slot: "Armor",
-      rarity: "epic",
-      icon: "MM",
-      text: "Khi chịu sát thương sẽ phóng mảnh pha lê."
-    },
-    {
-      id: "emberMantle",
-      name: "Áo Choàng Than Hồng",
-      slot: "Armor",
+      id: "focusGloves",
+      name: "Găng Tụ Lực",
+      slot: "Assist",
       rarity: "rare",
-      icon: "EM",
-      text: "Vụ nổ hồi cho bạn một lượng máu nhỏ."
+      icon: "GĂNG",
+      text: "Đòn thường đau hơn nhưng nhịp đánh chậm hơn một chút."
     },
     {
-      id: "voidCarapace",
-      name: "Giáp Hư Không",
-      slot: "Armor",
-      rarity: "mythic",
-      icon: "VC",
-      text: "Một lần mỗi phòng, đòn chí tử sẽ tua ngược sinh mạng."
+      id: "amberTonic",
+      name: "Thuốc Hổ Phách",
+      slot: "Assist",
+      rarity: "rare",
+      icon: "MÁU",
+      text: "Tăng máu tối đa, đổi lại di chuyển nặng hơn nhẹ."
+    },
+    {
+      id: "sparkNeedle",
+      name: "Kim Sét",
+      slot: "Assist",
+      rarity: "epic",
+      icon: "SÉT",
+      text: "Tăng chí mạng, thỉnh thoảng chí mạng lan sét sang mục tiêu gần."
     },
     {
       id: "droneCore",
-      name: "Lõi Drone",
-      slot: "Relic 1",
-      rarity: "rare",
-      icon: "DC",
-      text: "Triệu hồi drone điện bắn kẻ địch gần đó."
+      name: "Drone Phụ Trợ",
+      slot: "Assist",
+      rarity: "epic",
+      icon: "DR",
+      text: "Gọi một drone bắn hỗ trợ, nhưng hồi năng lượng chậm hơn."
     },
     {
       id: "fractureBell",
-      name: "Chuông Nứt Vỡ",
-      slot: "Relic 1",
+      name: "Chuông Băng Nứt",
+      slot: "Assist",
       rarity: "legendary",
-      icon: "FB",
-      text: "Kẻ địch bị đóng băng vỡ thành mảnh xuyên thấu."
+      icon: "BĂNG",
+      text: "Kẻ địch đang lạnh vỡ thành mảnh xuyên thấu khi bị hạ."
     },
     {
       id: "bloodVial",
-      name: "Bình Máu Cổ",
-      slot: "Relic 2",
+      name: "Ống Máu Nóng",
+      slot: "Assist",
       rarity: "epic",
-      icon: "BV",
-      text: "Sát thương chí mạng hồi lại máu."
+      icon: "HÚT",
+      text: "Hút máu nhẹ theo sát thương, nhưng giảm một phần máu tối đa."
     },
     {
       id: "gravityDice",
       name: "Xúc Xắc Trọng Lực",
-      slot: "Relic 2",
+      slot: "Assist",
       rarity: "mythic",
-      icon: "GD",
-      text: "Khi vào phòng có thể tạo dị thường trọng lực."
+      icon: "LỰC",
+      text: "Tạo dị thường trọng lực trong trận, có lợi khi kéo quái tụ lại."
     },
     {
       id: "luckyCharm",
-      name: "Bùa May",
-      slot: "Charm",
+      name: "Bùa Nhặt Đồ",
+      slot: "Assist",
       rarity: "rare",
-      icon: "LC",
-      text: "Tăng tỉ lệ chí mạng và độ hiếm phần thưởng."
+      icon: "MAY",
+      text: "Tăng may mắn phần thưởng và phạm vi hút rương, nhưng giảm sát thương nhẹ."
+    },
+    {
+      id: "guardPlate",
+      name: "Mảnh Hộ Tâm",
+      slot: "Assist",
+      rarity: "epic",
+      icon: "ĐỠ",
+      text: "Có thêm khiên và giảm sát thương nhận vào, đổi lại chạy chậm hơn."
     },
     {
       id: "merchantEdge",
-      name: "Lưỡi Kiếm Khế Ước",
-      slot: "Weapon",
+      name: "Dầu Mài Khe Nứt",
+      slot: "Assist",
       rarity: "epic",
-      icon: "ME",
+      icon: "DẦU",
       merchantOnly: true,
-      text: "Vũ khí thương nhân: tăng sát thương và chí mạng."
+      text: "Hàng thương nhân: tăng sát thương và chí mạng trong lượt."
     },
     {
       id: "riftLedger",
-      name: "Sổ Khe Nứt",
-      slot: "Relic 1",
+      name: "La Bàn Khe Nứt",
+      slot: "Assist",
       rarity: "legendary",
-      icon: "RL",
+      icon: "LA",
       merchantOnly: true,
-      text: "Di vật thương nhân: tăng may mắn phần thưởng."
+      text: "Hàng thương nhân: tăng tiền rơi và độ hiếm phần thưởng."
     },
     {
       id: "azurePermit",
-      name: "Giấy Phép Lam",
-      slot: "Charm",
+      name: "Pin Lam",
+      slot: "Assist",
       rarity: "mythic",
-      icon: "AP",
+      icon: "PIN",
       merchantOnly: true,
-      text: "Bùa thương nhân: tăng năng lượng và hồi chiêu nhẹ."
+      text: "Hàng thương nhân: tăng năng lượng tối đa và tốc độ hồi năng lượng."
     },
     {
       id: "divineSigil",
-      name: "Ấn Thần",
-      slot: "Charm",
+      name: "Ấn Bùng Nổ",
+      slot: "Assist",
       rarity: "divine",
-      icon: "DS",
-      text: "Tuyệt kỹ đánh thức nội tại hiện tại trong mười giây."
+      icon: "ẤN",
+      merchantOnly: true,
+      text: "Hàng hiếm: dùng tuyệt kỹ sẽ kích hoạt nội tại bùng nổ trong mười giây."
     }
   ];
 
@@ -456,6 +449,7 @@
   ];
 
   const SLOT_LABELS = {
+    Assist: "Phụ Trợ",
     Weapon: "Vũ Khí",
     Armor: "Giáp",
     "Relic 1": "Di Vật 1",
@@ -468,6 +462,7 @@
     frostCore: "Lõi Băng",
     stormThread: "Chỉ Bão",
     bloodAmber: "Hổ Phách Máu",
+    gold: "Tiền",
     bossCore: "Lõi Trùm",
     divineSpark: "Tia Thần"
   };
@@ -669,6 +664,7 @@
         frostCore: 0,
         stormThread: 0,
         bloodAmber: 0,
+        gold: 0,
         bossCore: 0,
         divineSpark: 0
       },
@@ -857,6 +853,7 @@
       this.joinPending = false;
       this.joinStartedAt = 0;
       this.mapVote = "forest";
+      this.difficultyVote = "normal";
       this.signal = null;
       this.remoteSignal = null;
       this.remoteSignals = [];
@@ -1259,7 +1256,7 @@
           await peer.pc.setLocalDescription(offer);
           this.sendSignal({ type: "offer", sdp: offer }, message.from);
         }
-        this.sendSignal({ type: "lobby", slots: this.slots, mapVote: this.mapVote }, message.from);
+        this.sendSignal({ type: "lobby", slots: this.slots, mapVote: this.mapVote, difficultyVote: this.difficultyVote }, message.from);
         this.broadcastLobby();
       }
 
@@ -1269,6 +1266,7 @@
         this.lastLobbyAt = Date.now();
         this.game.rememberRoomCode(this.code);
         if (message.mapVote) this.mapVote = message.mapVote;
+        if (message.difficultyVote) this.difficultyVote = message.difficultyVote;
         this.renderLobbyIfVisible();
       }
 
@@ -1348,7 +1346,7 @@
         this.joinPending = false;
         if (!this.host && this.code) this.game.rememberRoomCode(this.code);
         if (this.host) {
-          this.sendPeer(peer, { type: "lobby", slots: this.slots, mapVote: this.mapVote });
+          this.sendPeer(peer, { type: "lobby", slots: this.slots, mapVote: this.mapVote, difficultyVote: this.difficultyVote });
           if (this.lastStartMessage && Date.now() - this.lastStartAt < 15000) this.sendPeer(peer, this.lastStartMessage);
         }
         else {
@@ -1379,7 +1377,7 @@
         this.joinPending = false;
         if (!this.host && this.code) this.game.rememberRoomCode(this.code);
         if (this.host) {
-          this.sendPeer(peer, { type: "lobby", slots: this.slots, mapVote: this.mapVote });
+          this.sendPeer(peer, { type: "lobby", slots: this.slots, mapVote: this.mapVote, difficultyVote: this.difficultyVote });
           if (this.lastStartMessage && Date.now() - this.lastStartAt < 15000) this.sendPeer(peer, this.lastStartMessage);
         } else {
           this.sendPeer(peer, { type: "hello", ...this.playerProfile(), ready: this.ready, vote: this.mapVote });
@@ -1465,6 +1463,7 @@
         this.lastLobbyAt = Date.now();
         this.game.rememberRoomCode(this.code);
         if (message.mapVote) this.mapVote = message.mapVote;
+        if (message.difficultyVote) this.difficultyVote = message.difficultyVote;
         this.renderLobbyIfVisible();
       }
       if (message.type === "state") {
@@ -1502,8 +1501,9 @@
       if (this.code) this.game.rememberRoomCode(this.code);
       const ownPowerId = this.game.save.account.selectedPower || message.powerId;
       const startPower = powerById(ownPowerId || message.powerId);
+      if (message.difficultyId) this.difficultyVote = message.difficultyId;
       this.game.toast("Chủ phòng đã bắt đầu");
-      this.game.startRun(startPower, message.biomeId, { multiplayer: true, host: false, seed: message.seed });
+      this.game.startRun(startPower, message.biomeId, { multiplayer: true, host: false, seed: message.seed, difficulty: message.difficultyId || this.difficultyVote || "normal" });
     }
 
     renderLobbyIfVisible() {
@@ -1552,6 +1552,19 @@
       this.game.renderLobby();
     }
 
+    setDifficulty(difficultyId) {
+      const difficulty = DIFFICULTIES.find((entry) => entry.id === difficultyId);
+      if (!difficulty) return;
+      if (!this.host && this.code) {
+        this.game.toast("Chỉ chủ phòng được chọn độ khó");
+        return;
+      }
+      this.difficultyVote = difficulty.id;
+      this.syncOwnSlot();
+      this.broadcastLobby();
+      this.game.renderLobby();
+    }
+
     broadcastReady() {
       const message = { type: "ready", ...this.playerProfile(), ready: this.ready, vote: this.mapVote, host: this.host };
       if (!this.host && this.code) this.sendSignal(message);
@@ -1576,16 +1589,16 @@
 
     broadcastLobby() {
       if (!this.host) return;
-      if (this.code) this.sendSignal({ type: "lobby", slots: this.slots, mapVote: this.mapVote });
+      if (this.code) this.sendSignal({ type: "lobby", slots: this.slots, mapVote: this.mapVote, difficultyVote: this.difficultyVote });
       for (const peer of this.peers.values()) {
-        this.sendPeer(peer, { type: "lobby", slots: this.slots, mapVote: this.mapVote });
+        this.sendPeer(peer, { type: "lobby", slots: this.slots, mapVote: this.mapVote, difficultyVote: this.difficultyVote });
       }
     }
 
-    broadcastStart(powerId, biomeId, seed, slots = this.slots) {
+    broadcastStart(powerId, biomeId, seed, slots = this.slots, difficultyId = this.difficultyVote) {
       for (const timer of this.startRetryTimers) clearTimeout(timer);
       this.startRetryTimers = [];
-      const message = { type: "start", powerId, biomeId, seed, slots };
+      const message = { type: "start", powerId, biomeId, seed, slots, difficultyId };
       this.lastStartMessage = message;
       this.lastStartAt = Date.now();
       const send = () => {
@@ -1828,7 +1841,10 @@
       for (const power of POWERS) {
         this.save.powers[power.id].unlocked = this.save.account.ownedPowers.includes(power.id);
       }
-      for (const slot of SLOT_NAMES) this.save.equipped[slot] ||= "";
+      this.save.inventory = [];
+      this.save.equipped = Object.fromEntries(SLOT_NAMES.map((slot) => [slot, ""]));
+      this.save.materials ||= defaultProfile(this.save.account.username).materials;
+      this.save.materials.gold = Math.max(0, Math.floor(Number(this.save.materials.gold || 0)));
       this.normalizeStatPoints();
       if (this.save.account.created && this.save.account.username && !this.save.auth.currentUser) {
         const key = accountKey(this.save.account.username);
@@ -1893,7 +1909,10 @@
         this.save.powers[power.id] ||= { level: 1, awakened: false, mastery: 0, rarity: power.rarity, unlocked: false };
         this.save.powers[power.id].unlocked = this.save.account.ownedPowers.includes(power.id);
       }
-      for (const slot of SLOT_NAMES) this.save.equipped[slot] ||= "";
+      this.save.inventory = [];
+      this.save.equipped = Object.fromEntries(SLOT_NAMES.map((slot) => [slot, ""]));
+      this.save.materials ||= defaultProfile(this.save.account.username).materials;
+      this.save.materials.gold = Math.max(0, Math.floor(Number(this.save.materials.gold || 0)));
       this.normalizeStatPoints();
     }
 
@@ -2602,6 +2621,7 @@
       if (action === "join-room") this.lobby.join(target.dataset.roomCode || document.getElementById("roomCodeInput")?.value);
       if (action === "ready-room") this.lobby.toggleReady();
       if (action === "vote-map") this.lobby.setVote(target.dataset.biome);
+      if (action === "vote-difficulty") this.lobby.setDifficulty(target.dataset.difficulty);
       if (action === "start-room") {
         if (!this.lobby.host) {
           this.toast("Chỉ chủ phòng được bắt đầu");
@@ -2890,7 +2910,7 @@
           <div class="card-icon" style="color:${effect.color || "#a169ff"}">${effect.icon || effect.name.slice(0, 1)}</div>
           <h3>${effect.name}</h3>
           <p>${effect.text}</p>
-          <p class="small">Còn ${Math.max(0, Math.ceil(effect.time))} giây</p>
+          <p class="small">${effect.time > 900 ? "Cả lượt" : `Còn ${Math.max(0, Math.ceil(effect.time))} giây`}</p>
         </button>
       `).join("");
       this.setScreen(`
@@ -3024,7 +3044,7 @@
     }
 
     itemIllustration(item) {
-      const kind = item.slot === "Weapon" ? "weapon" : item.slot === "Armor" ? "armor" : item.slot === "Charm" ? "charm" : "relic";
+      const kind = item.slot === "Assist" ? "assist" : item.slot === "Weapon" ? "weapon" : item.slot === "Armor" ? "armor" : item.slot === "Charm" ? "charm" : "relic";
       return `
         <div class="mini-ill item-ill item-${kind}" style="--ill:${RARITY[item.rarity].color}">
           <span class="item-shape main"></span>
@@ -3037,7 +3057,7 @@
     characterTabs(active = "character") {
       const tabs = [
         ["character", "Nhân vật"],
-        ["inventory", "Kho đồ"],
+        ["inventory", "Kho nguyên liệu"],
         ["powers", "Sức mạnh"],
         ["awakening", "Thức tỉnh"]
       ];
@@ -3126,7 +3146,7 @@
             <div class="panel-header">
               <div>
                 <h2 class="panel-title">Nhân Vật</h2>
-                <p class="panel-subtitle">Màu giáp, khuôn mặt, hào quang, phụ kiện và vệt lướt.</p>
+                <p class="panel-subtitle">Màu nhân vật, khuôn mặt, hào quang, phụ kiện và vệt lướt.</p>
               </div>
             </div>
             ${this.characterTabs("character")}
@@ -3197,37 +3217,42 @@
 
     showInventory() {
       this.mode = "inventory";
-      const slots = SLOT_NAMES.map((slot) => {
-        const item = itemById(this.save.equipped[slot]);
+      const mat = this.save.materials || {};
+      const materialOrder = ["gold", "emberGlass", "frostCore", "stormThread", "bloodAmber", "bossCore", "divineSpark"];
+      const materials = materialOrder.map((id) => `
+        <div class="reward-card material-card">
+          <div class="mini-ill material-ill" style="--ill:${id === "gold" ? "#f2bf63" : "#35d6c9"}"><span>${id === "gold" ? "$" : "NL"}</span></div>
+          <h3>${materialLabel(id)}</h3>
+          <p>${Math.floor(Number(mat[id] || 0))}</p>
+          <p class="small">${id === "gold" ? "Dùng để mua phụ trợ ở thương nhân." : "Được giữ lại sau khi vượt phòng."}</p>
+        </div>
+      `).join("");
+      const assists = (this.run?.assists || []).map((entry) => {
+        const item = itemById(entry.id);
+        if (!item) return "";
         return `
-          <button class="slot ${item ? `rarity-${item.rarity}` : ""}" data-action="unequip-slot" data-slot="${slot}">
-            <h3>${slotLabel(slot)}</h3>
-            <p>${item ? item.name : "Trống"}</p>
-            ${item ? `<p class="small">${item.text}</p>` : ""}
-          </button>
+          <div class="reward-card rarity-${item.rarity}">
+            ${this.itemIllustration(item)}
+            <h3>${item.name}</h3>
+            <p>${slotLabel(item.slot)} - ${RARITY[item.rarity].label}</p>
+            <p class="small">${item.text}</p>
+          </div>
         `;
       }).join("");
-      const items = this.save.inventory.map((id) => itemById(id)).filter(Boolean).map((item) => `
-        <button class="reward-card rarity-${item.rarity}" data-action="equip-item" data-item="${item.id}">
-          ${this.itemIllustration(item)}
-          <h3>${item.name}</h3>
-          <p>${slotLabel(item.slot)} - ${RARITY[item.rarity].label}</p>
-          <p class="small">${item.text}</p>
-        </button>
-      `).join("");
       this.setScreen(`
         <section class="shell">
           ${this.navHtml("character")}
           <div class="panel">
             <div class="panel-header">
               <div>
-                <h2 class="panel-title">Kho Đồ</h2>
-                <p class="panel-subtitle">Tài khoản mới không có vật phẩm. Đồ chỉ rơi sau khi vượt phòng.</p>
+                <h2 class="panel-title">Kho Nguyên Liệu</h2>
+                <p class="panel-subtitle">Chỉ tiền và nguyên liệu được giữ lại. Phụ trợ nhặt trong trận không biến thành trang bị vĩnh viễn.</p>
               </div>
             </div>
             ${this.characterTabs("inventory")}
-            <div class="slot-grid">${slots}</div>
-            <div class="inventory-list">${items || `<div class="empty-state">Chưa có vật phẩm nào.</div>`}</div>
+            <div class="inventory-list">${materials}</div>
+            <h3 class="section-label">Phụ trợ đang kích hoạt</h3>
+            <div class="inventory-list">${assists || `<div class="empty-state">Chưa có phụ trợ nào trong lượt hiện tại.</div>`}</div>
           </div>
         </section>
       `);
@@ -3360,6 +3385,9 @@
       const votes = BIOMES.map((biome) => `
         <button class="tab ${this.lobby.mapVote === biome.id ? "active" : ""}" data-action="vote-map" data-biome="${biome.id}" ${isHost ? "" : "disabled"}>${biome.name}</button>
       `).join("");
+      const difficultyVotes = DIFFICULTIES.map((difficulty) => `
+        <button class="tab ${this.lobby.difficultyVote === difficulty.id ? "active" : ""}" data-action="vote-difficulty" data-difficulty="${difficulty.id}" ${isHost ? "" : "disabled"}>${difficulty.label}</button>
+      `).join("");
       const allReady = this.lobby.slots.every((slot) => slot.host || slot.ready);
       const connectedPeers = this.lobby.openPeerCount();
       const hasGuest = this.lobby.slots.some((slot) => slot && !slot.host);
@@ -3396,7 +3424,10 @@
             </div>
             <p class="code-box">${this.lobby.code || "CHƯA CÓ PHÒNG"}</p>
             <div class="grid cols-2">${slots}</div>
+            <p class="small">Chủ phòng chọn khu</p>
             <div class="tabs">${votes}</div>
+            <p class="small">Chủ phòng chọn độ khó ải</p>
+            <div class="tabs">${difficultyVotes}</div>
             <p class="small">${startHint}</p>
             <div class="grid ${isHost ? "" : "cols-2"}">${lobbyControls}</div>
           </div>
@@ -3431,25 +3462,22 @@
       }
       const selectedPower = powerById(powerId);
       const biomeId = this.lobby.mapVote || "forest";
+      const difficultyId = this.lobby.difficultyVote || "normal";
       const seed = Math.random();
       this.lobby.publishDirectoryPresence(false);
-      this.lobby.broadcastStart(selectedPower.id, biomeId, seed, this.lobby.slots);
-      this.startRun(selectedPower, biomeId, { multiplayer: true, host: true, seed });
+      this.lobby.broadcastStart(selectedPower.id, biomeId, seed, this.lobby.slots, difficultyId);
+      this.startRun(selectedPower, biomeId, { multiplayer: true, host: true, seed, difficulty: difficultyId });
     }
 
     equipItem(itemId) {
       const item = itemById(itemId);
       if (!item) return;
-      this.save.equipped[item.slot] = item.id;
-      if (!this.save.inventory.includes(item.id)) this.save.inventory.push(item.id);
-      this.persist();
-      this.toast(`Đã trang bị ${item.name}`);
+      this.toast(`${item.name} chỉ dùng khi nhặt trong trận`);
       this.showInventory();
     }
 
     unequipSlot(slot) {
-      this.save.equipped[slot] = "";
-      this.persist();
+      this.toast("Trang bị vĩnh viễn đã được thay bằng phụ trợ trong trận");
       this.showInventory();
     }
 
@@ -3532,6 +3560,7 @@
         roomObjects: [],
         merchantOffers: [],
         statusEffects: [],
+        assists: [],
         player: this.createPlayer(),
         curse: null,
         rewardQueue: [],
@@ -3680,7 +3709,7 @@
 
     compactPickup(pickup) {
       return this.compactFields(pickup, [
-        "id", "type", "ownerId", "ownerName", "x", "y", "vx", "vy", "radius", "life", "age", "color", "collected", "reward"
+        "id", "type", "container", "ownerId", "ownerName", "x", "y", "vx", "vy", "radius", "life", "age", "color", "collected", "countsForClaim", "reward"
       ]);
     }
 
@@ -3740,7 +3769,7 @@
         biomeId: this.run.biome.id,
         seed: this.run.seed,
         curse: this.run.curse ? { ...this.run.curse } : null,
-        statusEffects: this.run.statusEffects.map((effect) => this.compactStatusEffect(effect)),
+        statusEffects: this.run.statusEffects.filter((effect) => effect.kind !== "assist").map((effect) => this.compactStatusEffect(effect)),
         nextRooms: this.run.nextRooms.map((room) => ({ ...room })),
         players,
         currentRoom: this.run.currentRoom ? {
@@ -3786,7 +3815,10 @@
       this.run.roomClearTimer = Number.isFinite(snapshot.roomClearTimer) ? snapshot.roomClearTimer : this.run.roomClearTimer;
       if (Number.isFinite(snapshot.seed)) this.run.seed = snapshot.seed;
       this.run.curse = snapshot.curse ? { ...snapshot.curse } : null;
-      if (Array.isArray(snapshot.statusEffects)) this.run.statusEffects = snapshot.statusEffects.map((effect) => ({ ...effect }));
+      if (Array.isArray(snapshot.statusEffects)) {
+        const localAssists = (this.run.statusEffects || []).filter((effect) => effect.kind === "assist" && effect.time > 0);
+        this.run.statusEffects = [...snapshot.statusEffects.map((effect) => ({ ...effect })), ...localAssists];
+      }
       if (Array.isArray(snapshot.nextRooms)) this.run.nextRooms = snapshot.nextRooms.map((room) => ({ ...room }));
       if (snapshot.currentRoom) {
         this.run.currentRoom = { ...(this.run.currentRoom || {}), ...snapshot.currentRoom };
@@ -3897,10 +3929,15 @@
           chainCrit: false,
           drones: 0,
           fracture: false,
-          fatalRewind: true,
+          fatalRewind: false,
           explosionHeal: false,
           shockwaveCombo: false,
-          rewardLuck: 0
+          rewardLuck: 0,
+          coinBonus: 0,
+          magnetBonus: 0,
+          damageTakenMult: 1,
+          energyRegenMult: 1,
+          divineSigil: false
         },
         cooldowns: {
           q: 0,
@@ -3913,52 +3950,67 @@
 
     applyEquippedItems() {
       const player = this.run.player;
-      for (const id of Object.values(this.save.equipped)) {
-        const item = itemById(id);
-        if (!item) continue;
-        this.applyItemEffect(item, player);
-      }
       player.hp = player.maxHp;
       this.run.drones = [];
-      for (let i = 0; i < player.stats.drones; i++) {
-        this.run.drones.push({ angle: i * Math.PI, cooldown: 0, radius: 72 });
-      }
     }
 
     applyItemEffect(item, player) {
-      if (item.id === "ashenSabre") {
-        player.stats.burnDash = true;
-        player.damage += 4;
+      if (!item || !player) return;
+      if (item.id === "swiftBoots") {
+        player.speed *= 1.18;
+        player.maxEnergy = Math.max(35, player.maxEnergy - 12);
+        player.energy = Math.min(player.energy, player.maxEnergy);
       }
-      if (item.id === "stormPistol") player.stats.chainCrit = true;
-      if (item.id === "mourningAxe") player.stats.shockwaveCombo = true;
-      if (item.id === "mirrorMail") {
-        player.maxHp += 20;
-        player.hp += 20;
+      if (item.id === "focusGloves") {
+        player.damage += 3.2;
+        player.basicAttackCd *= 1.08;
       }
-      if (item.id === "emberMantle") player.stats.explosionHeal = true;
-      if (item.id === "voidCarapace") player.stats.fatalRewind = true;
+      if (item.id === "amberTonic") {
+        player.maxHp += 34;
+        player.hp += 34;
+        player.speed *= 0.96;
+      }
+      if (item.id === "sparkNeedle") {
+        player.crit += 0.07;
+        player.stats.chainCrit = true;
+      }
       if (item.id === "droneCore") {
         player.stats.drones += 1;
         if (this.run) this.run.drones.push({ angle: rand(0, TAU), cooldown: 0, radius: 72 });
+        player.stats.energyRegenMult *= 0.9;
       }
       if (item.id === "fractureBell") player.stats.fracture = true;
-      if (item.id === "bloodVial") player.stats.lifeSteal += 0.05;
+      if (item.id === "bloodVial") {
+        player.stats.lifeSteal += 0.045;
+        player.maxHp = Math.max(45, player.maxHp - 10);
+        player.hp = Math.min(player.hp, player.maxHp);
+      }
       if (item.id === "gravityDice" && this.run) this.addEffect({ type: "gravityAnomaly", time: 999, pulse: 0 });
       if (item.id === "luckyCharm") {
-        player.crit += 0.08;
+        player.damage = Math.max(1, player.damage - 1);
+        player.stats.magnetBonus += 160;
         player.stats.rewardLuck += 0.15;
+      }
+      if (item.id === "guardPlate") {
+        player.shield = Math.max(player.shield || 0, 46 + this.run.stage * 6);
+        player.stats.damageTakenMult *= 0.9;
+        player.speed *= 0.95;
       }
       if (item.id === "merchantEdge") {
         player.damage += 5;
         player.crit += 0.05;
       }
-      if (item.id === "riftLedger") player.stats.rewardLuck += 0.18;
+      if (item.id === "riftLedger") {
+        player.stats.rewardLuck += 0.18;
+        player.stats.coinBonus += 0.28;
+      }
       if (item.id === "azurePermit") {
-        player.maxEnergy += 18;
-        player.energy += 18;
+        player.maxEnergy += 24;
+        player.energy += 24;
+        player.stats.energyRegenMult *= 1.18;
         player.damage += 2;
       }
+      if (item.id === "divineSigil") player.stats.divineSigil = true;
     }
 
     startRoom(room) {
@@ -4363,7 +4415,7 @@
       this.updatePendingBasicAttack(p, dt);
       p.dashCd = Math.max(0, p.dashCd - dt);
       p.energyRegenDelay = Math.max(0, (p.energyRegenDelay || 0) - dt);
-      const regenRate = (this.run.curse?.id === "manaDebt" ? 5.2 : 7.6) + (this.run.power.id === "time" ? 1.2 : 0);
+      const regenRate = ((this.run.curse?.id === "manaDebt" ? 5.2 : 7.6) + (this.run.power.id === "time" ? 1.2 : 0)) * (p.stats.energyRegenMult || 1);
       if (p.energyRegenDelay <= 0) p.energy = Math.min(p.maxEnergy, p.energy + dt * regenRate);
       for (const key of Object.keys(p.cooldowns)) p.cooldowns[key] = Math.max(0, p.cooldowns[key] - dt);
 
@@ -5332,7 +5384,7 @@
     castUltimate(power) {
       const p = this.run.player;
       this.executePowerSkill("f", power, p, p.facing, { x: p.x, y: p.y });
-      if (this.save.equipped.Charm === "divineSigil") {
+      if (p.stats.divineSigil) {
         this.addEffect({ type: "divinePassive", time: 10, color: "#82ffd3" });
       }
     }
@@ -5395,7 +5447,6 @@
         this.healPlayer(damage * (power.id === "blood" ? 0.05 : p.stats.lifeSteal));
       }
       if (crit && (p.stats.chainCrit || power.id === "lightning")) this.chainLightning(enemy, damage * 0.45);
-      if (crit && this.save.equipped["Relic 2"] === "bloodVial") this.healPlayer(damage * 0.06);
       if (enemy.chill > 0 && enemy.hp <= 0 && p.stats.fracture) this.fracture(enemy);
       p.ult = clamp(p.ult + (crit ? 5 : 3), 0, 100);
       const basicKind = this.basicHitKind(options);
@@ -5510,6 +5561,7 @@
       let damage = amount;
       if (this.run.curse?.id === "doubleDamage") damage *= 2;
       if (this.run.curse?.id === "ironPulse") damage *= 0.76;
+      damage *= p.stats.damageTakenMult || 1;
       let absorbed = 0;
       if (p.shield > 0) {
         absorbed = Math.min(p.shield, damage);
@@ -5528,7 +5580,6 @@
       this.run.flawless = false;
       this.camera.shake = Math.max(this.camera.shake, 13);
       this.addImpact(p.x, p.y, "#ff4b55", damage, false);
-      if (this.save.equipped.Armor === "mirrorMail") this.areaDamage(p.x, p.y, 120, 25, "#76ffd8", "crystal");
       if (this.run.curse?.id === "lifesteal" && source) source.hp = Math.min(source.maxHp, source.hp + damage * 0.35);
       if (this.run.curse?.id === "teleport" && chance(0.24)) {
         p.x = rand(ROOM_PAD + 120, WORLD_W - ROOM_PAD - 120);
@@ -5536,15 +5587,7 @@
         this.addShockwave(p.x, p.y, 120, "#64a8ff", 24);
       }
       if (p.hp <= 0) {
-        if (this.save.equipped.Armor === "voidCarapace" && p.stats.fatalRewind) {
-          p.stats.fatalRewind = false;
-          p.hp = Math.ceil(p.maxHp * 0.45);
-          p.invuln = 2;
-          this.addShockwave(p.x, p.y, 260, "#6a8dff", 48);
-          this.toast("Giáp Hư Không đã tua ngược cái chết");
-        } else {
-          this.playerDeath();
-        }
+        this.playerDeath();
       }
     }
 
@@ -5585,13 +5628,13 @@
       this.toast("Boss gục xuống. Cổng thưởng đã mở.");
     }
 
-    claimBossExitReward() {
+    claimBossExitReward(x = this.run.player.x, y = this.run.player.y) {
       const room = this.run?.currentRoom;
       if (!room || room.rewardDropped) return;
       room.bossExitOpened = true;
-      this.spawnRoomReward(this.run.player.x, this.run.player.y);
+      this.spawnRoomReward(x, y);
       this.clearRoom();
-      this.addShockwave(this.run.player.x, this.run.player.y, 210, "#f2bf63", 0);
+      this.addShockwave(x, y, 210, "#f2bf63", 0);
     }
 
     advanceToNextStageAfterBoss() {
@@ -5624,8 +5667,12 @@
       if (this.run.flawless) this.save.achievements.flawlessRoom = true;
       this.save.achievements.firstRift = true;
       this.persist();
-      if (!room.rewardDropped) this.spawnRoomReward(this.run.player.x, this.run.player.y);
+      if (!room.rewardDropped && this.roomDropsReward(room)) this.spawnRoomReward(this.run.player.x, this.run.player.y);
       if (room.rewardClaimed) this.openNextRoomsAfterReward();
+    }
+
+    roomDropsReward(room) {
+      return room && !["healing", "merchant", "curse"].includes(room.type);
     }
 
     xpToNextLevel(level = this.save.progression?.level || 1) {
@@ -5668,17 +5715,27 @@
       const luck = this.run.player.stats.rewardLuck || 0;
       const room = this.run.currentRoom.type;
       const difficulty = this.roomDifficulty(room) + (this.run.difficulty?.rewardBonus || 0);
-      const itemChance = room === "boss" ? 1 : room === "treasure" ? clamp(0.74 + luck * 0.35, 0.68, 0.94) : clamp(0.12 + difficulty * 0.72 + luck * 0.5, 0.08, 0.88);
+      const itemChance = room === "boss"
+        ? clamp(0.82 + luck * 0.25, 0.82, 0.98)
+        : room === "treasure"
+          ? clamp(0.7 + luck * 0.35, 0.66, 0.94)
+          : clamp(0.34 + difficulty * 0.4 + luck * 0.45, 0.28, 0.86);
       if (chance(itemChance)) return { type: "item", item: this.rollItemForRoom(difficulty, luck), difficulty };
-      if (chance(0.46 + difficulty * 0.14)) {
-        return {
-          type: "material",
-          material: pick(["emberGlass", "frostCore", "stormThread", "bloodAmber"]),
-          amount: randi(2, 5) + Math.round(difficulty * 3),
-          rarity: this.rollRarityForDifficulty(difficulty * 0.55, luck * 0.4)
-        };
-      }
-      return { type: "upgrade", stat: pick(["damage", "hp", "energy", "crit", "skill"]), rarity: this.rollRarityForDifficulty(difficulty * 0.8, luck) };
+      return {
+        type: "material",
+        material: pick(["emberGlass", "frostCore", "stormThread", "bloodAmber"]),
+        amount: randi(2, 5) + Math.round(difficulty * 4) + (room === "boss" ? 3 : 0),
+        rarity: this.rollRarityForDifficulty(difficulty * 0.62, luck * 0.4)
+      };
+    }
+
+    rollCoinReward() {
+      const room = this.run.currentRoom.type;
+      const difficulty = this.roomDifficulty(room) + (this.run.difficulty?.rewardBonus || 0);
+      const roomMult = room === "boss" ? 2.35 : room === "treasure" ? 1.55 : room === "challenge" || room === "elite" ? 1.28 : 1;
+      const bonus = 1 + (this.run.player.stats.coinBonus || 0);
+      const amount = Math.max(2, Math.round((randi(5, 10) + this.run.stage * 4 + difficulty * 13) * roomMult * bonus));
+      return { type: "coin", amount, rarity: this.rollRarityForDifficulty(difficulty * 0.42, 0) };
     }
 
     rewardOwners() {
@@ -5717,21 +5774,42 @@
       this.run.rewardQueue = rewards.map((entry) => entry.reward);
       rewards.forEach(({ owner, reward }, index) => {
         const color = this.rewardColor(reward);
-        const spread = (index - (rewards.length - 1) / 2) * 34;
+        const angle = rewards.length === 1 ? -Math.PI / 2 : (index / rewards.length) * TAU - Math.PI / 2;
+        const burst = 72 + index * 10;
         this.run.pickups.push({
           id: uid("pickup"),
-          x: x + spread,
-          y: y + rand(-12, 12),
-          vx: spread * 0.35 + rand(-35, 35),
-          vy: rand(-78, -38),
+          x: x + Math.cos(angle) * 18,
+          y: y + Math.sin(angle) * 18,
+          vx: Math.cos(angle) * burst + rand(-28, 28),
+          vy: Math.sin(angle) * burst - 62 + rand(-18, 18),
           type: "reward",
+          container: "woodChest",
           ownerId: owner.id,
           ownerName: owner.name,
           reward,
-          radius: 20,
+          radius: 22,
           life: 90,
           age: 0,
           color
+        });
+        const coinAngle = angle + rand(-0.38, 0.38);
+        const coinReward = this.rollCoinReward();
+        this.run.pickups.push({
+          id: uid("coin"),
+          x: x + Math.cos(coinAngle) * 12,
+          y: y + Math.sin(coinAngle) * 12,
+          vx: Math.cos(coinAngle) * (burst + 34) + rand(-24, 24),
+          vy: Math.sin(coinAngle) * (burst + 34) - 82 + rand(-24, 10),
+          type: "reward",
+          container: "coin",
+          ownerId: owner.id,
+          ownerName: owner.name,
+          reward: coinReward,
+          countsForClaim: false,
+          radius: 14,
+          life: 90,
+          age: 0,
+          color: this.rewardColor(coinReward)
         });
       });
       const firstColor = this.rewardColor(rewards[0]?.reward || { type: "material", rarity: "rare" });
@@ -5739,13 +5817,14 @@
       for (let i = 0; i < 18 * this.save.settings.particles; i++) {
         this.addParticle(x + rand(-28, 28), y + rand(-18, 18), firstColor, rand(8, 22), rand(0.35, 0.85), i % 4 === 0 ? "ring" : "spark");
       }
-      this.toast(this.isMultiplayerRun() ? `Rơi ${rewards.length} phần thưởng riêng` : `Rơi phần thưởng: ${this.rewardLabel(rewards[0].reward)}`);
+      this.toast(this.isMultiplayerRun() ? `Rơi ${rewards.length} rương gỗ riêng và tiền` : `Rơi rương gỗ: ${this.rewardLabel(rewards[0].reward)}`);
     }
 
     rewardColor(reward) {
       if (reward.type === "item") return RARITY[reward.item.rarity]?.color || "#f2bf63";
       if (reward.type === "upgrade") return RARITY[reward.rarity]?.color || "#70e083";
       if (reward.type === "material") return RARITY[reward.rarity]?.color || "#35d6c9";
+      if (reward.type === "coin") return "#f2bf63";
       return "#f2bf63";
     }
 
@@ -5753,6 +5832,7 @@
       if (reward.type === "item") return reward.item.name;
       if (reward.type === "upgrade") return `Nâng ${upgradeLabel(reward.stat)}`;
       if (reward.type === "material") return `${materialLabel(reward.material)} x${reward.amount}`;
+      if (reward.type === "coin") return `${materialLabel("gold")} x${reward.amount}`;
       return "Phần thưởng";
     }
 
@@ -5908,26 +5988,20 @@
     }
 
     rollMerchantOffers() {
-      const mats = ["emberGlass", "frostCore", "stormThread", "bloodAmber"];
       const offers = [];
       const usedItems = new Set();
       for (let i = 0; i < 4; i++) {
         const difficulty = clamp(0.62 + this.run.stage * 0.12 + i * 0.06, 0.55, 1.25);
-        const reward = i < 3
-          ? { type: "item", item: this.rollMerchantItemForRoom(difficulty, 0.08), difficulty }
-          : { type: "upgrade", stat: pick(["damage", "hp", "energy", "crit", "skill"]), rarity: this.rollRarityForDifficulty(difficulty, 0.1) };
-        if (reward.type === "item") {
-          for (let tries = 0; usedItems.has(reward.item.id) && tries < 8; tries++) reward.item = this.rollMerchantItemForRoom(difficulty, 0.08);
-          usedItems.add(reward.item.id);
-        }
-        const priceMaterial = pick(mats);
-        const rarity = reward.type === "item" ? reward.item.rarity : reward.rarity;
-        const rarityCost = { common: 3, rare: 5, epic: 8, legendary: 12, mythic: 16, divine: 22 }[rarity] || 6;
+        const reward = { type: "item", item: this.rollMerchantItemForRoom(difficulty, 0.08), difficulty };
+        for (let tries = 0; usedItems.has(reward.item.id) && tries < 8; tries++) reward.item = this.rollMerchantItemForRoom(difficulty, 0.08);
+        usedItems.add(reward.item.id);
+        const rarity = reward.item.rarity;
+        const rarityCost = { common: 8, rare: 13, epic: 22, legendary: 34, mythic: 48, divine: 68 }[rarity] || 14;
         offers.push({
           id: uid("offer"),
           reward,
-          priceMaterial,
-          price: Math.max(2, rarityCost + this.run.stage * 2 + i),
+          priceMaterial: "gold",
+          price: Math.max(6, rarityCost + this.run.stage * 6 + i * 4),
           bought: false
         });
       }
@@ -5952,7 +6026,7 @@
           <div>
             <h3>${titleText}</h3>
             <p>${detail}</p>
-            <p class="small">${reward.type === "item" ? reward.item.text : "Vật phẩm đặc biệt của thương nhân, không xuất hiện trong chọn thưởng."}</p>
+            <p class="small">${reward.type === "item" ? reward.item.text : "Phụ trợ đặc biệt của thương nhân."}</p>
           </div>
           <div class="shop-price">
             <span>${materialLabel(offer.priceMaterial)} ${owned}/${offer.price}</span>
@@ -5972,7 +6046,7 @@
           <div class="panel-header">
             <div>
               <h2 class="panel-title">Thương Nhân Khe Nứt</h2>
-              <p class="panel-subtitle">Vật phẩm và trang bị đặc biệt chỉ bán trong phòng này.</p>
+              <p class="panel-subtitle">Dùng tiền rơi từ quái cuối để mua phụ trợ cho lượt hiện tại.</p>
             </div>
             <button class="btn" data-action="leave-merchant">RỜI QUẦY</button>
           </div>
@@ -5986,7 +6060,7 @@
       if (!offer || offer.bought) return;
       const owned = this.save.materials[offer.priceMaterial] || 0;
       if (owned < offer.price) {
-        this.toast("Không đủ nguyên liệu");
+        this.toast(offer.priceMaterial === "gold" ? "Không đủ tiền" : "Không đủ nguyên liệu");
         return;
       }
       this.save.materials[offer.priceMaterial] = owned - offer.price;
@@ -6021,11 +6095,20 @@
 
     grantReward(reward) {
       if (reward.type === "item") {
-        const alreadyEquipped = this.save.equipped[reward.item.slot] === reward.item.id;
-        if (!this.save.inventory.includes(reward.item.id)) this.save.inventory.push(reward.item.id);
-        this.save.equipped[reward.item.slot] = reward.item.id;
-        if (!alreadyEquipped) this.applyItemEffect(reward.item, this.run.player);
-        this.toast(`Nhận được ${reward.item.name}`);
+        this.run.assists ||= [];
+        this.run.assists.push({ id: reward.item.id, at: this.menuTime });
+        this.applyItemEffect(reward.item, this.run.player);
+        this.addStatusEffect({
+          id: reward.item.id,
+          kind: "assist",
+          name: reward.item.name,
+          text: reward.item.text,
+          color: RARITY[reward.item.rarity]?.color || "#f2bf63",
+          icon: reward.item.icon?.slice(0, 2) || reward.item.name.slice(0, 1),
+          time: 9999,
+          maxTime: 9999
+        });
+        this.toast(`Nhận phụ trợ: ${reward.item.name}`);
       }
       if (reward.type === "upgrade") {
         this.applyUpgrade(reward);
@@ -6034,8 +6117,14 @@
         this.save.materials[reward.material] = (this.save.materials[reward.material] || 0) + reward.amount;
         this.toast(`${materialLabel(reward.material)} x${reward.amount}`);
       }
-      this.save.powers[this.run.power.id].mastery += 1;
-      if (this.save.powers[this.run.power.id].mastery % 4 === 0) this.save.powers[this.run.power.id].level += 1;
+      if (reward.type === "coin") {
+        this.save.materials.gold = (this.save.materials.gold || 0) + reward.amount;
+        this.toast(`${materialLabel("gold")} x${reward.amount}`);
+      }
+      if (reward.type !== "coin") {
+        this.save.powers[this.run.power.id].mastery += 1;
+        if (this.save.powers[this.run.power.id].mastery % 4 === 0) this.save.powers[this.run.power.id].level += 1;
+      }
       this.persist();
     }
 
@@ -6044,7 +6133,7 @@
       if (pickup.ownerId && pickup.ownerId !== this.lobby.id) return;
       pickup.collected = true;
       this.grantReward(pickup.reward);
-      if (this.run.currentRoom) {
+      if (this.run.currentRoom && pickup.countsForClaim !== false) {
         this.run.currentRoom.rewardClaims ||= {};
         this.run.currentRoom.rewardClaims[this.lobby.id] = true;
         this.run.currentRoom.rewardClaimed = this.allRewardOwnersClaimed();
@@ -6067,10 +6156,10 @@
     handleRemoteCollect(remoteId, pickupId) {
       if (!this.isMultiplayerHost() || !pickupId || !this.run?.currentRoom) return;
       const pickup = this.run.pickups.find((entry) => entry.id === pickupId && entry.ownerId === remoteId);
-      if (pickup) {
-        pickup.collected = true;
-        pickup.life = 0;
-      }
+      if (!pickup) return;
+      pickup.collected = true;
+      pickup.life = 0;
+      if (pickup?.countsForClaim === false) return;
       this.run.currentRoom.rewardClaims ||= {};
       this.run.currentRoom.rewardClaims[remoteId] = true;
       this.run.currentRoom.rewardClaimed = this.allRewardOwnersClaimed();
@@ -6159,8 +6248,8 @@
     roomFlavor(type) {
       return {
         normal: "Giao tranh tiêu chuẩn với quái và bẫy của khu vực.",
-        elite: "Đội hình khó hơn, đồ rơi có độ hiếm cao hơn.",
-        treasure: "Rương được canh giữ, tỉ lệ rơi vật phẩm cao.",
+        elite: "Đội hình khó hơn, rương gỗ có độ hiếm cao hơn.",
+        treasure: "Rương được canh giữ, tỉ lệ rơi phụ trợ cao.",
         healing: "Hồi phục trước tuyến đường tiếp theo.",
         merchant: "Thương nhân ẩn giữa các khe nứt.",
         challenge: "Nhiều áp lực hơn, phần thưởng tốt hơn.",
@@ -6192,7 +6281,7 @@
           </div>
           <div class="grid cols-2">
             <button class="btn primary" data-action="resume">TIẾP TỤC</button>
-            <button class="btn" data-action="inventory">KHO ĐỒ</button>
+            <button class="btn" data-action="inventory">KHO NGUYÊN LIỆU</button>
             <button class="btn" data-action="settings">CÀI ĐẶT</button>
             <button class="btn danger" data-action="menu">KẾT THÚC LƯỢT</button>
           </div>
@@ -6207,7 +6296,7 @@
           <div class="panel-header">
             <div>
               <h2 class="panel-title">Đã Phong Ấn Khe Nứt</h2>
-              <p class="panel-subtitle">Đã vượt cả năm khu vực. Kho đồ, thức tỉnh, thành tựu và nguyên liệu đã được lưu.</p>
+              <p class="panel-subtitle">Đã vượt cả năm khu vực. Tiền, thức tỉnh, thành tựu và nguyên liệu đã được lưu.</p>
             </div>
           </div>
           <div class="grid cols-2">
@@ -6926,7 +7015,7 @@
       }
       if (object.type === "bossExit") {
         object.opened = true;
-        this.claimBossExitReward();
+        this.claimBossExitReward(object.x, object.y);
         return;
       }
       if (object.type === "curseBook") {
@@ -6969,7 +7058,7 @@
             const dy = p.y - pickup.y;
             const d = Math.hypot(dx, dy) || 1;
             const roomCleared = Boolean(this.run.currentRoom?.cleared);
-            const magnetRange = roomCleared ? 9999 : 260;
+            const magnetRange = (roomCleared ? 9999 : 260) + (p.stats.magnetBonus || 0);
             const pull = clamp((magnetRange - d) / magnetRange, 0, 1);
             const speed = roomCleared ? 360 + pull * 760 : 130 + pull * 420;
             pickup.x += (dx / d) * speed * dt;
@@ -7677,27 +7766,52 @@
           const color = pickup.color || this.rewardColor(pickup.reward);
           const bob = Math.sin(this.menuTime * 7 + (pickup.age || 0) * 3) * 4;
           ctx.translate(pickup.x, pickup.y + bob);
-          ctx.globalAlpha = 0.85;
+          ctx.globalAlpha = 0.92;
           ctx.shadowColor = color;
-          ctx.shadowBlur = this.glow(18);
-          ctx.fillStyle = color;
-          ctx.rotate(Math.PI / 4);
-          ctx.fillRect(-11, -11, 22, 22);
-          ctx.strokeStyle = "#ffffff";
-          ctx.lineWidth = 2;
-          ctx.strokeRect(-13, -13, 26, 26);
-          ctx.rotate(-Math.PI / 4);
-          ctx.fillStyle = "#101521";
-          if (pickup.reward?.type === "upgrade") {
-            ctx.fillRect(-3, -10, 6, 20);
-            ctx.fillRect(-10, -3, 20, 6);
-          } else if (pickup.reward?.type === "material") {
-            ctx.font = "900 10px ui-sans-serif, system-ui";
+          ctx.shadowBlur = this.glow(16);
+          if (pickup.container === "coin" || pickup.reward?.type === "coin") {
+            ctx.fillStyle = "#f2bf63";
+            ctx.strokeStyle = "#fff0ad";
+            ctx.lineWidth = 2;
+            for (let i = 0; i < 3; i++) {
+              ctx.beginPath();
+              ctx.ellipse(i * 5 - 5, i * -3 + 4, 8, 5, -0.25, 0, TAU);
+              ctx.fill();
+              ctx.stroke();
+            }
+            ctx.fillStyle = "#3a2509";
+            ctx.font = "900 9px ui-sans-serif, system-ui";
             ctx.textAlign = "center";
-            ctx.fillText("NL", 0, 4);
+            ctx.fillText("$", 0, 5);
+          } else if (pickup.container === "woodChest") {
+            ctx.fillStyle = "#8b5128";
+            ctx.strokeStyle = "#f2bf63";
+            ctx.lineWidth = 3;
+            ctx.fillRect(-18, -7, 36, 22);
+            ctx.strokeRect(-18, -7, 36, 22);
+            ctx.fillStyle = "#5a321c";
+            ctx.beginPath();
+            ctx.moveTo(-17, -7);
+            ctx.quadraticCurveTo(0, -24, 17, -7);
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+            ctx.fillStyle = color;
+            ctx.fillRect(-4, -2, 8, 9);
+            ctx.fillStyle = "#f4d26f";
+            ctx.fillRect(-20, 1, 40, 4);
+            ctx.font = "900 9px ui-sans-serif, system-ui";
+            ctx.textAlign = "center";
+            ctx.fillStyle = "#fff6d2";
+            ctx.fillText(pickup.reward?.type === "material" ? "NL" : "PT", 0, 22);
           } else {
-            ctx.fillRect(-8, -2, 16, 4);
-            ctx.fillRect(4, -8, 4, 16);
+            ctx.fillStyle = color;
+            ctx.rotate(Math.PI / 4);
+            ctx.fillRect(-11, -11, 22, 22);
+            ctx.strokeStyle = "#ffffff";
+            ctx.lineWidth = 2;
+            ctx.strokeRect(-13, -13, 26, 26);
+            ctx.rotate(-Math.PI / 4);
           }
           if (pickup.ownerName) {
             ctx.font = "800 10px ui-sans-serif, system-ui";

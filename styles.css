@@ -669,6 +669,25 @@ button {
   background: rgba(0, 0, 0, 0.35);
 }
 
+.item-assist .main {
+  left: 19px;
+  top: 14px;
+  width: 34px;
+  height: 24px;
+  border: 4px solid var(--ill);
+  background: transparent;
+  transform: rotate(-10deg);
+}
+
+.item-assist .cross {
+  left: 30px;
+  top: 8px;
+  width: 12px;
+  height: 42px;
+  background: var(--ill);
+  transform: rotate(42deg);
+}
+
 .item-relic .main {
   left: 22px;
   top: 14px;
@@ -1391,6 +1410,18 @@ button {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
   gap: 10px;
+}
+
+.section-label {
+  margin: 18px 0 10px;
+  color: var(--gold);
+  font-size: 13px;
+  font-weight: 950;
+  text-transform: uppercase;
+}
+
+.material-card {
+  min-height: 138px;
 }
 
 .setting-row {

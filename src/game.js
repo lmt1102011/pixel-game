@@ -7,7 +7,7 @@
   const ROOM_PAD = 86;
   const SAVE_KEY = "soulrift-save-v1";
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
-  const APP_VERSION = "20260604-guardian-shield-polish-71";
+  const APP_VERSION = "20260604-guardian-aim-cleanup-72";
   const VERSION_CHECK_INTERVAL = 15000;
   const UPDATE_ATTEMPT_KEY = "soulrift-update-attempt-v1";
   const DOOR_ENTER_TIME = 1.0;
@@ -4698,6 +4698,7 @@
         actionTime: 0,
         actionTotal: 0,
         domainLock: 0,
+        attackAimLock: 0,
         facing: 0,
         stats: this.defaultCombatStats(),
         cooldowns: {
@@ -5676,6 +5677,7 @@
       p.guardianParry = Math.max(0, (p.guardianParry || 0) - dt);
       p.attackCd = Math.max(0, p.attackCd - dt);
       p.domainLock = Math.max(0, (p.domainLock || 0) - dt);
+      p.attackAimLock = Math.max(0, (p.attackAimLock || 0) - dt);
       if (p.dead) {
         p.vx = 0;
         p.vy = 0;
@@ -5720,6 +5722,7 @@
         my /= mag;
         p.facing = Math.atan2(my, mx);
       }
+      if (p.attackAimLock > 0 && p.characterId === "guardian" && p.animation === "attack") p.facing = this.basicAimAngle(p);
       if (p.pendingBasicAttack) p.facing = p.pendingBasicAttack.angle;
 
       let speed = p.speed * (debuffMods.speedMult || 1);
@@ -5816,6 +5819,7 @@
       p.animation = "attack";
       p.actionTotal = character.id === "guardian" ? 0.7 : character.id === "mage" ? 0.6 : character.id === "ranger" ? 0.72 : character.id === "assassin" ? 0.44 : 0.58;
       p.actionTime = p.actionTotal;
+      if (character.id === "guardian") p.attackAimLock = p.actionTotal;
       p.combo = Math.min(9, p.combo + 1);
       p.comboTimer = 1.15;
       this.addAttackDust(p.x + Math.cos(angle) * 24, p.y + Math.sin(angle) * 24, angle, character.id === "guardian");
@@ -11156,23 +11160,20 @@
         ctx.stroke();
         ctx.globalAlpha = 1;
         if (hitFrame || holdFrame) {
-          ctx.globalAlpha = 0.52;
+          ctx.globalAlpha = 0.36;
           ctx.fillStyle = power.accent;
           ctx.beginPath();
-          ctx.moveTo(38, -14);
-          ctx.lineTo(54, -7);
-          ctx.lineTo(58, 0);
-          ctx.lineTo(54, 7);
-          ctx.lineTo(38, 14);
-          ctx.closePath();
+          ctx.ellipse(42, 0, 10 + guardPower * 3, 19, 0, 0, TAU);
           ctx.fill();
-          ctx.globalAlpha = 0.8;
+          ctx.globalAlpha = 0.58;
           ctx.strokeStyle = "#ffffff";
-          ctx.lineWidth = 3;
+          ctx.lineWidth = 2;
           ctx.beginPath();
-          ctx.moveTo(41, -10);
-          ctx.lineTo(52, 0);
-          ctx.lineTo(41, 10);
+          ctx.arc(39, 0, 17, -0.72, 0.72);
+          ctx.stroke();
+          ctx.globalAlpha = 0.32;
+          ctx.beginPath();
+          ctx.arc(47, 0, 24, -0.58, 0.58);
           ctx.stroke();
           ctx.globalAlpha = 1;
         }

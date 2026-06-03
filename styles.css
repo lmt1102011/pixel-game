@@ -1722,77 +1722,174 @@ button {
 }
 
 .preview-weapon {
-  left: 85px;
-  top: 72px;
-  width: 62px;
-  height: 11px;
-  transform: rotate(-22deg);
-  background: #dfe8ef;
-  box-shadow: -12px 0 0 var(--power);
+  left: 82px;
+  top: 75px;
+  width: 70px;
+  height: 18px;
+  transform: rotate(-24deg);
+  transform-origin: 8px 50%;
+  background: transparent;
+  filter: drop-shadow(0 3px 0 rgba(0, 0, 0, 0.35));
+}
+
+.preview-weapon::before,
+.preview-weapon::after {
+  content: "";
+  position: absolute;
+  display: block;
+}
+
+.preview-weapon::before {
+  left: 15px;
+  top: 5px;
+  width: 47px;
+  height: 8px;
+  background: linear-gradient(90deg, #8f9baa 0 8%, #eef6fb 34%, #cbd7e4 66%, #f7fbff 100%);
+  clip-path: polygon(0 18%, 78% 18%, 100% 50%, 78% 82%, 0 82%);
+}
+
+.preview-weapon::after {
+  left: 0;
+  top: 7px;
+  width: 20px;
+  height: 4px;
+  background: #1d2230;
+  box-shadow:
+    10px -7px 0 -1px var(--power),
+    10px 7px 0 -1px var(--power),
+    13px -8px 0 -1px #dfe8ef,
+    13px 8px 0 -1px #dfe8ef;
 }
 
 .char-guardian .preview-weapon {
-  left: 82px;
-  top: 74px;
-  width: 34px;
-  height: 44px;
-  transform: rotate(-12deg);
-  background: var(--char);
-  clip-path: polygon(50% 0, 88% 13%, 76% 72%, 50% 100%, 24% 72%, 12% 13%);
-  box-shadow: inset 0 0 0 7px #dfe8ef;
+  left: 78px;
+  top: 70px;
+  width: 43px;
+  height: 52px;
+  transform: rotate(-10deg);
+  transform-origin: 50% 50%;
+  background: #dfe8ef;
+  clip-path: polygon(50% 0, 90% 15%, 78% 72%, 50% 100%, 22% 72%, 10% 15%);
+  box-shadow: inset 0 0 0 7px var(--char), inset 0 0 0 11px #dfe8ef, 0 3px 0 rgba(0, 0, 0, 0.32);
+}
+
+.char-guardian .preview-weapon::before {
+  left: 19px;
+  top: 7px;
+  width: 5px;
+  height: 38px;
+  background: #fff3c2;
+  clip-path: none;
+}
+
+.char-guardian .preview-weapon::after {
+  left: 8px;
+  top: 22px;
+  width: 27px;
+  height: 5px;
+  background: #fff3c2;
+  box-shadow: none;
 }
 
 .char-mage .preview-weapon {
-  left: 91px;
-  top: 56px;
-  width: 7px;
-  height: 62px;
-  transform: none;
+  left: 92px;
+  top: 48px;
+  width: 10px;
+  height: 76px;
+  transform: rotate(2deg);
+  background: linear-gradient(90deg, #8e6b43, #dfe8ef 45%, #7d5a35);
+  border-radius: 5px;
+  box-shadow: 0 0 10px color-mix(in srgb, var(--char), transparent 35%);
+}
+
+.char-mage .preview-weapon::before {
+  left: -6px;
+  top: -14px;
+  width: 22px;
+  height: 22px;
+  border: 4px solid #dfe8ef;
+  border-radius: 50%;
+  background: var(--char);
+  box-shadow: 0 0 14px var(--char), inset 0 0 0 4px color-mix(in srgb, var(--char), black 18%);
+  clip-path: none;
+}
+
+.char-mage .preview-weapon::after {
+  left: -3px;
+  top: 68px;
+  width: 16px;
+  height: 5px;
   background: #dfe8ef;
-  box-shadow: 0 -11px 0 3px var(--char), 0 0 12px var(--char);
+  box-shadow: none;
 }
 
 .char-ranger .preview-weapon {
-  left: 82px;
-  top: 68px;
-  width: 54px;
-  height: 12px;
-  transform: rotate(-12deg);
-  background: #dfe8ef;
-  box-shadow: 16px -11px 0 -3px var(--char), 16px 11px 0 -3px var(--char);
+  left: 76px;
+  top: 72px;
+  width: 74px;
+  height: 34px;
+  transform: rotate(-13deg);
+  transform-origin: 12px 50%;
+  background: transparent;
+  filter: drop-shadow(0 3px 0 rgba(0, 0, 0, 0.34));
+}
+
+.char-ranger .preview-weapon::before {
+  left: 13px;
+  top: 14px;
+  width: 48px;
+  height: 7px;
+  background: #2f3546;
+  clip-path: none;
+  box-shadow:
+    -10px 1px 0 -1px #7a4a1f,
+    18px 0 0 -2px #dfe8ef,
+    36px 0 0 -2px var(--power);
+}
+
+.char-ranger .preview-weapon::after {
+  left: 34px;
+  top: 2px;
+  width: 32px;
+  height: 30px;
+  border: 5px solid var(--char);
+  border-left: 0;
+  border-radius: 0 26px 26px 0;
+  background: transparent;
+  box-shadow:
+    -16px 14px 0 -13px #dfe8ef,
+    -16px -14px 0 -13px #dfe8ef;
 }
 
 .char-assassin .preview-weapon {
-  left: 82px;
-  top: 66px;
-  width: 54px;
-  height: 34px;
+  left: 78px;
+  top: 67px;
+  width: 64px;
+  height: 42px;
   transform: none;
   background: transparent;
-  box-shadow: none;
+  filter: drop-shadow(0 3px 0 rgba(0, 0, 0, 0.34));
 }
 
 .char-assassin .preview-weapon::before,
 .char-assassin .preview-weapon::after {
-  content: "";
-  position: absolute;
-  left: 3px;
-  top: 6px;
-  width: 34px;
-  height: 9px;
-  background: #dfe8ef;
-  clip-path: polygon(0 18%, 78% 18%, 100% 50%, 78% 82%, 0 82%);
-  box-shadow: -6px 0 0 #1d2230, -1px 0 0 2px var(--char), inset 10px 0 0 rgba(255,255,255,0.45);
+  left: 4px;
+  top: 7px;
+  width: 43px;
+  height: 10px;
+  background: linear-gradient(90deg, #1d2230 0 14%, var(--char) 14% 24%, #dfe8ef 24% 72%, #ffffff 72% 100%);
+  clip-path: polygon(0 20%, 74% 20%, 100% 50%, 74% 80%, 0 80%);
+  box-shadow: none;
   transform-origin: 0 50%;
 }
 
 .char-assassin .preview-weapon::before {
-  transform: rotate(-34deg);
+  transform: rotate(-38deg);
 }
 
 .char-assassin .preview-weapon::after {
-  top: 19px;
-  transform: rotate(34deg);
+  top: 25px;
+  transform: rotate(38deg);
 }
 
 .preview-name {

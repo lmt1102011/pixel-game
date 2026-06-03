@@ -7,7 +7,7 @@
   const ROOM_PAD = 86;
   const SAVE_KEY = "soulrift-save-v1";
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
-  const APP_VERSION = "20260603-treasure-chest-opening-50";
+  const APP_VERSION = "20260603-no-enemy-friendly-fire-51";
   const VERSION_CHECK_INTERVAL = 15000;
   const UPDATE_ATTEMPT_KEY = "soulrift-update-attempt-v1";
   const DOOR_ENTER_TIME = 1.0;
@@ -7889,7 +7889,7 @@
       enemy.phaseLock = 1.2;
       enemy.attackCd = 1.4;
       this.camera.shake = Math.max(this.camera.shake, 20);
-      this.addShockwave(enemy.x, enemy.y, 280 + phase * 70, this.run.biome.accent, 54);
+      this.addShockwave(enemy.x, enemy.y, 280 + phase * 70, this.run.biome.accent, 0, { owner: "enemy" });
       for (let i = 0; i < phase + 1; i++) {
         const pos = this.edgePosition(pick(["top", "bottom", "left", "right"]));
         this.run.enemies.push(this.createEnemy(pick(this.run.biome.enemies), pos.x, pos.y, true));
@@ -7914,7 +7914,7 @@
           kind: "boss"
         });
       }
-      this.addShockwave(enemy.x, enemy.y, 180, this.run.biome.accent, 24);
+      this.addShockwave(enemy.x, enemy.y, 180, this.run.biome.accent, 0, { owner: "enemy" });
     }
 
     bossSlam(enemy) {
@@ -8380,7 +8380,7 @@
         }
         if (effect.type === "danger" && effect.time <= 0.05 && !effect.done) {
           effect.done = true;
-          this.addShockwave(effect.x, effect.y, effect.radius + 30, effect.color, 36);
+          this.addShockwave(effect.x, effect.y, effect.radius + 30, effect.color, 0, { owner: "enemy" });
           if (!this.isMultiplayerClient()) {
             for (const target of this.combatTargets()) {
               if (Math.hypot(target.x - effect.x, target.y - effect.y) < effect.radius + target.radius) {
@@ -8451,8 +8451,9 @@
       this.trimVisualList(this.run.trails, this.isMobileDevice() ? 28 : 42);
     }
 
-    addShockwave(x, y, radius, color, damage = 0) {
-      this.run.shockwaves.push({ x, y, radius, color, life: 0.42, maxLife: 0.42, damage, hit: new Set() });
+    addShockwave(x, y, radius, color, damage = 0, options = {}) {
+      const owner = typeof options === "string" ? options : options.owner || "player";
+      this.run.shockwaves.push({ x, y, radius, color, life: 0.42, maxLife: 0.42, damage, owner, hit: new Set() });
       this.trimVisualList(this.run.shockwaves, this.isMobileDevice() ? 16 : 24);
     }
 
@@ -8463,7 +8464,7 @@
         wave.life -= dt;
         const progress = 1 - wave.life / wave.maxLife;
         const current = wave.radius * progress;
-        if (wave.damage > 0) {
+        if (wave.damage > 0 && wave.owner !== "enemy") {
           for (const enemy of [...this.run.enemies]) {
             if (!wave.hit.has(enemy.id) && Math.hypot(enemy.x - wave.x, enemy.y - wave.y) < current + enemy.radius) {
               wave.hit.add(enemy.id);

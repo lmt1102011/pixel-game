@@ -7,7 +7,7 @@
   const ROOM_PAD = 86;
   const SAVE_KEY = "soulrift-save-v1";
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
-  const APP_VERSION = "20260603-forward-x-slash-47";
+  const APP_VERSION = "20260603-sharp-weapons-48";
   const VERSION_CHECK_INTERVAL = 15000;
   const UPDATE_ATTEMPT_KEY = "soulrift-update-attempt-v1";
   const DOOR_ENTER_TIME = 1.0;
@@ -9818,28 +9818,28 @@
         ctx.globalAlpha = 1;
       } else if (character.id === "assassin") {
         const fan = hitFrame ? 0.98 : holdFrame ? 0.74 : recoilFrame ? 0.28 : 0.38;
-        const extend = hitFrame ? 8 : holdFrame ? 5 : 0;
+        const extend = hitFrame ? 5 : holdFrame ? 3 : 0;
         ctx.rotate(facing);
         for (const side of [-1, 1]) {
           ctx.save();
-          ctx.translate(9 + extend, side * (5 + hitFrame * 7));
+          ctx.translate(8 + extend, side * (5 + hitFrame * 6));
           ctx.rotate(side * fan);
           ctx.fillStyle = "#1d2230";
-          ctx.fillRect(-5, -2, 8, 4);
+          ctx.fillRect(-4, -2, 7, 4);
           ctx.fillStyle = character.color;
-          ctx.fillRect(0, -4, 4, 8);
+          ctx.fillRect(0, -3, 3, 6);
           ctx.fillStyle = "#dfe8ef";
           ctx.beginPath();
-          ctx.moveTo(4, -3);
-          ctx.lineTo(16 + extend, -2);
-          ctx.lineTo(21 + extend, 0);
-          ctx.lineTo(16 + extend, 2);
-          ctx.lineTo(4, 3);
+          ctx.moveTo(3, -2.5);
+          ctx.lineTo(13 + extend, -1.5);
+          ctx.lineTo(17 + extend, 0);
+          ctx.lineTo(13 + extend, 1.5);
+          ctx.lineTo(3, 2.5);
           ctx.closePath();
           ctx.fill();
           ctx.fillStyle = "#ffffff";
           ctx.globalAlpha = 0.65;
-          ctx.fillRect(7, -1, 8 + extend, 1);
+          ctx.fillRect(6, -1, 6 + extend, 1);
           ctx.globalAlpha = 1;
           ctx.restore();
         }
@@ -9851,10 +9851,26 @@
         const weaponReach = anim === "dash" ? 7 : hitFrame * 14 + holdFrame * 7 + castFrame * 5;
         ctx.rotate(facing + weaponWindup);
         ctx.translate(weaponReach, 0);
-        ctx.fillStyle = "#dfe8ef";
-        ctx.fillRect(10, -2, 22 + hitFrame * 10 + holdFrame * 4, 4);
+        const bladeLen = 28 + hitFrame * 11 + holdFrame * 4;
+        ctx.fillStyle = "#9aa6b5";
+        ctx.fillRect(5, -5, 5, 10);
         ctx.fillStyle = power.accent;
-        ctx.fillRect(7, -4, 5, 8);
+        ctx.fillRect(3, -3, 8, 6);
+        ctx.fillStyle = "#dfe8ef";
+        ctx.beginPath();
+        ctx.moveTo(10, -3);
+        ctx.lineTo(10 + bladeLen * 0.78, -2);
+        ctx.lineTo(10 + bladeLen, 0);
+        ctx.lineTo(10 + bladeLen * 0.78, 2);
+        ctx.lineTo(10, 3);
+        ctx.closePath();
+        ctx.fill();
+        ctx.fillStyle = "#ffffff";
+        ctx.globalAlpha = 0.68;
+        ctx.fillRect(14, -1, bladeLen * 0.58, 1);
+        ctx.globalAlpha = 1;
+        ctx.fillStyle = "#1d2230";
+        ctx.fillRect(0, -2, 6, 4);
       }
       ctx.restore();
       ctx.restore();

@@ -7,7 +7,7 @@
   const ROOM_PAD = 86;
   const SAVE_KEY = "soulrift-save-v1";
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
-  const APP_VERSION = "20260603-grounded-chest-door-reset-33";
+  const APP_VERSION = "20260603-drop-items-no-magnet-34";
   const VERSION_CHECK_INTERVAL = 15000;
   const DOOR_ENTER_TIME = 1.5;
   const DIRECTORY_TOPIC = "soulrift-directory-v2";
@@ -1302,7 +1302,7 @@
       if (message.type === "skill" && this.host) this.game.handleRemoteSkill(message.from, message.skill);
       if (message.type === "collect" && this.host) this.game.handleRemoteCollect(message.from, message.pickupId);
       if (message.type === "openChest" && this.host) this.game.handleRemoteOpenChest(message.from, message.pickupId, message.x, message.y);
-      if (message.type === "dropItem" && this.host) this.game.handleRemoteDropItem(message.from, message.itemId);
+      if (message.type === "dropItem" && this.host) this.game.handleRemoteDropItem(message.from, message.itemId, message.x, message.y, message.facing);
       if (message.type === "damage" && !this.host) this.game.applyHostDamage(message.amount);
       if (message.type === "snapshot" && !this.host) this.game.applyNetworkSnapshot(message.snapshot);
       if (message.type === "needSnapshot" && this.host) this.game.sendNetworkSnapshotTo(message.from);
@@ -1496,7 +1496,7 @@
         this.game.handleRemoteOpenChest(senderId, message.pickupId, message.x, message.y);
       }
       if (message.type === "dropItem" && this.host) {
-        this.game.handleRemoteDropItem(senderId, message.itemId);
+        this.game.handleRemoteDropItem(senderId, message.itemId, message.x, message.y, message.facing);
       }
       if (message.type === "snapshot" && !this.host) {
         this.game.applyNetworkSnapshot(message.snapshot);
@@ -1687,11 +1687,11 @@
       if (!this.host && !this.hasOpenPeers()) this.sendSignal({ type: "openChest", pickupId, x, y }, this.hostId());
     }
 
-    sendDropItem(itemId) {
+    sendDropItem(itemId, x = 0, y = 0, facing = 0) {
       for (const peer of this.peers.values()) {
-        this.sendPeer(peer, { type: "dropItem", itemId });
+        this.sendPeer(peer, { type: "dropItem", itemId, x, y, facing });
       }
-      if (!this.host && !this.hasOpenPeers()) this.sendSignal({ type: "dropItem", itemId }, this.hostId());
+      if (!this.host && !this.hasOpenPeers()) this.sendSignal({ type: "dropItem", itemId, x, y, facing }, this.hostId());
     }
 
     requestSnapshot() {
@@ -3825,7 +3825,7 @@
 
     compactPickup(pickup) {
       return this.compactFields(pickup, [
-        "id", "type", "container", "ownerId", "ownerName", "x", "y", "vx", "vy", "radius", "life", "age", "color", "collected", "countsForClaim", "opening", "opened", "openTimer", "stationary", "settleTime", "settleTotal", "magnetDelay", "reward", "chestReward", "coinReward"
+        "id", "type", "container", "ownerId", "ownerName", "dropperId", "x", "y", "vx", "vy", "radius", "life", "age", "color", "collected", "countsForClaim", "opening", "opened", "openTimer", "stationary", "settleTime", "settleTotal", "magnetDelay", "dropGrace", "noMagnet", "reward", "chestReward", "coinReward"
       ]);
     }
 
@@ -4164,24 +4164,35 @@
       return entry;
     }
 
-    spawnDroppedRunItem(entry, x = this.run.player.x, y = this.run.player.y, ownerName = this.save.account.username || "Người chơi") {
+    spawnDroppedRunItem(entry, x = this.run.player.x, y = this.run.player.y, ownerName = this.save.account.username || "Người chơi", options = {}) {
       const item = itemById(entry?.id);
       if (!item || !this.run) return;
+      const facing = Number.isFinite(Number(options.facing)) ? Number(options.facing) : (this.run.player.facing || rand(0, TAU));
+      const side = rand(-0.42, 0.42);
+      const angle = facing + side;
+      const startX = clamp(x + Math.cos(angle) * 38, ROOM_PAD + 28, WORLD_W - ROOM_PAD - 28);
+      const startY = clamp(y + Math.sin(angle) * 38, ROOM_PAD + 28, WORLD_H - ROOM_PAD - 28);
+      const burst = rand(360, 500);
       this.run.pickups.push({
         id: uid("drop"),
-        x,
-        y,
-        vx: rand(-80, 80),
-        vy: rand(-120, -60),
+        x: startX,
+        y: startY,
+        vx: Math.cos(angle) * burst,
+        vy: Math.sin(angle) * burst - 80,
         type: "reward",
         container: "looseItem",
         ownerId: "",
         ownerName,
+        dropperId: options.dropperId || this.lobby.id,
         reward: { type: "item", item },
         countsForClaim: false,
         radius: 17,
         life: 80,
         age: 0,
+        noMagnet: true,
+        dropGrace: 0.75,
+        settleTime: 0.55,
+        settleTotal: 0.55,
         color: this.rewardColor({ type: "item", item })
       });
     }
@@ -4189,8 +4200,9 @@
     dropRunItem(uidValue) {
       const entry = this.removeRunItem(uidValue);
       if (!entry) return;
-      if (this.isMultiplayerClient()) this.lobby.sendDropItem(entry.id);
-      else this.spawnDroppedRunItem(entry);
+      const p = this.run.player;
+      if (this.isMultiplayerClient()) this.lobby.sendDropItem(entry.id, p.x, p.y, p.facing || 0);
+      else this.spawnDroppedRunItem(entry, p.x, p.y, this.save.account.username || "Người chơi", { facing: p.facing || 0, dropperId: this.lobby.id });
       this.toast("Đã vứt phụ trợ ra đất");
       this.showRunInventory();
     }
@@ -6597,15 +6609,18 @@
       }
     }
 
-    handleRemoteDropItem(remoteId, itemId) {
+    handleRemoteDropItem(remoteId, itemId, x = null, y = null, facing = 0) {
       if (!this.isMultiplayerHost() || !this.run || !itemById(itemId)) return;
       const remote = this.remotePlayers.get(remoteId);
       const slot = this.lobby.slots.find((entry) => entry.id === remoteId);
+      const dropX = Number.isFinite(Number(x)) ? Number(x) : (remote?.x || this.run.player.x);
+      const dropY = Number.isFinite(Number(y)) ? Number(y) : (remote?.y || this.run.player.y);
       this.spawnDroppedRunItem(
         { id: itemId },
-        remote?.x || this.run.player.x,
-        remote?.y || this.run.player.y,
-        slot?.name || remote?.name || "Người chơi"
+        dropX,
+        dropY,
+        slot?.name || remote?.name || "Người chơi",
+        { facing: Number(facing) || remote?.facing || 0, dropperId: remoteId }
       );
     }
 
@@ -7505,7 +7520,8 @@
           const chest = pickup.container === "woodChest" || pickup.container === "goldChest";
           const target = this.pickupTarget(pickup);
           const canCollect = !pickup.ownerId || pickup.ownerId === this.lobby.id;
-          if (chest && Number(pickup.settleTime || 0) > 0) {
+          if (Number(pickup.dropGrace || 0) > 0) pickup.dropGrace = Math.max(0, Number(pickup.dropGrace || 0) - dt);
+          if ((chest || pickup.noMagnet) && Number(pickup.settleTime || 0) > 0) {
             pickup.settleTime = Math.max(0, Number(pickup.settleTime || 0) - dt);
             pickup.x = clamp(pickup.x + (pickup.vx || 0) * dt, ROOM_PAD + pickup.radius, WORLD_W - ROOM_PAD - pickup.radius);
             pickup.y = clamp(pickup.y + (pickup.vy || 0) * dt, ROOM_PAD + pickup.radius, WORLD_H - ROOM_PAD - pickup.radius);
@@ -7547,7 +7563,7 @@
                 if (pickup.openTimer <= 0) this.spawnLootFromChest(pickup, target);
               }
             }
-          } else if ((canCollect || (this.isMultiplayerHost() && pickup.ownerId && target)) && pickup.age > Math.max(0.2, Number(pickup.magnetDelay || 0))) {
+          } else if (!pickup.noMagnet && (canCollect || (this.isMultiplayerHost() && pickup.ownerId && target)) && pickup.age > Math.max(0.2, Number(pickup.magnetDelay || 0))) {
             const magnetTarget = target || p;
             const dx = magnetTarget.x - pickup.x;
             const dy = magnetTarget.y - pickup.y;
@@ -7559,7 +7575,7 @@
             pickup.x += (dx / d) * speed * dt;
             pickup.y += (dy / d) * speed * dt;
           }
-          if (!chest && canCollect && Math.hypot(p.x - pickup.x, p.y - pickup.y) < p.radius + pickup.radius + 8) {
+          if (!chest && canCollect && Number(pickup.dropGrace || 0) <= 0 && Math.hypot(p.x - pickup.x, p.y - pickup.y) < p.radius + pickup.radius + 8) {
             if (this.collectRewardPickup(pickup)) pickup.life = 0;
           }
         } else {

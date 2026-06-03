@@ -7,7 +7,7 @@
   const ROOM_PAD = 86;
   const SAVE_KEY = "soulrift-save-v1";
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
-  const APP_VERSION = "20260603-center-party-49";
+  const APP_VERSION = "20260603-treasure-chest-opening-50";
   const VERSION_CHECK_INTERVAL = 15000;
   const UPDATE_ATTEMPT_KEY = "soulrift-update-attempt-v1";
   const DOOR_ENTER_TIME = 1.0;
@@ -8141,8 +8141,14 @@
       for (const object of this.run.roomObjects) {
         object.grow = clamp((object.grow || 0) + dt * 1.9, 0, 1);
         if (object.opening) {
-          object.openTimer = Math.max(0, (object.openTimer || 0.55) - dt);
-          if (chance(dt * 16)) this.addParticle(object.x + rand(-34, 34), object.y + rand(-28, 18), object.color || "#f2bf63", rand(8, 18), rand(0.24, 0.55), "spark");
+          const openDuration = object.type === "treasureChest" ? 0.85 : 0.55;
+          object.openTimer = Math.max(0, Number(object.openTimer ?? openDuration) - dt);
+          const sparkleRate = object.type === "treasureChest" ? 34 : 16;
+          if (chance(dt * sparkleRate)) {
+            const color = object.type === "treasureChest" ? pick(["#fff6d2", "#f2bf63", "#ffffff", "#ffd36a"]) : (object.color || "#f2bf63");
+            const a = rand(-Math.PI * 0.95, -Math.PI * 0.05);
+            this.addParticle(object.x + rand(-42, 42), object.y + rand(-42, 10), color, rand(8, object.type === "treasureChest" ? 24 : 18), rand(0.24, 0.6), chance(0.22) ? "ring" : "spark", a, rand(55, 190));
+          }
           if (object.openTimer <= 0) this.completeRoomObjectOpening(object);
           continue;
         }
@@ -8195,7 +8201,9 @@
       }
       if (object.type === "treasureChest") {
         object.opening = true;
-        object.openTimer = 0.55;
+        object.openTimer = 0.85;
+        this.addShockwave(object.x, object.y, 120, "#f2bf63", 0);
+        this.camera.shake = Math.max(this.camera.shake, 5);
         this.audio.sfx(520, "triangle", 0.12, 0.12);
         return;
       }
@@ -9360,38 +9368,96 @@
 
     drawTreasureChest(ctx, object) {
       const grow = clamp(object.grow || 0, 0, 1);
-      const y = object.y + (1 - grow) * 34;
+      const openDuration = 0.85;
+      const rawOpening = object.opened ? 1 : object.opening ? clamp(1 - Number(object.openTimer ?? openDuration) / openDuration, 0, 1) : 0;
+      const opening = 1 - Math.pow(1 - rawOpening, 2.6);
+      const y = object.y + (1 - grow) * 34 - Math.sin(rawOpening * Math.PI) * 4;
       this.drawObjectAmbient(ctx, { ...object, y }, 74);
       ctx.save();
       ctx.translate(object.x, y);
       ctx.scale(grow, grow);
       ctx.shadowColor = "#f2bf63";
-      ctx.shadowBlur = this.glow(18);
+      ctx.shadowBlur = this.glow(18 + opening * 18);
       ctx.fillStyle = "rgba(0,0,0,0.32)";
       ctx.beginPath();
-      ctx.ellipse(0, 32, 58, 12, 0, 0, TAU);
+      ctx.ellipse(0, 34, 62, 12, 0, 0, TAU);
       ctx.fill();
+
+      if (opening > 0) {
+        ctx.save();
+        ctx.globalCompositeOperation = "lighter";
+        ctx.globalAlpha = 0.14 + opening * 0.38;
+        ctx.fillStyle = "#fff0b8";
+        ctx.beginPath();
+        ctx.moveTo(-22, -8);
+        ctx.lineTo(-58 - opening * 14, -90 - opening * 24);
+        ctx.lineTo(58 + opening * 14, -90 - opening * 24);
+        ctx.lineTo(22, -8);
+        ctx.closePath();
+        ctx.fill();
+        ctx.strokeStyle = "#ffffff";
+        ctx.lineWidth = 2;
+        for (let i = -3; i <= 3; i++) {
+          const a = -Math.PI / 2 + i * 0.16 + Math.sin(this.menuTime * 8 + i) * 0.045;
+          const inner = 16 + opening * 10;
+          const outer = 54 + opening * 42 + (3 - Math.abs(i)) * 5;
+          ctx.beginPath();
+          ctx.moveTo(Math.cos(a) * inner, -8 + Math.sin(a) * inner);
+          ctx.lineTo(Math.cos(a) * outer, -8 + Math.sin(a) * outer);
+          ctx.stroke();
+        }
+        for (let i = 0; i < 5; i++) {
+          const a = this.menuTime * 2.2 + i * TAU / 5;
+          const sx = Math.cos(a) * (24 + opening * 14);
+          const sy = -24 + Math.sin(a) * (8 + opening * 8);
+          ctx.fillStyle = i % 2 ? "#ffffff" : "#fff0b8";
+          ctx.fillRect(sx - 2, sy - 2, 4, 4);
+        }
+        ctx.restore();
+      }
+
       ctx.fillStyle = "#5b3418";
-      ctx.fillRect(-45, -8, 90, 42);
-      const opening = object.opened ? 1 : object.opening ? clamp(1 - (object.openTimer || 0) / 0.55, 0, 1) : 0;
+      ctx.fillRect(-48, -8, 96, 42);
+      ctx.fillStyle = "#7d471f";
+      ctx.fillRect(-42, -3, 84, 31);
       ctx.save();
-      ctx.translate(0, -8);
-      ctx.rotate(-opening * 0.75);
-      ctx.translate(0, 8);
+      ctx.translate(-47, -8 - opening * 7);
+      ctx.rotate(-opening * 1.18);
+      ctx.translate(47, 8);
       ctx.fillStyle = "#8b5524";
-      ctx.fillRect(-43, -24, 86, 24);
-      ctx.restore();
-      ctx.fillStyle = "#f2bf63";
-      ctx.fillRect(-49, -6, 98, 8);
-      ctx.fillRect(-6, -23, 12, 57);
-      ctx.fillRect(-10, 6, 20, 15);
+      ctx.beginPath();
+      ctx.moveTo(-47, -8);
+      ctx.quadraticCurveTo(0, -42 - opening * 10, 47, -8);
+      ctx.lineTo(47, 2);
+      ctx.quadraticCurveTo(0, -22 - opening * 7, -47, 2);
+      ctx.closePath();
+      ctx.fill();
       ctx.strokeStyle = "#fff0b8";
       ctx.lineWidth = 3;
-      ctx.strokeRect(-45, -8, 90, 42);
+      ctx.stroke();
+      ctx.fillStyle = "#f2bf63";
+      ctx.fillRect(-38, -12, 76, 5);
+      ctx.restore();
+      ctx.fillStyle = "#f2bf63";
+      ctx.fillRect(-52, -6, 104, 8);
+      ctx.fillRect(-7, -19, 14, 53);
+      ctx.fillStyle = "#fff0b8";
+      ctx.fillRect(-41, 1, 82, 3);
+      ctx.fillStyle = "#6b3d13";
+      ctx.fillRect(-12, 5, 24, 18);
+      ctx.fillStyle = "#f2bf63";
+      ctx.fillRect(-8, 8, 16, 12);
+      ctx.fillStyle = "#fff6d2";
+      ctx.fillRect(-3, 11, 6, 6);
+      ctx.strokeStyle = "#fff0b8";
+      ctx.lineWidth = 3;
+      ctx.strokeRect(-48, -8, 96, 42);
       if (object.opened || object.opening) {
-        ctx.globalAlpha = 0.72;
-        ctx.fillStyle = "#fff0b8";
-        ctx.fillRect(-30, -36 - opening * 12, 60, 12);
+        ctx.globalAlpha = 0.35 + opening * 0.45;
+        ctx.fillStyle = "#fff6d2";
+        ctx.beginPath();
+        ctx.ellipse(0, -10, 30 + opening * 16, 9 + opening * 7, 0, 0, TAU);
+        ctx.fill();
       }
       ctx.restore();
     }

@@ -7,7 +7,7 @@
   const ROOM_PAD = 86;
   const SAVE_KEY = "soulrift-save-v1";
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
-  const APP_VERSION = "20260604-guardian-aim-cleanup-72";
+  const APP_VERSION = "20260604-weapon-left-facing-fix-73";
   const VERSION_CHECK_INTERVAL = 15000;
   const UPDATE_ATTEMPT_KEY = "soulrift-update-attempt-v1";
   const DOOR_ENTER_TIME = 1.0;
@@ -11013,6 +11013,16 @@
       const stride = ["walk", "run", "idle"].includes(anim) ? stepStride : 0;
       const bob = stride * (anim === "idle" ? 1 : anim === "walk" ? 2 : anim === "run" ? 3 : 0) - (hitFrame ? 3 : holdFrame ? 2 : 0) + (recoilFrame ? 1 : 0);
       const dir = Math.cos(facing) >= 0 ? 1 : -1;
+      const applyWeaponFacing = (aimAngle, mirrorAngle = aimAngle) => {
+        const side = Math.cos(mirrorAngle) >= 0 ? 1 : -1;
+        if (side < 0) {
+          ctx.rotate(aimAngle - Math.PI);
+          ctx.scale(-1, 1);
+        } else {
+          ctx.rotate(aimAngle);
+        }
+        return side;
+      };
       const bodyShift = dir * (hitFrame ? 5 : holdFrame ? 3 : recoilFrame ? -2 : castFrame ? 2 : ultFrame ? 1 : damageFrame ? -4 : 0);
       const lean = dir * (anim === "dash" ? 0.09 : damageFrame ? -0.14 : hitFrame ? 0.16 : holdFrame ? 0.08 : recoilFrame ? -0.08 : castFrame ? 0.05 : 0);
       const squashX = anim === "dash" ? 1.08 : hitFrame ? 1.08 : holdFrame ? 1.04 : 1;
@@ -11111,7 +11121,7 @@
       if (character.id === "guardian") {
         const thrust = hitFrame ? 30 : holdFrame ? 18 : recoilFrame ? 5 : 0;
         const guardPower = hitFrame || holdFrame ? 1 : 0;
-        ctx.rotate(facing);
+        applyWeaponFacing(facing);
         ctx.translate(thrust, 0);
         const metal = ctx.createLinearGradient(9, -20, 39, 20);
         metal.addColorStop(0, "#f7fbff");
@@ -11240,7 +11250,7 @@
           : 0;
         const nockX = 10 - pull * 20;
         const stringX = snap > 0 ? Math.max(nockX, 10 + snap * 14) : nockX;
-        ctx.rotate(facing);
+        applyWeaponFacing(facing);
         ctx.translate(3 - snap * 8, snap * Math.sin(t * 70) * 0.8);
         ctx.scale(0.82 + snap * 0.04, 0.82 - snap * 0.02);
         ctx.fillStyle = "#2f3546";
@@ -11284,7 +11294,7 @@
       } else if (character.id === "assassin") {
         const fan = hitFrame ? 0.98 : holdFrame ? 0.74 : recoilFrame ? 0.28 : 0.38;
         const extend = hitFrame ? 5 : holdFrame ? 3 : 0;
-        ctx.rotate(facing);
+        applyWeaponFacing(facing);
         for (const side of [-1, 1]) {
           ctx.save();
           ctx.translate(8 + extend, side * (5 + hitFrame * 6));
@@ -11314,7 +11324,7 @@
           : anim === "skill" ? (castFrame ? 0.24 : -0.18)
             : 0;
         const weaponReach = anim === "dash" ? 7 : hitFrame * 14 + holdFrame * 7 + castFrame * 5;
-        ctx.rotate(facing + weaponWindup);
+        applyWeaponFacing(facing + weaponWindup, facing);
         ctx.translate(weaponReach, 0);
         const bladeLen = 28 + hitFrame * 11 + holdFrame * 4;
         ctx.fillStyle = "#9aa6b5";

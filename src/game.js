@@ -7,7 +7,7 @@
   const ROOM_PAD = 86;
   const SAVE_KEY = "soulrift-save-v1";
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
-  const APP_VERSION = "20260603-update-loop-fix-41";
+  const APP_VERSION = "20260603-smaller-crossbow-42";
   const VERSION_CHECK_INTERVAL = 15000;
   const UPDATE_ATTEMPT_KEY = "soulrift-update-attempt-v1";
   const DOOR_ENTER_TIME = 1.5;
@@ -9711,6 +9711,8 @@
           : 0;
         const nockX = 10 - pull * 20;
         ctx.rotate(facing);
+        ctx.translate(3, 0);
+        ctx.scale(0.82, 0.82);
         ctx.fillStyle = "#2f3546";
         ctx.fillRect(-8, -3, 46, 6);
         ctx.fillRect(0, -6, 12, 12);

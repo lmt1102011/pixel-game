@@ -7,7 +7,7 @@
   const ROOM_PAD = 86;
   const SAVE_KEY = "soulrift-save-v1";
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
-  const APP_VERSION = "20260603-run-bag-chest-door-29";
+  const APP_VERSION = "20260603-stationary-wood-chests-30";
   const VERSION_CHECK_INTERVAL = 15000;
   const DIRECTORY_TOPIC = "soulrift-directory-v2";
   const ROOM_CODE_RE = /^[A-Z0-9]{4,12}$/;
@@ -3778,7 +3778,7 @@
 
     compactPickup(pickup) {
       return this.compactFields(pickup, [
-        "id", "type", "container", "ownerId", "ownerName", "x", "y", "vx", "vy", "radius", "life", "age", "color", "collected", "countsForClaim", "opening", "opened", "openTimer", "reward", "chestReward", "coinReward"
+        "id", "type", "container", "ownerId", "ownerName", "x", "y", "vx", "vy", "radius", "life", "age", "color", "collected", "countsForClaim", "opening", "opened", "openTimer", "stationary", "reward", "chestReward", "coinReward"
       ]);
     }
 
@@ -6001,15 +6001,18 @@
       rewards.forEach(({ owner, reward }, index) => {
         const color = this.rewardColor(reward);
         const angle = rewards.length === 1 ? -Math.PI / 2 : (index / rewards.length) * TAU - Math.PI / 2;
-        const burst = 72 + index * 10;
+        const container = options.container || "woodChest";
+        const spread = rewards.length === 1 ? 0 : 58 + index * 4;
+        const chestX = clamp(x + Math.cos(angle) * spread, ROOM_PAD + 42, WORLD_W - ROOM_PAD - 42);
+        const chestY = clamp(y + Math.sin(angle) * spread * 0.72, ROOM_PAD + 42, WORLD_H - ROOM_PAD - 42);
         this.run.pickups.push({
           id: uid("pickup"),
-          x: x + Math.cos(angle) * 18,
-          y: y + Math.sin(angle) * 18,
-          vx: Math.cos(angle) * burst + rand(-28, 28),
-          vy: Math.sin(angle) * burst - 62 + rand(-18, 18),
+          x: chestX,
+          y: chestY,
+          vx: 0,
+          vy: 0,
           type: "reward",
-          container: options.container || "woodChest",
+          container,
           ownerId: owner.id,
           ownerName: owner.name,
           chestReward: reward,
@@ -6017,7 +6020,8 @@
           radius: 22,
           life: 90,
           age: 0,
-          color
+          color,
+          stationary: true
         });
       });
       const firstColor = this.rewardColor(rewards[0]?.reward || { type: "material", rarity: "rare" });
@@ -7345,11 +7349,16 @@
           const chest = pickup.container === "woodChest" || pickup.container === "goldChest";
           const target = this.pickupTarget(pickup);
           const canCollect = !pickup.ownerId || pickup.ownerId === this.lobby.id;
-          pickup.vy = (pickup.vy || 0) + 180 * dt;
-          pickup.x = clamp(pickup.x + (pickup.vx || 0) * dt, ROOM_PAD + pickup.radius, WORLD_W - ROOM_PAD - pickup.radius);
-          pickup.y = clamp(pickup.y + (pickup.vy || 0) * dt, ROOM_PAD + pickup.radius, WORLD_H - ROOM_PAD - pickup.radius);
-          pickup.vx *= Math.pow(0.18, dt);
-          pickup.vy *= Math.pow(0.18, dt);
+          if (chest || pickup.stationary) {
+            pickup.vx = 0;
+            pickup.vy = 0;
+          } else {
+            pickup.vy = (pickup.vy || 0) + 180 * dt;
+            pickup.x = clamp(pickup.x + (pickup.vx || 0) * dt, ROOM_PAD + pickup.radius, WORLD_W - ROOM_PAD - pickup.radius);
+            pickup.y = clamp(pickup.y + (pickup.vy || 0) * dt, ROOM_PAD + pickup.radius, WORLD_H - ROOM_PAD - pickup.radius);
+            pickup.vx *= Math.pow(0.18, dt);
+            pickup.vy *= Math.pow(0.18, dt);
+          }
           if (chest) {
             if (!this.isMultiplayerClient() && target && pickup.age > 0.45) {
               const d = Math.hypot(target.x - pickup.x, target.y - pickup.y);

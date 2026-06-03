@@ -7,7 +7,7 @@
   const ROOM_PAD = 86;
   const SAVE_KEY = "soulrift-save-v1";
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
-  const APP_VERSION = "20260603-chest-sync-party-hp-31";
+  const APP_VERSION = "20260603-quick-actions-room-chests-32";
   const VERSION_CHECK_INTERVAL = 15000;
   const DIRECTORY_TOPIC = "soulrift-directory-v2";
   const ROOM_CODE_RE = /^[A-Z0-9]{4,12}$/;
@@ -987,7 +987,7 @@
         this.peerJs = new Peer(undefined, { debug: 0 });
         this.peerJs.on("open", () => {
           this.connectPeerJsRoom();
-          for (const delay of [500, 1200, 2400, 4200, 7000, 10500]) {
+          for (const delay of [350, 800, 1600, 2800, 4600, 7000]) {
             this.joinRetryTimers.push(setTimeout(() => this.connectPeerJsRoom(), delay));
           }
         });
@@ -1014,12 +1014,12 @@
       this.joinRetryTimers.push(
         setTimeout(hello, 120),
         setTimeout(hello, 320),
-        setTimeout(hello, 700),
-        setTimeout(hello, 1300),
-        setTimeout(hello, 2300),
-        setTimeout(hello, 3800),
-        setTimeout(hello, 6500),
-        setTimeout(hello, 10500)
+        setTimeout(hello, 650),
+        setTimeout(hello, 1100),
+        setTimeout(hello, 1800),
+        setTimeout(hello, 3000),
+        setTimeout(hello, 4800),
+        setTimeout(hello, 7200)
       );
     }
 
@@ -1117,7 +1117,7 @@
 
     checkJoinTimeout() {
       if (!this.joinPending || this.host || !this.code) return;
-      if (Date.now() - this.joinStartedAt < 14500) return;
+      if (Date.now() - this.joinStartedAt < 9500) return;
       if (this.lastLobbyAt > 0 || this.openPeerCount() > 0) {
         this.joinPending = false;
         return;
@@ -1178,25 +1178,31 @@
       if (!window.fetch || !this.signalTopic) return;
       this.remotePollTimer -= dt;
       if (this.remotePollTimer > 0 || this.remotePollBusy) return;
-      this.remotePollTimer = this.joinPending ? 0.55 : this.host ? 0.85 : 1.2;
+      this.remotePollTimer = this.joinPending ? 0.28 : this.host ? 0.65 : 0.85;
       this.remotePollBusy = true;
       try {
         const since = this.remotePollSince ? Math.floor(this.remotePollSince / 1000) : SIGNAL_HISTORY;
-        for (const relay of SIGNAL_RELAY_URLS) {
+        const readRelay = async (relay) => {
+          const controller = "AbortController" in window ? new AbortController() : null;
+          const timeout = controller ? setTimeout(() => controller.abort(), this.joinPending ? 1300 : 1800) : 0;
           try {
-            const response = await fetch(`${relay}/${encodeURIComponent(this.signalTopic)}/json?poll=1&since=${since}`, { cache: "no-store" });
-            if (!response.ok) continue;
-            const text = await response.text();
-            for (const line of text.split(/\r?\n/)) {
-              if (!line.trim()) continue;
-              try {
-                await this.handleRemoteEnvelope(JSON.parse(line));
-              } catch {
-                // Relay polling can include stale or malformed public messages.
-              }
-            }
+            const response = await fetch(`${relay}/${encodeURIComponent(this.signalTopic)}/json?poll=1&since=${since}`, { cache: "no-store", signal: controller?.signal });
+            return response.ok ? await response.text() : "";
           } catch {
-            // Try the next relay.
+            return "";
+          } finally {
+            if (timeout) clearTimeout(timeout);
+          }
+        };
+        const relayTexts = await Promise.all(SIGNAL_RELAY_URLS.map((relay) => readRelay(relay)));
+        for (const text of relayTexts) {
+          for (const line of text.split(/\r?\n/)) {
+            if (!line.trim()) continue;
+            try {
+              await this.handleRemoteEnvelope(JSON.parse(line));
+            } catch {
+              // Relay polling can include stale or malformed public messages.
+            }
           }
         }
       } catch {
@@ -1740,6 +1746,7 @@
       this.screen = document.getElementById("screen");
       this.hud = document.getElementById("hud");
       this.toastEl = document.getElementById("toast");
+      this.quickActions = document.getElementById("quickActions");
       this.touchLayer = document.getElementById("touchLayer");
       this.mobileGate = document.getElementById("mobileGate");
       this.mobileGateButton = document.getElementById("mobileGateButton");
@@ -2118,6 +2125,12 @@
         const target = event.target.closest("[data-status-index]");
         if (target) this.showStatusEffects(Number(target.dataset.statusIndex || 0));
       });
+      this.quickActions?.addEventListener("click", (event) => {
+        const target = event.target.closest("[data-quick]");
+        if (!target) return;
+        event.preventDefault();
+        this.triggerQuickAction(target.dataset.quick);
+      });
       this.screen.addEventListener("input", (event) => this.handleInput(event));
       this.bindTouchControls();
       this.updateMobileGate();
@@ -2401,6 +2414,12 @@
       if (action === "settings") this.showPause();
     }
 
+    triggerQuickAction(action) {
+      if (!this.run || this.mode !== "game") return;
+      if (action === "bag") this.showRunInventory();
+      if (action === "pause") this.showPause();
+    }
+
     resize() {
       this.dpr = Math.min(window.devicePixelRatio || 1, this.isMobileDevice() ? 1 : 1.25);
       this.width = window.innerWidth;
@@ -2505,6 +2524,7 @@
       }
       this.lobby.updatePresence(dt);
       this.updateRoomDirectory(dt);
+      this.updateQuickActions();
       if (this.mode === "game" && this.run) this.update(dt);
       this.audio.update(dt);
       this.render();
@@ -2533,6 +2553,13 @@
       };
       restore();
       requestAnimationFrame(restore);
+    }
+
+    updateQuickActions() {
+      if (!this.quickActions) return;
+      const visible = Boolean(this.run && this.mode === "game");
+      this.quickActions.classList.toggle("hidden", !visible);
+      this.quickActions.setAttribute("aria-hidden", visible ? "false" : "true");
     }
 
     showMainMenu() {
@@ -2817,60 +2844,62 @@
       try {
         const now = Date.now();
         const rooms = new Map();
-        for (const relay of SIGNAL_RELAY_URLS) {
+        const readRelay = async (relay) => {
           const controller = "AbortController" in window ? new AbortController() : null;
-          const timeout = controller ? setTimeout(() => controller.abort(), 4500) : 0;
+          const timeout = controller ? setTimeout(() => controller.abort(), 1800) : 0;
           try {
             const response = await fetch(`${relay}/${DIRECTORY_TOPIC}/json?poll=1&since=${DIRECTORY_HISTORY}`, { cache: "no-store", signal: controller?.signal });
-            if (!response.ok) continue;
-            const text = await response.text();
-            for (const line of text.split(/\r?\n/)) {
-              if (!line.trim()) continue;
-              let envelope = null;
-              try {
-                envelope = JSON.parse(line);
-              } catch {
-                continue;
-              }
-              const raw = typeof envelope.message === "string" ? envelope.message : "";
-              let payload = null;
-              try {
-                payload = JSON.parse(raw);
-              } catch {
-                continue;
-              }
-              if (payload?.type !== "roomPresence" || !payload.code) continue;
-              const code = String(payload.code || "").trim().toUpperCase();
-              if (!ROOM_CODE_RE.test(code)) continue;
-              if (payload.open === false) {
-                rooms.delete(code);
-                continue;
-              }
-              const relayTime = Number(envelope.time || 0) * 1000;
-              const seenAt = relayTime || Number(payload.sentAt || 0) || now;
-              if (now - seenAt > ROOM_TTL_MS) continue;
-              const players = Math.max(0, Number(payload.players) || 0);
-              if (players <= 0) continue;
-              const emptySince = Number(payload.emptySince || 0);
-              const emptyFor = Math.max(0, Number(payload.emptyFor || 0));
-              if (players <= 1 && (emptyFor > ROOM_TTL_MS || (!payload.emptyFor && emptySince && now - emptySince > ROOM_TTL_MS))) {
-                rooms.delete(code);
-                continue;
-              }
-              rooms.set(code, {
-                code,
-                hostName: payload.hostName || "Chủ phòng",
-                players,
-                maxPlayers: Number(payload.maxPlayers) || 4,
-                sentAt: seenAt,
-                emptySince,
-                emptyFor
-              });
-            }
+            return response.ok ? await response.text() : "";
           } catch {
-            // Try the next relay.
+            return "";
           } finally {
             if (timeout) clearTimeout(timeout);
+          }
+        };
+        const relayTexts = await Promise.all(SIGNAL_RELAY_URLS.map((relay) => readRelay(relay)));
+        for (const text of relayTexts) {
+          for (const line of text.split(/\r?\n/)) {
+            if (!line.trim()) continue;
+            let envelope = null;
+            try {
+              envelope = JSON.parse(line);
+            } catch {
+              continue;
+            }
+            const raw = typeof envelope.message === "string" ? envelope.message : "";
+            let payload = null;
+            try {
+              payload = JSON.parse(raw);
+            } catch {
+              continue;
+            }
+            if (payload?.type !== "roomPresence" || !payload.code) continue;
+            const code = String(payload.code || "").trim().toUpperCase();
+            if (!ROOM_CODE_RE.test(code)) continue;
+            if (payload.open === false) {
+              rooms.delete(code);
+              continue;
+            }
+            const relayTime = Number(envelope.time || 0) * 1000;
+            const seenAt = relayTime || Number(payload.sentAt || 0) || now;
+            if (now - seenAt > ROOM_TTL_MS) continue;
+            const players = Math.max(0, Number(payload.players) || 0);
+            if (players <= 0) continue;
+            const emptySince = Number(payload.emptySince || 0);
+            const emptyFor = Math.max(0, Number(payload.emptyFor || 0));
+            if (players <= 1 && (emptyFor > ROOM_TTL_MS || (!payload.emptyFor && emptySince && now - emptySince > ROOM_TTL_MS))) {
+              rooms.delete(code);
+              continue;
+            }
+            rooms.set(code, {
+              code,
+              hostName: payload.hostName || "Chủ phòng",
+              players,
+              maxPlayers: Number(payload.maxPlayers) || 4,
+              sentAt: seenAt,
+              emptySince,
+              emptyFor
+            });
           }
         }
         this.publicRooms = [...rooms.values()].sort((a, b) => b.sentAt - a.sentAt);
@@ -2883,6 +2912,7 @@
     }
 
     showRoomFinder(fetchDirectory = true) {
+      const scroll = this.mode === "play" && this.roomFinderOpen ? this.captureScreenScroll() : null;
       this.mode = "play";
       this.roomFinderOpen = true;
       const pendingCode = this.lobby.joinPending && this.lobby.code ? this.lobby.code : "";
@@ -2938,6 +2968,7 @@
           </div>
         </section>
       `);
+      this.restoreScreenScroll(scroll);
       if (fetchDirectory) this.refreshRoomDirectory();
     }
 
@@ -3443,6 +3474,7 @@
     }
 
     renderLobby() {
+      const scroll = this.mode === "lobby" ? this.captureScreenScroll() : null;
       this.mode = "lobby";
       this.hud.classList.add("hidden");
       this.roomFinderOpen = false;
@@ -3512,6 +3544,7 @@
           </div>
         </section>
       `);
+      this.restoreScreenScroll(scroll);
     }
 
     startMultiplayerRun() {
@@ -6146,7 +6179,8 @@
       const d = Math.hypot(target.x - chest.x, target.y - chest.y);
       if (d > (target.radius || 22) + chest.radius + 96) return;
       chest.opening = true;
-      chest.openTimer = Math.min(Number(chest.openTimer ?? 0.42), 0.32);
+      chest.openTimer = 0;
+      this.spawnLootFromChest(chest, target);
     }
 
     spawnLootFromChest(chest, target = this.run.player) {

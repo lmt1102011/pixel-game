@@ -4,9 +4,9 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
     <meta name="theme-color" content="#090b12" />
-    <meta name="soulrift-version" content="20260603-chest-sync-party-hp-31" />
+    <meta name="soulrift-version" content="20260603-quick-actions-room-chests-32" />
     <title>SOULRIFT</title>
-    <link rel="stylesheet" href="styles.css?v=20260603-chest-sync-party-hp-31" />
+    <link rel="stylesheet" href="styles.css?v=20260603-quick-actions-room-chests-32" />
   </head>
   <body>
     <canvas id="gameCanvas" aria-label="Khung chơi Soulrift"></canvas>
@@ -30,6 +30,15 @@
     <main id="screen" class="screen"></main>
     <div id="toast" class="toast hidden"></div>
 
+    <div id="quickActions" class="quick-actions hidden" aria-hidden="true">
+      <button data-quick="bag" class="quick-icon-btn" aria-label="Túi">
+        <span class="touch-icon bag-icon" aria-hidden="true"></span>
+      </button>
+      <button data-quick="pause" class="quick-icon-btn" aria-label="Tạm dừng">
+        <span class="touch-icon pause-icon" aria-hidden="true"></span>
+      </button>
+    </div>
+
     <div id="mobileGate" class="mobile-gate" role="dialog" aria-modal="true" aria-labelledby="mobileGateTitle">
       <div class="mobile-gate-panel">
         <div class="mobile-gate-icon" aria-hidden="true">XOAY</div>
@@ -41,11 +50,6 @@
     </div>
 
     <div id="touchLayer" class="touch-layer hidden" aria-hidden="true">
-      <div class="touch-top-actions">
-        <button data-touch="settings" class="touch-icon-btn" aria-label="Tạm dừng">
-          <span class="touch-icon pause-icon" aria-hidden="true"></span>
-        </button>
-      </div>
       <div id="stick" class="stick"><span></span></div>
       <div class="touch-actions">
         <button data-touch="attack">ĐÁNH</button>
@@ -54,14 +58,10 @@
         <button data-touch="e">E</button>
         <button data-touch="r">R</button>
         <button data-touch="f">TUYỆT</button>
-        <button data-touch="bag" class="touch-icon-btn" aria-label="Túi">
-          <span class="touch-icon bag-icon" aria-hidden="true"></span>
-          <span>TÚI</span>
-        </button>
       </div>
     </div>
 
     <script src="https://unpkg.com/peerjs@1.5.5/dist/peerjs.min.js"></script>
-    <script src="src/game.js?v=20260603-chest-sync-party-hp-31"></script>
+    <script src="src/game.js?v=20260603-quick-actions-room-chests-32"></script>
   </body>
 </html>

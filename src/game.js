@@ -7,7 +7,7 @@
   const ROOM_PAD = 86;
   const SAVE_KEY = "soulrift-save-v1";
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
-  const APP_VERSION = "20260603-stationary-wood-chests-30";
+  const APP_VERSION = "20260603-chest-sync-party-hp-31";
   const VERSION_CHECK_INTERVAL = 15000;
   const DIRECTORY_TOPIC = "soulrift-directory-v2";
   const ROOM_CODE_RE = /^[A-Z0-9]{4,12}$/;
@@ -1294,6 +1294,7 @@
       if (message.type === "attack" && this.host) this.game.handleRemoteAttack(message.from, message.attack);
       if (message.type === "skill" && this.host) this.game.handleRemoteSkill(message.from, message.skill);
       if (message.type === "collect" && this.host) this.game.handleRemoteCollect(message.from, message.pickupId);
+      if (message.type === "openChest" && this.host) this.game.handleRemoteOpenChest(message.from, message.pickupId, message.x, message.y);
       if (message.type === "dropItem" && this.host) this.game.handleRemoteDropItem(message.from, message.itemId);
       if (message.type === "damage" && !this.host) this.game.applyHostDamage(message.amount);
       if (message.type === "snapshot" && !this.host) this.game.applyNetworkSnapshot(message.snapshot);
@@ -1484,6 +1485,9 @@
       if (message.type === "collect" && this.host) {
         this.game.handleRemoteCollect(senderId, message.pickupId);
       }
+      if (message.type === "openChest" && this.host) {
+        this.game.handleRemoteOpenChest(senderId, message.pickupId, message.x, message.y);
+      }
       if (message.type === "dropItem" && this.host) {
         this.game.handleRemoteDropItem(senderId, message.itemId);
       }
@@ -1669,6 +1673,13 @@
       if (!this.host && !this.hasOpenPeers()) this.sendSignal({ type: "collect", pickupId }, this.hostId());
     }
 
+    sendOpenChest(pickupId, x, y) {
+      for (const peer of this.peers.values()) {
+        this.sendPeer(peer, { type: "openChest", pickupId, x, y });
+      }
+      if (!this.host && !this.hasOpenPeers()) this.sendSignal({ type: "openChest", pickupId, x, y }, this.hostId());
+    }
+
     sendDropItem(itemId) {
       for (const peer of this.peers.values()) {
         this.sendPeer(peer, { type: "dropItem", itemId });
@@ -1757,6 +1768,7 @@
       this.networkTimer = 0;
       this.snapshotTimer = 0;
       this.resyncTimer = 0;
+      this.chestOpenRequests = new Map();
       this.toastTimer = 0;
       this.nextHudSkillAt = 0;
       this.hudSkillMarkup = "";
@@ -2386,7 +2398,7 @@
       if (action === "dash") this.dash();
       if (["q", "e", "r", "f"].includes(action)) this.useSkill(action);
       if (action === "bag") this.showRunInventory();
-      if (action === "settings") this.showSettings();
+      if (action === "settings") this.showPause();
     }
 
     resize() {
@@ -3598,6 +3610,7 @@
       const biomeIndex = Math.max(0, BIOMES.findIndex((biome) => biome.id === forcedBiomeId));
       const startBiome = BIOMES[biomeIndex >= 0 ? biomeIndex : 0];
       const difficulty = DIFFICULTIES.find((entry) => entry.id === options.difficulty) || DIFFICULTIES[1];
+      this.chestOpenRequests.clear();
       this.run = {
         seed: Number.isFinite(options.seed) ? options.seed : Math.random(),
         power,
@@ -3772,13 +3785,13 @@
 
     compactProjectile(projectile) {
       return this.compactFields(projectile, [
-        "id", "owner", "x", "y", "vx", "vy", "radius", "damage", "life", "age", "color", "pierce", "kind"
+        "id", "owner", "x", "y", "vx", "vy", "radius", "damage", "life", "age", "color", "pierce", "kind", "visualOnly"
       ]);
     }
 
     compactPickup(pickup) {
       return this.compactFields(pickup, [
-        "id", "type", "container", "ownerId", "ownerName", "x", "y", "vx", "vy", "radius", "life", "age", "color", "collected", "countsForClaim", "opening", "opened", "openTimer", "stationary", "reward", "chestReward", "coinReward"
+        "id", "type", "container", "ownerId", "ownerName", "x", "y", "vx", "vy", "radius", "life", "age", "color", "collected", "countsForClaim", "opening", "opened", "openTimer", "stationary", "magnetDelay", "reward", "chestReward", "coinReward"
       ]);
     }
 
@@ -3793,6 +3806,17 @@
       return this.compactFields(effect, [
         "id", "kind", "name", "text", "color", "icon", "time", "maxTime"
       ]);
+    }
+
+    networkEffects(compact = false) {
+      const visibleTypes = new Set([
+        "pull", "zone", "danger", "ultimate", "skillShape", "castBurst", "castCone",
+        "powerGlyph", "attackBurst", "hitSpark", "lineTell"
+      ]);
+      return this.run.effects
+        .filter((effect) => visibleTypes.has(effect.type))
+        .slice(compact ? -30 : -52)
+        .map((effect) => this.serializableVisual(effect));
     }
 
     mergeNetworkActors(current, incoming, snapDistance = 520) {
@@ -3867,7 +3891,7 @@
         slashes: (compact ? this.run.slashes.slice(-14) : this.run.slashes).map((slash) => this.serializableVisual(slash)),
         shockwaves: (compact ? this.run.shockwaves.slice(-10) : this.run.shockwaves).map((wave) => ({ ...this.serializableVisual(wave), hit: Array.from(wave.hit || []) })),
         trails: compact ? [] : this.run.trails.map((trail) => this.serializableVisual(trail)),
-        effects: this.run.effects.filter((effect) => ["pull", "zone", "danger", "ultimate"].includes(effect.type)).slice(compact ? -12 : -24).map((effect) => this.serializableVisual(effect)),
+        effects: this.networkEffects(compact),
         damageTexts: compact ? [] : this.run.damageTexts.slice(-24).map((text) => this.serializableVisual(text)),
         t: performance.now()
       };
@@ -4997,7 +5021,7 @@
     }
 
     handleRemoteAttack(remoteId, attack) {
-      if (!this.isMultiplayerHost() || !attack || !this.run?.enemies.length) return;
+      if (!this.isMultiplayerHost() || !attack || !this.run) return;
       const character = characterById(attack.characterId);
       const x = Number(attack.x);
       const y = Number(attack.y);
@@ -5010,6 +5034,31 @@
       const hitOptions = { x: dirX, y: dirY, source: "remoteBasic", kind: character.id, combo };
       if (character.id === "ranger") hitOptions.critBonus = 0.28;
       const strike = (enemy, damage) => this.damageEnemy(enemy, damage, hitOptions);
+      const remote = this.remotePlayers.get(remoteId) || {};
+      const slot = this.lobby.slots.find((entry) => entry.id === remoteId);
+      this.remotePlayers.set(remoteId, {
+        ...remote,
+        id: remoteId,
+        name: remote.name || slot?.name || "Người chơi",
+        x,
+        y,
+        displayX: Number.isFinite(remote.displayX) ? remote.displayX : x,
+        displayY: Number.isFinite(remote.displayY) ? remote.displayY : y,
+        hp: Number.isFinite(remote.hp) ? remote.hp : character.stats.hp,
+        maxHp: Number.isFinite(remote.maxHp) ? remote.maxHp : character.stats.hp,
+        energy: Number.isFinite(remote.energy) ? remote.energy : character.stats.energy,
+        maxEnergy: Number.isFinite(remote.maxEnergy) ? remote.maxEnergy : character.stats.energy,
+        damage: Number.isFinite(remote.damage) ? remote.damage : character.stats.damage,
+        crit: Number.isFinite(remote.crit) ? remote.crit : character.stats.crit,
+        characterId: character.id,
+        color: attack.color || remote.color || "#d8b46a",
+        power: attack.power || remote.power || "fire",
+        animation: "attack",
+        actionTotal: character.id === "guardian" ? 0.7 : character.id === "mage" ? 0.6 : character.id === "ranger" ? 0.72 : character.id === "assassin" ? 0.44 : 0.58,
+        actionTime: character.id === "guardian" ? 0.7 : character.id === "mage" ? 0.6 : character.id === "ranger" ? 0.72 : character.id === "assassin" ? 0.44 : 0.58,
+        facing: angle,
+        t: performance.now()
+      });
 
       if (character.id === "mage" || character.id === "ranger") {
         const maxRange = character.id === "ranger" ? 1040 : 620;
@@ -5031,6 +5080,20 @@
           }
         });
         this.addBasicAttackBurst(x + dirX * 42, y + dirY * 42, angle, character.id, character.id === "ranger" ? 64 : 40);
+        this.spawnProjectile({
+          owner: "ally",
+          x: x + dirX * 34,
+          y: y + dirY * 34,
+          vx: dirX * (character.id === "ranger" ? 1280 : 560),
+          vy: dirY * (character.id === "ranger" ? 1280 : 560),
+          radius: character.id === "ranger" ? 7 : 12,
+          damage: 0,
+          life: character.id === "ranger" ? 0.88 : 1.35,
+          color: character.id === "ranger" ? "#ff9f43" : "#83e8ff",
+          pierce: 0,
+          kind: character.id === "ranger" ? "rangerBasic" : "mageBasic",
+          visualOnly: true
+        });
         return;
       }
 
@@ -5072,12 +5135,24 @@
       const damage = Math.max(8, Number(skill.damage) || 24);
       if (![x, y, angle].every(Number.isFinite)) return;
       const remote = this.remotePlayers.get(remoteId) || {};
+      const character = characterById(skill.characterId || remote.characterId || "swordsman");
+      const slot = this.lobby.slots.find((entry) => entry.id === remoteId);
       this.remotePlayers.set(remoteId, {
         ...remote,
+        id: remoteId,
+        name: remote.name || slot?.name || "Người chơi",
         x,
         y,
+        displayX: Number.isFinite(remote.displayX) ? remote.displayX : x,
+        displayY: Number.isFinite(remote.displayY) ? remote.displayY : y,
+        hp: Number.isFinite(remote.hp) ? remote.hp : character.stats.hp,
+        maxHp: Number.isFinite(remote.maxHp) ? remote.maxHp : character.stats.hp,
+        energy: Number.isFinite(remote.energy) ? remote.energy : character.stats.energy,
+        maxEnergy: Number.isFinite(remote.maxEnergy) ? remote.maxEnergy : character.stats.energy,
+        damage: Number.isFinite(remote.damage) ? remote.damage : character.stats.damage,
+        crit: Number.isFinite(remote.crit) ? remote.crit : character.stats.crit,
         power: power.id,
-        characterId: skill.characterId || remote.characterId || "swordsman",
+        characterId: character.id,
         color: skill.color || remote.color || "#d8b46a",
         animation: skill.key === "f" ? "ultimate" : "skill",
         actionTotal: skill.key === "f" ? 0.72 : 0.42,
@@ -6038,6 +6113,42 @@
       return null;
     }
 
+    requestChestOpen(pickup) {
+      if (!pickup || pickup.opened || pickup.ownerId !== this.lobby.id) return;
+      const now = performance.now();
+      const last = this.chestOpenRequests.get(pickup.id) || 0;
+      if (now - last < 320) return;
+      this.chestOpenRequests.set(pickup.id, now);
+      pickup.opening = true;
+      pickup.openTimer = Math.min(Number(pickup.openTimer ?? 0.42), 0.34);
+      this.lobby.sendOpenChest(pickup.id, this.run.player.x, this.run.player.y);
+    }
+
+    handleRemoteOpenChest(remoteId, pickupId, x, y) {
+      if (!this.isMultiplayerHost() || !pickupId || !this.run) return;
+      const chest = this.run.pickups.find((entry) => (
+        entry.id === pickupId
+        && (entry.container === "woodChest" || entry.container === "goldChest")
+        && (!entry.ownerId || entry.ownerId === remoteId)
+        && !entry.opened
+      ));
+      if (!chest) return;
+      let target = this.remotePlayers.get(remoteId);
+      const requestX = Number(x);
+      const requestY = Number(y);
+      if (target && Number.isFinite(requestX) && Number.isFinite(requestY)) {
+        target.x = requestX;
+        target.y = requestY;
+        target.t = performance.now();
+      }
+      target = target || { x: requestX, y: requestY, radius: 22 };
+      if (![target.x, target.y].every(Number.isFinite)) return;
+      const d = Math.hypot(target.x - chest.x, target.y - chest.y);
+      if (d > (target.radius || 22) + chest.radius + 96) return;
+      chest.opening = true;
+      chest.openTimer = Math.min(Number(chest.openTimer ?? 0.42), 0.32);
+    }
+
     spawnLootFromChest(chest, target = this.run.player) {
       if (!chest || chest.opened) return;
       chest.opened = true;
@@ -6047,14 +6158,15 @@
         { reward: chest.coinReward, countsForClaim: false, container: "coin" }
       ].filter((entry) => entry.reward);
       rewards.forEach((entry, index) => {
-        const angle = Math.atan2((target?.y || chest.y) - chest.y, (target?.x || chest.x) - chest.x) + rand(-0.72, 0.72);
-        const burst = 140 + index * 45;
+        const targetAngle = Math.atan2((target?.y || chest.y) - chest.y, (target?.x || chest.x) - chest.x);
+        const spreadAngle = targetAngle + Math.PI + (index - (rewards.length - 1) / 2) * 0.9 + rand(-0.55, 0.55);
+        const burst = 250 + index * 70 + rand(0, 60);
         this.run.pickups.push({
           id: uid(entry.container === "coin" ? "coin" : "loot"),
           x: chest.x,
           y: chest.y - 6,
-          vx: Math.cos(angle) * burst + rand(-30, 30),
-          vy: Math.sin(angle) * burst - 110 + rand(-22, 18),
+          vx: Math.cos(spreadAngle) * burst + rand(-24, 24),
+          vy: Math.sin(spreadAngle) * burst - 130 + rand(-28, 18),
           type: "reward",
           container: entry.container,
           ownerId: chest.ownerId || "",
@@ -6064,6 +6176,7 @@
           radius: entry.container === "coin" ? 14 : 17,
           life: 90,
           age: 0,
+          magnetDelay: 0.32 + index * 0.08,
           color: this.rewardColor(entry.reward)
         });
       });
@@ -7142,7 +7255,7 @@
         if (this.inView(projectile.x, projectile.y, 90) && chance((this.isMobileDevice() ? 18 : 30) * dt)) {
           this.addParticle(projectile.x, projectile.y, projectile.color, projectile.radius * 0.9, 0.25, "dot");
         }
-        if ((projectile.owner === "player" || projectile.owner === "ally") && !this.isMultiplayerClient()) {
+        if ((projectile.owner === "player" || projectile.owner === "ally") && !projectile.visualOnly && !this.isMultiplayerClient()) {
           for (const enemy of this.run.enemies) {
             if (Math.hypot(enemy.x - projectile.x, enemy.y - projectile.y) < enemy.radius + projectile.radius) {
               const len = Math.hypot(projectile.vx, projectile.vy) || 1;
@@ -7360,7 +7473,15 @@
             pickup.vy *= Math.pow(0.18, dt);
           }
           if (chest) {
-            if (!this.isMultiplayerClient() && target && pickup.age > 0.45) {
+            if (this.isMultiplayerClient() && target && pickup.age > 0.3) {
+              const d = Math.hypot(target.x - pickup.x, target.y - pickup.y);
+              if (d < target.radius + pickup.radius + 64 || pickup.opening) {
+                this.requestChestOpen(pickup);
+                if (pickup.opening) {
+                  pickup.openTimer = Math.max(0.08, Number(pickup.openTimer ?? 0.34) - dt);
+                }
+              }
+            } else if (target && pickup.age > 0.45) {
               const d = Math.hypot(target.x - pickup.x, target.y - pickup.y);
               if (d < target.radius + pickup.radius + 54 || pickup.opening) {
                 pickup.opening = true;
@@ -7372,7 +7493,7 @@
                 if (pickup.openTimer <= 0) this.spawnLootFromChest(pickup, target);
               }
             }
-          } else if ((canCollect || (this.isMultiplayerHost() && pickup.ownerId && target)) && pickup.age > 0.2) {
+          } else if ((canCollect || (this.isMultiplayerHost() && pickup.ownerId && target)) && pickup.age > Math.max(0.2, Number(pickup.magnetDelay || 0))) {
             const magnetTarget = target || p;
             const dx = magnetTarget.x - pickup.x;
             const dy = magnetTarget.y - pickup.y;
@@ -8015,7 +8136,7 @@
       for (const actor of actors) {
         if (actor === this.run.player) {
           this.drawHero(ctx, actor.x, actor.y, 2.2, actor, this.run.power, this.save.customization);
-          if (this.isMultiplayerRun()) this.drawNameTag(ctx, actor.x, actor.y - 58, actor.name || this.save.account.username || "Bạn", true);
+          if (this.isMultiplayerRun()) this.drawNameTag(ctx, actor.x, actor.y - 58, actor.name || this.save.account.username || "Bạn", true, actor.hp, actor.maxHp);
         } else {
           const enemyX = Number.isFinite(actor.displayX) ? actor.displayX : actor.x;
           const enemyY = Number.isFinite(actor.displayY) ? actor.displayY : actor.y;
@@ -8035,7 +8156,7 @@
           hp: remote.hp,
           characterId: remote.characterId
         }, powerById(remote.power), { ...this.save.customization, color: remote.color });
-        this.drawNameTag(ctx, remoteX, remoteY - 54, remote.name || "Người chơi", false);
+        this.drawNameTag(ctx, remoteX, remoteY - 54, remote.name || "Người chơi", false, remote.hp, remote.maxHp);
       }
       this.drawSlashes(ctx);
       this.drawShockwaves(ctx);
@@ -8548,18 +8669,31 @@
       ctx.restore();
     }
 
-    drawNameTag(ctx, x, y, name, self = false) {
+    drawNameTag(ctx, x, y, name, self = false, hp = null, maxHp = null) {
       const label = String(name).slice(0, 18);
+      const showHp = Number.isFinite(Number(hp)) && Number.isFinite(Number(maxHp)) && Number(maxHp) > 0;
       ctx.save();
       ctx.font = "800 12px ui-sans-serif, system-ui";
       const w = Math.max(48, ctx.measureText(label).width + 16);
+      const h = showHp ? 26 : 18;
       ctx.fillStyle = self ? "rgba(242,191,99,0.82)" : "rgba(8,10,16,0.78)";
-      ctx.fillRect(x - w / 2, y - 16, w, 18);
+      ctx.fillRect(x - w / 2, y - 16, w, h);
       ctx.strokeStyle = self ? "#f2bf63" : "rgba(255,255,255,0.22)";
-      ctx.strokeRect(x - w / 2, y - 16, w, 18);
+      ctx.strokeRect(x - w / 2, y - 16, w, h);
       ctx.fillStyle = self ? "#111521" : "#f3ead7";
       ctx.textAlign = "center";
       ctx.fillText(label, x, y - 3);
+      if (showHp) {
+        const barW = w - 10;
+        const barX = x - barW / 2;
+        const barY = y + 3;
+        ctx.fillStyle = "rgba(0,0,0,0.48)";
+        ctx.fillRect(barX, barY, barW, 5);
+        ctx.fillStyle = self ? "#ff8d3d" : "#ff4b55";
+        ctx.fillRect(barX, barY, barW * clamp(Number(hp) / Number(maxHp), 0, 1), 5);
+        ctx.strokeStyle = "rgba(255,255,255,0.28)";
+        ctx.strokeRect(barX, barY, barW, 5);
+      }
       ctx.restore();
     }
 

@@ -7,7 +7,7 @@
   const ROOM_PAD = 86;
   const SAVE_KEY = "soulrift-save-v1";
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
-  const APP_VERSION = "20260604-domain-collapse-63";
+  const APP_VERSION = "20260604-graphics-quality-64";
   const VERSION_CHECK_INTERVAL = 15000;
   const UPDATE_ATTEMPT_KEY = "soulrift-update-attempt-v1";
   const DOOR_ENTER_TIME = 1.0;
@@ -713,6 +713,8 @@
       settings: {
         music: true,
         sfx: true,
+        graphicsMode: "auto",
+        graphicsLevel: 5,
         screenShake: 0.3,
         particles: 1.5,
         damageNumbers: true
@@ -1956,6 +1958,7 @@
       const loaded = await this.store.load();
       this.save = mergeSave(defaultSave(), loaded);
       this.normalizeSave();
+      this.applyGraphicsSettings();
       this.clearResolvedUpdateAttempt();
       this.startUpdateWatcher();
       this.mode = this.hasAccount() ? "menu" : "account";
@@ -2090,6 +2093,7 @@
       this.save.equipped = Object.fromEntries(SLOT_NAMES.map((slot) => [slot, ""]));
       this.save.materials ||= defaultProfile(this.save.account.username).materials;
       this.save.materials.gold = Math.max(0, Math.floor(Number(this.save.materials.gold || 0)));
+      this.normalizeSettings();
       this.normalizeStatPoints();
       if (this.save.account.created && this.save.account.username && !this.save.auth.currentUser) {
         const key = accountKey(this.save.account.username);
@@ -2158,7 +2162,16 @@
       this.save.equipped = Object.fromEntries(SLOT_NAMES.map((slot) => [slot, ""]));
       this.save.materials ||= defaultProfile(this.save.account.username).materials;
       this.save.materials.gold = Math.max(0, Math.floor(Number(this.save.materials.gold || 0)));
+      this.normalizeSettings();
       this.normalizeStatPoints();
+    }
+
+    normalizeSettings() {
+      this.save.settings ||= defaultProfile(this.save.account?.username || "").settings;
+      this.save.settings.graphicsMode = this.save.settings.graphicsMode === "manual" ? "manual" : "auto";
+      this.save.settings.graphicsLevel = clamp(Math.round(Number(this.save.settings.graphicsLevel || 5)), 1, 5);
+      this.save.settings.screenShake = clamp(Number(this.save.settings.screenShake ?? 0.3), 0, 1.5);
+      this.save.settings.particles = clamp(Number(this.save.settings.particles ?? 1.5), 0, 1.5);
     }
 
     normalizeStatPoints() {
@@ -2419,10 +2432,27 @@
     updatePerformanceState(dt) {
       const frame = clamp(dt || 1 / 60, 1 / 120, 0.12);
       this.perf.avgDt = this.perf.avgDt * 0.94 + frame * 0.06;
+      if (this.save.settings.graphicsMode === "manual") {
+        this.perf.quality = this.graphicsQualityFromLevel(this.save.settings.graphicsLevel);
+        return;
+      }
       if (this.perf.avgDt > 0.024) {
         this.perf.quality = clamp(this.perf.quality - frame * 0.74, 0.42, 1);
       } else if (this.perf.avgDt < 0.0185) {
         this.perf.quality = clamp(this.perf.quality + frame * 0.2, 0.42, 1);
+      }
+    }
+
+    graphicsQualityFromLevel(level = 5) {
+      const table = [0.42, 0.56, 0.7, 0.86, 1];
+      const index = clamp(Math.round(Number(level || 5)), 1, 5) - 1;
+      return table[index] ?? 1;
+    }
+
+    applyGraphicsSettings() {
+      this.normalizeSettings();
+      if (this.save.settings.graphicsMode === "manual") {
+        this.perf.quality = this.graphicsQualityFromLevel(this.save.settings.graphicsLevel);
       }
     }
 
@@ -3002,9 +3032,12 @@
       const target = event.target;
       if (target.dataset.setting) {
         const key = target.dataset.setting;
-        if (target.type === "checkbox") this.save.settings[key] = target.checked;
+        if (target.dataset.settingType === "string" || target.tagName === "SELECT") this.save.settings[key] = String(target.value);
+        else if (target.type === "checkbox") this.save.settings[key] = target.checked;
         else this.save.settings[key] = Number(target.value);
+        this.applyGraphicsSettings();
         this.persist();
+        if (key === "graphicsMode" || key === "graphicsLevel") this.refreshGraphicsSettingLabels();
       }
       if (target.dataset.custom) {
         this.save.customization[target.dataset.custom] = target.value;
@@ -3750,6 +3783,8 @@
               ${this.settingCheck("music", "Nhạc", s.music)}
               ${this.settingCheck("sfx", "Âm va chạm", s.sfx)}
               ${this.settingCheck("damageNumbers", "Số sát thương", s.damageNumbers)}
+              ${this.settingGraphicsMode(s.graphicsMode)}
+              ${this.settingGraphicsLevel(s.graphicsLevel, s.graphicsMode)}
               ${this.settingRange("screenShake", "Rung màn hình", s.screenShake)}
               ${this.settingRange("particles", "Hạt hiệu ứng", s.particles)}
             </div>
@@ -3774,6 +3809,46 @@
           <input data-setting="${key}" type="range" min="0" max="1.5" step="0.1" value="${value}" />
         </label>
       `;
+    }
+
+    settingGraphicsMode(value = "auto") {
+      const mode = value === "manual" ? "manual" : "auto";
+      return `
+        <label class="setting-row">
+          <div><h3>Chế độ đồ họa</h3><p>${mode === "manual" ? "Khóa chất lượng theo mức bên dưới." : "Tự động tối ưu theo FPS giống Roblox."}</p></div>
+          <select class="field setting-select" data-setting="graphicsMode" data-setting-type="string">
+            <option value="auto" ${mode === "auto" ? "selected" : ""}>Tự động</option>
+            <option value="manual" ${mode === "manual" ? "selected" : ""}>Thủ công</option>
+          </select>
+        </label>
+      `;
+    }
+
+    settingGraphicsLevel(value = 5, mode = "auto") {
+      const level = clamp(Math.round(Number(value || 5)), 1, 5);
+      const manual = mode === "manual";
+      return `
+        <label class="setting-row graphics-setting">
+          <div><h3>Chất lượng đồ họa</h3><p>${manual ? `Mức ${level}/5 đang được áp dụng.` : `Mức ${level}/5 sẽ dùng khi chọn thủ công.`}</p></div>
+          <div class="graphics-range">
+            <input data-setting="graphicsLevel" type="range" min="1" max="5" step="1" value="${level}" />
+            <div class="graphics-steps" aria-hidden="true">
+              <span>1</span><span>2</span><span>3</span><span>4</span><span>5</span>
+            </div>
+          </div>
+        </label>
+      `;
+    }
+
+    refreshGraphicsSettingLabels() {
+      const mode = this.save.settings.graphicsMode;
+      const level = this.save.settings.graphicsLevel;
+      const modeRow = this.screen.querySelector('[data-setting="graphicsMode"]')?.closest(".setting-row");
+      const levelRow = this.screen.querySelector('[data-setting="graphicsLevel"]')?.closest(".setting-row");
+      const modeText = modeRow?.querySelector("p");
+      const levelText = levelRow?.querySelector("p");
+      if (modeText) modeText.textContent = mode === "manual" ? "Khóa chất lượng theo mức bên dưới." : "Tự động tối ưu theo FPS giống Roblox.";
+      if (levelText) levelText.textContent = mode === "manual" ? `Mức ${level}/5 đang được áp dụng.` : `Mức ${level}/5 sẽ dùng khi chọn thủ công.`;
     }
 
     renderLobby() {

@@ -1469,6 +1469,25 @@ button {
   accent-color: var(--teal);
 }
 
+.setting-select {
+  width: 100%;
+  min-height: 42px;
+}
+
+.graphics-range {
+  display: grid;
+  gap: 6px;
+}
+
+.graphics-steps {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 850;
+  text-align: center;
+}
+
 .toast {
   position: fixed;
   left: 50%;
@@ -1985,6 +2004,10 @@ button {
 @media (max-width: 540px) {
   .nav-buttons {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .setting-row {
+    grid-template-columns: 1fr;
   }
 
   .hud {

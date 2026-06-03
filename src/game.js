@@ -7,10 +7,10 @@
   const ROOM_PAD = 86;
   const SAVE_KEY = "soulrift-save-v1";
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
-  const APP_VERSION = "20260603-ranger-shot-force-43";
+  const APP_VERSION = "20260603-door-wait-44";
   const VERSION_CHECK_INTERVAL = 15000;
   const UPDATE_ATTEMPT_KEY = "soulrift-update-attempt-v1";
-  const DOOR_ENTER_TIME = 1.5;
+  const DOOR_ENTER_TIME = 1.0;
   const DIRECTORY_TOPIC = "soulrift-directory-v2";
   const ROOM_CODE_RE = /^[A-Z0-9]{4,12}$/;
   const ROOM_TTL_MS = 45000;

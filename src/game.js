@@ -7,7 +7,7 @@
   const ROOM_PAD = 86;
   const SAVE_KEY = "soulrift-save-v1";
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
-  const APP_VERSION = "20260603-door-wait-44";
+  const APP_VERSION = "20260603-combat-vfx-balance-45";
   const VERSION_CHECK_INTERVAL = 15000;
   const UPDATE_ATTEMPT_KEY = "soulrift-update-attempt-v1";
   const DOOR_ENTER_TIME = 1.0;
@@ -430,7 +430,7 @@
       color: "#83e8ff",
       attackName: "Cầu năng lượng",
       attackText: "Ném cầu năng lượng tầm xa.",
-      stats: { hp: 105, energy: 145, speed: 215, damage: 12, crit: 0.14, attackCd: 0.9 }
+      stats: { hp: 105, energy: 145, speed: 215, damage: 14, crit: 0.14, attackCd: 0.9 }
     },
     {
       id: "ranger",
@@ -5333,9 +5333,9 @@
         y,
         vx: Math.cos(angle) * 920,
         vy: Math.sin(angle) * 920,
-        radius: 18,
+        radius: 26,
         damage,
-        life: 0.52,
+        life: 0.62,
         color: "#e8edf7",
         pierce: 1,
         kind: "phantomSlash"
@@ -5343,11 +5343,11 @@
       this.run.slashes.push({
         x,
         y,
-        tx: x + Math.cos(angle) * 130,
-        ty: y + Math.sin(angle) * 130,
+        tx: x + Math.cos(angle) * 190,
+        ty: y + Math.sin(angle) * 190,
         line: true,
-        life: 0.14,
-        maxLife: 0.14,
+        life: 0.18,
+        maxLife: 0.18,
         color: "#e8edf7"
       });
       this.trimVisualList(this.run.slashes, this.isMobileDevice() ? 24 : 38);
@@ -9723,6 +9723,7 @@
           ? Math.sin(clamp((actionProgress - 0.54) / 0.22, 0, 1) * Math.PI)
           : 0;
         const nockX = 10 - pull * 20;
+        const stringX = snap > 0 ? Math.max(nockX, 10 + snap * 14) : nockX;
         ctx.rotate(facing);
         ctx.translate(3 - snap * 8, snap * Math.sin(t * 70) * 0.8);
         ctx.scale(0.82 + snap * 0.04, 0.82 - snap * 0.02);
@@ -9741,29 +9742,20 @@
         ctx.lineWidth = 2 + snap;
         ctx.beginPath();
         ctx.moveTo(22 + snap * 2, -17);
-        ctx.lineTo(nockX, 0);
+        ctx.lineTo(stringX, 0);
         ctx.lineTo(22 + snap * 2, 17);
         ctx.stroke();
         if (snap > 0.05) {
-          ctx.save();
-          ctx.globalCompositeOperation = "lighter";
-          ctx.globalAlpha = 0.35 + snap * 0.35;
-          ctx.fillStyle = power.accent;
-          ctx.beginPath();
-          ctx.moveTo(35, -7);
-          ctx.lineTo(58 + snap * 18, 0);
-          ctx.lineTo(35, 7);
-          ctx.closePath();
-          ctx.fill();
+          ctx.globalAlpha = 0.45 + snap * 0.35;
           ctx.strokeStyle = "#ffffff";
-          ctx.lineWidth = 2;
+          ctx.lineWidth = 3;
           ctx.beginPath();
-          ctx.moveTo(28, 0);
-          ctx.lineTo(64 + snap * 22, 0);
+          ctx.moveTo(stringX - 2, -12);
+          ctx.quadraticCurveTo(stringX + 13 * snap, 0, stringX - 2, 12);
           ctx.stroke();
-          ctx.restore();
+          ctx.globalAlpha = 1;
         }
-        ctx.globalAlpha = Math.max(0.18, 1 - snap * 0.78);
+        ctx.globalAlpha = Math.max(0, 1 - snap * 1.35);
         ctx.fillStyle = power.accent;
         ctx.fillRect(nockX, -2, 46 + pull * 12, 4);
         ctx.beginPath();
@@ -10125,7 +10117,7 @@
           const progress = 1 - effect.time / effect.maxTime;
           const alpha = (1 - progress) * (effect.heavy ? 1 : 0.92);
           const length = effect.reach ? effect.reach : effect.heavy ? 74 : effect.ranged ? 52 : 64;
-          const width = effect.kind === "guardian" ? Math.max(42, length * 0.38) : effect.kind === "assassin" ? 24 : effect.ranged ? 18 : 22;
+          const width = effect.kind === "guardian" ? Math.max(62, length * 0.56) : effect.kind === "assassin" ? 26 : effect.ranged ? 18 : 22;
           ctx.translate(effect.x, effect.y);
           ctx.rotate(effect.angle || 0);
           ctx.globalAlpha = alpha;
@@ -10173,78 +10165,92 @@
           } else if (effect.kind === "guardian") {
             ctx.globalAlpha = alpha * 0.86;
             ctx.fillStyle = effect.accent || "#fff3c2";
-            ctx.fillRect(-length * 0.12, -width * 0.48, length * 0.92, width * 0.96);
-            ctx.strokeRect(-length * 0.12, -width * 0.48, length * 0.92, width * 0.96);
+            ctx.fillRect(-length * 0.2, -width * 0.56, length * 1.08, width * 1.12);
+            ctx.strokeRect(-length * 0.2, -width * 0.56, length * 1.08, width * 1.12);
             ctx.globalAlpha = alpha * 0.75;
             ctx.fillStyle = effect.color || "#ffd36a";
-            ctx.fillRect(length * 0.18, -width * 0.36, length * 0.5, width * 0.72);
+            ctx.fillRect(length * 0.12, -width * 0.4, length * 0.64, width * 0.8);
             ctx.globalAlpha = alpha * 0.65;
             ctx.strokeStyle = effect.accent || "#fff3c2";
-            ctx.lineWidth = 5;
+            ctx.lineWidth = 7;
             ctx.beginPath();
-            ctx.arc(length * 0.05, 0, width * 0.72, -0.82, 0.82);
+            ctx.arc(length * 0.02, 0, width * 0.82, -0.82, 0.82);
             ctx.stroke();
             ctx.lineWidth = 3;
             for (let i = -1; i <= 1; i++) {
               ctx.beginPath();
-              ctx.moveTo(length * 0.04, i * width * 0.24);
-              ctx.lineTo(length * 0.78, i * width * 0.42);
+              ctx.moveTo(-length * 0.08, i * width * 0.24);
+              ctx.lineTo(length * 0.9, i * width * 0.44);
               ctx.stroke();
             }
           } else if (effect.kind === "assassin") {
-            ctx.lineCap = "round";
+            ctx.lineCap = "butt";
+            ctx.lineJoin = "miter";
             ctx.shadowBlur = this.glow(22);
-            ctx.strokeStyle = effect.accent || "#ffffff";
-            ctx.lineWidth = width * 0.42;
+            ctx.fillStyle = effect.accent || "#ffffff";
+            ctx.strokeStyle = effect.color || "#b8b7ff";
+            ctx.lineWidth = 2;
             for (let i = -1; i <= 1; i += 2) {
+              ctx.save();
+              ctx.rotate(i * 0.58);
               ctx.beginPath();
-              ctx.moveTo(-length * 0.38, i * width * 0.95);
-              ctx.lineTo(length * 0.82, -i * width * 0.95);
+              ctx.moveTo(-length * 0.52, -width * 0.16);
+              ctx.lineTo(length * 0.78, -width * 0.11);
+              ctx.lineTo(length * 0.98, 0);
+              ctx.lineTo(length * 0.78, width * 0.11);
+              ctx.lineTo(-length * 0.52, width * 0.16);
+              ctx.lineTo(-length * 0.62, 0);
+              ctx.closePath();
+              ctx.fill();
               ctx.stroke();
+              ctx.restore();
             }
             ctx.globalAlpha = alpha * 0.82;
-            ctx.strokeStyle = effect.color || "#b8b7ff";
-            ctx.lineWidth = width * 0.2;
+            ctx.strokeStyle = "#ffffff";
+            ctx.lineWidth = 2;
             for (let i = -1; i <= 1; i += 2) {
+              ctx.save();
+              ctx.rotate(i * 0.58);
               ctx.beginPath();
-              ctx.moveTo(-length * 0.3, i * width * 0.62);
-              ctx.lineTo(length * 0.68, -i * width * 0.62);
+              ctx.moveTo(-length * 0.38, 0);
+              ctx.lineTo(length * 0.72, 0);
               ctx.stroke();
+              ctx.restore();
             }
             ctx.globalAlpha = alpha * 0.95;
             ctx.fillStyle = effect.accent || "#ffffff";
             ctx.fillRect(-5, -5, 10, 10);
           } else {
-            const slashRadius = length * 0.78;
-            const start = -1.05;
-            const end = 1.05;
-            ctx.lineCap = "round";
-            ctx.lineWidth = width * 0.48;
-            ctx.strokeStyle = effect.accent || "#ffffff";
+            ctx.lineCap = "butt";
+            ctx.lineJoin = "miter";
+            ctx.fillStyle = effect.accent || "#ffffff";
+            ctx.strokeStyle = effect.color || "#dfe6ef";
+            ctx.lineWidth = 2.5;
             ctx.beginPath();
-            ctx.arc(-length * 0.18, 0, slashRadius, start, end);
+            ctx.moveTo(-length * 0.18, -width * 1.12);
+            ctx.quadraticCurveTo(length * 0.3, -width * 0.86, length * 0.92, -width * 0.16);
+            ctx.lineTo(length * 1.08, 0);
+            ctx.lineTo(length * 0.92, width * 0.16);
+            ctx.quadraticCurveTo(length * 0.3, width * 0.86, -length * 0.18, width * 1.12);
+            ctx.quadraticCurveTo(length * 0.1, 0, -length * 0.18, -width * 1.12);
+            ctx.closePath();
+            ctx.fill();
             ctx.stroke();
             ctx.globalAlpha = alpha * 0.75;
-            ctx.strokeStyle = effect.color || "#dfe6ef";
-            ctx.lineWidth = width * 0.2;
+            ctx.strokeStyle = "#ffffff";
+            ctx.lineWidth = 2;
             ctx.beginPath();
-            ctx.arc(-length * 0.18, 0, slashRadius * 0.78, start + 0.12, end - 0.12);
+            ctx.moveTo(-length * 0.04, -width * 0.82);
+            ctx.quadraticCurveTo(length * 0.38, -width * 0.3, length * 0.88, width * 0.44);
             ctx.stroke();
             ctx.globalAlpha = alpha * 0.5;
             ctx.lineWidth = 3;
             for (let i = -1; i <= 1; i += 2) {
               ctx.beginPath();
-              ctx.moveTo(length * 0.18, i * width * 0.72);
-              ctx.lineTo(length * 0.44, i * width * 0.38);
+              ctx.moveTo(length * 0.34, i * width * 0.64);
+              ctx.lineTo(length * 0.66, i * width * 0.18);
               ctx.stroke();
             }
-            ctx.globalAlpha = alpha * 0.95;
-            ctx.strokeStyle = "#ffffff";
-            ctx.lineWidth = 2;
-            ctx.beginPath();
-            ctx.moveTo(-length * 0.04, -width * 1.08);
-            ctx.quadraticCurveTo(length * 0.38, -width * 0.26, length * 0.84, width * 0.72);
-            ctx.stroke();
           }
         }
         if (effect.type === "hitSpark") {

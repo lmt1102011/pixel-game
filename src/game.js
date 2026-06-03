@@ -7,7 +7,7 @@
   const ROOM_PAD = 86;
   const SAVE_KEY = "soulrift-save-v1";
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
-  const APP_VERSION = "20260604-boss-only-rooms-57";
+  const APP_VERSION = "20260604-subtle-domain-cast-58";
   const VERSION_CHECK_INTERVAL = 15000;
   const UPDATE_ATTEMPT_KEY = "soulrift-update-attempt-v1";
   const DOOR_ENTER_TIME = 1.0;
@@ -6306,8 +6306,8 @@
       if (key === "f") {
         const awakened = this.save.powers[power.id]?.awakened;
         const radius = awakened ? 330 : 280;
-        this.addSkillShape(kind, "ultimate", x, y, angle, radius, awakened ? 1.25 : 1.0);
-        this.powerCastVfx(power, x, y, angle, radius, awakened ? 2.4 : 1.8, !remote, { visualOnly: true });
+        this.addSkillShape(kind, "ultimate", x, y, angle, radius * 0.82, awakened ? 0.62 : 0.52, { subtle: true });
+        this.powerCastVfx(power, x, y, angle, radius, awakened ? 1.05 : 0.85, !remote, { visualOnly: true, subtle: true });
         if (kind === "blood" && !remote) this.healPlayer(70);
         if (kind === "nature" && !remote) this.healPlayer(95);
         if (kind === "time" && !remote) {
@@ -6315,14 +6315,9 @@
           caster.cooldowns.e = 0;
           caster.cooldowns.r = 0;
         }
-        if (kind === "gravity" || kind === "void") this.addEffect({ type: "pull", x, y, radius: radius + 80, time: 2.2, color: power.color });
-        if (kind === "ice" || kind === "time" || kind === "nature") {
-          for (const enemy of this.run.enemies) {
-            if (Math.hypot(enemy.x - x, enemy.y - y) < radius + 40) enemy.chill = Math.max(enemy.chill, kind === "time" ? 5 : 3.5);
-          }
-        }
-        if (kind === "lightning") this.burstLines(x, y, power.accent, 10, radius + 35, 0.2);
-        this.addShockwave(x, y, radius + 45, power.accent, 0);
+        if (kind === "gravity" || kind === "void") this.addEffect({ type: "pull", x, y, radius: radius + 30, time: 1.15, color: power.color });
+        if (kind === "lightning") this.burstLines(x, y, power.accent, 4, radius * 0.58, 0.12);
+        this.addShockwave(x, y, radius + 18, power.accent, 0);
         this.addEffect({
           type: "ultimate",
           domain: true,
@@ -6342,51 +6337,57 @@
           areaBoost: awakened ? 1.22 : 1.15
         });
         if (awakened) this.applyAwakenedSkillBonus(key, power, caster, angle, { x, y }, damage, owner, remote);
-        this.camera.shake = Math.max(this.camera.shake, 24);
-        this.audio.sfx(kind === "time" ? 130 : 70, "sawtooth", 0.35, 0.18);
+        this.camera.shake = Math.max(this.camera.shake, 12);
+        this.audio.sfx(kind === "time" ? 130 : 70, "sawtooth", 0.22, 0.12);
       }
       this.skillAreaScale = previousSkillAreaScale;
     }
 
     powerCastVfx(power, x, y, angle = 0, radius = 150, intensity = 1, healNature = true, options = {}) {
       const kind = power.id;
+      const subtle = Boolean(options.subtle);
+      const glyphTime = subtle ? 0.46 + intensity * 0.08 : 0.75 + intensity * 0.18;
       this.addEffect({
         type: "powerGlyph",
         kind,
         x,
         y,
         angle,
-        radius,
-        time: 0.75 + intensity * 0.18,
-        maxTime: 0.75 + intensity * 0.18,
+        radius: subtle ? radius * 0.72 : radius,
+        time: glyphTime,
+        maxTime: glyphTime,
         color: power.color,
-        accent: power.accent
+        accent: power.accent,
+        subtle
       });
-      const burstTime = 0.28 + intensity * 0.06;
+      const burstTime = subtle ? 0.18 + intensity * 0.025 : 0.28 + intensity * 0.06;
       this.addEffect({
         type: "castBurst",
         kind,
         x,
         y,
         angle,
-        radius: radius * 0.62,
+        radius: radius * (subtle ? 0.46 : 0.62),
         time: burstTime,
         maxTime: burstTime,
         color: power.color,
-        accent: power.accent
+        accent: power.accent,
+        subtle
       });
-      this.addEffect({
-        type: "castCone",
-        kind,
-        x,
-        y,
-        angle,
-        radius: radius * (0.76 + intensity * 0.08),
-        time: 0.22 + intensity * 0.05,
-        maxTime: 0.22 + intensity * 0.05,
-        color: power.color,
-        accent: power.accent
-      });
+      if (!subtle) {
+        this.addEffect({
+          type: "castCone",
+          kind,
+          x,
+          y,
+          angle,
+          radius: radius * (0.76 + intensity * 0.08),
+          time: 0.22 + intensity * 0.05,
+          maxTime: 0.22 + intensity * 0.05,
+          color: power.color,
+          accent: power.accent
+        });
+      }
       const shape = {
         fire: "flame",
         ice: "snow",
@@ -6400,25 +6401,25 @@
         time: "clock"
       }[kind] || "spark";
       const particleScale = clamp(this.perf?.quality ?? 1, 0.35, 1) * (this.isMobileDevice() ? 0.55 : 0.78);
-      const count = Math.round((7 + intensity * 5) * this.save.settings.particles * particleScale);
+      const count = Math.round((subtle ? 3 + intensity * 1.6 : 7 + intensity * 5) * this.save.settings.particles * particleScale);
       for (let i = 0; i < count; i++) {
         const directional = i % 2 === 0;
-        const a = directional ? angle + rand(-0.55, 0.55) : angle + rand(-Math.PI, Math.PI);
-        const spread = kind === "lightning" ? rand(20, radius * 1.2) : rand(10, radius);
+        const a = subtle ? rand(-Math.PI, Math.PI) : directional ? angle + rand(-0.55, 0.55) : angle + rand(-Math.PI, Math.PI);
+        const spread = subtle ? rand(radius * 0.38, radius * 0.78) : kind === "lightning" ? rand(20, radius * 1.2) : rand(10, radius);
         const px = x + Math.cos(a) * spread;
         const py = y + Math.sin(a) * spread;
         this.addParticle(
           px,
           py,
           i % 3 === 0 ? power.accent : power.color,
-          rand(7, 22 + intensity * 4),
-          rand(0.35, 0.85),
-          i % 7 === 0 ? "ring" : shape,
+          subtle ? rand(5, 12) : rand(7, 22 + intensity * 4),
+          subtle ? rand(0.28, 0.52) : rand(0.35, 0.85),
+          subtle && i % 2 === 0 ? "ring" : i % 7 === 0 ? "ring" : shape,
           a + rand(-0.2, 0.2),
-          rand(directional ? 130 : 35, 260 + intensity * 70)
+          subtle ? rand(18, 70) : rand(directional ? 130 : 35, 260 + intensity * 70)
         );
       }
-      if (kind === "lightning") {
+      if (kind === "lightning" && !subtle) {
         for (let i = 0; i < 3; i++) {
           const a = angle + (i - 1) * 0.35;
           this.run.slashes.push({
@@ -6435,7 +6436,7 @@
         }
       }
       if (kind === "fire" && !options.visualOnly) this.addTrailDamage(x + Math.cos(angle) * 36, y + Math.sin(angle) * 36, power.color);
-      if (kind === "gravity" || kind === "void" || kind === "time") this.addShockwave(x, y, radius * (kind === "time" ? 1.1 : 0.9), power.color, 0);
+      if (!subtle && (kind === "gravity" || kind === "void" || kind === "time")) this.addShockwave(x, y, radius * (kind === "time" ? 1.1 : 0.9), power.color, 0);
       if (kind === "nature" && healNature) this.healPlayer(1 + intensity);
     }
 
@@ -11363,22 +11364,25 @@
         }
         if (effect.type === "castBurst") {
           const progress = 1 - effect.time / effect.maxTime;
+          const subtle = Boolean(effect.subtle);
           ctx.translate(effect.x, effect.y);
-          ctx.rotate((effect.angle || 0) + progress * 0.75);
-          ctx.globalAlpha = (1 - progress) * 0.72;
-          ctx.lineWidth = 2 + progress * 5;
-          for (let i = 0; i < 2; i++) {
-            const r = effect.radius * (0.24 + progress * (0.76 + i * 0.22));
+          ctx.rotate((effect.angle || 0) + progress * (subtle ? 0.28 : 0.75));
+          ctx.globalAlpha = (1 - progress) * (subtle ? 0.38 : 0.72);
+          ctx.lineWidth = subtle ? 2 : 2 + progress * 5;
+          const rings = subtle ? 1 : 2;
+          for (let i = 0; i < rings; i++) {
+            const r = effect.radius * (0.32 + progress * (0.64 + i * 0.22));
             ctx.beginPath();
             ctx.arc(0, 0, r, 0, TAU);
             ctx.stroke();
           }
           ctx.strokeStyle = effect.accent || effect.color;
-          for (let i = 0; i < 8; i++) {
-            const a = (i / 8) * TAU;
+          const rays = subtle ? 4 : 8;
+          for (let i = 0; i < rays; i++) {
+            const a = (i / rays) * TAU;
             ctx.beginPath();
-            ctx.moveTo(Math.cos(a) * effect.radius * 0.18, Math.sin(a) * effect.radius * 0.18);
-            ctx.lineTo(Math.cos(a) * effect.radius * (0.5 + progress * 0.45), Math.sin(a) * effect.radius * (0.5 + progress * 0.45));
+            ctx.moveTo(Math.cos(a) * effect.radius * (subtle ? 0.52 : 0.18), Math.sin(a) * effect.radius * (subtle ? 0.52 : 0.18));
+            ctx.lineTo(Math.cos(a) * effect.radius * (subtle ? 0.76 : 0.5 + progress * 0.45), Math.sin(a) * effect.radius * (subtle ? 0.76 : 0.5 + progress * 0.45));
             ctx.stroke();
           }
         }
@@ -11667,18 +11671,19 @@
       }
 
       if (effect.variant === "ultimate") {
-        ctx.globalAlpha = alpha * 0.78;
+        const subtle = Boolean(effect.subtle);
+        ctx.globalAlpha = alpha * (subtle ? 0.38 : 0.78);
         ctx.strokeStyle = accent;
-        ctx.lineWidth = 4;
+        ctx.lineWidth = subtle ? 2 : 4;
         ctx.beginPath();
-        ctx.arc(0, 0, r * (0.56 + progress * 0.12), 0, TAU);
+        ctx.arc(0, 0, r * (subtle ? 0.68 + progress * 0.06 : 0.56 + progress * 0.12), 0, TAU);
         ctx.stroke();
-        const rays = lowDetail ? 6 : 10;
+        const rays = subtle ? (lowDetail ? 4 : 6) : (lowDetail ? 6 : 10);
         for (let i = 0; i < rays; i++) {
           const a = (i / rays) * TAU;
           ctx.beginPath();
-          ctx.moveTo(Math.cos(a) * r * 0.64, Math.sin(a) * r * 0.64);
-          ctx.lineTo(Math.cos(a) * r * 0.78, Math.sin(a) * r * 0.78);
+          ctx.moveTo(Math.cos(a) * r * (subtle ? 0.78 : 0.64), Math.sin(a) * r * (subtle ? 0.78 : 0.64));
+          ctx.lineTo(Math.cos(a) * r * (subtle ? 0.88 : 0.78), Math.sin(a) * r * (subtle ? 0.88 : 0.78));
           ctx.stroke();
         }
       }
@@ -11687,17 +11692,39 @@
     drawPowerGlyph(ctx, effect) {
       const alpha = clamp(effect.time / effect.maxTime, 0, 1);
       const r = effect.radius * (1.05 - alpha * 0.25);
-      ctx.globalAlpha = Math.min(0.8, alpha);
+      const subtle = Boolean(effect.subtle);
+      ctx.globalAlpha = Math.min(subtle ? 0.46 : 0.8, alpha * (subtle ? 0.82 : 1));
       ctx.strokeStyle = effect.color;
       ctx.fillStyle = effect.accent || effect.color;
-      ctx.lineWidth = 3 + alpha * 3;
+      ctx.lineWidth = subtle ? 2 : 3 + alpha * 3;
       ctx.shadowColor = effect.color;
-      ctx.shadowBlur = this.glow(20);
+      ctx.shadowBlur = subtle ? this.glow(7) : this.glow(20);
       ctx.translate(effect.x, effect.y);
-      ctx.rotate((effect.angle || 0) + (1 - alpha) * (effect.kind === "time" ? -1.3 : 1.1));
+      ctx.rotate((effect.angle || 0) + (1 - alpha) * (effect.kind === "time" ? -0.45 : 0.45));
       ctx.beginPath();
-      ctx.arc(0, 0, r * 0.18, 0, TAU);
+      ctx.arc(0, 0, r * (subtle ? 0.34 : 0.18), 0, TAU);
       ctx.stroke();
+      if (subtle) {
+        ctx.globalAlpha = Math.min(0.34, alpha * 0.6);
+        ctx.beginPath();
+        ctx.arc(0, 0, r * 0.58, 0, TAU);
+        ctx.stroke();
+        ctx.strokeStyle = effect.accent || effect.color;
+        ctx.globalAlpha = Math.min(0.42, alpha * 0.7);
+        for (let i = 0; i < 6; i++) {
+          const a = (i / 6) * TAU;
+          ctx.beginPath();
+          ctx.moveTo(Math.cos(a) * r * 0.68, Math.sin(a) * r * 0.68);
+          ctx.lineTo(Math.cos(a) * r * 0.82, Math.sin(a) * r * 0.82);
+          ctx.stroke();
+        }
+        ctx.globalAlpha = Math.min(0.32, alpha * 0.55);
+        ctx.fillStyle = effect.accent || effect.color;
+        ctx.beginPath();
+        ctx.arc(0, 0, Math.max(4, r * 0.06), 0, TAU);
+        ctx.fill();
+        return;
+      }
       if (effect.kind === "fire") {
         for (let i = -2; i <= 2; i++) {
           ctx.beginPath();

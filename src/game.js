@@ -7,8 +7,9 @@
   const ROOM_PAD = 86;
   const SAVE_KEY = "soulrift-save-v1";
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
-  const APP_VERSION = "20260603-quick-actions-room-chests-32";
+  const APP_VERSION = "20260603-grounded-chest-door-reset-33";
   const VERSION_CHECK_INTERVAL = 15000;
+  const DOOR_ENTER_TIME = 1.5;
   const DIRECTORY_TOPIC = "soulrift-directory-v2";
   const ROOM_CODE_RE = /^[A-Z0-9]{4,12}$/;
   const ROOM_TTL_MS = 45000;
@@ -3824,7 +3825,7 @@
 
     compactPickup(pickup) {
       return this.compactFields(pickup, [
-        "id", "type", "container", "ownerId", "ownerName", "x", "y", "vx", "vy", "radius", "life", "age", "color", "collected", "countsForClaim", "opening", "opened", "openTimer", "stationary", "magnetDelay", "reward", "chestReward", "coinReward"
+        "id", "type", "container", "ownerId", "ownerName", "x", "y", "vx", "vy", "radius", "life", "age", "color", "collected", "countsForClaim", "opening", "opened", "openTimer", "stationary", "settleTime", "settleTotal", "magnetDelay", "reward", "chestReward", "coinReward"
       ]);
     }
 
@@ -4633,9 +4634,16 @@
         this.run.pendingDoor = null;
         return;
       }
-      pending.timer = Math.max(0, pending.timer - dt);
-      object.enterProgress = clamp(1 - pending.timer / 2, 0, 1);
       const p = this.run.player;
+      const touchRadius = object.radius * 0.82;
+      if (Math.hypot(p.x - object.x, p.y - object.y) > p.radius + touchRadius) {
+        object.enterProgress = 0;
+        this.run.pendingDoor = null;
+        return;
+      }
+      pending.timer = Math.max(0, pending.timer - dt);
+      const total = Number(pending.total || DOOR_ENTER_TIME);
+      object.enterProgress = clamp(1 - pending.timer / total, 0, 1);
       const angle = Math.atan2(object.y - p.y, object.x - p.x);
       if (chance(dt * 26)) {
         const distToDoor = rand(18, 92);
@@ -6106,19 +6114,18 @@
       room.rewardClaims = {};
       room.rewardOwners = owners.map((owner) => owner.id);
       this.run.rewardQueue = rewards.map((entry) => entry.reward);
+      const scatterBase = rand(0, TAU);
       rewards.forEach(({ owner, reward }, index) => {
         const color = this.rewardColor(reward);
-        const angle = rewards.length === 1 ? -Math.PI / 2 : (index / rewards.length) * TAU - Math.PI / 2;
+        const angle = rewards.length === 1 ? scatterBase : scatterBase + (index / rewards.length) * TAU + rand(-0.28, 0.28);
         const container = options.container || "woodChest";
-        const spread = rewards.length === 1 ? 0 : 58 + index * 4;
-        const chestX = clamp(x + Math.cos(angle) * spread, ROOM_PAD + 42, WORLD_W - ROOM_PAD - 42);
-        const chestY = clamp(y + Math.sin(angle) * spread * 0.72, ROOM_PAD + 42, WORLD_H - ROOM_PAD - 42);
+        const burst = 260 + index * 18 + rand(0, 90);
         this.run.pickups.push({
           id: uid("pickup"),
-          x: chestX,
-          y: chestY,
-          vx: 0,
-          vy: 0,
+          x: clamp(x, ROOM_PAD + 42, WORLD_W - ROOM_PAD - 42),
+          y: clamp(y, ROOM_PAD + 42, WORLD_H - ROOM_PAD - 42),
+          vx: Math.cos(angle) * burst,
+          vy: Math.sin(angle) * burst * 0.78,
           type: "reward",
           container,
           ownerId: owner.id,
@@ -6129,7 +6136,9 @@
           life: 90,
           age: 0,
           color,
-          stationary: true
+          stationary: false,
+          settleTime: 0.48 + index * 0.04,
+          settleTotal: 0.48 + index * 0.04
         });
       });
       const firstColor = this.rewardColor(rewards[0]?.reward || { type: "material", rarity: "rare" });
@@ -6191,16 +6200,16 @@
         { reward: chest.chestReward, countsForClaim: true, container: chest.chestReward?.type === "item" ? "looseItem" : "material" },
         { reward: chest.coinReward, countsForClaim: false, container: "coin" }
       ].filter((entry) => entry.reward);
+      const lootBase = rand(0, TAU);
       rewards.forEach((entry, index) => {
-        const targetAngle = Math.atan2((target?.y || chest.y) - chest.y, (target?.x || chest.x) - chest.x);
-        const spreadAngle = targetAngle + Math.PI + (index - (rewards.length - 1) / 2) * 0.9 + rand(-0.55, 0.55);
-        const burst = 250 + index * 70 + rand(0, 60);
+        const spreadAngle = lootBase + (index / Math.max(1, rewards.length)) * TAU + rand(-0.45, 0.45);
+        const burst = 380 + index * 85 + rand(0, 110);
         this.run.pickups.push({
           id: uid(entry.container === "coin" ? "coin" : "loot"),
           x: chest.x,
           y: chest.y - 6,
           vx: Math.cos(spreadAngle) * burst + rand(-24, 24),
-          vy: Math.sin(spreadAngle) * burst - 130 + rand(-28, 18),
+          vy: Math.sin(spreadAngle) * burst - 155 + rand(-32, 22),
           type: "reward",
           container: entry.container,
           ownerId: chest.ownerId || "",
@@ -6210,7 +6219,7 @@
           radius: entry.container === "coin" ? 14 : 17,
           life: 90,
           age: 0,
-          magnetDelay: 0.32 + index * 0.08,
+          magnetDelay: 0.82 + index * 0.12,
           color: this.rewardColor(entry.reward)
         });
       });
@@ -7417,8 +7426,8 @@
           for (const door of this.run.roomObjects) {
             if (door.type === "nextDoor") door.enterProgress = 0;
           }
-          this.run.pendingDoor = { objectId: object.id, timer: 2 };
-          this.toast(`Đang vào ${object.label || "cửa"}... có thể đổi cửa trong 2 giây`);
+          this.run.pendingDoor = { objectId: object.id, timer: DOOR_ENTER_TIME, total: DOOR_ENTER_TIME };
+          this.toast(`Đang vào ${object.label || "cửa"}... có thể đổi cửa trong 1.5 giây`);
         }
         return;
       }
@@ -7496,7 +7505,18 @@
           const chest = pickup.container === "woodChest" || pickup.container === "goldChest";
           const target = this.pickupTarget(pickup);
           const canCollect = !pickup.ownerId || pickup.ownerId === this.lobby.id;
-          if (chest || pickup.stationary) {
+          if (chest && Number(pickup.settleTime || 0) > 0) {
+            pickup.settleTime = Math.max(0, Number(pickup.settleTime || 0) - dt);
+            pickup.x = clamp(pickup.x + (pickup.vx || 0) * dt, ROOM_PAD + pickup.radius, WORLD_W - ROOM_PAD - pickup.radius);
+            pickup.y = clamp(pickup.y + (pickup.vy || 0) * dt, ROOM_PAD + pickup.radius, WORLD_H - ROOM_PAD - pickup.radius);
+            pickup.vx *= Math.pow(0.035, dt);
+            pickup.vy *= Math.pow(0.035, dt);
+            if (pickup.settleTime <= 0) {
+              pickup.vx = 0;
+              pickup.vy = 0;
+              pickup.stationary = true;
+            }
+          } else if (chest || pickup.stationary) {
             pickup.vx = 0;
             pickup.vy = 0;
           } else {
@@ -7507,7 +7527,7 @@
             pickup.vy *= Math.pow(0.18, dt);
           }
           if (chest) {
-            if (this.isMultiplayerClient() && target && pickup.age > 0.3) {
+            if (Number(pickup.settleTime || 0) <= 0 && this.isMultiplayerClient() && target && pickup.age > 0.3) {
               const d = Math.hypot(target.x - pickup.x, target.y - pickup.y);
               if (d < target.radius + pickup.radius + 64 || pickup.opening) {
                 this.requestChestOpen(pickup);
@@ -7515,7 +7535,7 @@
                   pickup.openTimer = Math.max(0.08, Number(pickup.openTimer ?? 0.34) - dt);
                 }
               }
-            } else if (target && pickup.age > 0.45) {
+            } else if (Number(pickup.settleTime || 0) <= 0 && target && pickup.age > 0.45) {
               const d = Math.hypot(target.x - pickup.x, target.y - pickup.y);
               if (d < target.radius + pickup.radius + 54 || pickup.opening) {
                 pickup.opening = true;
@@ -8281,7 +8301,8 @@
         ctx.save();
         if (pickup.type === "reward") {
           const color = pickup.color || this.rewardColor(pickup.reward);
-          const bob = Math.sin(this.menuTime * 7 + (pickup.age || 0) * 3) * 4;
+          const chest = pickup.container === "woodChest" || pickup.container === "goldChest";
+          const bob = chest ? 0 : Math.sin(this.menuTime * 7 + (pickup.age || 0) * 3) * 4;
           ctx.translate(pickup.x, pickup.y + bob);
           ctx.globalAlpha = 0.92;
           ctx.shadowColor = color;

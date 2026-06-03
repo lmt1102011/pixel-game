@@ -7,7 +7,7 @@
   const ROOM_PAD = 86;
   const SAVE_KEY = "soulrift-save-v1";
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
-  const APP_VERSION = "20260603-boss-fatigue-window-53";
+  const APP_VERSION = "20260603-power-domain-ultimates-54";
   const VERSION_CHECK_INTERVAL = 15000;
   const UPDATE_ATTEMPT_KEY = "soulrift-update-attempt-v1";
   const DOOR_ENTER_TIME = 1.0;
@@ -4151,10 +4151,13 @@
         "pull", "zone", "danger", "ultimate", "skillShape", "castBurst", "castCone",
         "powerGlyph", "attackBurst", "hitSpark", "lineTell"
       ]);
-      return this.run.effects
-        .filter((effect) => visibleTypes.has(effect.type))
-        .slice(compact ? -30 : -52)
-        .map((effect) => this.serializableVisual(effect));
+      const effects = this.run.effects.filter((effect) => visibleTypes.has(effect.type));
+      if (compact) {
+        const domains = effects.filter((effect) => effect.type === "ultimate" && effect.domain && effect.time > 0);
+        const recent = effects.filter((effect) => !(effect.type === "ultimate" && effect.domain)).slice(-30);
+        return [...domains, ...recent].slice(-36).map((effect) => this.serializableVisual(effect));
+      }
+      return effects.slice(-52).map((effect) => this.serializableVisual(effect));
     }
 
     mergeNetworkActors(current, incoming, snapDistance = 520) {
@@ -5877,6 +5880,7 @@
         owner: "ally",
         remote: true,
         damage,
+        casterId: remoteId,
         awakened: Boolean(skill.awakened)
       });
     }
@@ -5933,6 +5937,10 @@
         const index = this.run.effects.findIndex((effect) => effect.type === "skillShape");
         if (index >= 0) this.run.effects.splice(index, 1);
       }
+      const scale = this.currentSkillAreaScale();
+      const scaledExtra = { ...extra };
+      if (Number.isFinite(scaledExtra.length)) scaledExtra.length *= scale;
+      if (Number.isFinite(scaledExtra.width)) scaledExtra.width *= scale;
       const visualTime = Math.max(0.18, time * (this.isMobileDevice() ? 0.72 : 0.86) * clamp(quality + 0.18, 0.58, 1));
       this.addEffect({
         type: "skillShape",
@@ -5941,16 +5949,46 @@
         x,
         y,
         angle,
-        radius,
+        radius: radius * scale,
         time: visualTime,
         maxTime: visualTime,
         color: powerById(kind).color,
         accent: powerById(kind).accent,
-        ...extra
+        ...scaledExtra
       });
     }
 
+    currentSkillAreaScale() {
+      return Number.isFinite(this.skillAreaScale) ? this.skillAreaScale : 1;
+    }
+
+    activePowerDomain(kind, caster, casterId = this.lobby.id) {
+      if (!this.run || !caster) return null;
+      return (this.run.effects || []).find((effect) => (
+        effect.type === "ultimate"
+        && effect.domain
+        && effect.kind === kind
+        && effect.time > 0
+        && (!effect.casterId || !casterId || effect.casterId === casterId)
+        && Math.hypot(caster.x - effect.x, caster.y - effect.y) < effect.radius + (caster.radius || 22)
+      )) || null;
+    }
+
+    powerDomainBoost(kind, caster, casterId = this.lobby.id) {
+      const domain = this.activePowerDomain(kind, caster, casterId);
+      if (!domain) return { damageMult: 1, areaMult: 1, active: false };
+      return {
+        damageMult: Number(domain.damageBoost || 1.24),
+        areaMult: Number(domain.areaBoost || 1.2),
+        active: true,
+        domain
+      };
+    }
+
     coneDamage(x, y, angle, range, arc, damage, color, kind) {
+      const scale = this.currentSkillAreaScale();
+      range *= scale;
+      arc = Math.min(Math.PI * 1.35, arc * (1 + (scale - 1) * 0.35));
       for (const enemy of [...this.run.enemies]) {
         const d = Math.hypot(enemy.x - x, enemy.y - y);
         const a = Math.atan2(enemy.y - y, enemy.x - x);
@@ -5966,6 +6004,9 @@
     }
 
     lineDamage(x, y, angle, length, width, damage, color, kind, pierce = 99) {
+      const scale = this.currentSkillAreaScale();
+      length *= scale;
+      width *= scale;
       const dirX = Math.cos(angle);
       const dirY = Math.sin(angle);
       const hits = [];
@@ -6056,12 +6097,17 @@
       const x = caster.x;
       const y = caster.y;
       const outputMult = remote ? 1 : this.playerDamageOutputMult();
-      const damage = Math.max(8, options.damage || caster.damage || this.run.player.damage) * (this.run.curse?.id === "manaDebt" ? 1.18 : 1) * outputMult;
+      const baseDamage = Math.max(8, options.damage || caster.damage || this.run.player.damage) * (this.run.curse?.id === "manaDebt" ? 1.18 : 1) * outputMult;
       const tx = target?.x ?? x + Math.cos(angle) * 240;
       const ty = target?.y ?? y + Math.sin(angle) * 240;
       const forwardX = x + Math.cos(angle) * 145;
       const forwardY = y + Math.sin(angle) * 145;
       const kind = power.id;
+      const casterId = options.casterId || (owner === "player" ? this.lobby.id : "");
+      const domainBoost = key !== "f" ? this.powerDomainBoost(kind, caster, casterId) : { damageMult: 1, areaMult: 1, active: false };
+      const previousSkillAreaScale = this.currentSkillAreaScale();
+      this.skillAreaScale = Math.max(previousSkillAreaScale, domainBoost.areaMult || 1);
+      const damage = baseDamage * (domainBoost.damageMult || 1);
 
       if (key === "q") {
         if (kind === "fire") {
@@ -6133,6 +6179,7 @@
         if (awakened) this.applyAwakenedSkillBonus(key, power, caster, angle, { x: tx, y: ty }, damage, owner, remote);
         this.camera.shake = Math.max(this.camera.shake, 7);
         this.audio.sfx(kind === "lightning" ? 520 : kind === "gravity" ? 110 : 260, kind === "fire" ? "sawtooth" : "triangle", 0.08, 0.1);
+        this.skillAreaScale = previousSkillAreaScale;
         return;
       }
 
@@ -6186,6 +6233,7 @@
         }
         if (awakened) this.applyAwakenedSkillBonus(key, power, caster, angle, { x: tx, y: ty }, damage, owner, remote);
         this.audio.sfx(kind === "time" ? 190 : 180, "sine", 0.12, 0.08);
+        this.skillAreaScale = previousSkillAreaScale;
         return;
       }
 
@@ -6248,6 +6296,7 @@
         if (awakened) this.applyAwakenedSkillBonus(key, power, caster, angle, { x: tx, y: ty }, damage, owner, remote);
         this.camera.shake = Math.max(this.camera.shake, 9);
         this.audio.sfx(kind === "lightning" ? 560 : kind === "gravity" || kind === "void" ? 90 : 120, "sawtooth", 0.14, 0.1);
+        this.skillAreaScale = previousSkillAreaScale;
         return;
       }
 
@@ -6278,11 +6327,29 @@
         }
         this.areaDamage(x, y, radius, awakened ? 170 : 120, power.accent, kind, true);
         this.addShockwave(x, y, radius + 80, power.accent, 64);
-        this.addEffect({ type: "ultimate", x, y, radius, time: awakened ? 2.5 : 1.8, color: power.accent, kind });
+        this.addEffect({
+          type: "ultimate",
+          domain: true,
+          owner,
+          casterId,
+          x,
+          y,
+          radius: radius + 70,
+          time: 6,
+          maxTime: 6,
+          tick: 0,
+          color: power.accent,
+          accent: power.color,
+          kind,
+          damage: damage * (awakened ? 0.34 : 0.26),
+          damageBoost: awakened ? 1.32 : 1.24,
+          areaBoost: awakened ? 1.28 : 1.2
+        });
         if (awakened) this.applyAwakenedSkillBonus(key, power, caster, angle, { x, y }, damage, owner, remote);
         this.camera.shake = Math.max(this.camera.shake, 24);
         this.audio.sfx(kind === "time" ? 130 : 70, "sawtooth", 0.35, 0.18);
       }
+      this.skillAreaScale = previousSkillAreaScale;
     }
 
     powerCastVfx(power, x, y, angle = 0, radius = 150, intensity = 1, healNature = true) {
@@ -6400,10 +6467,16 @@
     }
 
     spawnProjectile(projectile) {
-      this.run.projectiles.push({ id: uid("proj"), ...projectile, age: 0 });
+      const scale = this.currentSkillAreaScale();
+      const next = { ...projectile };
+      if (scale > 1 && (next.owner === "player" || next.owner === "ally") && Number.isFinite(next.radius)) {
+        next.radius *= scale;
+      }
+      this.run.projectiles.push({ id: uid("proj"), ...next, age: 0 });
     }
 
     areaDamage(x, y, radius, damage, color, kind, ultimate = false) {
+      radius *= this.currentSkillAreaScale();
       for (const enemy of [...this.run.enemies]) {
         const d = Math.hypot(enemy.x - x, enemy.y - y);
         if (d < radius + enemy.radius) {
@@ -6461,7 +6534,7 @@
       if (assassinBasic && enemy.hp > 0 && chance(0.25)) this.applyAssassinBleed(enemy, damage, options);
       if (crit && (p.stats.chainCrit || power.id === "lightning")) this.chainLightning(enemy, damage * 0.45);
       if (enemy.chill > 0 && enemy.hp <= 0 && p.stats.fracture) this.fracture(enemy);
-      p.ult = clamp(p.ult + (crit ? 5 : 3), 0, 100);
+      if (options.source !== "domain") p.ult = clamp(p.ult + (crit ? 5 : 3), 0, 100);
       const basicKind = this.basicHitKind(options);
       const basicHit = Boolean(basicKind);
       const impactColor = basicHit ? (crit ? "#fff1b8" : "#f3ead7") : crit ? power.accent : power.color;
@@ -8811,12 +8884,118 @@
       this.camera.shake = Math.max(this.camera.shake, 8);
     }
 
+    powerDomainTickRate(kind) {
+      return {
+        lightning: 0.32,
+        fire: 0.38,
+        blood: 0.42,
+        crystal: 0.45,
+        ice: 0.48,
+        shadow: 0.48,
+        gravity: 0.5,
+        nature: 0.5,
+        void: 0.5,
+        time: 0.5
+      }[kind] || 0.48;
+    }
+
+    powerDomainParticleKind(kind) {
+      return {
+        fire: "flame",
+        ice: "snow",
+        lightning: "spark",
+        shadow: "shade",
+        blood: "drop",
+        gravity: "square",
+        crystal: "shard",
+        nature: "leaf",
+        void: "void",
+        time: "clock"
+      }[kind] || "spark";
+    }
+
+    updatePowerDomain(effect, dt) {
+      const kind = effect.kind || "fire";
+      const radius = effect.radius || 360;
+      const color = effect.color || powerById(kind).accent;
+      if (!this.isMultiplayerClient() && (kind === "gravity" || kind === "void" || kind === "time")) {
+        for (const enemy of this.run.enemies) {
+          const d = Math.hypot(enemy.x - effect.x, enemy.y - effect.y);
+          if (d < radius + enemy.radius) {
+            const pull = kind === "time" ? 95 : kind === "gravity" ? 210 : 165;
+            const a = Math.atan2(effect.y - enemy.y, effect.x - enemy.x);
+            enemy.vx += Math.cos(a) * pull * dt;
+            enemy.vy += Math.sin(a) * pull * dt;
+          }
+        }
+      }
+      effect.tick = Number.isFinite(effect.tick) ? effect.tick - dt : 0;
+      if (effect.tick > 0) return;
+      effect.tick = this.powerDomainTickRate(kind);
+      if (!this.isMultiplayerClient()) {
+        for (const enemy of [...this.run.enemies]) {
+          const d = Math.hypot(enemy.x - effect.x, enemy.y - effect.y);
+          if (d >= radius + enemy.radius) continue;
+          const force = Math.max(0.32, 1 - d / Math.max(1, radius));
+          const damage = (effect.damage || 18) * force;
+          this.damageEnemy(enemy, damage, {
+            x: (enemy.x - effect.x) / (d || 1),
+            y: (enemy.y - effect.y) / (d || 1),
+            source: "domain",
+            kind
+          });
+          if (kind === "fire") enemy.burn = Math.max(enemy.burn || 0, 2.2);
+          if (kind === "ice" || kind === "time") enemy.chill = Math.max(enemy.chill || 0, kind === "time" ? 2.8 : 2.4);
+          if (kind === "shadow" || kind === "void") enemy.mark += kind === "void" ? 2 : 1;
+          if (kind === "nature") enemy.stun = Math.max(enemy.stun || 0, enemy.boss ? 0.04 : 0.16);
+        }
+        if (kind === "lightning") this.burstLines(effect.x, effect.y, color, 4, radius * 0.72, 0.11);
+        if (kind === "crystal") {
+          for (let i = 0; i < 3; i++) {
+            const a = rand(0, TAU);
+            this.spawnProjectile({
+              owner: effect.owner || "player",
+              x: effect.x + Math.cos(a) * rand(30, radius * 0.45),
+              y: effect.y + Math.sin(a) * rand(30, radius * 0.45),
+              vx: Math.cos(a) * 420,
+              vy: Math.sin(a) * 420,
+              radius: 6,
+              damage: (effect.damage || 18) * 0.45,
+              life: 0.42,
+              color,
+              pierce: 0,
+              kind
+            });
+          }
+        }
+      }
+      const p = this.run.player;
+      const localCasterInside = (!effect.casterId || effect.casterId === this.lobby.id) && this.aliveActor(p) && Math.hypot(p.x - effect.x, p.y - effect.y) < radius + p.radius;
+      if (localCasterInside) {
+        if (kind === "nature") this.healPlayer(2.2);
+        if (kind === "blood") this.healPlayer(1.6);
+        if (kind === "time") {
+          p.cooldowns.q = Math.max(0, p.cooldowns.q - 0.12);
+          p.cooldowns.e = Math.max(0, p.cooldowns.e - 0.12);
+          p.cooldowns.r = Math.max(0, p.cooldowns.r - 0.12);
+        }
+      }
+      const particleScale = clamp(this.perf?.quality ?? 1, 0.35, 1) * (this.isMobileDevice() ? 0.35 : 0.55);
+      const count = Math.max(2, Math.round(5 * this.save.settings.particles * particleScale));
+      for (let i = 0; i < count; i++) {
+        const a = rand(0, TAU);
+        const r = rand(radius * 0.18, radius * 0.96);
+        this.addParticle(effect.x + Math.cos(a) * r, effect.y + Math.sin(a) * r, i % 3 === 0 ? powerById(kind).color : color, rand(7, 18), rand(0.32, 0.8), this.powerDomainParticleKind(kind), a + Math.PI, rand(20, 120));
+      }
+    }
+
     updateEffects(dt) {
       if (!this.run) return;
       let write = 0;
       for (let i = 0; i < this.run.effects.length; i++) {
         const effect = this.run.effects[i];
         effect.time -= dt;
+        if (effect.type === "ultimate" && effect.domain) this.updatePowerDomain(effect, dt);
         if (effect.type === "pull" && !this.isMultiplayerClient()) {
           for (const enemy of this.run.enemies) {
             const d = Math.hypot(effect.x - enemy.x, effect.y - enemy.y);
@@ -8866,7 +9045,13 @@
 
     addEffect(effect) {
       if (!this.run) return;
-      this.run.effects.push(effect);
+      const scale = this.currentSkillAreaScale();
+      const next = { ...effect };
+      if (scale > 1 && ["zone", "pull"].includes(next.type) && Number.isFinite(next.radius)) {
+        next.radius *= scale;
+        next.domainBoosted = true;
+      }
+      this.run.effects.push(next);
       this.trimEffectList();
     }
 
@@ -10738,7 +10923,32 @@
         ctx.shadowColor = effect.color;
         ctx.shadowBlur = this.glow(18);
         if (foreground) ctx.globalCompositeOperation = "lighter";
-        if (["pull", "zone", "danger", "ultimate"].includes(effect.type)) {
+        if (effect.type === "ultimate" && effect.domain) {
+          const lifeRatio = clamp(effect.time / (effect.maxTime || 6), 0, 1);
+          const progress = 1 - lifeRatio;
+          const pulse = Math.sin(this.menuTime * 6 + progress * 2) * 10;
+          const r = Math.max(16, effect.radius + pulse);
+          ctx.globalAlpha = 0.24 + lifeRatio * 0.16;
+          ctx.lineWidth = 6;
+          ctx.beginPath();
+          ctx.arc(effect.x, effect.y, r, 0, TAU);
+          ctx.stroke();
+          ctx.globalAlpha = 0.08 + lifeRatio * 0.05;
+          ctx.fill();
+          ctx.globalAlpha = 0.26;
+          ctx.lineWidth = 2;
+          for (let i = 0; i < 10; i++) {
+            const a = (i / 10) * TAU + this.menuTime * 0.22 * (effect.kind === "time" ? -1 : 1);
+            ctx.beginPath();
+            ctx.moveTo(effect.x + Math.cos(a) * r * 0.28, effect.y + Math.sin(a) * r * 0.28);
+            ctx.lineTo(effect.x + Math.cos(a) * r * 0.94, effect.y + Math.sin(a) * r * 0.94);
+            ctx.stroke();
+          }
+          ctx.globalAlpha = 0.42;
+          ctx.beginPath();
+          ctx.arc(effect.x, effect.y, r * (0.42 + 0.08 * Math.sin(this.menuTime * 4)), 0, TAU);
+          ctx.stroke();
+        } else if (["pull", "zone", "danger", "ultimate"].includes(effect.type)) {
           const pulse = Math.sin(this.menuTime * 8) * 8;
           ctx.beginPath();
           ctx.arc(effect.x, effect.y, Math.max(8, effect.radius + pulse), 0, TAU);

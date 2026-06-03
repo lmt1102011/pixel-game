@@ -7,13 +7,15 @@
   const ROOM_PAD = 86;
   const SAVE_KEY = "soulrift-save-v1";
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
-  const APP_VERSION = "20260603-assist-chest-economy-28";
+  const APP_VERSION = "20260603-run-bag-chest-door-29";
   const VERSION_CHECK_INTERVAL = 15000;
   const DIRECTORY_TOPIC = "soulrift-directory-v2";
   const ROOM_CODE_RE = /^[A-Z0-9]{4,12}$/;
   const ROOM_TTL_MS = 45000;
   const SIGNAL_HISTORY = "2m";
   const DIRECTORY_HISTORY = "75s";
+  const RUN_ITEM_LIMIT = 10;
+  const RUN_EQUIP_LIMIT = 6;
 
   const RARITY = {
     common: { label: "Thường", color: "#d4d7df", rate: 1 },
@@ -1292,6 +1294,7 @@
       if (message.type === "attack" && this.host) this.game.handleRemoteAttack(message.from, message.attack);
       if (message.type === "skill" && this.host) this.game.handleRemoteSkill(message.from, message.skill);
       if (message.type === "collect" && this.host) this.game.handleRemoteCollect(message.from, message.pickupId);
+      if (message.type === "dropItem" && this.host) this.game.handleRemoteDropItem(message.from, message.itemId);
       if (message.type === "damage" && !this.host) this.game.applyHostDamage(message.amount);
       if (message.type === "snapshot" && !this.host) this.game.applyNetworkSnapshot(message.snapshot);
       if (message.type === "needSnapshot" && this.host) this.game.sendNetworkSnapshotTo(message.from);
@@ -1481,6 +1484,9 @@
       if (message.type === "collect" && this.host) {
         this.game.handleRemoteCollect(senderId, message.pickupId);
       }
+      if (message.type === "dropItem" && this.host) {
+        this.game.handleRemoteDropItem(senderId, message.itemId);
+      }
       if (message.type === "snapshot" && !this.host) {
         this.game.applyNetworkSnapshot(message.snapshot);
       }
@@ -1661,6 +1667,13 @@
         this.sendPeer(peer, { type: "collect", pickupId });
       }
       if (!this.host && !this.hasOpenPeers()) this.sendSignal({ type: "collect", pickupId }, this.hostId());
+    }
+
+    sendDropItem(itemId) {
+      for (const peer of this.peers.values()) {
+        this.sendPeer(peer, { type: "dropItem", itemId });
+      }
+      if (!this.host && !this.hasOpenPeers()) this.sendSignal({ type: "dropItem", itemId }, this.hostId());
     }
 
     requestSnapshot() {
@@ -2372,6 +2385,8 @@
       if (action === "attack") this.attackBasic();
       if (action === "dash") this.dash();
       if (["q", "e", "r", "f"].includes(action)) this.useSkill(action);
+      if (action === "bag") this.showRunInventory();
+      if (action === "settings") this.showSettings();
     }
 
     resize() {
@@ -2513,6 +2528,10 @@
         this.showAccountGate();
         return;
       }
+      if (this.run) {
+        this.run = null;
+        this.remotePlayers.clear();
+      }
       this.mode = "menu";
       this.hud.classList.add("hidden");
       this.touchLayer.classList.add("hidden");
@@ -2592,7 +2611,11 @@
       if (action === "start-solo-difficulty") this.startSelectedRun("", { difficulty: target.dataset.difficulty || "normal" });
       if (action === "character-tab") this.showCharacterTab(target.dataset.tab || "character");
       if (action === "character") this.showCharacter();
-      if (action === "inventory") this.showInventory();
+      if (action === "inventory") {
+        if (this.run && ["game", "pause", "merchant", "runInventory"].includes(this.mode)) this.showRunInventory();
+        else this.showInventory();
+      }
+      if (action === "run-inventory") this.showRunInventory();
       if (action === "powers") this.showPowers();
       if (action === "awakening") this.showAwakening();
       if (action === "settings") this.showSettings();
@@ -2603,6 +2626,8 @@
       if (action === "choose-power") this.selectPower(target.dataset.power);
       if (action === "spin-power") this.spinPower();
       if (action === "buy-merchant-offer") this.buyMerchantOffer(target.dataset.offer);
+      if (action === "merchant-tab") this.showMerchantShop(target.dataset.tab || "buy");
+      if (action === "sell-run-item") this.sellRunItem(target.dataset.uid);
       if (action === "leave-merchant") this.completeMerchantRoom();
       if (action === "select-character") this.selectCharacter(target.dataset.character);
       if (action === "upgrade-stat") this.upgradeStatPoint(target.dataset.stat);
@@ -2616,6 +2641,9 @@
       }
       if (action === "equip-item") this.equipItem(target.dataset.item);
       if (action === "unequip-slot") this.unequipSlot(target.dataset.slot);
+      if (action === "equip-run-item") this.equipRunItem(target.dataset.uid);
+      if (action === "unequip-run-item") this.unequipRunItem(target.dataset.uid);
+      if (action === "drop-run-item") this.dropRunItem(target.dataset.uid);
       if (action === "awaken-power") this.awakenPower(target.dataset.power);
       if (action === "create-room") this.lobby.create();
       if (action === "join-room") this.lobby.join(target.dataset.roomCode || document.getElementById("roomCodeInput")?.value);
@@ -3218,27 +3246,15 @@
     showInventory() {
       this.mode = "inventory";
       const mat = this.save.materials || {};
-      const materialOrder = ["gold", "emberGlass", "frostCore", "stormThread", "bloodAmber", "bossCore", "divineSpark"];
+      const materialOrder = ["emberGlass", "frostCore", "stormThread", "bloodAmber", "bossCore", "divineSpark"];
       const materials = materialOrder.map((id) => `
         <div class="reward-card material-card">
           <div class="mini-ill material-ill" style="--ill:${id === "gold" ? "#f2bf63" : "#35d6c9"}"><span>${id === "gold" ? "$" : "NL"}</span></div>
           <h3>${materialLabel(id)}</h3>
           <p>${Math.floor(Number(mat[id] || 0))}</p>
-          <p class="small">${id === "gold" ? "Dùng để mua phụ trợ ở thương nhân." : "Được giữ lại sau khi vượt phòng."}</p>
+          <p class="small">Được giữ lại sau khi vượt phòng.</p>
         </div>
       `).join("");
-      const assists = (this.run?.assists || []).map((entry) => {
-        const item = itemById(entry.id);
-        if (!item) return "";
-        return `
-          <div class="reward-card rarity-${item.rarity}">
-            ${this.itemIllustration(item)}
-            <h3>${item.name}</h3>
-            <p>${slotLabel(item.slot)} - ${RARITY[item.rarity].label}</p>
-            <p class="small">${item.text}</p>
-          </div>
-        `;
-      }).join("");
       this.setScreen(`
         <section class="shell">
           ${this.navHtml("character")}
@@ -3246,14 +3262,63 @@
             <div class="panel-header">
               <div>
                 <h2 class="panel-title">Kho Nguyên Liệu</h2>
-                <p class="panel-subtitle">Chỉ tiền và nguyên liệu được giữ lại. Phụ trợ nhặt trong trận không biến thành trang bị vĩnh viễn.</p>
+                <p class="panel-subtitle">Chỉ nguyên liệu được giữ lại. Phụ trợ và tiền trong ải sẽ mất khi thoát lượt.</p>
               </div>
             </div>
             ${this.characterTabs("inventory")}
             <div class="inventory-list">${materials}</div>
-            <h3 class="section-label">Phụ trợ đang kích hoạt</h3>
-            <div class="inventory-list">${assists || `<div class="empty-state">Chưa có phụ trợ nào trong lượt hiện tại.</div>`}</div>
           </div>
+        </section>
+      `);
+    }
+
+    runItemCard(entry, context = "bag") {
+      const item = itemById(entry.id);
+      if (!item) return "";
+      const sellPrice = this.sellValueForItem(item);
+      const actions = context === "sell"
+        ? `<button class="btn primary" data-action="sell-run-item" data-uid="${entry.uid}">BÁN ${sellPrice} TIỀN</button>`
+        : `
+          <button class="btn primary" data-action="${entry.equipped ? "unequip-run-item" : "equip-run-item"}" data-uid="${entry.uid}">
+            ${entry.equipped ? "THÁO" : "TRANG BỊ"}
+          </button>
+          <button class="btn danger" data-action="drop-run-item" data-uid="${entry.uid}">VỨT</button>
+        `;
+      return `
+        <div class="reward-card rarity-${item.rarity}">
+          ${this.itemIllustration(item)}
+          <h3>${item.name}</h3>
+          <p>${entry.equipped ? "Đang trang bị" : "Trong túi"} - ${RARITY[item.rarity].label}</p>
+          <p class="small">${item.text}</p>
+          <div class="item-actions">${actions}</div>
+        </div>
+      `;
+    }
+
+    showRunInventory(context = "bag") {
+      if (!this.run) {
+        this.showInventory();
+        return;
+      }
+      this.mode = "runInventory";
+      const items = this.run.runItems || [];
+      const equipped = items.filter((entry) => entry.equipped);
+      const bag = items.filter((entry) => !entry.equipped);
+      const cards = [
+        ...equipped.map((entry) => this.runItemCard(entry, context)),
+        ...bag.map((entry) => this.runItemCard(entry, context))
+      ].join("");
+      const subtitle = `Trang bị ${equipped.length}/${RUN_EQUIP_LIMIT} - Mang ${items.length}/${RUN_ITEM_LIMIT} - Tiền trong ải ${Math.floor(this.run.runGold || 0)}`;
+      this.setScreen(`
+        <section class="wide-panel">
+          <div class="panel-header">
+            <div>
+              <h2 class="panel-title">Kho Trong Ải</h2>
+              <p class="panel-subtitle">${subtitle}</p>
+            </div>
+            <button class="btn" data-action="resume">ĐÓNG</button>
+          </div>
+          <div class="inventory-list">${cards || `<div class="empty-state">Chưa có phụ trợ nào. Rương sẽ thêm đồ vào đây.</div>`}</div>
         </section>
       `);
     }
@@ -3321,17 +3386,19 @@
     }
 
     showSettings() {
+      const inRun = Boolean(this.run && ["game", "pause", "runInventory", "merchant"].includes(this.mode));
       this.mode = "settings";
       const s = this.save.settings;
       this.setScreen(`
-        <section class="shell">
-          ${this.navHtml("settings")}
-          <div class="panel">
+        <section class="${inRun ? "wide-panel" : "shell"}">
+          ${inRun ? "" : this.navHtml("settings")}
+          <div class="${inRun ? "" : "panel"}">
             <div class="panel-header">
               <div>
                 <h2 class="panel-title">Cài Đặt</h2>
                 <p class="panel-subtitle">Hiệu chỉnh khe nứt.</p>
               </div>
+              ${inRun ? `<button class="btn" data-action="resume">ĐÓNG</button>` : ""}
             </div>
             <div class="grid">
               ${this.settingCheck("music", "Nhạc", s.music)}
@@ -3560,7 +3627,9 @@
         roomObjects: [],
         merchantOffers: [],
         statusEffects: [],
-        assists: [],
+        runItems: [],
+        runGold: 0,
+        pendingDoor: null,
         player: this.createPlayer(),
         curse: null,
         rewardQueue: [],
@@ -3671,7 +3740,7 @@
         if (key === "target" || key === "hit") continue;
         if (value == null || ["number", "string", "boolean"].includes(typeof value)) clean[key] = value;
         else if (Array.isArray(value)) clean[key] = value.slice(0, 16);
-        else if (key === "reward") clean[key] = value;
+        else if (["reward", "chestReward", "coinReward"].includes(key)) clean[key] = value;
       }
       return clean;
     }
@@ -3686,7 +3755,7 @@
         const value = entry?.[key];
         if (value == null) continue;
         if (["number", "string", "boolean"].includes(typeof value)) clean[key] = value;
-        else if (key === "reward") clean[key] = value;
+        else if (["reward", "chestReward", "coinReward"].includes(key)) clean[key] = value;
       }
       return clean;
     }
@@ -3709,14 +3778,14 @@
 
     compactPickup(pickup) {
       return this.compactFields(pickup, [
-        "id", "type", "container", "ownerId", "ownerName", "x", "y", "vx", "vy", "radius", "life", "age", "color", "collected", "countsForClaim", "reward"
+        "id", "type", "container", "ownerId", "ownerName", "x", "y", "vx", "vy", "radius", "life", "age", "color", "collected", "countsForClaim", "opening", "opened", "openTimer", "reward", "chestReward", "coinReward"
       ]);
     }
 
     compactRoomObject(object) {
       return this.compactFields(object, [
         "id", "type", "x", "y", "radius", "grow", "opened", "active", "roomType",
-        "label", "icon", "color", "effect", "locked", "claimed"
+        "label", "icon", "color", "effect", "locked", "claimed", "opening", "openTimer", "enterProgress"
       ]);
     }
 
@@ -3887,6 +3956,25 @@
       };
     }
 
+    defaultCombatStats() {
+      return {
+        lifeSteal: 0,
+        burnDash: false,
+        chainCrit: false,
+        drones: 0,
+        fracture: false,
+        fatalRewind: false,
+        explosionHeal: false,
+        shockwaveCombo: false,
+        rewardLuck: 0,
+        coinBonus: 0,
+        magnetBonus: 0,
+        damageTakenMult: 1,
+        energyRegenMult: 1,
+        divineSigil: false
+      };
+    }
+
     createPlayer() {
       const character = characterById(this.save.account.selectedCharacter);
       const stats = this.effectiveCharacterStats(character);
@@ -3903,6 +3991,7 @@
         speed: stats.speed,
         damage: stats.damage,
         crit: stats.crit,
+        baseStats: { ...stats },
         name: this.save.account.username || "Bạn",
         characterId: character.id,
         basicAttackCd: stats.attackCd,
@@ -3923,22 +4012,7 @@
         actionTime: 0,
         actionTotal: 0,
         facing: 0,
-        stats: {
-          lifeSteal: 0,
-          burnDash: false,
-          chainCrit: false,
-          drones: 0,
-          fracture: false,
-          fatalRewind: false,
-          explosionHeal: false,
-          shockwaveCombo: false,
-          rewardLuck: 0,
-          coinBonus: 0,
-          magnetBonus: 0,
-          damageTakenMult: 1,
-          energyRegenMult: 1,
-          divineSigil: false
-        },
+        stats: this.defaultCombatStats(),
         cooldowns: {
           q: 0,
           e: 0,
@@ -3954,7 +4028,116 @@
       this.run.drones = [];
     }
 
-    applyItemEffect(item, player) {
+    equippedRunItems() {
+      return (this.run?.runItems || []).filter((entry) => entry.equipped);
+    }
+
+    runItemByUid(uidValue) {
+      return (this.run?.runItems || []).find((entry) => entry.uid === uidValue) || null;
+    }
+
+    reapplyRunEquipment() {
+      if (!this.run?.player) return;
+      const player = this.run.player;
+      const base = player.baseStats || this.effectiveCharacterStats(characterById(player.characterId));
+      const hpRatio = player.maxHp > 0 ? clamp(player.hp / player.maxHp, 0, 1) : 1;
+      const energyRatio = player.maxEnergy > 0 ? clamp(player.energy / player.maxEnergy, 0, 1) : 1;
+      player.maxHp = base.hp;
+      player.hp = base.hp;
+      player.maxEnergy = base.energy;
+      player.energy = base.energy;
+      player.speed = base.speed;
+      player.damage = base.damage;
+      player.crit = base.crit;
+      player.basicAttackCd = base.attackCd;
+      player.stats = this.defaultCombatStats();
+      player.shield = 0;
+      this.run.drones = [];
+      for (const entry of this.equippedRunItems()) {
+        const item = itemById(entry.id);
+        if (item) this.applyItemEffect(item, player, { rebuild: true });
+      }
+      player.hp = clamp(player.maxHp * hpRatio, 1, player.maxHp);
+      player.energy = clamp(player.maxEnergy * energyRatio, 0, player.maxEnergy);
+    }
+
+    addRunItem(itemId, { autoEquip = true } = {}) {
+      if (!this.run) return false;
+      const item = itemById(itemId);
+      if (!item) return false;
+      this.run.runItems ||= [];
+      if (this.run.runItems.length >= RUN_ITEM_LIMIT) {
+        this.toast("Kho trong ải đã đầy");
+        return false;
+      }
+      const equipped = autoEquip && this.equippedRunItems().length < RUN_EQUIP_LIMIT;
+      this.run.runItems.push({ uid: uid("runitem"), id: item.id, equipped });
+      this.reapplyRunEquipment();
+      this.toast(equipped ? `Đã trang bị ${item.name}` : `Đã cất ${item.name} vào túi`);
+      return true;
+    }
+
+    equipRunItem(uidValue) {
+      const entry = this.runItemByUid(uidValue);
+      if (!entry) return;
+      if (entry.equipped) return;
+      if (this.equippedRunItems().length >= RUN_EQUIP_LIMIT) {
+        this.toast("Đã trang bị tối đa 6 món");
+        return;
+      }
+      entry.equipped = true;
+      this.reapplyRunEquipment();
+      this.showRunInventory();
+    }
+
+    unequipRunItem(uidValue) {
+      const entry = this.runItemByUid(uidValue);
+      if (!entry) return;
+      entry.equipped = false;
+      this.reapplyRunEquipment();
+      this.showRunInventory();
+    }
+
+    removeRunItem(uidValue) {
+      const index = (this.run?.runItems || []).findIndex((entry) => entry.uid === uidValue);
+      if (index < 0) return null;
+      const [entry] = this.run.runItems.splice(index, 1);
+      this.reapplyRunEquipment();
+      return entry;
+    }
+
+    spawnDroppedRunItem(entry, x = this.run.player.x, y = this.run.player.y, ownerName = this.save.account.username || "Người chơi") {
+      const item = itemById(entry?.id);
+      if (!item || !this.run) return;
+      this.run.pickups.push({
+        id: uid("drop"),
+        x,
+        y,
+        vx: rand(-80, 80),
+        vy: rand(-120, -60),
+        type: "reward",
+        container: "looseItem",
+        ownerId: "",
+        ownerName,
+        reward: { type: "item", item },
+        countsForClaim: false,
+        radius: 17,
+        life: 80,
+        age: 0,
+        color: this.rewardColor({ type: "item", item })
+      });
+    }
+
+    dropRunItem(uidValue) {
+      const entry = this.removeRunItem(uidValue);
+      if (!entry) return;
+      if (this.isMultiplayerClient()) this.lobby.sendDropItem(entry.id);
+      else this.spawnDroppedRunItem(entry);
+      this.toast("Đã vứt phụ trợ ra đất");
+      this.showRunInventory();
+    }
+
+    applyItemEffect(item, player, options = {}) {
       if (!item || !player) return;
       if (item.id === "swiftBoots") {
         player.speed *= 1.18;
@@ -3985,7 +4168,7 @@
         player.maxHp = Math.max(45, player.maxHp - 10);
         player.hp = Math.min(player.hp, player.maxHp);
       }
-      if (item.id === "gravityDice" && this.run) this.addEffect({ type: "gravityAnomaly", time: 999, pulse: 0 });
+      if (item.id === "gravityDice" && this.run && !this.run.effects.some((effect) => effect.type === "gravityAnomaly")) this.addEffect({ type: "gravityAnomaly", time: 999, pulse: 0 });
       if (item.id === "luckyCharm") {
         player.damage = Math.max(1, player.damage - 1);
         player.stats.magnetBonus += 160;
@@ -4044,6 +4227,7 @@
       this.run.delayedStrikes = [];
       this.run.roomObjects = [];
       this.run.merchantOffers = [];
+      this.run.pendingDoor = null;
       this.run.player.x = WORLD_W / 2;
       this.run.player.y = WORLD_H / 2;
       this.run.player.invuln = 1;
@@ -4354,6 +4538,7 @@
       this.updatePlayer(worldDt);
       this.updateDrones(worldDt);
       this.updateHazards(worldDt);
+      this.updatePendingDoor(worldDt);
       this.updateRoomObjects(worldDt);
       this.updateDelayedStrikes(worldDt);
       if (!this.isMultiplayerClient()) this.updateEnemies(worldDt);
@@ -4381,6 +4566,43 @@
       if (["treasure", "merchant", "curse"].includes(room.type)) return !room.rewardClaimed && !room.nextOpened;
       if (room.type === "boss") return !room.rewardClaimed;
       return false;
+    }
+
+    updatePendingDoor(dt) {
+      const pending = this.run?.pendingDoor;
+      if (!pending) return;
+      const object = this.run.roomObjects.find((entry) => entry.id === pending.objectId);
+      if (!object || object.opened || object.type !== "nextDoor") {
+        this.run.pendingDoor = null;
+        return;
+      }
+      pending.timer = Math.max(0, pending.timer - dt);
+      object.enterProgress = clamp(1 - pending.timer / 2, 0, 1);
+      const p = this.run.player;
+      const angle = Math.atan2(object.y - p.y, object.x - p.x);
+      if (chance(dt * 26)) {
+        const distToDoor = rand(18, 92);
+        this.addParticle(
+          object.x - Math.cos(angle) * distToDoor + rand(-12, 12),
+          object.y - Math.sin(angle) * distToDoor + rand(-12, 12),
+          object.color || this.run.biome.accent,
+          rand(6, 15),
+          rand(0.22, 0.48),
+          "spark",
+          angle,
+          rand(80, 160)
+        );
+      }
+      if (pending.timer <= 0) {
+        object.opened = true;
+        this.run.pendingDoor = null;
+        this.startRoom({
+          type: object.roomType,
+          label: object.label,
+          icon: object.icon,
+          color: object.color
+        });
+      }
     }
 
     updateCamera(dt) {
@@ -5632,7 +5854,7 @@
       const room = this.run?.currentRoom;
       if (!room || room.rewardDropped) return;
       room.bossExitOpened = true;
-      this.spawnRoomReward(x, y);
+      this.spawnRoomReward(x, y, { container: "goldChest" });
       this.clearRoom();
       this.addShockwave(x, y, 210, "#f2bf63", 0);
     }
@@ -5668,6 +5890,10 @@
       this.save.achievements.firstRift = true;
       this.persist();
       if (!room.rewardDropped && this.roomDropsReward(room)) this.spawnRoomReward(this.run.player.x, this.run.player.y);
+      if (!this.roomDropsReward(room)) {
+        room.rewardDropped = true;
+        room.rewardClaimed = true;
+      }
       if (room.rewardClaimed) this.openNextRoomsAfterReward();
     }
 
@@ -5761,7 +5987,7 @@
       return reward;
     }
 
-    spawnRoomReward(x, y) {
+    spawnRoomReward(x, y, options = {}) {
       const room = this.run?.currentRoom;
       if (!room || room.rewardDropped) return;
       const owners = this.rewardOwners();
@@ -5783,33 +6009,15 @@
           vx: Math.cos(angle) * burst + rand(-28, 28),
           vy: Math.sin(angle) * burst - 62 + rand(-18, 18),
           type: "reward",
-          container: "woodChest",
+          container: options.container || "woodChest",
           ownerId: owner.id,
           ownerName: owner.name,
-          reward,
+          chestReward: reward,
+          coinReward: this.rollCoinReward(),
           radius: 22,
           life: 90,
           age: 0,
           color
-        });
-        const coinAngle = angle + rand(-0.38, 0.38);
-        const coinReward = this.rollCoinReward();
-        this.run.pickups.push({
-          id: uid("coin"),
-          x: x + Math.cos(coinAngle) * 12,
-          y: y + Math.sin(coinAngle) * 12,
-          vx: Math.cos(coinAngle) * (burst + 34) + rand(-24, 24),
-          vy: Math.sin(coinAngle) * (burst + 34) - 82 + rand(-24, 10),
-          type: "reward",
-          container: "coin",
-          ownerId: owner.id,
-          ownerName: owner.name,
-          reward: coinReward,
-          countsForClaim: false,
-          radius: 14,
-          life: 90,
-          age: 0,
-          color: this.rewardColor(coinReward)
         });
       });
       const firstColor = this.rewardColor(rewards[0]?.reward || { type: "material", rarity: "rare" });
@@ -5818,6 +6026,49 @@
         this.addParticle(x + rand(-28, 28), y + rand(-18, 18), firstColor, rand(8, 22), rand(0.35, 0.85), i % 4 === 0 ? "ring" : "spark");
       }
       this.toast(this.isMultiplayerRun() ? `Rơi ${rewards.length} rương gỗ riêng và tiền` : `Rơi rương gỗ: ${this.rewardLabel(rewards[0].reward)}`);
+    }
+
+    pickupTarget(pickup) {
+      if (!pickup?.ownerId || pickup.ownerId === this.lobby.id) return this.run.player;
+      if (this.isMultiplayerHost()) return this.remotePlayers.get(pickup.ownerId) || null;
+      return null;
+    }
+
+    spawnLootFromChest(chest, target = this.run.player) {
+      if (!chest || chest.opened) return;
+      chest.opened = true;
+      chest.life = 0;
+      const rewards = [
+        { reward: chest.chestReward, countsForClaim: true, container: chest.chestReward?.type === "item" ? "looseItem" : "material" },
+        { reward: chest.coinReward, countsForClaim: false, container: "coin" }
+      ].filter((entry) => entry.reward);
+      rewards.forEach((entry, index) => {
+        const angle = Math.atan2((target?.y || chest.y) - chest.y, (target?.x || chest.x) - chest.x) + rand(-0.72, 0.72);
+        const burst = 140 + index * 45;
+        this.run.pickups.push({
+          id: uid(entry.container === "coin" ? "coin" : "loot"),
+          x: chest.x,
+          y: chest.y - 6,
+          vx: Math.cos(angle) * burst + rand(-30, 30),
+          vy: Math.sin(angle) * burst - 110 + rand(-22, 18),
+          type: "reward",
+          container: entry.container,
+          ownerId: chest.ownerId || "",
+          ownerName: chest.ownerName || "",
+          reward: entry.reward,
+          countsForClaim: entry.countsForClaim,
+          radius: entry.container === "coin" ? 14 : 17,
+          life: 90,
+          age: 0,
+          color: this.rewardColor(entry.reward)
+        });
+      });
+      const color = chest.color || "#f2bf63";
+      this.addShockwave(chest.x, chest.y, 96, color, 0);
+      for (let i = 0; i < 12 * this.save.settings.particles; i++) {
+        this.addParticle(chest.x + rand(-18, 18), chest.y + rand(-12, 12), i % 2 ? color : "#8b5128", rand(8, 18), rand(0.28, 0.62), i % 4 === 0 ? "ring" : "spark");
+      }
+      this.audio.sfx(420, "triangle", 0.09, 0.09);
     }
 
     rewardColor(reward) {
@@ -6011,7 +6262,7 @@
     merchantOfferHtml(offer, index) {
       const reward = offer.reward;
       const color = this.rewardColor(reward);
-      const owned = this.save.materials[offer.priceMaterial] || 0;
+      const owned = Math.floor(this.run?.runGold || 0);
       const canBuy = owned >= offer.price && !offer.bought;
       const illustration = reward.type === "item"
         ? this.itemIllustration(reward.item)
@@ -6029,28 +6280,33 @@
             <p class="small">${reward.type === "item" ? reward.item.text : "Phụ trợ đặc biệt của thương nhân."}</p>
           </div>
           <div class="shop-price">
-            <span>${materialLabel(offer.priceMaterial)} ${owned}/${offer.price}</span>
+            <span>Tiền ${owned}/${offer.price}</span>
             <button class="btn primary" data-action="buy-merchant-offer" data-offer="${index}" ${canBuy ? "" : "disabled"}>${offer.bought ? "ĐÃ MUA" : "MUA"}</button>
           </div>
         </div>
       `;
     }
 
-    showMerchantShop() {
+    showMerchantShop(tab = "buy") {
       if (!this.run) return;
       this.mode = "merchant";
       if (!this.run.merchantOffers?.length) this.run.merchantOffers = this.rollMerchantOffers();
       const offers = this.run.merchantOffers.map((offer, index) => this.merchantOfferHtml(offer, index)).join("");
+      const sellCards = (this.run.runItems || []).map((entry) => this.runItemCard(entry, "sell")).join("");
       this.setScreen(`
         <section class="wide-panel">
           <div class="panel-header">
             <div>
               <h2 class="panel-title">Thương Nhân Khe Nứt</h2>
-              <p class="panel-subtitle">Dùng tiền rơi từ quái cuối để mua phụ trợ cho lượt hiện tại.</p>
+              <p class="panel-subtitle">Tiền trong ải: ${Math.floor(this.run.runGold || 0)}. Đồ và tiền này mất khi thoát ải.</p>
             </div>
             <button class="btn" data-action="leave-merchant">RỜI QUẦY</button>
           </div>
-          <div class="grid">${offers}</div>
+          <div class="tab-strip">
+            <button class="btn ${tab === "buy" ? "primary" : ""}" data-action="merchant-tab" data-tab="buy">MUA</button>
+            <button class="btn ${tab === "sell" ? "primary" : ""}" data-action="merchant-tab" data-tab="sell">BÁN</button>
+          </div>
+          <div class="grid">${tab === "sell" ? (sellCards || `<div class="empty-state">Không có phụ trợ nào để bán.</div>`) : offers}</div>
         </section>
       `);
     }
@@ -6058,16 +6314,39 @@
     buyMerchantOffer(index) {
       const offer = this.run?.merchantOffers?.[Number(index)];
       if (!offer || offer.bought) return;
-      const owned = this.save.materials[offer.priceMaterial] || 0;
+      const owned = Math.floor(this.run.runGold || 0);
       if (owned < offer.price) {
-        this.toast(offer.priceMaterial === "gold" ? "Không đủ tiền" : "Không đủ nguyên liệu");
+        this.toast("Không đủ tiền trong ải");
         return;
       }
-      this.save.materials[offer.priceMaterial] = owned - offer.price;
+      if (offer.reward?.type === "item" && (this.run.runItems || []).length >= RUN_ITEM_LIMIT) {
+        this.toast("Kho trong ải đã đầy");
+        return;
+      }
+      this.run.runGold = owned - offer.price;
       offer.bought = true;
-      this.grantReward(offer.reward);
+      if (!this.grantReward(offer.reward)) {
+        this.run.runGold = owned;
+        offer.bought = false;
+        return;
+      }
       this.persist();
       this.showMerchantShop();
+    }
+
+    sellValueForItem(item) {
+      const base = { common: 5, rare: 9, epic: 15, legendary: 24, mythic: 36, divine: 54 }[item?.rarity] || 8;
+      return Math.max(3, base + this.run.stage * 3);
+    }
+
+    sellRunItem(uidValue) {
+      const entry = this.removeRunItem(uidValue);
+      if (!entry) return;
+      const item = itemById(entry.id);
+      const value = this.sellValueForItem(item);
+      this.run.runGold = Math.floor(this.run.runGold || 0) + value;
+      this.toast(`Đã bán ${item.name} +${value} tiền`);
+      this.showMerchantShop("sell");
     }
 
     completeMerchantRoom() {
@@ -6095,20 +6374,7 @@
 
     grantReward(reward) {
       if (reward.type === "item") {
-        this.run.assists ||= [];
-        this.run.assists.push({ id: reward.item.id, at: this.menuTime });
-        this.applyItemEffect(reward.item, this.run.player);
-        this.addStatusEffect({
-          id: reward.item.id,
-          kind: "assist",
-          name: reward.item.name,
-          text: reward.item.text,
-          color: RARITY[reward.item.rarity]?.color || "#f2bf63",
-          icon: reward.item.icon?.slice(0, 2) || reward.item.name.slice(0, 1),
-          time: 9999,
-          maxTime: 9999
-        });
-        this.toast(`Nhận phụ trợ: ${reward.item.name}`);
+        if (!this.addRunItem(reward.item.id)) return false;
       }
       if (reward.type === "upgrade") {
         this.applyUpgrade(reward);
@@ -6118,7 +6384,7 @@
         this.toast(`${materialLabel(reward.material)} x${reward.amount}`);
       }
       if (reward.type === "coin") {
-        this.save.materials.gold = (this.save.materials.gold || 0) + reward.amount;
+        this.run.runGold = (this.run.runGold || 0) + reward.amount;
         this.toast(`${materialLabel("gold")} x${reward.amount}`);
       }
       if (reward.type !== "coin") {
@@ -6126,13 +6392,14 @@
         if (this.save.powers[this.run.power.id].mastery % 4 === 0) this.save.powers[this.run.power.id].level += 1;
       }
       this.persist();
+      return true;
     }
 
     collectRewardPickup(pickup) {
-      if (!pickup.reward || pickup.collected) return;
-      if (pickup.ownerId && pickup.ownerId !== this.lobby.id) return;
+      if (!pickup.reward || pickup.collected) return false;
+      if (pickup.ownerId && pickup.ownerId !== this.lobby.id) return false;
+      if (!this.grantReward(pickup.reward)) return false;
       pickup.collected = true;
-      this.grantReward(pickup.reward);
       if (this.run.currentRoom && pickup.countsForClaim !== false) {
         this.run.currentRoom.rewardClaims ||= {};
         this.run.currentRoom.rewardClaims[this.lobby.id] = true;
@@ -6151,11 +6418,12 @@
           this.openNextRoomsAfterReward();
         }
       }
+      return true;
     }
 
     handleRemoteCollect(remoteId, pickupId) {
       if (!this.isMultiplayerHost() || !pickupId || !this.run?.currentRoom) return;
-      const pickup = this.run.pickups.find((entry) => entry.id === pickupId && entry.ownerId === remoteId);
+      const pickup = this.run.pickups.find((entry) => entry.id === pickupId && (!entry.ownerId || entry.ownerId === remoteId));
       if (!pickup) return;
       pickup.collected = true;
       pickup.life = 0;
@@ -6167,6 +6435,18 @@
         if (this.run.currentRoom.type === "boss" && this.run.currentRoom.bossExitOpened) this.advanceToNextStageAfterBoss();
         else this.openNextRoomsAfterReward();
       }
+    }
+
+    handleRemoteDropItem(remoteId, itemId) {
+      if (!this.isMultiplayerHost() || !this.run || !itemById(itemId)) return;
+      const remote = this.remotePlayers.get(remoteId);
+      const slot = this.lobby.slots.find((entry) => entry.id === remoteId);
+      this.spawnDroppedRunItem(
+        { id: itemId },
+        remote?.x || this.run.player.x,
+        remote?.y || this.run.player.y,
+        slot?.name || remote?.name || "Người chơi"
+      );
     }
 
     applyUpgrade(reward) {
@@ -6281,7 +6561,7 @@
           </div>
           <div class="grid cols-2">
             <button class="btn primary" data-action="resume">TIẾP TỤC</button>
-            <button class="btn" data-action="inventory">KHO NGUYÊN LIỆU</button>
+            <button class="btn" data-action="run-inventory">KHO TRONG ẢI</button>
             <button class="btn" data-action="settings">CÀI ĐẶT</button>
             <button class="btn danger" data-action="menu">KẾT THÚC LƯỢT</button>
           </div>
@@ -6296,7 +6576,7 @@
           <div class="panel-header">
             <div>
               <h2 class="panel-title">Đã Phong Ấn Khe Nứt</h2>
-              <p class="panel-subtitle">Đã vượt cả năm khu vực. Tiền, thức tỉnh, thành tựu và nguyên liệu đã được lưu.</p>
+              <p class="panel-subtitle">Đã vượt cả năm khu vực. Thức tỉnh, thành tựu và nguyên liệu đã được lưu.</p>
             </div>
           </div>
           <div class="grid cols-2">
@@ -6962,6 +7242,12 @@
       const p = this.run.player;
       for (const object of this.run.roomObjects) {
         object.grow = clamp((object.grow || 0) + dt * 1.9, 0, 1);
+        if (object.opening) {
+          object.openTimer = Math.max(0, (object.openTimer || 0.55) - dt);
+          if (chance(dt * 16)) this.addParticle(object.x + rand(-34, 34), object.y + rand(-28, 18), object.color || "#f2bf63", rand(8, 18), rand(0.24, 0.55), "spark");
+          if (object.openTimer <= 0) this.completeRoomObjectOpening(object);
+          continue;
+        }
         if (object.opened || object.locked) continue;
         const touchRadius = object.radius * (object.type === "nextDoor" ? 0.82 : 0.72);
         if (Math.hypot(p.x - object.x, p.y - object.y) > p.radius + touchRadius) continue;
@@ -6976,13 +7262,13 @@
           this.toast("Chờ chủ phòng đi vào cửa tiếp theo");
           return;
         }
-        object.opened = true;
-        this.startRoom({
-          type: object.roomType,
-          label: object.label,
-          icon: object.icon,
-          color: object.color
-        });
+        if (this.run.pendingDoor?.objectId !== object.id) {
+          for (const door of this.run.roomObjects) {
+            if (door.type === "nextDoor") door.enterProgress = 0;
+          }
+          this.run.pendingDoor = { objectId: object.id, timer: 2 };
+          this.toast(`Đang vào ${object.label || "cửa"}... có thể đổi cửa trong 2 giây`);
+        }
         return;
       }
       if (object.type === "merchantStall") {
@@ -6994,10 +7280,8 @@
         return;
       }
       if (object.type === "treasureChest") {
-        object.opened = true;
-        this.spawnRoomReward(object.x, object.y);
-        this.clearRoom();
-        this.addShockwave(object.x, object.y, 170, object.color || "#f2bf63", 0);
+        object.opening = true;
+        object.openTimer = 0.55;
         this.audio.sfx(520, "triangle", 0.12, 0.12);
         return;
       }
@@ -7029,6 +7313,17 @@
       }
     }
 
+    completeRoomObjectOpening(object) {
+      if (!object || object.opened) return;
+      if (object.type === "treasureChest") {
+        object.opened = true;
+        object.opening = false;
+        this.spawnRoomReward(object.x, object.y, { container: "goldChest" });
+        this.clearRoom();
+        this.addShockwave(object.x, object.y, 170, object.color || "#f2bf63", 0);
+      }
+    }
+
     updateHazards(dt) {
       const p = this.run.player;
       for (const hazard of this.run.hazards) {
@@ -7047,26 +7342,41 @@
         const pickup = this.run.pickups[i];
         pickup.age = (pickup.age || 0) + dt;
         if (pickup.type === "reward") {
+          const chest = pickup.container === "woodChest" || pickup.container === "goldChest";
+          const target = this.pickupTarget(pickup);
           const canCollect = !pickup.ownerId || pickup.ownerId === this.lobby.id;
           pickup.vy = (pickup.vy || 0) + 180 * dt;
           pickup.x = clamp(pickup.x + (pickup.vx || 0) * dt, ROOM_PAD + pickup.radius, WORLD_W - ROOM_PAD - pickup.radius);
           pickup.y = clamp(pickup.y + (pickup.vy || 0) * dt, ROOM_PAD + pickup.radius, WORLD_H - ROOM_PAD - pickup.radius);
           pickup.vx *= Math.pow(0.18, dt);
           pickup.vy *= Math.pow(0.18, dt);
-          if (canCollect && pickup.age > 0.35) {
-            const dx = p.x - pickup.x;
-            const dy = p.y - pickup.y;
+          if (chest) {
+            if (!this.isMultiplayerClient() && target && pickup.age > 0.45) {
+              const d = Math.hypot(target.x - pickup.x, target.y - pickup.y);
+              if (d < target.radius + pickup.radius + 54 || pickup.opening) {
+                pickup.opening = true;
+                pickup.openTimer = Math.max(0, Number(pickup.openTimer ?? 0.42) - dt);
+                if (chance(dt * 18)) {
+                  const a = rand(0, TAU);
+                  this.addParticle(pickup.x + Math.cos(a) * 18, pickup.y + Math.sin(a) * 8, pickup.color || "#f2bf63", rand(7, 15), rand(0.2, 0.45), "spark", a, rand(30, 90));
+                }
+                if (pickup.openTimer <= 0) this.spawnLootFromChest(pickup, target);
+              }
+            }
+          } else if ((canCollect || (this.isMultiplayerHost() && pickup.ownerId && target)) && pickup.age > 0.2) {
+            const magnetTarget = target || p;
+            const dx = magnetTarget.x - pickup.x;
+            const dy = magnetTarget.y - pickup.y;
             const d = Math.hypot(dx, dy) || 1;
             const roomCleared = Boolean(this.run.currentRoom?.cleared);
-            const magnetRange = (roomCleared ? 9999 : 260) + (p.stats.magnetBonus || 0);
+            const magnetRange = (roomCleared ? 9999 : 260) + (canCollect ? (p.stats.magnetBonus || 0) : 0);
             const pull = clamp((magnetRange - d) / magnetRange, 0, 1);
             const speed = roomCleared ? 360 + pull * 760 : 130 + pull * 420;
             pickup.x += (dx / d) * speed * dt;
             pickup.y += (dy / d) * speed * dt;
           }
-          if (canCollect && Math.hypot(p.x - pickup.x, p.y - pickup.y) < p.radius + pickup.radius + 8) {
-            this.collectRewardPickup(pickup);
-            pickup.life = 0;
+          if (!chest && canCollect && Math.hypot(p.x - pickup.x, p.y - pickup.y) < p.radius + pickup.radius + 8) {
+            if (this.collectRewardPickup(pickup)) pickup.life = 0;
           }
         } else {
           pickup.life -= dt;
@@ -7534,8 +7844,11 @@
       const energyWidth = `${clamp((p.energy / p.maxEnergy) * 100, 0, 100).toFixed(1)}%`;
       const hpLabel = `${Math.ceil(p.hp)} / ${Math.ceil(p.maxHp)}`;
       const energyLabel = `${Math.ceil(p.energy)} / ${Math.ceil(p.maxEnergy)}`;
-      const roomLabel = `${this.run.biome.name} - ${this.run.currentRoom?.label || ""}`;
-      const objectiveLabel = this.roomObjectiveText();
+      const mobileHud = this.isMobileDevice();
+      const roomLabel = mobileHud
+        ? `T${this.run.stage + 1}.${this.run.roomNumber} - ${this.run.currentRoom?.label || ""}`
+        : `${this.run.biome.name} - ${this.run.currentRoom?.label || ""}`;
+      const objectiveLabel = mobileHud ? this.compactObjectiveText() : this.roomObjectiveText();
       if (hpBar.style.width !== hpWidth) hpBar.style.width = hpWidth;
       if (energyBar.style.width !== energyWidth) energyBar.style.width = energyWidth;
       if (hpText.textContent !== hpLabel) hpText.textContent = hpLabel;
@@ -7565,6 +7878,14 @@
         ["R", this.run.power.skills.r, p.cooldowns.r, 8.6],
         ["F", `${this.run.power.skills.f} ${Math.floor(p.ult)}%`, p.ult >= 100 ? 0 : 1, 1]
       ];
+      if (mobileHud) {
+        this.updateTouchCooldowns(skills);
+        if (this.hudSkillMarkup !== "") {
+          this.hudSkillMarkup = "";
+          document.getElementById("skillStrip").innerHTML = "";
+        }
+        return;
+      }
       const markup = skills.map(([key, name, cd, max]) => `
         <div class="skill ${cd <= 0 ? "ready" : ""}">
           <span class="key">${key}</span>
@@ -7576,6 +7897,38 @@
         this.hudSkillMarkup = markup;
         document.getElementById("skillStrip").innerHTML = markup;
       }
+    }
+
+    updateTouchCooldowns(skills) {
+      const map = new Map([
+        ["attack", skills[0]],
+        ["q", skills[1]],
+        ["e", skills[2]],
+        ["r", skills[3]],
+        ["f", skills[4]],
+        ["dash", ["LƯỚT", "Lướt", this.run.player.dashCd, 0.7]]
+      ]);
+      for (const button of document.querySelectorAll("[data-touch]")) {
+        const data = map.get(button.dataset.touch);
+        if (!data) continue;
+        const [label, , cd, max] = data;
+        const ready = cd <= 0;
+        const text = ready ? label : `${label} ${Math.ceil(cd)}`;
+        if (button.textContent !== text) button.textContent = text;
+        button.classList.toggle("cooling", !ready);
+        button.style.setProperty("--cool", `${clamp((cd / (max || 1)) * 100, 0, 100)}%`);
+      }
+    }
+
+    compactObjectiveText() {
+      const enemies = this.run?.enemies.length || 0;
+      if (enemies > 0) return `${enemies} quái`;
+      const pending = this.run?.pendingDoor;
+      if (pending) return `Vào cửa ${Math.ceil(pending.timer)}s`;
+      if (this.run?.roomObjects?.some((object) => object.type === "nextDoor")) return "Chọn cửa";
+      const room = this.run?.currentRoom;
+      if (room?.rewardDropped && !room.rewardClaimed) return "Nhặt rương";
+      return "Xong";
     }
 
     roomObjectiveText() {
@@ -7783,19 +8136,26 @@
             ctx.font = "900 9px ui-sans-serif, system-ui";
             ctx.textAlign = "center";
             ctx.fillText("$", 0, 5);
-          } else if (pickup.container === "woodChest") {
-            ctx.fillStyle = "#8b5128";
-            ctx.strokeStyle = "#f2bf63";
+          } else if (pickup.container === "woodChest" || pickup.container === "goldChest") {
+            const opening = pickup.opening ? clamp(1 - (pickup.openTimer || 0) / 0.42, 0, 1) : 0;
+            const gold = pickup.container === "goldChest";
+            ctx.fillStyle = gold ? "#b9892f" : "#8b5128";
+            ctx.strokeStyle = gold ? "#fff0ad" : "#f2bf63";
             ctx.lineWidth = 3;
             ctx.fillRect(-18, -7, 36, 22);
             ctx.strokeRect(-18, -7, 36, 22);
-            ctx.fillStyle = "#5a321c";
+            ctx.save();
+            ctx.translate(0, -7);
+            ctx.rotate(-opening * 0.9);
+            ctx.translate(0, 7);
+            ctx.fillStyle = gold ? "#f2bf63" : "#5a321c";
             ctx.beginPath();
             ctx.moveTo(-17, -7);
             ctx.quadraticCurveTo(0, -24, 17, -7);
             ctx.closePath();
             ctx.fill();
             ctx.stroke();
+            ctx.restore();
             ctx.fillStyle = color;
             ctx.fillRect(-4, -2, 8, 9);
             ctx.fillStyle = "#f4d26f";
@@ -7803,7 +8163,21 @@
             ctx.font = "900 9px ui-sans-serif, system-ui";
             ctx.textAlign = "center";
             ctx.fillStyle = "#fff6d2";
-            ctx.fillText(pickup.reward?.type === "material" ? "NL" : "PT", 0, 22);
+            ctx.fillText(pickup.chestReward?.type === "material" ? "NL" : "PT", 0, 22);
+          } else if (pickup.container === "looseItem" || pickup.reward?.type === "item") {
+            const item = pickup.reward?.item;
+            ctx.fillStyle = color;
+            ctx.strokeStyle = "#ffffff";
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.roundRect?.(-14, -14, 28, 28, 4);
+            if (!ctx.roundRect) ctx.rect(-14, -14, 28, 28);
+            ctx.fill();
+            ctx.stroke();
+            ctx.fillStyle = "#101521";
+            ctx.font = "900 9px ui-sans-serif, system-ui";
+            ctx.textAlign = "center";
+            ctx.fillText(item?.icon?.slice(0, 2) || "PT", 0, 4);
           } else {
             ctx.fillStyle = color;
             ctx.rotate(Math.PI / 4);
@@ -7932,6 +8306,13 @@
       ctx.font = "900 16px ui-sans-serif, system-ui";
       ctx.textAlign = "center";
       ctx.fillText(object.icon || (object.type === "bossGate" ? "B" : ">"), 0, -4);
+      if (object.enterProgress > 0) {
+        ctx.strokeStyle = "#fff0ad";
+        ctx.lineWidth = 4;
+        ctx.beginPath();
+        ctx.arc(0, h * 0.1, Math.max(w, h) * 0.38, -Math.PI / 2, -Math.PI / 2 + TAU * clamp(object.enterProgress, 0, 1));
+        ctx.stroke();
+      }
       if (object.label) {
         ctx.shadowBlur = 0;
         ctx.fillStyle = "#f3ead7";
@@ -7956,8 +8337,14 @@
       ctx.fill();
       ctx.fillStyle = "#5b3418";
       ctx.fillRect(-45, -8, 90, 42);
+      const opening = object.opened ? 1 : object.opening ? clamp(1 - (object.openTimer || 0) / 0.55, 0, 1) : 0;
+      ctx.save();
+      ctx.translate(0, -8);
+      ctx.rotate(-opening * 0.75);
+      ctx.translate(0, 8);
       ctx.fillStyle = "#8b5524";
       ctx.fillRect(-43, -24, 86, 24);
+      ctx.restore();
       ctx.fillStyle = "#f2bf63";
       ctx.fillRect(-49, -6, 98, 8);
       ctx.fillRect(-6, -23, 12, 57);
@@ -7965,10 +8352,10 @@
       ctx.strokeStyle = "#fff0b8";
       ctx.lineWidth = 3;
       ctx.strokeRect(-45, -8, 90, 42);
-      if (object.opened) {
+      if (object.opened || object.opening) {
         ctx.globalAlpha = 0.72;
         ctx.fillStyle = "#fff0b8";
-        ctx.fillRect(-30, -36, 60, 12);
+        ctx.fillRect(-30, -36 - opening * 12, 60, 12);
       }
       ctx.restore();
     }

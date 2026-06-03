@@ -7,7 +7,7 @@
   const ROOM_PAD = 86;
   const SAVE_KEY = "soulrift-save-v1";
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
-  const APP_VERSION = "20260603-spectate-room-session-36";
+  const APP_VERSION = "20260603-revive-leader-enemy-roles-37";
   const VERSION_CHECK_INTERVAL = 15000;
   const DOOR_ENTER_TIME = 1.5;
   const DIRECTORY_TOPIC = "soulrift-directory-v2";
@@ -1264,7 +1264,7 @@
         this.seenSignals.add(message.signalId);
         if (this.seenSignals.size > 300) this.seenSignals.clear();
       }
-      const scopedTypes = new Set(["state", "attack", "skill", "collect", "openChest", "dropItem", "damage", "snapshot", "needSnapshot"]);
+      const scopedTypes = new Set(["state", "attack", "skill", "collect", "openChest", "dropItem", "damage", "snapshot", "needSnapshot", "chooseDoor", "leaveRun"]);
       if (message.roomSession && this.roomSession && message.roomSession !== this.roomSession && scopedTypes.has(message.type)) return;
       if (message.type === "start" && (!message.roomSession || !this.roomSession || message.roomSession !== this.roomSession)) return;
 
@@ -1324,6 +1324,8 @@
       if (message.type === "collect" && this.host) this.game.handleRemoteCollect(message.from, message.pickupId);
       if (message.type === "openChest" && this.host) this.game.handleRemoteOpenChest(message.from, message.pickupId, message.x, message.y);
       if (message.type === "dropItem" && this.host) this.game.handleRemoteDropItem(message.from, message.itemId, message.x, message.y, message.facing);
+      if (message.type === "chooseDoor" && this.host) this.game.handleRemoteDoorChoice(message.from, message.objectId, message.room);
+      if (message.type === "leaveRun") this.game.handleRemoteLeaveRun(message.from);
       if (message.type === "damage" && !this.host) this.game.applyHostDamage(message.amount);
       if (message.type === "snapshot" && !this.host) this.game.applyNetworkSnapshot(message.snapshot);
       if (message.type === "needSnapshot" && this.host) this.game.sendNetworkSnapshotTo(message.from);
@@ -1463,7 +1465,7 @@
         peer.remoteId = senderId;
         this.peers.set(senderId, peer);
       }
-      const scopedTypes = new Set(["state", "attack", "skill", "collect", "openChest", "dropItem", "damage", "snapshot", "needSnapshot"]);
+      const scopedTypes = new Set(["state", "attack", "skill", "collect", "openChest", "dropItem", "damage", "snapshot", "needSnapshot", "chooseDoor", "leaveRun"]);
       if (message.roomSession && this.roomSession && message.roomSession !== this.roomSession && scopedTypes.has(message.type)) return;
       if (message.type === "start" && (!message.roomSession || !this.roomSession || message.roomSession !== this.roomSession)) return;
       if (message.type === "ready") {
@@ -1522,6 +1524,12 @@
       }
       if (message.type === "dropItem" && this.host) {
         this.game.handleRemoteDropItem(senderId, message.itemId, message.x, message.y, message.facing);
+      }
+      if (message.type === "chooseDoor" && this.host) {
+        this.game.handleRemoteDoorChoice(senderId, message.objectId, message.room);
+      }
+      if (message.type === "leaveRun") {
+        this.game.handleRemoteLeaveRun(senderId);
       }
       if (message.type === "snapshot" && !this.host) {
         this.game.applyNetworkSnapshot(message.snapshot);
@@ -1718,6 +1726,23 @@
         this.sendPeer(peer, { type: "dropItem", itemId, x, y, facing });
       }
       if (!this.host && !this.hasOpenPeers()) this.sendSignal({ type: "dropItem", itemId, x, y, facing }, this.hostId());
+    }
+
+    sendDoorChoice(objectId = "", room = null) {
+      const message = { type: "chooseDoor", objectId, room };
+      for (const peer of this.peers.values()) this.sendPeer(peer, message);
+      if (!this.host && !this.hasOpenPeers()) this.sendSignal(message, this.hostId());
+    }
+
+    sendLeaveRun() {
+      const message = { type: "leaveRun" };
+      for (const peer of this.peers.values()) this.sendPeer(peer, message);
+      if (!this.host && !this.hasOpenPeers()) this.sendSignal(message, this.hostId());
+      if (this.host && this.code) {
+        for (const slot of this.slots) {
+          if (slot?.id && !slot.host && !this.hasOpenPeer(slot.id)) this.sendSignal(message, slot.id);
+        }
+      }
     }
 
     requestSnapshot() {
@@ -2447,7 +2472,7 @@
       if (!this.run || this.mode !== "game") return;
       if (this.run.player.dead) {
         if (this.run.spectating && action === "cycle-spectate") this.cycleSpectateTarget();
-        if (action === "exit-run") this.showMainMenu();
+        if (action === "exit-run") this.exitRun();
         return;
       }
       if (this.pauseOverlay) return;
@@ -2621,6 +2646,39 @@
       }
       this.quickActions.classList.toggle("hidden", !visible);
       this.quickActions.setAttribute("aria-hidden", visible ? "false" : "true");
+      if (this.touchLayer) {
+        const touchVisible = Boolean(this.run && this.mode === "game" && this.isMobileDevice() && !this.run.player.dead);
+        this.touchLayer.classList.toggle("hidden", !touchVisible);
+      }
+    }
+
+    exitRun() {
+      if (!this.run) {
+        this.showMainMenu();
+        return;
+      }
+      const spectating = this.run.player.dead && this.run.spectating;
+      if (this.isMultiplayerRun()) this.lobby.sendLeaveRun();
+      if (spectating) {
+        const target = this.currentSpectateTarget();
+        const pos = this.displayActorPosition(this.aliveActor(target) ? target : this.run.player);
+        const x = pos.x + Math.cos(this.menuTime * 2.6) * 46;
+        const y = pos.y - 34 + Math.sin(this.menuTime * 3.25) * 20;
+        this.addShockwave(x, y, 150, "#d9fbff", 0);
+        for (let i = 0; i < 22 * this.save.settings.particles; i++) {
+          this.addParticle(x + rand(-12, 12), y + rand(-12, 12), i % 2 ? "#d9fbff" : "#70e083", rand(8, 24), rand(0.28, 0.78), i % 3 === 0 ? "ring" : "spark");
+        }
+        this.run.spectating = false;
+        this.run.player.spectating = false;
+        this.run.player.spectateId = "";
+        this.updateQuickActions();
+        const exitingRun = this.run;
+        setTimeout(() => {
+          if (this.run === exitingRun) this.showMainMenu();
+        }, 220);
+        return;
+      }
+      this.showMainMenu();
     }
 
     showMainMenu() {
@@ -2628,6 +2686,7 @@
         this.showAccountGate();
         return;
       }
+      if (this.run?.multiplayer) this.lobby.sendLeaveRun();
       if (this.run) {
         this.run = null;
         this.remotePlayers.clear();
@@ -2723,7 +2782,7 @@
       if (action === "settings") this.showSettings();
       if (action === "multiplayer") this.renderLobby();
       if (action === "menu") this.showMainMenu();
-      if (action === "exit-run") this.showMainMenu();
+      if (action === "exit-run") this.exitRun();
       if (action === "resume") this.resumeGame();
       if (action === "spectate-run") this.startSpectating();
       if (action === "cycle-spectate") this.cycleSpectateTarget();
@@ -2738,6 +2797,20 @@
       if (action === "upgrade-stat") this.upgradeStatPoint(target.dataset.stat);
       if (action === "reset-stat-points") this.resetStatPoints();
       if (action === "choose-room") {
+        if (this.isMultiplayerRun()) {
+          const room = JSON.parse(decodeURIComponent(target.dataset.room));
+          if (!this.isDoorLeader()) {
+            this.toast("Chờ người dẫn đường chọn phòng tiếp theo");
+            return;
+          }
+          if (this.isMultiplayerClient()) {
+            this.lobby.sendDoorChoice("", room);
+            this.toast("Đã gửi lựa chọn cửa cho host");
+            return;
+          }
+          this.startRoom(room);
+          return;
+        }
         if (this.isMultiplayerClient()) {
           this.toast("Chỉ chủ phòng được chọn phòng tiếp theo");
           return;
@@ -3751,6 +3824,7 @@
         spectating: false,
         spectateId: "",
         spectateIndex: 0,
+        leaderId: this.lobby.id,
         player: this.createPlayer(),
         curse: null,
         rewardQueue: [],
@@ -3888,9 +3962,9 @@
     compactEnemy(enemy) {
       return this.compactFields(enemy, [
         "id", "kind", "x", "y", "vx", "vy", "radius", "hp", "maxHp", "speed", "damage",
-        "role", "ranged", "bulky", "elite", "boss", "attackCd", "skillCd", "windupType",
+        "role", "specialSkill", "ranged", "bulky", "elite", "boss", "attackCd", "skillCd", "windupType",
         "windupTime", "windupTotal", "windupAngle", "windupX", "windupY", "chargeTime",
-        "chargeHit", "chargeDir", "chargeSpeed", "chargeDamage", "attackAnim", "attackDir",
+        "chargeHit", "chargeDir", "chargeSpeed", "chargeDamage", "attackAnim", "attackDir", "facingDir",
         "launch", "flash", "stun", "burn", "chill", "mark", "phase", "phaseLock", "aiTimer"
       ]);
     }
@@ -3973,6 +4047,7 @@
         roomClearTimer: this.run.roomClearTimer,
         biomeId: this.run.biome.id,
         seed: this.run.seed,
+        leaderId: this.run.leaderId || this.lobby.id,
         curse: this.run.curse ? { ...this.run.curse } : null,
         statusEffects: this.run.statusEffects.filter((effect) => effect.kind !== "assist").map((effect) => this.compactStatusEffect(effect)),
         nextRooms: this.run.nextRooms.map((room) => ({ ...room })),
@@ -4019,6 +4094,7 @@
       this.run.roomsCleared = Number.isFinite(snapshot.roomsCleared) ? snapshot.roomsCleared : this.run.roomsCleared;
       this.run.roomClearTimer = Number.isFinite(snapshot.roomClearTimer) ? snapshot.roomClearTimer : this.run.roomClearTimer;
       if (Number.isFinite(snapshot.seed)) this.run.seed = snapshot.seed;
+      if (snapshot.leaderId != null) this.run.leaderId = snapshot.leaderId || "";
       this.run.curse = snapshot.curse ? { ...snapshot.curse } : null;
       if (Array.isArray(snapshot.statusEffects)) {
         const localAssists = (this.run.statusEffects || []).filter((effect) => effect.kind === "assist" && effect.time > 0);
@@ -4033,6 +4109,9 @@
         if (this.run.player.dead && this.run.spectating) this.showSpectatePanel();
         else this.setScreen("");
         this.hud.classList.remove("hidden");
+      }
+      if (this.run.currentRoom?.type === "healing" && (this.run.roomNumber !== previousRoomNumber || this.run.player.dead)) {
+        this.revivePlayer(this.run.player, { x: WORLD_W / 2, y: WORLD_H / 2, heal: 55, local: true });
       }
       if (Array.isArray(snapshot.enemies)) this.run.enemies = this.mergeNetworkActors(this.run.enemies, snapshot.enemies, 620);
       if (Array.isArray(snapshot.hazards)) this.run.hazards = snapshot.hazards.map((hazard) => ({ ...hazard }));
@@ -4385,7 +4464,7 @@
       this.run.player.y = WORLD_H / 2;
       this.run.player.invuln = 1;
       this.run.player.pendingBasicAttack = null;
-      if (type === "healing") this.healPlayer(55);
+      if (type === "healing") this.revivePartyForHealing();
       this.spawnHazards();
       if (type === "treasure") this.spawnTreasureChest();
       else if (type === "merchant") this.spawnMerchantStall();
@@ -4585,6 +4664,19 @@
       return "stalker";
     }
 
+    enemySpecialSkill(role) {
+      return {
+        bomber: "bombZone",
+        marksman: "lineShot",
+        caster: "orbNova",
+        skirmisher: "skirmisherDash",
+        brute: "quake",
+        guard: "guardSlam",
+        duelist: "duelistSlash",
+        stalker: "melee"
+      }[role] || "melee";
+    }
+
     createEnemy(kind, x, y, elite = false) {
       const ranged = /Archer|Marksman|Caster|Acolyte|Seer|Shaman|Bomber/.test(kind);
       const bulky = /Knight|Bulwark|Brute|Guard|Ogre|Warden/.test(kind);
@@ -4606,6 +4698,7 @@
         speed: speedBase * (elite ? 1.04 : 1),
         damage: (damageBase + this.run.stage * 3.4) * (this.run.difficulty?.enemyDamage || 1),
         role,
+        specialSkill: this.enemySpecialSkill(role),
         ranged,
         bulky,
         elite,
@@ -4623,6 +4716,7 @@
         chargeDir: 0,
         attackAnim: 0,
         attackDir: 0,
+        facingDir: x < WORLD_W / 2 ? 1 : -1,
         launch: 0,
         flash: 0,
         stun: 0,
@@ -4656,6 +4750,7 @@
         attackCd: 1.2,
         attackAnim: 0,
         attackDir: 0,
+        facingDir: 1,
         launch: 0,
         flash: 0,
         stun: 0,
@@ -4682,6 +4777,7 @@
       this.updateDamageTexts(dt);
       this.updateStatusEffects(dt);
       this.updateHud();
+      this.updateRunLeader();
       this.updateNetwork(dt);
       this.updateNetworkInterpolation(dt);
       if (this.run.currentRoom.intro > 0) {
@@ -4756,6 +4852,11 @@
       if (pending.timer <= 0) {
         object.opened = true;
         this.run.pendingDoor = null;
+        if (this.isMultiplayerClient()) {
+          this.lobby.sendDoorChoice(object.id);
+          this.toast("Đã chọn cửa, chờ host đồng bộ");
+          return;
+        }
         this.startRoom({
           type: object.roomType,
           label: object.label,
@@ -4765,8 +4866,112 @@
       }
     }
 
+    handleRemoteDoorChoice(remoteId, objectId = "", room = null) {
+      if (!this.isMultiplayerHost() || !this.run) return;
+      this.updateRunLeader();
+      if (remoteId !== this.run.leaderId) return;
+      let targetRoom = null;
+      if (objectId) {
+        const object = this.run.roomObjects.find((entry) => entry.id === objectId && entry.type === "nextDoor" && !entry.opened);
+        if (!object) return;
+        object.opened = true;
+        targetRoom = {
+          type: object.roomType,
+          label: object.label,
+          icon: object.icon,
+          color: object.color
+        };
+      } else if (room?.type && this.run.nextRooms.some((entry) => entry.type === room.type && entry.label === room.label)) {
+        targetRoom = room;
+      }
+      if (!targetRoom) return;
+      this.run.pendingDoor = null;
+      this.toast(`${this.leaderName(remoteId)} đã chọn ${targetRoom.label || "cửa"}`);
+      this.startRoom(targetRoom);
+    }
+
     aliveActor(actor) {
       return Boolean(actor && !actor.dead && Number(actor.hp ?? 1) > 0);
+    }
+
+    partySpawnPoint(index = 0) {
+      const offsets = [
+        { x: 0, y: 0 },
+        { x: -58, y: 38 },
+        { x: 58, y: 38 },
+        { x: 0, y: 82 }
+      ];
+      const offset = offsets[index % offsets.length];
+      return { x: WORLD_W / 2 + offset.x, y: WORLD_H / 2 + offset.y };
+    }
+
+    leaderName(id = this.run?.leaderId) {
+      if (!id) return "người dẫn đường";
+      if (id === this.lobby.id) return this.save.account.username || "Bạn";
+      return this.remotePlayers.get(id)?.name || this.lobby.slots.find((slot) => slot.id === id)?.name || "người dẫn đường";
+    }
+
+    updateRunLeader() {
+      if (!this.isMultiplayerHost() || !this.run) return;
+      if (this.aliveActor(this.run.player)) {
+        this.run.leaderId = this.lobby.id;
+        return;
+      }
+      const current = this.remotePlayers.get(this.run.leaderId);
+      if (this.aliveActor(current)) return;
+      const alive = [...this.remotePlayers.entries()].filter(([, remote]) => this.aliveActor(remote));
+      this.run.leaderId = alive.length ? pick(alive)[0] : "";
+    }
+
+    isDoorLeader() {
+      if (!this.isMultiplayerRun()) return true;
+      if (!this.run?.leaderId) return this.isMultiplayerHost() && this.aliveActor(this.run.player);
+      return this.run.leaderId === this.lobby.id;
+    }
+
+    revivePlayer(actor, options = {}) {
+      if (!actor) return;
+      const wasDead = Boolean(actor.dead);
+      if (Number.isFinite(options.x)) actor.x = clamp(options.x, ROOM_PAD + (actor.radius || 22), WORLD_W - ROOM_PAD - (actor.radius || 22));
+      if (Number.isFinite(options.y)) actor.y = clamp(options.y, ROOM_PAD + (actor.radius || 22), WORLD_H - ROOM_PAD - (actor.radius || 22));
+      actor.dead = false;
+      actor.spectating = false;
+      actor.spectateId = "";
+      actor.deathTime = 0;
+      actor.hp = wasDead ? Math.max(1, Math.ceil((actor.maxHp || 1) * 0.55)) : Math.min(actor.maxHp, (actor.hp || 0) + (options.heal || 55));
+      actor.energy = Math.min(actor.maxEnergy || 0, Math.max(actor.energy || 0, Math.ceil((actor.maxEnergy || 0) * 0.62)));
+      actor.invuln = Math.max(actor.invuln || 0, 1.4);
+      actor.animation = "idle";
+      actor.actionTime = 0;
+      actor.actionTotal = 0;
+      actor.vx = 0;
+      actor.vy = 0;
+      if (wasDead) {
+        this.addShockwave(actor.x, actor.y, 145, "#70e083", 0);
+        for (let i = 0; i < 16 * this.save.settings.particles; i++) {
+          this.addParticle(actor.x + rand(-18, 18), actor.y + rand(-18, 18), i % 2 ? "#70e083" : "#d9fbff", rand(8, 20), rand(0.3, 0.75), i % 3 === 0 ? "ring" : "spark");
+        }
+      }
+      if (options.local || actor === this.run?.player) {
+        this.run.spectating = false;
+        this.run.spectateId = "";
+        this.setScreen("");
+        this.updateQuickActions();
+        if (this.isMultiplayerRun()) this.lobby.sendState(this.networkPlayerState(this.lobby.id, this.run.player));
+      }
+    }
+
+    revivePartyForHealing() {
+      if (!this.run) return;
+      const localPoint = this.partySpawnPoint(0);
+      this.revivePlayer(this.run.player, { ...localPoint, heal: 55, local: true });
+      let index = 1;
+      for (const remote of this.remotePlayers.values()) {
+        const point = this.partySpawnPoint(index++);
+        this.revivePlayer(remote, { ...point, heal: 55 });
+      }
+      this.updateRunLeader();
+      this.toast("Phòng hồi phục đã kéo mọi linh hồn trở lại");
     }
 
     playerByNetworkId(id) {
@@ -6253,6 +6458,17 @@
       return [{ id: this.lobby.id, name: this.save.account.username || "Bạn" }];
     }
 
+    aliveRewardOwners() {
+      if (!this.isMultiplayerRun()) return this.aliveActor(this.run?.player) ? [{ id: this.lobby.id, name: this.save.account.username || "Bạn" }] : [];
+      if (this.isMultiplayerHost()) {
+        return this.lobby.slots.filter(Boolean).filter((slot) => {
+          if (slot.id === this.lobby.id) return this.aliveActor(this.run.player);
+          return this.aliveActor(this.remotePlayers.get(slot.id));
+        }).map((slot) => ({ id: slot.id, name: slot.name || "Người chơi" }));
+      }
+      return this.aliveActor(this.run?.player) ? [{ id: this.lobby.id, name: this.save.account.username || "Bạn" }] : [];
+    }
+
     allRewardOwnersClaimed(room = this.run?.currentRoom) {
       if (!room?.rewardOwners?.length) return Boolean(room?.rewardClaimed);
       const claims = room.rewardClaims || {};
@@ -6271,7 +6487,16 @@
     spawnRoomReward(x, y, options = {}) {
       const room = this.run?.currentRoom;
       if (!room || room.rewardDropped) return;
-      const owners = this.rewardOwners();
+      const owners = this.aliveRewardOwners();
+      if (!owners.length) {
+        room.rewardDropped = true;
+        room.rewardClaimed = true;
+        room.rewardClaims = {};
+        room.rewardOwners = [];
+        this.run.rewardQueue = [];
+        this.toast("Không còn người sống để nhận rương");
+        return;
+      }
       const usedItems = new Set();
       const rewards = owners.map((owner) => ({ owner, reward: this.rollDistinctRoomReward(usedItems) }));
       room.rewardDropped = true;
@@ -6787,6 +7012,21 @@
       );
     }
 
+    handleRemoteLeaveRun(remoteId) {
+      if (!remoteId || !this.run) return;
+      const remote = this.remotePlayers.get(remoteId);
+      if (remote) {
+        const pos = this.displayActorPosition(remote);
+        this.addShockwave(pos.x, pos.y - 16, 120, "#d9fbff", 0);
+        for (let i = 0; i < 10 * this.save.settings.particles; i++) {
+          this.addParticle(pos.x + rand(-12, 12), pos.y + rand(-20, 8), "#d9fbff", rand(6, 16), rand(0.24, 0.6), i % 3 === 0 ? "ring" : "spark");
+        }
+      }
+      this.remotePlayers.delete(remoteId);
+      this.lobby.slots = this.lobby.slots.filter((slot) => slot?.host || slot?.id !== remoteId);
+      this.updateRunLeader();
+    }
+
     applyUpgrade(reward) {
       const p = this.run.player;
       const mult = { common: 1, rare: 1.2, epic: 1.45, legendary: 1.75, mythic: 2.1, divine: 2.7 }[reward.rarity];
@@ -6836,7 +7076,7 @@
     showMapOverlay() {
       if (!this.run) return;
       this.mode = "map";
-      const clientLocked = this.isMultiplayerClient();
+      const clientLocked = this.isMultiplayerRun() && !this.isDoorLeader();
       if (!this.run.nextRooms.length && !clientLocked) this.prepareNextRooms();
       const roomCards = this.run.nextRooms.map((room) => {
         const encoded = encodeURIComponent(JSON.stringify(room));
@@ -6949,6 +7189,7 @@
       this.camera.shake = Math.max(this.camera.shake, 16);
       this.addShockwave(p.x, p.y, 130, "#d9fbff", 0);
       if (this.isMultiplayerRun()) this.lobby.sendState(this.networkPlayerState(this.lobby.id, p));
+      this.updateRunLeader();
       this.persist();
       this.showDeathChoices();
       return;
@@ -7071,6 +7312,7 @@
           remote.animation = "death";
           remote.actionTime = 0.9;
           remote.actionTotal = 0.9;
+          this.updateRunLeader();
         } else {
           remote.animation = "damage";
           remote.actionTime = 0.28;
@@ -7149,6 +7391,7 @@
       }
       const d = Math.hypot(p.x - enemy.x, p.y - enemy.y);
       const a = Math.atan2(p.y - enemy.y, p.x - enemy.x);
+      enemy.facingDir = p.x >= enemy.x ? 1 : -1;
       const slow = enemy.chill > 0 ? 0.48 : 1;
       enemy.attackCd -= dt;
       enemy.skillCd = Math.max(0, (enemy.skillCd || 0) - dt);
@@ -7166,25 +7409,22 @@
           this.steerEnemy(enemy, -Math.sin(a) * enemy.speed * 0.28 * strafe, Math.cos(a) * enemy.speed * 0.28 * strafe, dt, 5);
         }
         if (enemy.skillCd <= 0 && d < 620) {
+          const special = enemy.specialSkill || this.enemySpecialSkill(enemy.role);
           if (enemy.role === "bomber") {
             enemy.skillCd = enemy.elite ? 2.35 : 3.05;
-            this.startEnemyWindup(enemy, chance(0.42) ? "mineScatter" : "bombZone", enemy.elite ? 0.58 : 0.72, a, p.x, p.y);
+            this.startEnemyWindup(enemy, special, enemy.elite ? 0.58 : 0.72, a, p.x, p.y);
             return;
           }
           if (enemy.role === "marksman") {
             enemy.skillCd = enemy.elite ? 2.0 : 2.6;
-            this.startEnemyWindup(enemy, chance(0.38) ? "spreadShot" : "lineShot", enemy.elite ? 0.42 : 0.55, a);
+            this.startEnemyWindup(enemy, special, enemy.elite ? 0.42 : 0.55, a);
             return;
           }
           if (enemy.role === "caster") {
             enemy.skillCd = enemy.elite ? 2.2 : 2.9;
-            this.startEnemyWindup(enemy, chance(0.36) ? "orbNova" : "casterZone", enemy.elite ? 0.62 : 0.78, a, p.x, p.y);
+            this.startEnemyWindup(enemy, special, enemy.elite ? 0.62 : 0.78, a, p.x, p.y);
             return;
           }
-        }
-        if (enemy.attackCd <= 0) {
-          enemy.attackCd = enemy.role === "caster" ? (enemy.elite ? 1.6 : 2.05) : enemy.role === "bomber" ? (enemy.elite ? 1.75 : 2.25) : enemy.elite ? 1.18 : 1.65;
-          this.enemyShoot(enemy, a);
         }
       } else {
         const contact = enemy.radius + p.radius;
@@ -7199,14 +7439,15 @@
           this.steerEnemy(enemy, -Math.sin(a) * enemy.speed * strafePower * strafe, Math.cos(a) * enemy.speed * strafePower * strafe, dt, 5);
         }
         if (enemy.skillCd <= 0) {
+          const special = enemy.specialSkill || this.enemySpecialSkill(enemy.role);
           if (enemy.role === "skirmisher" && d > contact + 35 && d < contact + 175) {
             enemy.skillCd = enemy.elite ? 1.55 : 2.05;
-            this.startEnemyWindup(enemy, chance(0.34) ? "feintDash" : "skirmisherDash", enemy.elite ? 0.24 : 0.32, a);
+            this.startEnemyWindup(enemy, special, enemy.elite ? 0.24 : 0.32, a);
             return;
           }
           if (enemy.role === "brute" && d > contact + 55 && d < 360) {
             enemy.skillCd = enemy.elite ? 2.45 : 3.1;
-            this.startEnemyWindup(enemy, chance(0.35) ? "quake" : "charge", enemy.elite ? 0.44 : 0.58, a, p.x, p.y);
+            this.startEnemyWindup(enemy, special, enemy.elite ? 0.44 : 0.58, a, p.x, p.y);
             return;
           }
           if (enemy.role === "guard" && d < contact + 115) {
@@ -7216,7 +7457,7 @@
           }
           if (enemy.role === "duelist" && d < contact + 135) {
             enemy.skillCd = enemy.elite ? 1.8 : 2.35;
-            this.startEnemyWindup(enemy, chance(0.36) ? "crossSlash" : "duelistSlash", enemy.elite ? 0.28 : 0.36, a);
+            this.startEnemyWindup(enemy, special, enemy.elite ? 0.28 : 0.36, a);
             return;
           }
         }
@@ -7462,6 +7703,7 @@
       enemy.phaseLock = Math.max(0, enemy.phaseLock - dt);
       const d = Math.hypot(p.x - enemy.x, p.y - enemy.y);
       const a = Math.atan2(p.y - enemy.y, p.x - enemy.x);
+      enemy.facingDir = p.x >= enemy.x ? 1 : -1;
       const slow = enemy.chill > 0 ? 0.65 : 1;
       const desired = enemy.radius + p.radius + 150;
       if (d > desired + 20) {
@@ -7740,6 +7982,22 @@
     handleRoomObjectContact(object) {
       if (!object || object.opened) return;
       if (object.type === "nextDoor") {
+        if (this.isMultiplayerRun()) {
+          if (!this.isDoorLeader()) {
+            this.toast(`Chờ ${this.leaderName()} chọn cửa tiếp theo`);
+            return;
+          }
+          if (this.isMultiplayerClient()) {
+            if (this.run.pendingDoor?.objectId !== object.id) {
+              for (const door of this.run.roomObjects) {
+                if (door.type === "nextDoor") door.enterProgress = 0;
+              }
+              this.run.pendingDoor = { objectId: object.id, timer: DOOR_ENTER_TIME, total: DOOR_ENTER_TIME };
+              this.toast(`Đang vào ${object.label || "cửa"}... có thể đổi cửa trong 1.5 giây`);
+            }
+            return;
+          }
+        }
         if (this.isMultiplayerClient()) {
           this.toast("Chờ chủ phòng đi vào cửa tiếp theo");
           return;
@@ -9384,6 +9642,7 @@
       ctx.translate(Math.round(enemy.x), Math.round(enemy.y - lift));
       const scale = enemy.boss ? 2.6 : enemy.elite ? 1.35 : 1;
       ctx.scale(scale, scale);
+      ctx.scale(enemy.facingDir === -1 ? -1 : 1, 1);
       const color = enemy.flash > 0 ? "#ffffff" : enemy.elite ? "#ffbd5e" : this.enemyColor(enemy.kind);
       const dark = enemy.boss ? "#181019" : "#151923";
       const accent = this.run.biome.accent;

@@ -7,7 +7,7 @@
   const ROOM_PAD = 86;
   const SAVE_KEY = "soulrift-save-v1";
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
-  const APP_VERSION = "20260604-clearer-smaller-domains-56";
+  const APP_VERSION = "20260604-boss-only-rooms-57";
   const VERSION_CHECK_INTERVAL = 15000;
   const UPDATE_ATTEMPT_KEY = "soulrift-update-attempt-v1";
   const DOOR_ENTER_TIME = 1.0;
@@ -4825,8 +4825,8 @@
 
     spawnHazards() {
       const biome = this.run.biome;
-      if (["treasure", "merchant", "curse", "healing"].includes(this.run.currentRoom.type)) return;
-      const count = this.run.currentRoom.type === "boss" ? 8 : 4 + this.run.stage;
+      if (["treasure", "merchant", "curse", "healing", "boss"].includes(this.run.currentRoom.type)) return;
+      const count = 4 + this.run.stage;
       for (let i = 0; i < count; i++) {
         this.run.hazards.push({
           type: pick(biome.hazards),
@@ -5016,6 +5016,9 @@
 
     spawnBoss() {
       const biome = this.run.biome;
+      this.run.hazards = [];
+      this.run.enemies = this.run.enemies.filter((enemy) => enemy.boss);
+      if (this.run.enemies.some((enemy) => enemy.boss)) return;
       const partySize = this.isMultiplayerRun() ? Math.max(1, (this.lobby.slots || []).filter(Boolean).length) : 1;
       const hp = (1480 + this.run.stage * 470) * (this.run.difficulty?.enemyHp || 1) * (1 + (partySize - 1) * 0.42);
       const bossDebuff = pick(BOSS_DEBUFFS);
@@ -8130,7 +8133,7 @@
     pickBossPattern(enemy) {
       const patterns = ["ring", "slam", "line"];
       if (enemy.phase >= 2) patterns.push("spiral", "rain");
-      if (enemy.phase >= 3) patterns.push("cross", "summon");
+      if (enemy.phase >= 3) patterns.push("cross", "rain");
       const biomePatterns = {
         forest: ["roots", "rain"],
         frozen: ["frostFan", "cross"],
@@ -8322,12 +8325,13 @@
     }
 
     bossCallMinions(enemy) {
-      const limit = this.isMobileDevice() ? 7 : 9;
-      const existing = this.run.enemies.filter((entry) => !entry.boss).length;
-      const count = Math.max(0, Math.min(2 + enemy.phase, limit - existing));
+      const count = 5 + enemy.phase * 2;
       for (let i = 0; i < count; i++) {
-        const pos = this.edgePosition(pick(["top", "bottom", "left", "right"]));
-        this.run.enemies.push(this.createEnemy(pick(this.run.biome.enemies), pos.x, pos.y, true));
+        const angle = (i / count) * TAU + this.menuTime * 0.45;
+        const distance = 150 + enemy.phase * 34;
+        const x = clamp(enemy.x + Math.cos(angle) * distance, ROOM_PAD + 95, WORLD_W - ROOM_PAD - 95);
+        const y = clamp(enemy.y + Math.sin(angle) * distance, ROOM_PAD + 95, WORLD_H - ROOM_PAD - 95);
+        this.bossDanger(enemy, x, y, 54 + enemy.phase * 8, 0.62 + i * 0.035, 0.5, this.run.biome.accent);
       }
       this.addShockwave(enemy.x, enemy.y, 240, this.run.biome.accent, 0, { owner: "enemy" });
     }
@@ -8414,10 +8418,7 @@
       enemy.attackCd = 1.4;
       this.camera.shake = Math.max(this.camera.shake, 20);
       this.addShockwave(enemy.x, enemy.y, 280 + phase * 70, this.run.biome.accent, 0, { owner: "enemy" });
-      for (let i = 0; i < phase + 1; i++) {
-        const pos = this.edgePosition(pick(["top", "bottom", "left", "right"]));
-        this.run.enemies.push(this.createEnemy(pick(this.run.biome.enemies), pos.x, pos.y, true));
-      }
+      this.bossCallMinions(enemy);
       this.toast(`Trùm chuyển pha ${phase}`);
     }
 

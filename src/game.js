@@ -7,7 +7,7 @@
   const ROOM_PAD = 86;
   const SAVE_KEY = "soulrift-save-v1";
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
-  const APP_VERSION = "20260605-friends-fast-social-135";
+  const APP_VERSION = "20260605-lobby-invite-panel-136";
   const VERSION_CHECK_INTERVAL = 15000;
   const UPDATE_ATTEMPT_KEY = "soulrift-update-attempt-v1";
   const CLOUD_MIGRATION_KEY = "soulrift-cloud-migrated-v1";
@@ -2486,6 +2486,7 @@
       this.publicRooms = [];
       this.seenRoomInvites = new Set();
       this.seenFriendRequests = new Set();
+      this.lobbyFriendInviteOpen = false;
       this.roomFinderOpen = false;
       this.roomDirectoryTimer = 0;
       this.roomDirectoryBusy = false;
@@ -4349,6 +4350,16 @@
       if (action === "character-tab") this.showCharacterTab(target.dataset.tab || "character");
       if (action === "character") this.showCharacter();
       if (action === "friends") this.showFriends();
+      if (action === "open-lobby-invites") {
+        this.lobbyFriendInviteOpen = true;
+        this.renderLobby();
+        return;
+      }
+      if (action === "close-lobby-invites") {
+        this.lobbyFriendInviteOpen = false;
+        this.renderLobby();
+        return;
+      }
       if (action === "add-friend") this.addFriendFromInput();
       if (action === "accept-friend") this.acceptFriendRequest(target.dataset.friend);
       if (action === "decline-friend") this.declineFriendRequest(target.dataset.friend);
@@ -4824,22 +4835,34 @@
     lobbyFriendInviteStrip() {
       if (!this.lobby?.code || !this.lobby.host) return "";
       const account = this.currentAccountRecord();
-      const friends = this.socialEntries(account?.friends).slice(0, 4);
-      if (!friends.length) {
-        return `
-          <div class="lobby-friends">
-            <div><b>Mời bạn bè</b><span>Chưa có bạn bè trong danh sách.</span></div>
-            <button class="btn" data-action="friends">BẠN BÈ</button>
-          </div>
-        `;
-      }
+      const friendCount = this.socialEntries(account?.friends).length;
       return `
         <div class="lobby-friends">
-          <div><b>Mời bạn bè</b><span>Gửi ID phòng ${escapeHtml(this.lobby.code)}.</span></div>
-          <div class="lobby-friend-buttons">
-            ${friends.map(([key, friend]) => `<button class="btn" data-action="invite-friend" data-friend="${escapeHtml(key)}">${escapeHtml(friend.username || key)}</button>`).join("")}
+          <div><b>Mời bạn bè</b><span>${friendCount ? `${friendCount} bạn có thể mời vào phòng ${escapeHtml(this.lobby.code)}.` : "Chưa có bạn bè trong danh sách."}</span></div>
+          <button class="btn primary" data-action="open-lobby-invites">MỜI BẠN BÈ</button>
+        </div>
+      `;
+    }
+
+    lobbyFriendInvitePanel() {
+      if (!this.lobbyFriendInviteOpen || !this.lobby?.code || !this.lobby.host) return "";
+      const account = this.currentAccountRecord();
+      const friends = this.socialEntries(account?.friends);
+      const rows = friends.length
+        ? friends.map(([key, friend]) => this.friendCard(key, friend, true)).join("")
+        : `<div class="empty-state">Chưa có bạn bè để mời vào phòng.</div>`;
+      return `
+        <div class="lobby-invite-panel">
+          <div class="lobby-invite-box">
+            <div class="panel-header">
+              <div>
+                <h2 class="panel-title">Mời bạn bè</h2>
+                <p class="panel-subtitle">Phòng ${escapeHtml(this.lobby.code)} - chỉ hiển thị danh sách bạn bè.</p>
+              </div>
+              <button class="btn danger" data-action="close-lobby-invites">THOÁT</button>
+            </div>
+            <div class="friend-list lobby-invite-list">${rows}</div>
           </div>
-          <button class="btn" data-action="friends">TẤT CẢ</button>
         </div>
       `;
     }
@@ -5865,6 +5888,7 @@
       this.roomFinderOpen = false;
       if (this.lobby.code) this.lobby.syncOwnSlot();
       const isHost = this.lobby.host;
+      if (!this.lobby.code || !isHost) this.lobbyFriendInviteOpen = false;
       const slots = Array.from({ length: 4 }, (_, index) => {
         const slot = this.lobby.slots[index];
         const powerName = slot?.powerId ? powerById(slot.powerId).name : "Chưa chọn power";
@@ -5902,6 +5926,7 @@
           <button class="btn primary" data-action="start-room" disabled>CHỜ CHỦ PHÒNG</button>
         `;
       const friendInvites = this.lobbyFriendInviteStrip();
+      const friendInvitePanel = this.lobbyFriendInvitePanel();
       this.setScreen(`
         <section class="shell">
           ${this.navHtml("play")}
@@ -5929,6 +5954,7 @@
             <p class="small">${startHint}</p>
             <div class="grid ${isHost ? "" : "cols-2"}">${lobbyControls}</div>
           </div>
+          ${friendInvitePanel}
         </section>
       `);
       this.restoreScreenScroll(scroll);

@@ -7,7 +7,7 @@
   const ROOM_PAD = 86;
   const SAVE_KEY = "soulrift-save-v1";
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
-  const APP_VERSION = "20260604-assassin-sustain-78";
+  const APP_VERSION = "20260604-authoritative-ranged-ult-79";
   const VERSION_CHECK_INTERVAL = 15000;
   const UPDATE_ATTEMPT_KEY = "soulrift-update-attempt-v1";
   const DOOR_ENTER_TIME = 1.0;
@@ -1540,9 +1540,11 @@
       const previousDisplayX = Number.isFinite(previous.displayX) ? previous.displayX : (Number.isFinite(previous.x) ? previous.x : nextX);
       const previousDisplayY = Number.isFinite(previous.displayY) ? previous.displayY : (Number.isFinite(previous.y) ? previous.y : nextY);
       const snap = !sameRoom || !Number.isFinite(previousDisplayX) || !Number.isFinite(previousDisplayY) || Math.hypot(nextX - previousDisplayX, nextY - previousDisplayY) > 760;
+      const mergedState = { ...state };
+      if (this.host) mergedState.ult = Number.isFinite(previous.ult) ? previous.ult : Math.max(0, Number(state.ult) || 0);
       this.game.remotePlayers.set(remoteId, {
         ...previous,
-        ...state,
+        ...mergedState,
         id: remoteId,
         name: state.name || previous.name || slot?.name || "Người chơi",
         displayX: snap ? nextX : previousDisplayX,
@@ -4342,6 +4344,7 @@
           actionTime: 0,
           actionTotal: 0,
           power: slot.powerId || "fire",
+          ult: 0,
           facing: -Math.PI / 2,
           t: performance.now()
         });
@@ -4373,6 +4376,7 @@
         actionTime: player.actionTime,
         actionTotal: player.actionTotal,
         guardianParry: player.guardianParry || 0,
+        ult: Math.max(0, Math.min(100, Number(player.ult || 0))),
         dead: Boolean(player.dead),
         spectating: Boolean(player.spectating || extra.spectating || (localState && this.run?.spectating)),
         spectateId: player.spectateId || extra.spectateId || (localState ? this.run?.spectateId : "") || "",
@@ -4421,7 +4425,7 @@
 
     compactProjectile(projectile) {
       return this.compactFields(projectile, [
-        "id", "owner", "x", "y", "vx", "vy", "radius", "damage", "life", "age", "angle", "color", "pierce", "kind", "bossDebuff", "visualOnly", "visualImpact"
+        "id", "owner", "casterId", "x", "y", "vx", "vy", "radius", "damage", "life", "age", "angle", "color", "pierce", "kind", "bossDebuff", "visualOnly", "visualImpact"
       ]);
     }
 
@@ -4594,7 +4598,11 @@
         const now = performance.now();
         const seen = new Set();
         for (const player of snapshot.players) {
-          if (!player?.id || player.id === this.lobby.id) continue;
+          if (!player?.id) continue;
+          if (player.id === this.lobby.id) {
+            if (Number.isFinite(Number(player.ult))) this.run.player.ult = clamp(Number(player.ult), 0, 100);
+            continue;
+          }
           seen.add(player.id);
           const previous = this.remotePlayers.get(player.id) || {};
           const slot = this.lobby.slots.find((entry) => entry.id === player.id);
@@ -5870,7 +5878,7 @@
         this.hitStop = Math.max(this.hitStop || 0, 0.065);
         this.camera.shake = Math.max(this.camera.shake, 7 + hits * 1.4);
       }
-      if (chance(0.2)) this.spawnPhantomBlade(p.x + Math.cos(angle) * 42, p.y + Math.sin(angle) * 42, angle, damage * 0.15, "player");
+      if (chance(0.2)) this.spawnPhantomBlade(p.x + Math.cos(angle) * 42, p.y + Math.sin(angle) * 42, angle, damage * 0.15, "player", this.lobby.id);
       if (p.stats.shockwaveCombo && p.combo % 3 === 0) {
         this.addShockwave(p.x + Math.cos(angle) * 70, p.y + Math.sin(angle) * 70, 170, "#f2bf63", 44);
       }
@@ -5906,9 +5914,10 @@
       this.audio.sfx(155, "square", 0.08, 0.1);
     }
 
-    spawnPhantomBlade(x, y, angle, damage, owner = "player") {
+    spawnPhantomBlade(x, y, angle, damage, owner = "player", casterId = "") {
       this.spawnProjectile({
         owner,
+        casterId,
         x,
         y,
         vx: Math.cos(angle) * 920,
@@ -5979,7 +5988,7 @@
       });
       this.camera.shake = Math.max(this.camera.shake, 4);
       this.audio.sfx(330, "triangle", 0.06, 0.075);
-      if (this.isMultiplayerClient()) this.sendBasicAttackPacket(characterById("ranger"), p, angle, combo, damage);
+      if (this.isMultiplayerClient()) this.sendBasicAttackPacket(characterById("ranger"), p, angle, combo);
     }
 
     basicAssassinAttack(p, angle) {
@@ -5999,7 +6008,7 @@
       }
     }
 
-    performAssassinSlash(x, y, angle, range, arc, damage, combo = 1) {
+    performAssassinSlash(x, y, angle, range, arc, damage, combo = 1, sourceId = "") {
       const centerX = x + Math.cos(angle) * range * 0.62;
       const centerY = y + Math.sin(angle) * range * 0.62;
       const armHalf = range * 0.56;
@@ -6022,16 +6031,17 @@
             x: Math.cos(angle) * 1.15,
             y: Math.sin(angle) * 1.15,
             combo,
-            source: "assassin"
+            source: "assassin",
+            sourceId
           });
         }
       }
       return hits;
     }
 
-    queueAssassinSlash(x, y, angle, range, arc, damage, combo, delay) {
+    queueAssassinSlash(x, y, angle, range, arc, damage, combo, delay, sourceId = "") {
       this.run.delayedStrikes ||= [];
-      this.run.delayedStrikes.push({ type: "assassin", x, y, angle, range, arc, damage, combo, time: delay });
+      this.run.delayedStrikes.push({ type: "assassin", x, y, angle, range, arc, damage, combo, sourceId, time: delay });
     }
 
     updateDelayedStrikes(dt) {
@@ -6045,7 +6055,7 @@
           continue;
         }
         if (strike.type === "assassin") {
-          const hits = this.performAssassinSlash(strike.x, strike.y, strike.angle, strike.range, strike.arc, strike.damage, strike.combo);
+          const hits = this.performAssassinSlash(strike.x, strike.y, strike.angle, strike.range, strike.arc, strike.damage, strike.combo, strike.sourceId || "");
           if (hits > 0) {
             this.hitStop = Math.max(this.hitStop || 0, 0.035);
             this.camera.shake = Math.max(this.camera.shake, 4 + hits * 0.7);
@@ -6081,7 +6091,7 @@
       const baseDamage = Math.max(1, Number(attack.damage) || character.stats.damage);
       const dirX = Math.cos(angle);
       const dirY = Math.sin(angle);
-      const hitOptions = { x: dirX, y: dirY, source: "remoteBasic", kind: character.id, combo };
+      const hitOptions = { x: dirX, y: dirY, source: "remoteBasic", kind: character.id, combo, sourceId: remoteId };
       if (character.id === "ranger") hitOptions.critBonus = 0.28;
       const strike = (enemy, damage) => this.damageEnemy(enemy, damage, hitOptions);
       const remote = this.remotePlayers.get(remoteId) || {};
@@ -6106,43 +6116,28 @@
         animation: "attack",
         actionTotal: character.id === "guardian" ? 0.7 : character.id === "mage" ? 0.6 : character.id === "ranger" ? 0.72 : character.id === "assassin" ? 0.44 : 0.58,
         actionTime: character.id === "guardian" ? 0.7 : character.id === "mage" ? 0.6 : character.id === "ranger" ? 0.72 : character.id === "assassin" ? 0.44 : 0.58,
+        ult: Number.isFinite(remote.ult) ? remote.ult : 0,
         facing: angle,
         t: performance.now()
       });
 
       if (character.id === "mage" || character.id === "ranger") {
-        const maxRange = character.id === "ranger" ? 1040 : 620;
-        const width = character.id === "ranger" ? 26 : 34;
         const damage = character.id === "ranger" ? baseDamage * (1.28 + combo * 0.045) : baseDamage * (1 + combo * 0.03);
-        const hits = [];
-        for (const enemy of this.run.enemies) {
-          const dx = enemy.x - x;
-          const dy = enemy.y - y;
-          const along = dx * dirX + dy * dirY;
-          const side = Math.abs(dx * -dirY + dy * dirX);
-          if (along > 0 && along < maxRange && side < enemy.radius + width) hits.push({ enemy, along });
-        }
-        hits.sort((a, b) => a.along - b.along).slice(0, 1).forEach(({ enemy }) => {
-          strike(enemy, damage);
-          if (character.id === "mage" && chance(0.25)) {
-            this.areaDamage(enemy.x, enemy.y, 72, damage * 0.1, "#83e8ff", "mageBasic");
-            this.addShockwave(enemy.x, enemy.y, 92, "#83e8ff", 0);
-          }
-        });
         this.addBasicAttackBurst(x + dirX * 42, y + dirY * 42, angle, character.id, character.id === "ranger" ? 64 : 40);
         this.spawnProjectile({
           owner: "ally",
+          casterId: remoteId,
           x: x + dirX * 34,
           y: y + dirY * 34,
           vx: dirX * (character.id === "ranger" ? 1280 : 560),
           vy: dirY * (character.id === "ranger" ? 1280 : 560),
           radius: character.id === "ranger" ? 7 : 12,
-          damage: 0,
+          damage,
           life: character.id === "ranger" ? 0.88 : 1.35,
           color: character.id === "ranger" ? "#ff9f43" : "#83e8ff",
           pierce: 0,
           kind: character.id === "ranger" ? "rangerBasic" : "mageBasic",
-          visualOnly: true
+          critBonus: character.id === "ranger" ? 0.28 : 0
         });
         return;
       }
@@ -6152,10 +6147,10 @@
       const damage = character.id === "guardian" ? baseDamage * 1.15 : character.id === "assassin" ? baseDamage * (0.8 + combo * 0.025) : baseDamage * (1 + combo * 0.04);
       const flurry = character.id === "assassin" && chance(0.2);
       if (character.id === "assassin") {
-        this.performAssassinSlash(x, y, angle, range, arc, damage, combo);
+        this.performAssassinSlash(x, y, angle, range, arc, damage, combo, remoteId);
         if (flurry) {
-          this.queueAssassinSlash(x, y, angle + 0.22, range * 0.96, arc, damage * 0.65, combo, 0.12);
-          this.queueAssassinSlash(x, y, angle - 0.22, range * 0.96, arc, damage * 0.65, combo, 0.24);
+          this.queueAssassinSlash(x, y, angle + 0.22, range * 0.96, arc, damage * 0.65, combo, 0.12, remoteId);
+          this.queueAssassinSlash(x, y, angle - 0.22, range * 0.96, arc, damage * 0.65, combo, 0.24, remoteId);
         }
         return;
       }
@@ -6171,7 +6166,7 @@
           strike(enemy, damage);
         }
       }
-      if (character.id === "swordsman" && chance(0.2)) this.spawnPhantomBlade(x + dirX * 42, y + dirY * 42, angle, damage * 0.15, "ally");
+      if (character.id === "swordsman" && chance(0.2)) this.spawnPhantomBlade(x + dirX * 42, y + dirY * 42, angle, damage * 0.15, "ally", remoteId);
     }
 
     handleRemoteSkill(remoteId, skill) {
@@ -6207,6 +6202,7 @@
         animation: skill.key === "f" ? "ultimate" : "skill",
         actionTotal: skill.key === "f" ? DOMAIN_CUTIN_TIME + DOMAIN_GROW_TIME + 0.15 : 0.42,
         actionTime: skill.key === "f" ? DOMAIN_CUTIN_TIME + DOMAIN_GROW_TIME + 0.15 : 0.42,
+        ult: skill.key === "f" ? 0 : (Number.isFinite(remote.ult) ? remote.ult : 0),
         facing: angle,
         t: performance.now()
       });
@@ -6364,16 +6360,24 @@
       };
     }
 
-    ultimateGainPaused() {
-      const p = this.run?.player;
-      if (!p) return false;
-      if ((p.domainLock || 0) > 0) return true;
+    ultimateGainPaused(casterId = this.lobby.id) {
+      const actor = casterId === this.lobby.id ? this.run?.player : this.remotePlayers.get(casterId);
+      if (!actor) return false;
+      if ((actor.domainLock || 0) > 0) return true;
       return (this.run.effects || []).some((effect) => (
         effect.type === "ultimate"
         && effect.domain
-        && (!effect.casterId || effect.casterId === this.lobby.id)
+        && (!effect.casterId || effect.casterId === casterId)
         && ((effect.castDelay || 0) > 0 || (effect.growTime || 0) > 0)
       ));
+    }
+
+    gainUltimateFor(casterId, amount) {
+      if (!this.run || !Number.isFinite(Number(amount)) || amount <= 0) return;
+      const id = casterId || this.lobby.id;
+      const target = id === this.lobby.id ? this.run.player : this.remotePlayers.get(id);
+      if (!target || target.dead) return;
+      target.ult = clamp(Number(target.ult || 0) + amount, 0, 100);
     }
 
     coneDamage(x, y, angle, range, arc, damage, color, kind) {
@@ -6388,7 +6392,8 @@
             x: Math.cos(angle),
             y: Math.sin(angle),
             source: "skill",
-            kind
+            kind,
+            sourceId: this.currentDamageSourceId || ""
           });
         }
       }
@@ -6409,7 +6414,7 @@
         if (along > -enemy.radius && along < length + enemy.radius && side < width + enemy.radius) hits.push({ enemy, along });
       }
       hits.sort((a, b) => a.along - b.along).slice(0, pierce).forEach(({ enemy }) => {
-        this.damageEnemy(enemy, damage, { x: dirX, y: dirY, source: "skill", kind });
+        this.damageEnemy(enemy, damage, { x: dirX, y: dirY, source: "skill", kind, sourceId: this.currentDamageSourceId || "" });
       });
     }
 
@@ -6497,7 +6502,13 @@
       const casterId = options.casterId || (owner === "player" ? this.lobby.id : "");
       const domainBoost = key !== "f" ? this.powerDomainBoost(kind, caster, casterId) : { damageMult: 1, areaMult: 1, active: false };
       const previousSkillAreaScale = this.currentSkillAreaScale();
+      const previousDamageSourceId = this.currentDamageSourceId || "";
       this.skillAreaScale = Math.max(previousSkillAreaScale, domainBoost.areaMult || 1);
+      this.currentDamageSourceId = casterId;
+      const finishSkillDamageContext = () => {
+        this.skillAreaScale = previousSkillAreaScale;
+        this.currentDamageSourceId = previousDamageSourceId;
+      };
       const damage = baseDamage * (domainBoost.damageMult || 1);
 
       if (key === "q") {
@@ -6570,7 +6581,7 @@
         if (awakened) this.applyAwakenedSkillBonus(key, power, caster, angle, { x: tx, y: ty }, damage, owner, remote);
         this.camera.shake = Math.max(this.camera.shake, 7);
         this.audio.sfx(kind === "lightning" ? 520 : kind === "gravity" ? 110 : 260, kind === "fire" ? "sawtooth" : "triangle", 0.08, 0.1);
-        this.skillAreaScale = previousSkillAreaScale;
+        finishSkillDamageContext();
         return;
       }
 
@@ -6624,7 +6635,7 @@
         }
         if (awakened) this.applyAwakenedSkillBonus(key, power, caster, angle, { x: tx, y: ty }, damage, owner, remote);
         this.audio.sfx(kind === "time" ? 190 : 180, "sine", 0.12, 0.08);
-        this.skillAreaScale = previousSkillAreaScale;
+        finishSkillDamageContext();
         return;
       }
 
@@ -6687,7 +6698,7 @@
         if (awakened) this.applyAwakenedSkillBonus(key, power, caster, angle, { x: tx, y: ty }, damage, owner, remote);
         this.camera.shake = Math.max(this.camera.shake, 9);
         this.audio.sfx(kind === "lightning" ? 560 : kind === "gravity" || kind === "void" ? 90 : 120, "sawtooth", 0.14, 0.1);
-        this.skillAreaScale = previousSkillAreaScale;
+        finishSkillDamageContext();
         return;
       }
 
@@ -6732,7 +6743,7 @@
         this.camera.shake = Math.max(this.camera.shake, 7);
         this.audio.sfx(kind === "time" ? 130 : 70, "sawtooth", 0.2, 0.1);
       }
-      this.skillAreaScale = previousSkillAreaScale;
+      finishSkillDamageContext();
     }
 
     startDomainCinematic(power, caster, angle = 0, options = {}) {
@@ -6893,13 +6904,16 @@
     spawnProjectile(projectile) {
       const scale = this.currentSkillAreaScale();
       const next = { ...projectile };
+      if (!next.casterId && (next.owner === "player" || next.owner === "ally")) {
+        next.casterId = this.currentDamageSourceId || (next.owner === "player" ? this.lobby.id : "");
+      }
       if (scale > 1 && (next.owner === "player" || next.owner === "ally") && Number.isFinite(next.radius)) {
         next.radius *= scale;
       }
       this.run.projectiles.push({ id: uid("proj"), ...next, age: 0 });
     }
 
-    areaDamage(x, y, radius, damage, color, kind, ultimate = false) {
+    areaDamage(x, y, radius, damage, color, kind, ultimate = false, sourceId = this.currentDamageSourceId || "") {
       radius *= this.currentSkillAreaScale();
       for (const enemy of [...this.run.enemies]) {
         const d = Math.hypot(enemy.x - x, enemy.y - y);
@@ -6910,7 +6924,8 @@
             y: (enemy.y - y) / (d || 1),
             power: true,
             source: ultimate ? "ultimate" : "skill",
-            kind
+            kind,
+            sourceId
           });
         }
       }
@@ -6930,6 +6945,7 @@
       }
       const p = this.run.player;
       const power = this.run.power;
+      const sourceId = options.sourceId || this.currentDamageSourceId || this.lobby.id;
       const crit = chance(p.crit + (options.source === "ultimate" ? 0.25 : 0) + (Number(options.critBonus) || 0));
       let damage = amount * (crit ? 2 : 1);
       if (enemy.boss && enemy.fatigueTime > 0) damage *= 1.16;
@@ -6955,11 +6971,11 @@
         this.healPlayer(damage * (power.id === "blood" ? 0.05 : p.stats.lifeSteal));
       }
       const assassinBasic = options.source === "assassin" || (options.source === "remoteBasic" && options.kind === "assassin");
-      if (options.source === "assassin") this.healPlayer((p.maxHp || 1) * rand(0.01, 0.03));
+      if (options.source === "assassin" && sourceId === this.lobby.id) this.healPlayer((p.maxHp || 1) * rand(0.01, 0.03));
       if (assassinBasic && enemy.hp > 0 && chance(0.25)) this.applyAssassinBleed(enemy, damage, options);
       if (crit && (p.stats.chainCrit || power.id === "lightning")) this.chainLightning(enemy, damage * 0.45);
       if (enemy.chill > 0 && enemy.hp <= 0 && p.stats.fracture) this.fracture(enemy);
-      if (options.source !== "domain" && !this.ultimateGainPaused()) p.ult = clamp(p.ult + (crit ? 5 : 3), 0, 100);
+      if (options.source !== "domain" && !this.ultimateGainPaused(sourceId)) this.gainUltimateFor(sourceId, crit ? 5 : 3);
       const basicKind = this.basicHitKind(options);
       const basicHit = Boolean(basicKind);
       const impactColor = basicHit ? (crit ? "#fff1b8" : "#f3ead7") : crit ? power.accent : power.color;
@@ -9018,9 +9034,10 @@
             projectile.hitIds = projectile.hitIds || [];
             if (hit.enemy.id) projectile.hitIds.push(hit.enemy.id);
             const len = Math.hypot(projectile.vx, projectile.vy) || 1;
-            this.damageEnemy(hit.enemy, projectile.damage, { x: projectile.vx / len, y: projectile.vy / len, source: "projectile", kind: projectile.kind, critBonus: projectile.critBonus || 0 });
+            const sourceId = projectile.casterId || (projectile.owner === "player" ? this.lobby.id : "");
+            this.damageEnemy(hit.enemy, projectile.damage, { x: projectile.vx / len, y: projectile.vy / len, source: "projectile", kind: projectile.kind, critBonus: projectile.critBonus || 0, sourceId });
             if (projectile.kind === "mageBasic" && chance(0.25)) {
-              this.areaDamage(projectile.x, projectile.y, 72, projectile.damage * 0.1, projectile.color, "mageBasic");
+              this.areaDamage(projectile.x, projectile.y, 72, projectile.damage * 0.1, projectile.color, "mageBasic", false, sourceId);
               this.addShockwave(projectile.x, projectile.y, 92, projectile.color, 0);
             }
             projectile.pierce -= 1;
@@ -9513,7 +9530,7 @@
           effect.tick -= dt;
           if (effect.tick <= 0 && !this.isMultiplayerClient()) {
             effect.tick = 0.35;
-            this.areaDamage(effect.x, effect.y, effect.radius, 20, effect.color, effect.kind);
+            this.areaDamage(effect.x, effect.y, effect.radius, 20, effect.color, effect.kind, false, effect.casterId || "");
           }
         }
         if (effect.type === "danger" && effect.time <= 0.05 && !effect.done) {
@@ -9550,6 +9567,7 @@
       if (!this.run) return;
       const scale = this.currentSkillAreaScale();
       const next = { ...effect };
+      if (!next.casterId && ["zone", "pull", "ultimate"].includes(next.type)) next.casterId = this.currentDamageSourceId || "";
       if (scale > 1 && ["zone", "pull"].includes(next.type) && Number.isFinite(next.radius)) {
         next.radius *= scale;
         next.domainBoosted = true;
@@ -9579,7 +9597,7 @@
             trail.damageTick = 0.18;
             for (const enemy of [...this.run.enemies]) {
               if (Math.hypot(enemy.x - trail.x, enemy.y - trail.y) < enemy.radius + trail.radius) {
-                this.damageEnemy(enemy, 10, { x: 0, y: 0, source: "trail", kind: "fire" });
+                this.damageEnemy(enemy, 10, { x: 0, y: 0, source: "trail", kind: "fire", sourceId: trail.casterId || "" });
               }
             }
           }
@@ -9595,7 +9613,7 @@
     }
 
     addTrailDamage(x, y, color) {
-      this.run.trails.push({ x, y, radius: 28, color, life: 1.1, maxLife: 1.1, damageTick: 0 });
+      this.run.trails.push({ x, y, radius: 28, color, life: 1.1, maxLife: 1.1, damageTick: 0, casterId: this.currentDamageSourceId || "" });
       this.trimVisualList(this.run.trails, this.isMobileDevice() ? 28 : 42);
     }
 
@@ -9858,6 +9876,7 @@
       if (state.roomNumber !== previous.roomNumber) return true;
       if (state.dead !== previous.dead || state.spectating !== previous.spectating || state.spectateId !== previous.spectateId) return true;
       if (state.animation !== previous.animation || Math.abs((state.actionTime || 0) - (previous.actionTime || 0)) > 0.08) return true;
+      if (Math.abs((state.ult || 0) - (previous.ult || 0)) > 0.5) return true;
       if (Math.abs((state.hp || 0) - (previous.hp || 0)) > 0.5 || Math.abs((state.energy || 0) - (previous.energy || 0)) > 1.2) return true;
       if (Math.abs(angleDelta(state.facing || 0, previous.facing || 0)) > 0.08) return true;
       const dx = (state.x || 0) - (previous.x || 0);

@@ -7,7 +7,7 @@
   const ROOM_PAD = 86;
   const SAVE_KEY = "soulrift-save-v1";
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
-  const APP_VERSION = "20260604-authoritative-ranged-ult-79";
+  const APP_VERSION = "20260604-heal-balance-80";
   const VERSION_CHECK_INTERVAL = 15000;
   const UPDATE_ATTEMPT_KEY = "soulrift-update-attempt-v1";
   const DOOR_ENTER_TIME = 1.0;
@@ -5758,7 +5758,7 @@
       p.y = clamp(p.y + p.vy * dt, ROOM_PAD + p.radius, WORLD_H - ROOM_PAD - p.radius);
 
       if (this.run.power.id === "nature" && Math.floor(this.menuTime * 2) % 7 === 0 && chance(dt * 0.5)) {
-        this.healPlayer(1);
+        this.healPlayer(0.45);
         this.addParticle(p.x + rand(-14, 14), p.y + rand(-16, 8), "#75e66e", 16, 0.6, "leaf");
       }
     }
@@ -6463,7 +6463,7 @@
         for (const enemy of this.run.enemies) if (Math.hypot(enemy.x - tx, enemy.y - ty) < 170) enemy.mark += 2;
       } else if (kind === "blood") {
         this.coneDamage(x, y, angle, 170 + pulse * 120, Math.PI * 0.9, damage * (0.25 + pulse * 0.24), power.color, kind);
-        if (!remote) this.healPlayer(8 + damage * 0.14);
+        if (!remote) this.healPlayer(4 + damage * 0.07);
       } else if (kind === "gravity") {
         this.addEffect({ type: "pull", x: tx, y: ty, radius: 210 + pulse * 150, time: 0.85 + pulse * 0.65, color: power.color });
         this.areaDamage(tx, ty, 95 + pulse * 60, damage * (0.24 + pulse * 0.24), power.color, kind);
@@ -6474,7 +6474,7 @@
         }
       } else if (kind === "nature") {
         this.addEffect({ type: "zone", x: tx, y: ty, radius: 115 + pulse * 80, time: 2.2, tick: 0.2, color: power.color, kind });
-        if (!remote) this.healPlayer(10 + pulse * 18);
+        if (!remote) this.healPlayer(5 + pulse * 8);
       } else if (kind === "void") {
         this.addEffect({ type: "pull", x: tx, y: ty, radius: 230 + pulse * 140, time: 1.0 + pulse * 0.55, color: power.color });
         for (const enemy of this.run.enemies) if (Math.hypot(enemy.x - tx, enemy.y - ty) < 210 + pulse * 80) enemy.mark += 3;
@@ -6541,7 +6541,7 @@
         } else if (kind === "blood") {
           this.addSkillShape(kind, "bloodArc", x, y, angle, 205);
           this.coneDamage(x, y, angle, 205, Math.PI * 1.1, damage * 1.28, power.color, kind);
-          if (!remote) this.healPlayer(12 + damage * 0.22);
+          if (!remote) this.healPlayer(6 + damage * 0.1);
         } else if (kind === "gravity") {
           this.addSkillShape(kind, "gravityCrush", forwardX, forwardY, angle, 205);
           this.addEffect({ type: "pull", x: forwardX, y: forwardY, radius: 245, time: 1.05, color: power.color });
@@ -6604,7 +6604,7 @@
           if (!remote) caster.hp = Math.max(1, caster.hp - 8);
           caster.shield = Math.max(caster.shield || 0, 38);
           this.areaDamage(x, y, 125, damage * 0.8, power.color, kind);
-          if (!remote) this.healPlayer(18);
+          if (!remote) this.healPlayer(9);
         } else if (kind === "gravity") {
           caster.shield = Math.max(caster.shield || 0, 46);
           this.addEffect({ type: "pull", x, y, radius: 205, time: 0.9, color: power.color });
@@ -6615,7 +6615,7 @@
             this.spawnProjectile({ owner, x, y, vx: Math.cos(a) * 430, vy: Math.sin(a) * 430, radius: 6, damage: damage * 0.45, life: 0.55, color: power.color, pierce: 0, kind });
           }
         } else if (kind === "nature") {
-          if (!remote) this.healPlayer(44);
+          if (!remote) this.healPlayer(22);
           this.areaDamage(x, y, 115, damage * 0.55, power.color, kind);
           for (const enemy of this.run.enemies) if (Math.hypot(enemy.x - x, enemy.y - y) < 135) enemy.stun = Math.max(enemy.stun, 0.25);
         } else if (kind === "void") {
@@ -6627,7 +6627,7 @@
           this.addShockwave(x, y, 130, power.color, 18);
         } else if (kind === "time") {
           if (!remote) {
-            this.healPlayer(30);
+            this.healPlayer(16);
             caster.cooldowns.q = Math.max(0, caster.cooldowns.q - 1.6);
             caster.cooldowns.r = Math.max(0, caster.cooldowns.r - 2.2);
           }
@@ -6664,7 +6664,7 @@
         } else if (kind === "blood") {
           this.addSkillShape(kind, "bloodOrbit", x, y, angle, 220, 0.85);
           this.addEffect({ type: "zone", x, y, radius: 185, time: 4.0, tick: 0.08, color: power.color, kind });
-          if (!remote) this.healPlayer(24);
+          if (!remote) this.healPlayer(12);
         } else if (kind === "gravity") {
           this.addSkillShape(kind, "blackAnchor", tx, ty, angle, 235, 0.9);
           this.addEffect({ type: "pull", x: tx, y: ty, radius: 340, time: 2.4, color: power.color });
@@ -6707,8 +6707,8 @@
         const radius = awakened ? 330 : 280;
         this.startDomainCinematic(power, caster, angle, options);
         this.freezeEnemiesForDomain(DOMAIN_CUTIN_TIME + 0.28, power.accent);
-        if (kind === "blood" && !remote) this.healPlayer(70);
-        if (kind === "nature" && !remote) this.healPlayer(95);
+        if (kind === "blood" && !remote) this.healPlayer(36);
+        if (kind === "nature" && !remote) this.healPlayer(48);
         if (kind === "time" && !remote) {
           caster.cooldowns.q = 0;
           caster.cooldowns.e = 0;
@@ -6875,7 +6875,7 @@
       }
       if (kind === "fire" && !options.visualOnly) this.addTrailDamage(x + Math.cos(angle) * 36, y + Math.sin(angle) * 36, power.color);
       if (!subtle && (kind === "gravity" || kind === "void" || kind === "time")) this.addShockwave(x, y, radius * (kind === "time" ? 1.1 : 0.9), power.color, 0);
-      if (kind === "nature" && healNature) this.healPlayer(1 + intensity);
+      if (kind === "nature" && healNature) this.healPlayer(0.35 + intensity * 0.45);
     }
 
     castSkillOne(power, angle = this.skillAimAngle(this.run.player)) {
@@ -6968,7 +6968,7 @@
         enemy.vy += Math.sin(a) * 120;
       }
       if (power.id === "blood" || p.stats.lifeSteal) {
-        this.healPlayer(damage * (power.id === "blood" ? 0.05 : p.stats.lifeSteal));
+        this.healPlayer(damage * (power.id === "blood" ? 0.028 : p.stats.lifeSteal));
       }
       const assassinBasic = options.source === "assassin" || (options.source === "remoteBasic" && options.kind === "assassin");
       if (options.source === "assassin" && sourceId === this.lobby.id) this.healPlayer((p.maxHp || 1) * rand(0.01, 0.03));
@@ -9492,8 +9492,8 @@
       const p = this.run.player;
       const localCasterInside = (!effect.casterId || effect.casterId === this.lobby.id) && this.aliveActor(p) && Math.hypot(p.x - effect.x, p.y - effect.y) < radius + p.radius;
       if (localCasterInside) {
-        if (kind === "nature") this.healPlayer(2.2);
-        if (kind === "blood") this.healPlayer(1.6);
+        if (kind === "nature") this.healPlayer(1.0);
+        if (kind === "blood") this.healPlayer(0.75);
         if (kind === "time") {
           p.cooldowns.q = Math.max(0, p.cooldowns.q - 0.12);
           p.cooldowns.e = Math.max(0, p.cooldowns.e - 0.12);

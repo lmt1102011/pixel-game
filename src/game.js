@@ -7,7 +7,7 @@
   const ROOM_PAD = 86;
   const SAVE_KEY = "soulrift-save-v1";
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
-  const APP_VERSION = "20260604-awakened-audio-106";
+  const APP_VERSION = "20260604-smart-graphics-107";
   const VERSION_CHECK_INTERVAL = 15000;
   const UPDATE_ATTEMPT_KEY = "soulrift-update-attempt-v1";
   const CLOUD_MIGRATION_KEY = "soulrift-cloud-migrated-v1";
@@ -2251,7 +2251,17 @@
       this.hudStatusMarkup = "";
       this.updateTimer = null;
       this.updateInProgress = false;
-      this.perf = { avgDt: 1 / 60, quality: 1, autoLevel: 5, displayedAutoLevel: 5 };
+      this.perf = {
+        avgDt: 1 / 60,
+        fastDt: 1 / 60,
+        quality: 1,
+        autoLevel: 5,
+        displayedAutoLevel: 5,
+        stableTime: 0,
+        renderScale: 1,
+        appliedRenderScale: 1,
+        resizeAt: 0
+      };
       this.bindEvents();
       this.resize();
       this.updateMobileGate();
@@ -2616,7 +2626,7 @@
     normalizeSettings() {
       this.save.settings ||= defaultProfile(this.save.account?.username || "").settings;
       this.save.settings.graphicsMode = this.save.settings.graphicsMode === "manual" ? "manual" : "auto";
-      this.save.settings.graphicsLevel = clamp(Math.round(Number(this.save.settings.graphicsLevel || 5)), 1, 5);
+      this.save.settings.graphicsLevel = Math.round(clamp(Number(this.save.settings.graphicsLevel || 5), 1, 5) * 100) / 100;
       this.save.settings.screenShake = clamp(Number(this.save.settings.screenShake ?? 0.3), 0, 1.5);
       this.save.settings.particles = clamp(Number(this.save.settings.particles ?? 1.5), 0, 1.5);
     }
@@ -2960,28 +2970,41 @@
 
     updatePerformanceState(dt) {
       const frame = clamp(dt || 1 / 60, 1 / 120, 0.12);
-      this.perf.avgDt = this.perf.avgDt * 0.94 + frame * 0.06;
+      this.perf.avgDt = this.perf.avgDt * 0.92 + frame * 0.08;
+      this.perf.fastDt = (this.perf.fastDt || this.perf.avgDt) * 0.68 + frame * 0.32;
       if (this.save.settings.graphicsMode === "manual") {
-        this.perf.quality = this.graphicsQualityFromLevel(this.save.settings.graphicsLevel);
+        const level = clamp(Number(this.save.settings.graphicsLevel || 5), 1, 5);
+        this.perf.autoLevel = level;
+        this.perf.displayedAutoLevel = Math.round(level * 100) / 100;
+        this.perf.quality = this.graphicsQualityFromLevel(level);
+        this.updateRenderScale(false);
         return;
       }
-      const targetDt = this.isMobileDevice() ? 0.019 : 0.018;
-      const pressure = this.perf.avgDt - targetDt;
+      const targetDt = this.isMobileDevice() ? 0.0205 : 0.0182;
+      const fastPressure = (this.perf.fastDt || frame) - targetDt;
+      const slowPressure = this.perf.avgDt - targetDt;
       let nextLevel = Number.isFinite(this.perf.autoLevel) ? this.perf.autoLevel : 5;
-      if (pressure > 0.0015) {
-        const severity = clamp(pressure / 0.018, 0, 1);
-        nextLevel -= (0.35 + severity * 2.15) * frame;
-      } else if (pressure < -0.0018) {
-        const headroom = clamp((-pressure - 0.0018) / 0.008, 0, 1);
-        nextLevel += (0.12 + headroom * 0.52) * frame;
+      const spike = frame > targetDt * (this.isMobileDevice() ? 1.55 : 1.45);
+      const overloaded = spike || fastPressure > 0.0022 || slowPressure > 0.0038;
+      if (overloaded) {
+        const severity = clamp(Math.max(fastPressure, slowPressure, frame - targetDt) / targetDt, 0, 1.8);
+        nextLevel -= spike ? 0.24 + severity * 0.34 : (0.14 + severity * 0.22);
+        this.perf.stableTime = 0;
+      } else {
+        const headroom = clamp((targetDt - Math.max(this.perf.fastDt, this.perf.avgDt) - 0.0012) / targetDt, 0, 1);
+        this.perf.stableTime = Math.min(3, (this.perf.stableTime || 0) + frame);
+        if (this.perf.stableTime > 0.55 && headroom > 0.08) {
+          nextLevel += (0.025 + headroom * 0.12) * frame;
+        }
       }
       this.perf.autoLevel = clamp(nextLevel, 1, 5);
-      this.perf.displayedAutoLevel = Math.round(this.perf.autoLevel * 10) / 10;
+      this.perf.displayedAutoLevel = Math.round(this.perf.autoLevel * 100) / 100;
       this.perf.quality = this.graphicsQualityFromLevel(this.perf.displayedAutoLevel);
+      this.updateRenderScale(overloaded);
     }
 
     graphicsQualityFromLevel(level = 5) {
-      const table = [0.42, 0.56, 0.7, 0.86, 1];
+      const table = [0.32, 0.5, 0.68, 0.84, 1];
       const value = clamp(Number(level || 5), 1, 5);
       const low = Math.floor(value);
       const high = Math.min(5, low + 1);
@@ -2990,31 +3013,65 @@
       return start + (end - start) * (value - low);
     }
 
+    graphicsRenderScale() {
+      const quality = this.perf?.quality ?? 1;
+      const base = this.isMobileDevice() ? 0.5 : 0.62;
+      const range = this.isMobileDevice() ? 0.5 : 0.38;
+      return clamp(base + quality * range, this.isMobileDevice() ? 0.56 : 0.66, 1);
+    }
+
+    updateRenderScale(force = false) {
+      const next = this.graphicsRenderScale();
+      this.perf.renderScale = next;
+      const current = Number.isFinite(this.perf.appliedRenderScale) ? this.perf.appliedRenderScale : 1;
+      const now = performance.now();
+      const diff = Math.abs(next - current);
+      if (diff < (force ? 0.012 : 0.035)) return;
+      const urgentDrop = force && next < current && diff > 0.08;
+      if (!urgentDrop && now < (this.perf.resizeAt || 0)) return;
+      this.perf.appliedRenderScale = next;
+      this.perf.resizeAt = now + (force || next < current ? 90 : 320);
+      this.resize();
+      if (this.run && next < current) {
+        this.trimEffectList();
+        this.trimVisualList(this.run.particles, this.particleLimit());
+        this.trimVisualList(this.run.slashes, this.isMobileDevice() ? 18 : 30);
+        this.trimVisualList(this.run.shockwaves, this.isMobileDevice() ? 10 : 16);
+        this.trimVisualList(this.run.trails, this.isMobileDevice() ? 18 : 30);
+      }
+    }
+
     applyGraphicsSettings() {
       this.normalizeSettings();
       if (this.save.settings.graphicsMode === "manual") {
         this.perf.quality = this.graphicsQualityFromLevel(this.save.settings.graphicsLevel);
+        this.perf.autoLevel = this.save.settings.graphicsLevel;
+        this.perf.displayedAutoLevel = Math.round(this.perf.autoLevel * 100) / 100;
       } else if (!Number.isFinite(this.perf.autoLevel)) {
         this.perf.autoLevel = this.save.settings.graphicsLevel;
-        this.perf.displayedAutoLevel = Math.round(this.perf.autoLevel * 10) / 10;
+        this.perf.displayedAutoLevel = Math.round(this.perf.autoLevel * 100) / 100;
         this.perf.quality = this.graphicsQualityFromLevel(this.perf.displayedAutoLevel);
       }
+      this.updateRenderScale(true);
     }
 
     particleSpawnChance(shape = "spark") {
       if (["crit", "plus"].includes(shape)) return 1;
-      const mobileBias = this.isMobileDevice() ? 0.68 : 0.88;
-      return clamp(mobileBias * (0.46 + this.perf.quality * 0.54), 0.24, 0.92);
+      const quality = this.perf?.quality ?? 1;
+      const mobileBias = this.isMobileDevice() ? 0.58 : 0.82;
+      return clamp(mobileBias * (0.26 + quality * 0.74), 0.08, 0.92);
     }
 
     particleLimit() {
-      const base = this.isMobileDevice() ? 90 : 165;
-      return Math.round(base * (0.58 + this.perf.quality * 0.42));
+      const quality = this.perf?.quality ?? 1;
+      const base = this.isMobileDevice() ? 82 : 155;
+      return Math.round(base * (0.28 + quality * 0.72));
     }
 
     effectLimit() {
-      const base = this.isMobileDevice() ? 44 : 78;
-      return Math.round(base * (0.72 + (this.perf?.quality ?? 1) * 0.28));
+      const quality = this.perf?.quality ?? 1;
+      const base = this.isMobileDevice() ? 40 : 72;
+      return Math.round(base * (0.42 + quality * 0.58));
     }
 
     glow(value) {
@@ -3216,7 +3273,9 @@
     }
 
     resize() {
-      this.dpr = Math.min(window.devicePixelRatio || 1, this.isMobileDevice() ? 1 : 1.25);
+      const maxDpr = Math.min(window.devicePixelRatio || 1, this.isMobileDevice() ? 1 : 1.25);
+      const renderScale = Number.isFinite(this.perf?.appliedRenderScale) ? this.perf.appliedRenderScale : 1;
+      this.dpr = Math.max(this.isMobileDevice() ? 0.5 : 0.62, maxDpr * renderScale);
       this.width = window.innerWidth;
       this.height = window.innerHeight;
       this.canvas.width = Math.floor(this.width * this.dpr);
@@ -4529,7 +4588,7 @@
 
     settingGraphicsMode(value = "auto") {
       const mode = value === "manual" ? "manual" : "auto";
-      const autoLevel = Number.isFinite(this.perf?.displayedAutoLevel) ? this.perf.displayedAutoLevel.toFixed(1) : "5.0";
+      const autoLevel = Number.isFinite(this.perf?.displayedAutoLevel) ? this.perf.displayedAutoLevel.toFixed(2) : "5.00";
       return `
         <label class="setting-row">
           <div><h3>Chế độ đồ họa</h3><p>${mode === "manual" ? "Khóa chất lượng theo mức bên dưới." : `Tự động tối ưu mịn từng 0.1 mức theo FPS. Hiện ${autoLevel}/5.`}</p></div>
@@ -4542,15 +4601,17 @@
     }
 
     settingGraphicsLevel(value = 5, mode = "auto") {
-      const level = clamp(Math.round(Number(value || 5)), 1, 5);
+      let level = Math.round(clamp(Number(value || 5), 1, 5) * 100) / 100;
+      const label = level.toFixed(2);
+      level = label;
       const manual = mode === "manual";
       return `
         <label class="setting-row graphics-setting">
           <div><h3>Chất lượng đồ họa</h3><p>${manual ? `Mức ${level}/5 đang được áp dụng.` : `Mức ${level}/5 sẽ dùng khi chọn thủ công.`}</p></div>
           <div class="graphics-range">
-            <input data-setting="graphicsLevel" type="range" min="1" max="5" step="1" value="${level}" />
+            <input data-setting="graphicsLevel" type="range" min="1" max="5" step="0.05" value="${label}" />
             <div class="graphics-steps" aria-hidden="true">
-              <span>1</span><span>2</span><span>3</span><span>4</span><span>5</span>
+              <span>1.00</span><span>2.00</span><span>3.00</span><span>4.00</span><span>5.00</span>
             </div>
           </div>
         </label>
@@ -4559,8 +4620,8 @@
 
     refreshGraphicsSettingLabels() {
       const mode = this.save.settings.graphicsMode;
-      const level = this.save.settings.graphicsLevel;
-      const autoLevel = Number.isFinite(this.perf?.displayedAutoLevel) ? this.perf.displayedAutoLevel.toFixed(1) : "5.0";
+      const level = Number(this.save.settings.graphicsLevel || 5).toFixed(2);
+      const autoLevel = Number.isFinite(this.perf?.displayedAutoLevel) ? this.perf.displayedAutoLevel.toFixed(2) : "5.00";
       const modeRow = this.screen.querySelector('[data-setting="graphicsMode"]')?.closest(".setting-row");
       const levelRow = this.screen.querySelector('[data-setting="graphicsLevel"]')?.closest(".setting-row");
       const modeText = modeRow?.querySelector("p");
@@ -11226,6 +11287,8 @@
         if (particle.life > 0) this.run.particles[write++] = particle;
       }
       this.run.particles.length = write;
+      const limit = this.particleLimit();
+      if (this.run.particles.length > limit) this.run.particles.splice(0, this.run.particles.length - limit);
     }
 
     updateDamageTexts(dt) {

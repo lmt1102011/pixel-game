@@ -7,7 +7,7 @@
   const ROOM_PAD = 86;
   const SAVE_KEY = "soulrift-save-v1";
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
-  const APP_VERSION = "20260604-weak-device-smooth-127";
+  const APP_VERSION = "20260604-host-transfer-leave-128";
   const VERSION_CHECK_INTERVAL = 15000;
   const UPDATE_ATTEMPT_KEY = "soulrift-update-attempt-v1";
   const CLOUD_MIGRATION_KEY = "soulrift-cloud-migrated-v1";
@@ -1278,6 +1278,8 @@
       this.lastStartMessage = null;
       this.lastStartAt = 0;
       this.roomSession = "";
+      this.hostTransferStamp = 0;
+      this.lastHostTransferId = "";
       this.slots = [{ ...this.playerProfile(), ready: false, vote: this.mapVote, host: true }];
     }
 
@@ -1366,18 +1368,31 @@
       this.game.showRoomFinder(false);
     }
 
-    openPeerJsHost() {
+    openPeerJsHost(options = {}) {
       if (!window.Peer || !this.host || !this.code) return;
       this.peerJsRoomId = this.roomPeerId();
       try {
         this.peerJs = new Peer(this.peerJsRoomId, { debug: 0 });
         this.peerJs.on("open", () => {
           this.game.toast(`Phòng ${this.code} đã sẵn sàng`);
-          this.publishDirectoryPresence(true);
+          this.publishDirectoryPresence(this.game.mode === "lobby");
         });
         this.peerJs.on("connection", (conn) => this.bindPeerJsConnection(conn));
         this.peerJs.on("error", (error) => {
-          if (/unavailable-id|taken/i.test(String(error?.type || error?.message || ""))) this.game.toast("Mã phòng bị trùng, hãy tạo lại phòng");
+          if (/unavailable-id|taken/i.test(String(error?.type || error?.message || ""))) {
+            if (options.retry) {
+              try {
+                this.peerJs?.destroy();
+              } catch {
+                // PeerJS cleanup is best-effort.
+              }
+              this.peerJs = null;
+              this.peerJsRoomId = "";
+              this.joinRetryTimers.push(setTimeout(() => this.openPeerJsHost(options), 650));
+            } else {
+              this.game.toast("Mã phòng bị trùng, hãy tạo lại phòng");
+            }
+          }
         });
       } catch {
         // Relay signaling remains available when PeerJS cannot start.
@@ -1428,10 +1443,7 @@
 
     close() {
       if (this.host && this.code) this.publishDirectoryPresence(false);
-      for (const peer of this.peers.values()) {
-        peer.channel?.close();
-        peer.pc?.close();
-      }
+      this.resetPeerLinks();
       for (const timer of this.joinRetryTimers) clearTimeout(timer);
       this.joinRetryTimers = [];
       for (const timer of this.readyRetryTimers) clearTimeout(timer);
@@ -1441,16 +1453,8 @@
       this.lastStartMessage = null;
       this.lastStartAt = 0;
       this.roomSession = "";
-      this.peers.clear();
-      if (this.peerJs) {
-        try {
-          this.peerJs.destroy();
-        } catch {
-          // PeerJS cleanup is best-effort.
-        }
-      }
-      this.peerJs = null;
-      this.peerJsRoomId = "";
+      this.hostTransferStamp = 0;
+      this.lastHostTransferId = "";
       if (this.signal) this.signal.close();
       this.signal = null;
       if (this.remoteSignal) this.remoteSignal.close();
@@ -1468,6 +1472,7 @@
     }
 
     leaveRoom() {
+      if (this.host && this.code) this.transferHostBeforeLeave();
       this.close();
       this.code = "";
       this.host = false;
@@ -1476,6 +1481,23 @@
       this.joinStartedAt = 0;
       this.roomSession = "";
       this.slots = [{ ...this.playerProfile(), ready: false, vote: this.mapVote, host: false }];
+    }
+
+    resetPeerLinks() {
+      for (const peer of this.peers.values()) {
+        peer.channel?.close?.();
+        peer.pc?.close?.();
+      }
+      this.peers.clear();
+      if (this.peerJs) {
+        try {
+          this.peerJs.destroy();
+        } catch {
+          // PeerJS cleanup is best-effort.
+        }
+      }
+      this.peerJs = null;
+      this.peerJsRoomId = "";
     }
 
     updatePresence(dt) {
@@ -1663,7 +1685,7 @@
         this.seenSignals.add(message.signalId);
         if (this.seenSignals.size > 300) this.seenSignals.clear();
       }
-      const scopedTypes = new Set(["state", "attack", "skill", "collect", "openChest", "dropItem", "damage", "snapshot", "needSnapshot", "chooseDoor", "leaveRun"]);
+      const scopedTypes = new Set(["state", "attack", "skill", "collect", "openChest", "dropItem", "damage", "snapshot", "needSnapshot", "chooseDoor", "leaveRun", "hostTransfer"]);
       if (message.roomSession && this.roomSession && message.roomSession !== this.roomSession && scopedTypes.has(message.type)) return;
       if (message.type === "start" && (!message.roomSession || !this.roomSession || message.roomSession !== this.roomSession)) return;
 
@@ -1717,6 +1739,7 @@
         this.handleStart(message);
       }
 
+      if (message.type === "hostTransfer") this.handleHostTransfer(message);
       if (message.type === "state") this.applyRemoteState(message.from, message.state);
       if (message.type === "attack" && this.host) this.game.handleRemoteAttack(message.from, message.attack);
       if (message.type === "skill" && this.host) this.game.handleRemoteSkill(message.from, message.skill);
@@ -1872,7 +1895,7 @@
         peer.remoteId = senderId;
         this.peers.set(senderId, peer);
       }
-      const scopedTypes = new Set(["state", "attack", "skill", "collect", "openChest", "dropItem", "damage", "snapshot", "needSnapshot", "chooseDoor", "leaveRun"]);
+      const scopedTypes = new Set(["state", "attack", "skill", "collect", "openChest", "dropItem", "damage", "snapshot", "needSnapshot", "chooseDoor", "leaveRun", "hostTransfer"]);
       if (message.roomSession && this.roomSession && message.roomSession !== this.roomSession && scopedTypes.has(message.type)) return;
       if (message.type === "start" && (!message.roomSession || !this.roomSession || message.roomSession !== this.roomSession)) return;
       if (message.type === "ready") {
@@ -1910,6 +1933,9 @@
         if (message.mapVote) this.mapVote = message.mapVote;
         if (message.difficultyVote) this.difficultyVote = message.difficultyVote;
         this.renderLobbyIfVisible();
+      }
+      if (message.type === "hostTransfer") {
+        this.handleHostTransfer({ ...message, from: senderId });
       }
       if (message.type === "state") {
         this.applyRemoteState(senderId, message.state);
@@ -2073,6 +2099,183 @@
       return this.slots.find((slot) => slot?.host)?.id || "";
     }
 
+    hostTransferCandidate() {
+      const candidates = (this.slots || []).filter((slot) => slot?.id && slot.id !== this.id);
+      if (!candidates.length) return null;
+      const alive = candidates.find((slot) => this.game.aliveActor(this.game.remotePlayers.get(slot.id)));
+      if (alive) return alive;
+      return candidates.find((slot) => this.hasOpenPeer(slot.id)) || candidates[0];
+    }
+
+    hostTransferSlots(newHostId) {
+      const now = Date.now();
+      const seen = new Set();
+      const nextSlots = [];
+      for (const slot of this.slots || []) {
+        if (!slot?.id || slot.id === this.id || seen.has(slot.id)) continue;
+        seen.add(slot.id);
+        nextSlots.push({
+          ...slot,
+          host: slot.id === newHostId,
+          ready: slot.id === newHostId ? true : Boolean(slot.ready),
+          vote: this.mapVote,
+          seenAt: now
+        });
+      }
+      if (!seen.has(newHostId)) {
+        nextSlots.unshift({
+          id: newHostId,
+          name: "Người chơi",
+          powerId: "",
+          characterId: "swordsman",
+          ready: true,
+          vote: this.mapVote,
+          host: true,
+          seenAt: now
+        });
+      }
+      return nextSlots.map((slot) => ({ ...slot, host: slot.id === newHostId }));
+    }
+
+    transferHostBeforeLeave() {
+      if (!this.host || !this.code) return false;
+      const now = Date.now();
+      if (now - this.hostTransferStamp < 1600) return true;
+      const candidate = this.hostTransferCandidate();
+      if (!candidate?.id) return false;
+      this.hostTransferStamp = now;
+      const message = {
+        type: "hostTransfer",
+        signalId: uid("signal"),
+        oldHostId: this.id,
+        newHostId: candidate.id,
+        slots: this.hostTransferSlots(candidate.id),
+        mapVote: this.mapVote,
+        difficultyVote: this.difficultyVote,
+        snapshot: this.game.run ? this.game.networkSnapshot(true) : null,
+        code: this.code,
+        roomSession: this.roomSession
+      };
+      for (const peer of this.peers.values()) this.sendPeer(peer, message);
+      if (this.code) {
+        this.sendSignal(message);
+        for (const slot of message.slots) {
+          if (slot?.id && !this.hasOpenPeer(slot.id)) this.sendSignal(message, slot.id);
+        }
+      }
+      return true;
+    }
+
+    applyTransferSnapshot(snapshot) {
+      if (!snapshot || !this.game.run) return;
+      const wasHost = this.host;
+      const wasNetHost = this.game.run.netHost;
+      this.host = false;
+      this.game.run.netHost = false;
+      this.game.applyNetworkSnapshot(snapshot);
+      this.host = wasHost;
+      this.game.run.netHost = wasNetHost;
+    }
+
+    handleHostTransfer(message = {}) {
+      const oldHostId = message.oldHostId || message.from || "";
+      const newHostId = message.newHostId || "";
+      if (!oldHostId || !newHostId || oldHostId === newHostId || oldHostId === this.id) return;
+      if (message.code && this.code && message.code !== this.code) return;
+      const transferId = message.signalId || `${message.roomSession || this.roomSession || ""}:${oldHostId}:${newHostId}`;
+      if (transferId && this.lastHostTransferId === transferId) return;
+      this.lastHostTransferId = transferId;
+      const now = Date.now();
+      const incomingSlots = Array.isArray(message.slots) ? message.slots : this.slots;
+      const seen = new Set();
+      const slots = [];
+      for (const slot of incomingSlots || []) {
+        if (!slot?.id || slot.id === oldHostId || seen.has(slot.id)) continue;
+        seen.add(slot.id);
+        slots.push({
+          ...slot,
+          host: slot.id === newHostId,
+          ready: slot.id === newHostId ? true : Boolean(slot.ready),
+          seenAt: now
+        });
+      }
+      if (!seen.has(newHostId) && this.id !== newHostId) {
+        slots.unshift({
+          id: newHostId,
+          name: "Chủ phòng mới",
+          powerId: "",
+          characterId: "swordsman",
+          ready: true,
+          vote: this.mapVote,
+          host: true,
+          seenAt: now
+        });
+      }
+      if (!seen.has(this.id)) {
+        slots.push({ ...this.playerProfile(), ready: this.ready, vote: this.mapVote, host: this.id === newHostId, seenAt: now });
+      }
+      this.slots = slots.map((slot) => ({ ...slot, host: slot.id === newHostId }));
+      this.roomSession = message.roomSession || this.roomSession;
+      this.mapVote = message.mapVote || this.mapVote;
+      this.difficultyVote = message.difficultyVote || this.difficultyVote;
+      this.joinPending = false;
+      this.lastLobbyAt = now;
+      this.applyTransferSnapshot(message.snapshot);
+      this.game.removeDepartedPlayerArtifacts(oldHostId);
+      this.game.remotePlayers.delete(oldHostId);
+      const becomingHost = this.id === newHostId;
+      this.host = becomingHost;
+      this.ready = becomingHost ? true : Boolean(this.slots.find((slot) => slot.id === this.id)?.ready ?? this.ready);
+      this.resetPeerLinks();
+      if (this.game.run?.multiplayer) {
+        this.game.run.netHost = becomingHost;
+        if (this.game.run.leaderId === oldHostId || becomingHost) this.game.run.leaderId = becomingHost ? this.id : newHostId;
+        this.game.remotePlayers.delete(this.id);
+        this.game.networkTimer = 0;
+        this.game.snapshotTimer = 0;
+        this.game.resyncTimer = 0;
+      }
+      if (becomingHost) {
+        this.syncOwnSlot();
+        this.openPeerJsHost({ retry: true });
+        this.broadcastLobby();
+        const immediateSnapshot = this.game.networkSnapshot(true);
+        if (immediateSnapshot) this.broadcastSnapshot(immediateSnapshot, immediateSnapshot);
+        for (const delay of [220, 650, 1400, 2800]) {
+          this.joinRetryTimers.push(setTimeout(() => {
+            if (this.host && this.code && (!this.peerJs || this.peerJs.destroyed || this.peerJs.disconnected)) this.openPeerJsHost({ retry: true });
+            if (this.host) {
+              this.broadcastLobby();
+              const snapshot = this.game.networkSnapshot(true);
+              if (snapshot) this.broadcastSnapshot(snapshot, snapshot);
+            }
+          }, delay));
+        }
+        this.game.updateRunLeader();
+        this.game.toast("Bạn đã trở thành chủ phòng");
+      } else {
+        this.openPeerJsClient();
+        this.sendTransferHelloBurst();
+        const hostName = this.slotName(this.slots.find((slot) => slot.id === newHostId), "chủ phòng mới");
+        this.game.toast(`${hostName} là chủ phòng mới`);
+      }
+      this.renderLobbyIfVisible();
+    }
+
+    sendTransferHelloBurst() {
+      const send = () => {
+        if (!this.code || this.host) return;
+        this.sendSignal({ type: "hello", ...this.playerProfile(), ready: this.ready, vote: this.mapVote }, this.hostId());
+        this.sendSignal({ type: "ready", ...this.playerProfile(), ready: this.ready, vote: this.mapVote }, this.hostId());
+        for (const peer of this.peers.values()) {
+          this.sendPeer(peer, { type: "hello", ...this.playerProfile(), ready: this.ready, vote: this.mapVote });
+          this.sendPeer(peer, { type: "ready", ...this.playerProfile(), ready: this.ready, vote: this.mapVote });
+        }
+      };
+      send();
+      for (const delay of [180, 420, 900, 1700, 3000]) this.joinRetryTimers.push(setTimeout(send, delay));
+    }
+
     guestCount() {
       return this.slots.filter((slot) => slot && !slot.host).length;
     }
@@ -2142,6 +2345,7 @@
     }
 
     sendLeaveRun() {
+      if (this.host) this.transferHostBeforeLeave();
       const message = { type: "leaveRun" };
       for (const peer of this.peers.values()) this.sendPeer(peer, message);
       if (!this.host && !this.hasOpenPeers()) this.sendSignal(message, this.hostId());
@@ -2894,6 +3098,12 @@
       });
       document.addEventListener("fullscreenchange", () => this.updateMobileGate());
       document.addEventListener("webkitfullscreenchange", () => this.updateMobileGate());
+      const notifyLeave = () => {
+        if (this.isMultiplayerRun()) this.lobby.sendLeaveRun();
+        else if (this.lobby?.host && this.lobby?.code) this.lobby.transferHostBeforeLeave();
+      };
+      window.addEventListener("pagehide", notifyLeave);
+      window.addEventListener("beforeunload", notifyLeave);
       this.mobileGateButton?.addEventListener("click", () => this.enterMobilePlayMode());
       window.addEventListener("keydown", (event) => this.onKeyDown(event));
       window.addEventListener("keyup", (event) => this.input.keys.delete(event.code));
@@ -9993,6 +10203,36 @@
       );
     }
 
+    removeDepartedPlayerArtifacts(remoteId) {
+      if (!this.run || !remoteId) return;
+      const belongsToRemote = (entry) => entry && (
+        entry.casterId === remoteId
+        || entry.sourceId === remoteId
+        || entry.ownerId === remoteId
+      );
+      const filterOwned = (key) => {
+        if (Array.isArray(this.run[key])) this.run[key] = this.run[key].filter((entry) => !belongsToRemote(entry));
+      };
+      for (const key of ["projectiles", "slashes", "shockwaves", "trails", "effects", "drones"]) filterOwned(key);
+      if (Array.isArray(this.run.pickups)) {
+        for (const pickup of this.run.pickups) {
+          if (pickup?.ownerId !== remoteId) continue;
+          if (pickup.type === "reward") this.discardOwnerRewardPickup(pickup);
+          else {
+            pickup.life = 0;
+            pickup.collected = true;
+          }
+        }
+        this.run.pickups = this.run.pickups.filter((pickup) => pickup && Number(pickup.life ?? 1) > 0 && !pickup.collected);
+      }
+      const room = this.run.currentRoom;
+      if (room?.rewardOwners?.includes(remoteId)) {
+        room.rewardClaims ||= {};
+        room.rewardClaims[remoteId] = true;
+        room.rewardClaimed = this.allRewardOwnersClaimed(room);
+      }
+    }
+
     handleRemoteLeaveRun(remoteId) {
       if (!remoteId || !this.run) return;
       const remote = this.remotePlayers.get(remoteId);
@@ -10003,9 +10243,16 @@
           this.addParticle(pos.x + rand(-12, 12), pos.y + rand(-20, 8), "#d9fbff", rand(6, 16), rand(0.24, 0.6), i % 3 === 0 ? "ring" : "spark");
         }
       }
+      this.removeDepartedPlayerArtifacts(remoteId);
       this.remotePlayers.delete(remoteId);
-      this.lobby.slots = this.lobby.slots.filter((slot) => slot?.host || slot?.id !== remoteId);
+      this.lobby.slots = this.lobby.slots.filter((slot) => slot?.id !== remoteId);
+      if (this.run.leaderId === remoteId) this.run.leaderId = "";
       this.updateRunLeader();
+      if (this.isMultiplayerHost()) {
+        this.lobby.broadcastLobby();
+        const snapshot = this.networkSnapshot(true);
+        if (snapshot) this.lobby.broadcastSnapshot(snapshot, snapshot);
+      }
     }
 
     applyUpgrade(reward) {

@@ -1690,11 +1690,11 @@ button {
 }
 
 .preview-leg.left {
-  left: 44px;
+  left: 47px;
 }
 
 .preview-leg.right {
-  left: 70px;
+  left: 67px;
 }
 
 .preview-arm {
@@ -1706,28 +1706,28 @@ button {
 }
 
 .preview-arm.left {
-  left: 23px;
-  transform: rotate(5deg);
+  left: 27px;
+  transform: rotate(4deg);
 }
 
 .preview-arm.right {
-  left: 88px;
-  transform: rotate(-5deg);
+  left: 84px;
+  transform: rotate(-4deg);
 }
 
 .preview-body {
-  left: 35px;
+  left: 39px;
   top: 42px;
-  width: 58px;
+  width: 50px;
   height: 87px;
   background: var(--hero);
   clip-path: polygon(18% 0, 82% 0, 92% 14%, 92% 78%, 78% 100%, 22% 100%, 8% 78%, 8% 14%);
 }
 
 .preview-armor {
-  left: 35px;
+  left: 39px;
   top: 77px;
-  width: 58px;
+  width: 50px;
   height: 46px;
   background: #283142;
   clip-path: polygon(12% 0, 88% 0, 100% 24%, 82% 100%, 18% 100%, 0 24%);
@@ -1743,18 +1743,18 @@ button {
 }
 
 .preview-armor::before {
-  left: -9px;
+  left: -7px;
   top: 3px;
-  width: 17px;
+  width: 14px;
   height: 14px;
   background: #283142;
   clip-path: polygon(0 28%, 100% 0, 90% 100%, 16% 84%);
 }
 
 .preview-armor::after {
-  right: -9px;
+  right: -7px;
   top: 3px;
-  width: 17px;
+  width: 14px;
   height: 14px;
   background: #283142;
   clip-path: polygon(0 0, 100% 28%, 84% 84%, 10% 100%);
@@ -1781,9 +1781,9 @@ button {
 }
 
 .preview-face {
-  left: 42px;
+  left: 44px;
   top: 58px;
-  width: 44px;
+  width: 40px;
   height: 29px;
   background: var(--hero);
   clip-path: polygon(6% 0, 94% 0, 100% 72%, 72% 100%, 28% 100%, 0 72%);
@@ -1797,11 +1797,11 @@ button {
 }
 
 .preview-eye.left {
-  left: 48px;
+  left: 49px;
 }
 
 .preview-eye.right {
-  left: 72px;
+  left: 70px;
 }
 
 .preview-eye.preview-frost {

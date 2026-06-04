@@ -7,7 +7,7 @@
   const ROOM_PAD = 86;
   const SAVE_KEY = "soulrift-save-v1";
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
-  const APP_VERSION = "20260604-compact-warrior-96";
+  const APP_VERSION = "20260604-pixel-step-walk-97";
   const VERSION_CHECK_INTERVAL = 15000;
   const UPDATE_ATTEMPT_KEY = "soulrift-update-attempt-v1";
   const CLOUD_MIGRATION_KEY = "soulrift-cloud-migrated-v1";
@@ -11877,8 +11877,11 @@
       const ultFrame = anim === "ultimate" ? (actionProgress < 0.24 ? 0.35 : actionProgress < 0.72 ? 1 : 0.45) : 0;
       const damageFrame = anim === "damage" && actionProgress < 0.62 ? 1 : 0;
       const deathProgress = anim === "death" ? (actor.actionTime > 0 ? 1 - clamp(actor.actionTime / Math.max(0.1, actionTotal), 0, 1) : 1) : 0;
-      const stepStride = Math.round(Math.sin(phase * (anim === "run" ? 12 : anim === "walk" ? 8 : 3)) * 2) / 2;
+      const movingAnim = anim === "walk" || anim === "run";
+      const moveFrame = movingAnim ? Math.floor(phase * (anim === "run" ? 7.5 : 5.5)) % 4 : 0;
+      const stepStride = movingAnim ? [0, 1, 0, -1][moveFrame] : 0;
       const stride = ["walk", "run", "idle"].includes(anim) ? stepStride : 0;
+      const stepBob = movingAnim ? [0, -1, 0, -1][moveFrame] : 0;
       const dir = Math.cos(facing) >= 0 ? 1 : -1;
       const applyWeaponFacing = (aimAngle, mirrorAngle = aimAngle) => {
         const side = Math.cos(mirrorAngle) >= 0 ? 1 : -1;
@@ -11935,7 +11938,7 @@
           attackPose.crouch = hitFrame ? 3 : holdFrame ? 2 : 0;
         }
       }
-      const bob = stride * (anim === "idle" ? 1 : anim === "walk" ? 2 : anim === "run" ? 3 : 0) + attackPose.lift;
+      const bob = stepBob + attackPose.lift;
       const bodyShift = dir * (castFrame ? 2 : ultFrame ? 1 : damageFrame ? -4 : 0) + attackPose.shift;
       const lean = dir * (anim === "dash" ? 0.09 : damageFrame ? -0.14 : castFrame ? 0.05 : 0) + attackPose.lean;
       const squashX = anim === "dash" ? 1.08 : attackPose.squashX;
@@ -11997,18 +12000,18 @@
         ctx.fillRect(-10, -10, 22, 5);
         ctx.fillRect(8, -8 + stride, 13 + hitFrame * 7, 4);
       }
-      const legSwing = anim === "run" || anim === "walk" ? stride : Math.sin(t * 3) * 0.25;
+      const legSwing = movingAnim ? stride : 0;
       const crouch = anim === "dash" ? 3 : castFrame ? 1 : attackPose.crouch;
       const leftLegY = 8 + crouch + Math.max(0, -legSwing) * 2;
       const rightLegY = 8 + crouch + Math.max(0, legSwing) * 2;
       ctx.fillStyle = "#0f131d";
-      roundPixel(ctx, -11 + legSwing * 1.8, leftLegY - 1, 9, 13 - (anim === "dash" ? 2 : 0), 2);
-      roundPixel(ctx, 2 - legSwing * 1.8, rightLegY - 1, 9, 13 - (anim === "dash" ? 2 : 0), 2);
+      roundPixel(ctx, -11 + legSwing * 2, leftLegY - 1, 9, 13 - (anim === "dash" ? 2 : 0), 2);
+      roundPixel(ctx, 2 - legSwing * 2, rightLegY - 1, 9, 13 - (anim === "dash" ? 2 : 0), 2);
       ctx.fillStyle = armorDark;
-      roundPixel(ctx, -9 + legSwing * 1.8, leftLegY, 6, 10 - (anim === "dash" ? 2 : 0), 2);
-      roundPixel(ctx, 4 - legSwing * 1.8, rightLegY, 6, 10 - (anim === "dash" ? 2 : 0), 2);
-      const leftArmY = -4 - legSwing * 1.2 + hitFrame * 4;
-      const rightArmY = -4 + legSwing * 1.2 - hitFrame * 3;
+      roundPixel(ctx, -9 + legSwing * 2, leftLegY, 6, 10 - (anim === "dash" ? 2 : 0), 2);
+      roundPixel(ctx, 4 - legSwing * 2, rightLegY, 6, 10 - (anim === "dash" ? 2 : 0), 2);
+      const leftArmY = -4 - legSwing + hitFrame * 4;
+      const rightArmY = -4 + legSwing - hitFrame * 3;
       ctx.fillStyle = "#0f131d";
       roundPixel(ctx, -15 - recoilFrame * 2, leftArmY - 1, 8, 17, 2);
       roundPixel(ctx, 7 + hitFrame * 2, rightArmY - 1, 8, 17, 2);

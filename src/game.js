@@ -7,7 +7,7 @@
   const ROOM_PAD = 86;
   const SAVE_KEY = "soulrift-save-v1";
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
-  const APP_VERSION = "20260605-room-invite-notice-137";
+  const APP_VERSION = "20260605-fast-room-invite-138";
   const VERSION_CHECK_INTERVAL = 15000;
   const UPDATE_ATTEMPT_KEY = "soulrift-update-attempt-v1";
   const CLOUD_MIGRATION_KEY = "soulrift-cloud-migrated-v1";
@@ -4901,8 +4901,11 @@
     friendCard(key, friend, compact = false) {
       const username = escapeHtml(friend?.username || key);
       const canInvite = Boolean(this.lobby?.code && !this.lobby.joinPending && this.lobby.host);
+      const inviteLockId = `invite:${accountKey(key)}:${this.lobby?.code || ""}`;
+      const invitePending = canInvite && this.socialActionLocks.has(inviteLockId);
       const inviteCooldownLeft = canInvite ? this.roomInviteCooldownLeft(key) : 0;
-      const inviteDisabled = inviteCooldownLeft > 0;
+      const inviteDisabled = invitePending || inviteCooldownLeft > 0;
+      const inviteLabel = invitePending ? "ĐANG GỬI" : inviteCooldownLeft > 0 ? "ĐÃ MỜI" : "MỜI";
       return `
         <div class="friend-card">
           <div>
@@ -4910,7 +4913,7 @@
             <p>${canInvite ? `Mời vào phòng ${escapeHtml(this.lobby.code)}` : "Bạn bè"}</p>
           </div>
           <div class="friend-actions">
-            ${canInvite ? `<button class="btn primary" data-action="invite-friend" data-friend="${escapeHtml(key)}" ${inviteDisabled ? "disabled" : ""}>${inviteDisabled ? "ĐÃ MỜI" : "MỜI"}</button>` : ""}
+            ${canInvite ? `<button class="btn primary" data-action="invite-friend" data-friend="${escapeHtml(key)}" ${inviteDisabled ? "disabled" : ""}>${inviteLabel}</button>` : ""}
             ${compact ? "" : `<button class="btn danger" data-action="remove-friend" data-friend="${escapeHtml(key)}">XÓA</button>`}
           </div>
         </div>
@@ -5223,6 +5226,7 @@
       }
       this.socialActionLocks.add(lockId);
       this.beginSocialCloudSync();
+      this.refreshRoomInviteCooldownViews();
       const now = Date.now();
       const inviteId = `${this.lobby.code}-${myKey}-${now}`;
       const invite = {
@@ -5235,23 +5239,16 @@
       };
       this.toast(`Đang mời ${friendName}...`);
       try {
-        const remoteNameRaw = await this.cloudAccounts.getAccountChild(targetKey, ["username"]);
-        if (remoteNameRaw === null || remoteNameRaw === undefined) {
-          this.toast(this.cloudAccounts.failed ? "Chưa kết nối được database" : "Tài khoản bạn bè không còn tồn tại");
-          return;
-        }
         const saved = await this.cloudAccounts.setAccountChild(targetKey, ["roomInvites", inviteId], invite);
         if (!saved) throw new Error("room invite sync failed");
-        const remoteName = String(remoteNameRaw || friendName).trim() || friendName;
         this.setRoomInviteCooldown(targetKey);
-        this.toast(`Đã mời ${remoteName} vào phòng ${this.lobby.code}`);
-        if (this.mode === "friends") this.showFriends();
-        if (this.mode === "lobby") this.renderLobby();
+        this.toast(`Đã mời ${friendName} vào phòng ${this.lobby.code}`);
       } catch {
         this.toast("Chưa gửi được lời mời phòng");
       } finally {
         this.endSocialCloudSync();
         this.socialActionLocks.delete(lockId);
+        this.refreshRoomInviteCooldownViews();
       }
     }
 

@@ -1407,6 +1407,16 @@ button {
   font-size: 13px;
 }
 
+.account-setting {
+  align-items: center;
+  min-height: 96px;
+}
+
+.account-setting .btn {
+  justify-self: end;
+  min-width: 132px;
+}
+
 .shop-offer {
   display: grid;
   grid-template-columns: 88px 1fr auto;

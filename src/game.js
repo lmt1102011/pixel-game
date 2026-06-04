@@ -7,7 +7,7 @@
   const ROOM_PAD = 86;
   const SAVE_KEY = "soulrift-save-v1";
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
-  const APP_VERSION = "20260604-play-gauntlet-131";
+  const APP_VERSION = "20260604-logout-settings-132";
   const VERSION_CHECK_INTERVAL = 15000;
   const UPDATE_ATTEMPT_KEY = "soulrift-update-attempt-v1";
   const CLOUD_MIGRATION_KEY = "soulrift-cloud-migrated-v1";
@@ -4141,7 +4141,6 @@
             ${item("play", "CHƠI", true)}
             ${item("character", "NHÂN VẬT")}
             ${item("settings", "CÀI ĐẶT")}
-            ${item("logout-account", "ĐĂNG XUẤT")}
           </div>
         </nav>
       `;
@@ -5249,6 +5248,15 @@
               ${this.settingGraphicsLevel(s.graphicsLevel, s.graphicsMode)}
               ${this.settingRange("screenShake", "Rung màn hình", s.screenShake)}
               ${this.settingRange("particles", "Hạt hiệu ứng", s.particles)}
+              ${inRun ? "" : `
+                <div class="setting-row account-setting">
+                  <div>
+                    <h3>Tài khoản</h3>
+                    <p>${this.save.account.username || "Người chơi"} đang đăng nhập.</p>
+                  </div>
+                  <button class="btn danger" data-action="logout-account">ĐĂNG XUẤT</button>
+                </div>
+              `}
             </div>
           </div>
         </section>

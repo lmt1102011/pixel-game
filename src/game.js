@@ -7,7 +7,7 @@
   const ROOM_PAD = 86;
   const SAVE_KEY = "soulrift-save-v1";
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
-  const APP_VERSION = "20260604-weapon-grip-hands-98";
+  const APP_VERSION = "20260604-grip-hands-only-99";
   const VERSION_CHECK_INTERVAL = 15000;
   const UPDATE_ATTEMPT_KEY = "soulrift-update-attempt-v1";
   const CLOUD_MIGRATION_KEY = "soulrift-cloud-migrated-v1";
@@ -4242,8 +4242,6 @@
             <span class="preview-cloak preview-${custom.accessory}"></span>
             <span class="preview-leg left"></span>
             <span class="preview-leg right"></span>
-            <span class="preview-arm left"></span>
-            <span class="preview-arm right"></span>
             <span class="preview-body"></span>
             <span class="preview-armor"></span>
             <span class="preview-helmet"></span>
@@ -12012,14 +12010,6 @@
       ctx.fillStyle = armorDark;
       roundPixel(ctx, -9 + legSwing * 2, leftLegY, 6, 10 - (anim === "dash" ? 2 : 0), 2);
       roundPixel(ctx, 4 - legSwing * 2, rightLegY, 6, 10 - (anim === "dash" ? 2 : 0), 2);
-      const leftArmY = -4 - legSwing + hitFrame * 4;
-      const rightArmY = -4 + legSwing - hitFrame * 3;
-      ctx.fillStyle = "#0f131d";
-      roundPixel(ctx, -15 - recoilFrame * 2, leftArmY - 1, 8, 17, 2);
-      roundPixel(ctx, 7 + hitFrame * 2, rightArmY - 1, 8, 17, 2);
-      ctx.fillStyle = armorDark;
-      roundPixel(ctx, -13 - recoilFrame * 2, leftArmY, 5, 15, 2);
-      roundPixel(ctx, 9 + hitFrame * 2, rightArmY, 5, 15, 2);
       ctx.fillStyle = "#0f131d";
       roundPixel(ctx, -11, -14 - holdFrame, 22, 27, 5);
       ctx.fillStyle = armorCore;

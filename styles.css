@@ -1697,24 +1697,6 @@ button {
   left: 67px;
 }
 
-.preview-arm {
-  top: 86px;
-  width: 17px;
-  height: 43px;
-  background: #111722;
-  clip-path: polygon(18% 0, 82% 0, 100% 22%, 88% 100%, 12% 100%, 0 22%);
-}
-
-.preview-arm.left {
-  left: 27px;
-  transform: rotate(4deg);
-}
-
-.preview-arm.right {
-  left: 84px;
-  transform: rotate(-4deg);
-}
-
 .preview-body {
   left: 39px;
   top: 42px;

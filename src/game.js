@@ -7,7 +7,7 @@
   const ROOM_PAD = 86;
   const SAVE_KEY = "soulrift-save-v1";
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
-  const APP_VERSION = "20260604-training-room-108";
+  const APP_VERSION = "20260604-graphics-auto-balance-109";
   const VERSION_CHECK_INTERVAL = 15000;
   const UPDATE_ATTEMPT_KEY = "soulrift-update-attempt-v1";
   const CLOUD_MIGRATION_KEY = "soulrift-cloud-migrated-v1";
@@ -2259,6 +2259,7 @@
         autoLevel: 5,
         displayedAutoLevel: 5,
         stableTime: 0,
+        overloadTime: 0,
         renderScale: 1,
         appliedRenderScale: 1,
         resizeAt: 0
@@ -2971,8 +2972,8 @@
 
     updatePerformanceState(dt) {
       const frame = clamp(dt || 1 / 60, 1 / 120, 0.12);
-      this.perf.avgDt = this.perf.avgDt * 0.92 + frame * 0.08;
-      this.perf.fastDt = (this.perf.fastDt || this.perf.avgDt) * 0.68 + frame * 0.32;
+      this.perf.avgDt = this.perf.avgDt * 0.955 + frame * 0.045;
+      this.perf.fastDt = (this.perf.fastDt || this.perf.avgDt) * 0.76 + frame * 0.24;
       if (this.save.settings.graphicsMode === "manual") {
         const level = clamp(Number(this.save.settings.graphicsLevel || 5), 1, 5);
         this.perf.autoLevel = level;
@@ -2981,27 +2982,73 @@
         this.updateRenderScale(false);
         return;
       }
-      const targetDt = this.isMobileDevice() ? 0.0205 : 0.0182;
+      const targetDt = this.isMobileDevice() ? 0.0225 : 0.0195;
+      const load = this.graphicsCombatLoad();
+      const inCombat = load > 0.42;
+      const idle = !this.run || this.mode !== "game" || this.pauseOverlay || load < 0.16;
       const fastPressure = (this.perf.fastDt || frame) - targetDt;
       const slowPressure = this.perf.avgDt - targetDt;
+      const pressure = Math.max(fastPressure, slowPressure, frame - targetDt);
       let nextLevel = Number.isFinite(this.perf.autoLevel) ? this.perf.autoLevel : 5;
-      const spike = frame > targetDt * (this.isMobileDevice() ? 1.55 : 1.45);
-      const overloaded = spike || fastPressure > 0.0022 || slowPressure > 0.0038;
-      if (overloaded) {
-        const severity = clamp(Math.max(fastPressure, slowPressure, frame - targetDt) / targetDt, 0, 1.8);
-        nextLevel -= spike ? 0.24 + severity * 0.34 : (0.14 + severity * 0.22);
+      const softFloor = idle ? 4.7 : inCombat ? (this.isMobileDevice() ? 3.65 : 3.85) : 4.45;
+      const hardFloor = inCombat ? (this.isMobileDevice() ? 3.15 : 3.35) : 4.25;
+      const spike = frame > targetDt * (this.isMobileDevice() ? 1.95 : 1.8);
+      const overloaded = pressure > (inCombat ? 0.0048 : 0.0095) || spike;
+      if (overloaded && (inCombat || spike)) {
+        this.perf.overloadTime = Math.min(2.2, (this.perf.overloadTime || 0) + frame);
+        const severe = spike || pressure > targetDt * 0.55;
+        const readyToDrop = severe || this.perf.overloadTime > (inCombat ? 0.42 : 0.9);
+        if (readyToDrop) {
+          const severity = clamp(pressure / targetDt, 0, 1.7);
+          const loadBoost = clamp(load, 0.5, 2.2);
+          const dropRate = (severe ? 1.05 : 0.42) * (0.45 + severity * 0.72) * loadBoost;
+          nextLevel -= dropRate * frame;
+        }
         this.perf.stableTime = 0;
       } else {
-        const headroom = clamp((targetDt - Math.max(this.perf.fastDt, this.perf.avgDt) - 0.0012) / targetDt, 0, 1);
+        this.perf.overloadTime = Math.max(0, (this.perf.overloadTime || 0) - frame * 1.6);
+        const headroom = clamp((targetDt - Math.max(this.perf.fastDt, this.perf.avgDt) - 0.0008) / targetDt, 0, 1);
         this.perf.stableTime = Math.min(3, (this.perf.stableTime || 0) + frame);
-        if (this.perf.stableTime > 0.55 && headroom > 0.08) {
-          nextLevel += (0.025 + headroom * 0.12) * frame;
+        if (idle) {
+          nextLevel += (0.95 + headroom * 0.35) * frame;
+        } else if (this.perf.stableTime > 0.45 && headroom > 0.05) {
+          nextLevel += (0.18 + headroom * 0.34) * frame;
         }
       }
-      this.perf.autoLevel = clamp(nextLevel, 1, 5);
+      const floor = spike && inCombat && this.perf.overloadTime > 1 ? hardFloor : softFloor;
+      this.perf.autoLevel = clamp(Math.max(nextLevel, floor), 1, 5);
       this.perf.displayedAutoLevel = Math.round(this.perf.autoLevel * 100) / 100;
       this.perf.quality = this.graphicsQualityFromLevel(this.perf.displayedAutoLevel);
-      this.updateRenderScale(overloaded);
+      this.updateRenderScale(overloaded && inCombat && this.perf.overloadTime > 0.65);
+    }
+
+    graphicsCombatLoad() {
+      if (!this.run || this.mode !== "game" || this.pauseOverlay) return 0;
+      const room = this.run.currentRoom || {};
+      if (["treasure", "merchant", "healing", "curse"].includes(room.type)) return 0.08;
+      if (room.intro > 0.2) return 0.12;
+      const enemies = this.run.enemies?.length || 0;
+      const boss = this.run.enemies?.some((enemy) => enemy.boss) ? 0.42 : 0;
+      const particles = this.run.particles?.length || 0;
+      const effects = this.run.effects?.length || 0;
+      const projectiles = this.run.projectiles?.length || 0;
+      const shockwaves = this.run.shockwaves?.length || 0;
+      const trails = this.run.trails?.length || 0;
+      const slashes = this.run.slashes?.length || 0;
+      const remote = this.isMultiplayerRun() ? Math.min(0.28, this.remotePlayers.size * 0.07) : 0;
+      return clamp(
+        boss +
+        enemies * 0.035 +
+        projectiles * 0.045 +
+        effects * 0.012 +
+        particles * 0.0032 +
+        shockwaves * 0.025 +
+        trails * 0.012 +
+        slashes * 0.012 +
+        remote,
+        0,
+        2.4
+      );
     }
 
     graphicsQualityFromLevel(level = 5) {
@@ -3016,9 +3063,9 @@
 
     graphicsRenderScale() {
       const quality = this.perf?.quality ?? 1;
-      const base = this.isMobileDevice() ? 0.5 : 0.62;
-      const range = this.isMobileDevice() ? 0.5 : 0.38;
-      return clamp(base + quality * range, this.isMobileDevice() ? 0.56 : 0.66, 1);
+      const base = this.isMobileDevice() ? 0.68 : 0.72;
+      const range = this.isMobileDevice() ? 0.32 : 0.28;
+      return clamp(base + quality * range, this.isMobileDevice() ? 0.78 : 0.82, 1);
     }
 
     updateRenderScale(force = false) {
@@ -4659,7 +4706,7 @@
       const autoLevel = Number.isFinite(this.perf?.displayedAutoLevel) ? this.perf.displayedAutoLevel.toFixed(2) : "5.00";
       return `
         <label class="setting-row">
-          <div><h3>Chế độ đồ họa</h3><p>${mode === "manual" ? "Khóa chất lượng theo mức bên dưới." : `Tự động tối ưu mịn từng 0.1 mức theo FPS. Hiện ${autoLevel}/5.`}</p></div>
+          <div><h3>Chế độ đồ họa</h3><p>${mode === "manual" ? "Khóa chất lượng theo mức bên dưới." : `Tự động giữ nét, chỉ giảm khi combat nặng. Hiện ${autoLevel}/5.`}</p></div>
           <select class="field setting-select" data-setting="graphicsMode" data-setting-type="string">
             <option value="auto" ${mode === "auto" ? "selected" : ""}>Tự động</option>
             <option value="manual" ${mode === "manual" ? "selected" : ""}>Thủ công</option>

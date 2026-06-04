@@ -7,7 +7,7 @@
   const ROOM_PAD = 86;
   const SAVE_KEY = "soulrift-save-v1";
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
-  const APP_VERSION = "20260604-anime-audio-mix-86";
+  const APP_VERSION = "20260604-power-identity-87";
   const VERSION_CHECK_INTERVAL = 15000;
   const UPDATE_ATTEMPT_KEY = "soulrift-update-attempt-v1";
   const DOOR_ENTER_TIME = 1.0;
@@ -4530,6 +4530,8 @@
         actionTime: player.actionTime,
         actionTotal: player.actionTotal,
         guardianParry: player.guardianParry || 0,
+        shadowWeapon: player.shadowWeapon || 0,
+        shadowWeaponDamageMult: player.shadowWeaponDamageMult || 1,
         ult: Math.max(0, Math.min(100, Number(player.ult || 0))),
         dead: Boolean(player.dead),
         spectating: Boolean(player.spectating || extra.spectating || (localState && this.run?.spectating)),
@@ -4849,6 +4851,8 @@
         dashVector: { x: 1, y: 0 },
         attackCd: 0,
         pendingBasicAttack: null,
+        shadowWeapon: 0,
+        shadowWeaponDamageMult: 1,
         ult: 0,
         shield: 0,
         dead: false,
@@ -5221,8 +5225,25 @@
       return mods;
     }
 
+    powerStatusModifiers() {
+      const mods = {
+        damageMult: 1,
+        speedMult: 1,
+        energyRegenMult: 1,
+        attackCdMult: 1
+      };
+      for (const effect of this.run?.statusEffects || []) {
+        if (effect.kind !== "powerBuff" || effect.time <= 0) continue;
+        if (effect.damageMult) mods.damageMult *= effect.damageMult;
+        if (effect.speedMult) mods.speedMult *= effect.speedMult;
+        if (effect.energyRegenMult) mods.energyRegenMult *= effect.energyRegenMult;
+        if (effect.attackCdMult) mods.attackCdMult *= effect.attackCdMult;
+      }
+      return mods;
+    }
+
     playerDamageOutputMult() {
-      return this.bossDebuffModifiers().damageMult || 1;
+      return (this.bossDebuffModifiers().damageMult || 1) * (this.powerStatusModifiers().damageMult || 1);
     }
 
     applyBossDebuff(debuffOrId) {
@@ -5840,6 +5861,8 @@
       p.attackCd = Math.max(0, p.attackCd - dt);
       p.domainLock = Math.max(0, (p.domainLock || 0) - dt);
       p.attackAimLock = Math.max(0, (p.attackAimLock || 0) - dt);
+      p.shadowWeapon = Math.max(0, (p.shadowWeapon || 0) - dt);
+      if (p.shadowWeapon <= 0) p.shadowWeaponDamageMult = 1;
       if (p.dead) {
         p.vx = 0;
         p.vy = 0;
@@ -5861,7 +5884,8 @@
       p.dashCd = Math.max(0, p.dashCd - dt);
       p.energyRegenDelay = Math.max(0, (p.energyRegenDelay || 0) - dt);
       const debuffMods = this.bossDebuffModifiers();
-      const regenRate = ((this.run.curse?.id === "manaDebt" ? 5.9 : 8.6) + (this.run.power.id === "time" ? 1.35 : 0)) * (p.stats.energyRegenMult || 1) * (debuffMods.energyRegenMult || 1);
+      const powerMods = this.powerStatusModifiers();
+      const regenRate = ((this.run.curse?.id === "manaDebt" ? 5.9 : 8.6) + (this.run.power.id === "time" ? 1.35 : 0)) * (p.stats.energyRegenMult || 1) * (debuffMods.energyRegenMult || 1) * (powerMods.energyRegenMult || 1);
       if (p.energyRegenDelay <= 0) p.energy = Math.min(p.maxEnergy, p.energy + dt * regenRate);
       for (const key of Object.keys(p.cooldowns)) p.cooldowns[key] = Math.max(0, p.cooldowns[key] - dt);
 
@@ -5887,7 +5911,7 @@
       if (p.attackAimLock > 0 && p.characterId === "guardian" && p.animation === "attack") p.facing = this.basicAimAngle(p);
       if (p.pendingBasicAttack) p.facing = p.pendingBasicAttack.angle;
 
-      let speed = p.speed * (debuffMods.speedMult || 1);
+      let speed = p.speed * (debuffMods.speedMult || 1) * (powerMods.speedMult || 1);
       if (this.run.power.id === "time") speed += 18;
       if (p.dashTime > 0) {
         p.dashTime -= dt;
@@ -5977,7 +6001,7 @@
         return;
       }
       p.facing = angle;
-      p.attackCd = (p.basicAttackCd || character.stats.attackCd) * (this.run.curse?.id === "ironPulse" ? 1.14 : 1) * (this.bossDebuffModifiers().attackCdMult || 1);
+      p.attackCd = (p.basicAttackCd || character.stats.attackCd) * (this.run.curse?.id === "ironPulse" ? 1.14 : 1) * (this.bossDebuffModifiers().attackCdMult || 1) * (this.powerStatusModifiers().attackCdMult || 1);
       p.animation = "attack";
       p.actionTotal = character.id === "guardian" ? 0.7 : character.id === "mage" ? 0.6 : character.id === "ranger" ? 0.72 : character.id === "assassin" ? 0.44 : 0.58;
       p.actionTime = p.actionTotal;
@@ -6653,6 +6677,175 @@
       this.camera.shake = Math.max(this.camera.shake, 5 + pulse * 7);
     }
 
+    enemiesNear(x, y, radius, limit = 99, predicate = null) {
+      return [...(this.run?.enemies || [])]
+        .filter((enemy) => enemy && enemy.hp > 0 && Math.hypot(enemy.x - x, enemy.y - y) < radius + enemy.radius && (!predicate || predicate(enemy)))
+        .sort((a, b) => Math.hypot(a.x - x, a.y - y) - Math.hypot(b.x - x, b.y - y))
+        .slice(0, limit);
+    }
+
+    addShadowShard(enemy, caster, stacks = 1) {
+      if (!enemy || !caster) return;
+      const time = 0.5 + Math.min(0.18, stacks * 0.025);
+      this.addEffect({
+        type: "shadowShard",
+        fromX: enemy.x,
+        fromY: enemy.y,
+        x: enemy.x,
+        y: enemy.y,
+        tx: caster.x,
+        ty: caster.y - 8,
+        radius: 80,
+        stacks,
+        time,
+        maxTime: time,
+        color: "#a169ff",
+        accent: "#101521"
+      });
+    }
+
+    applyShadowWeaponBuff(caster, stacks, local = false) {
+      if (!caster || stacks <= 0) return;
+      const duration = clamp(3.2 + stacks * 0.32, 3.2, 7.2);
+      const damageMult = 1 + clamp(0.08 + stacks * 0.018, 0.1, 0.34);
+      caster.shadowWeapon = Math.max(caster.shadowWeapon || 0, duration);
+      caster.shadowWeaponDamageMult = Math.max(caster.shadowWeaponDamageMult || 1, damageMult);
+      if (local) {
+        this.addStatusEffect({
+          id: "shadowWeapon",
+          kind: "powerBuff",
+          name: "Vũ Khí Bóng Tối",
+          text: `Sát thương tăng ${Math.round((damageMult - 1) * 100)}%. Đánh bằng vũ khí được phủ bóng tối.`,
+          color: "#a169ff",
+          icon: "TỐI",
+          time: duration,
+          maxTime: duration,
+          damageMult
+        });
+      }
+      for (let i = 0; i < Math.min(18, 5 + stacks * 2) * this.save.settings.particles; i++) {
+        this.addParticle(caster.x + rand(-16, 16), caster.y + rand(-24, 12), i % 3 === 0 ? "#101521" : "#a169ff", rand(7, 16), rand(0.24, 0.58), "shade", rand(-Math.PI, Math.PI), rand(30, 110));
+      }
+    }
+
+    consumeShadowMarks(key, caster, impact, damage, owner, casterId, remote = false) {
+      if (!caster || !impact || key === "q") return 0;
+      const radius = key === "f" ? 9999 : key === "r" ? 760 : 520;
+      const limit = key === "f" ? 12 : key === "r" ? 8 : 5;
+      const marked = this.enemiesNear(impact.x, impact.y, radius, limit, (enemy) => (enemy.mark || 0) > 0);
+      if (!marked.length) return 0;
+      let stacks = 0;
+      for (const enemy of marked) {
+        const mark = clamp(Math.ceil(enemy.mark || 1), 1, 5);
+        stacks += mark;
+        enemy.mark = 0;
+        this.addShadowShard(enemy, caster, mark);
+        if (!this.isMultiplayerClient()) {
+          this.damageEnemy(enemy, damage * (0.08 + mark * 0.035), {
+            x: (enemy.x - caster.x) / (Math.hypot(enemy.x - caster.x, enemy.y - caster.y) || 1),
+            y: (enemy.y - caster.y) / (Math.hypot(enemy.x - caster.x, enemy.y - caster.y) || 1),
+            source: "shadowDrain",
+            kind: "shadow",
+            sourceId: casterId
+          });
+          if (enemy.hp > 0) enemy.mark = 0;
+        }
+      }
+      const localCaster = !remote && (!casterId || casterId === this.lobby.id) && caster === this.run.player;
+      if (localCaster) {
+        const restored = Math.min((caster.maxEnergy || 0) * 0.42, 5 + stacks * 4.2);
+        caster.energy = Math.min(caster.maxEnergy || 0, (caster.energy || 0) + restored);
+        caster.energyRegenDelay = 0;
+        this.applyShadowWeaponBuff(caster, stacks, true);
+        this.addImpact(caster.x, caster.y - 18, "#a169ff", restored, false);
+      } else {
+        this.applyShadowWeaponBuff(caster, stacks, false);
+      }
+      this.addShockwave(caster.x, caster.y, 145 + Math.min(85, stacks * 9), "#a169ff", 0);
+      return stacks;
+    }
+
+    applyPowerIdentity(kind, key, caster, angle, impact, damage, owner = "player", casterId = "", remote = false, awakened = false) {
+      if (!this.run || !caster || !impact) return;
+      const radius = key === "f" ? 360 : key === "r" ? 280 : key === "e" ? 220 : 190;
+      const power = powerById(kind);
+      if (kind === "shadow") {
+        this.consumeShadowMarks(key, caster, impact, damage, owner, casterId, remote);
+        return;
+      }
+      const targets = this.enemiesNear(impact.x, impact.y, radius, key === "f" ? 10 : 6);
+      if (!targets.length) return;
+      if (this.isMultiplayerClient()) {
+        for (const enemy of targets.slice(0, 3)) this.addParticle(enemy.x, enemy.y, power.color, 14, 0.34, this.powerDomainParticleKind(kind), angle + Math.PI, 90);
+        return;
+      }
+      if (kind === "fire") {
+        for (const enemy of targets.filter((enemy) => (enemy.burn || 0) > 0).slice(0, 6)) {
+          enemy.burn = Math.max(0.6, (enemy.burn || 0) - 1.4);
+          this.damageEnemy(enemy, damage * (key === "r" || key === "f" ? 0.24 : 0.15), { x: 0, y: 0, source: "fireDetonate", kind: "fire", sourceId: casterId });
+          this.addShockwave(enemy.x, enemy.y, 78, power.accent, 0);
+        }
+      } else if (kind === "ice") {
+        for (const enemy of targets.filter((enemy) => (enemy.chill || 0) > 0.8)) {
+          enemy.stun = Math.max(enemy.stun || 0, enemy.boss ? 0.08 : key === "r" ? 0.62 : 0.34);
+          enemy.chill = Math.max(enemy.chill || 0, 3.1);
+          this.addParticle(enemy.x, enemy.y, power.accent, 16, 0.42, "snow");
+        }
+      } else if (kind === "lightning") {
+        const source = targets[0];
+        if (source) {
+          this.chainLightning(source, damage * (key === "r" || key === "f" ? 0.42 : 0.25));
+          this.burstLines(source.x, source.y, power.accent, key === "r" ? 7 : 4, 180 + radius * 0.5, 0.13);
+        }
+      } else if (kind === "blood") {
+        for (const enemy of targets) {
+          enemy.bleed = Math.max(enemy.bleed || 0, key === "r" ? 5.2 : 3.4);
+          enemy.bleedDamage = Math.max(enemy.bleedDamage || 0, damage * (enemy.boss ? 0.035 : 0.055));
+          if (enemy.hp < enemy.maxHp * 0.55) this.damageEnemy(enemy, damage * 0.12, { x: 0, y: 0, source: "bloodRite", kind: "blood", sourceId: casterId });
+        }
+        if (!remote && caster === this.run.player) this.healPlayer(Math.min(10, targets.length * 1.6), { source: "power", allowAfterCombat: true });
+      } else if (kind === "gravity") {
+        for (const enemy of targets) {
+          const d = Math.hypot(impact.x - enemy.x, impact.y - enemy.y) || 1;
+          enemy.vx += ((impact.x - enemy.x) / d) * (enemy.boss ? 170 : 430);
+          enemy.vy += ((impact.y - enemy.y) / d) * (enemy.boss ? 170 : 430);
+          if (d < 95) enemy.stun = Math.max(enemy.stun || 0, enemy.boss ? 0.05 : 0.18);
+        }
+        this.addShockwave(impact.x, impact.y, 125 + radius * 0.25, power.color, 0);
+      } else if (kind === "crystal") {
+        for (const enemy of targets.slice(0, key === "r" ? 5 : 3)) {
+          const a = Math.atan2(enemy.y - caster.y, enemy.x - caster.x);
+          this.spawnProjectile({ owner, casterId, x: enemy.x - Math.cos(a) * 42, y: enemy.y - Math.sin(a) * 42, vx: Math.cos(a) * 720, vy: Math.sin(a) * 720, radius: 6, damage: damage * 0.18, life: 0.32, color: power.accent, pierce: 0, kind: "crystal" });
+        }
+      } else if (kind === "nature") {
+        for (const enemy of targets) {
+          enemy.stun = Math.max(enemy.stun || 0, enemy.boss ? 0.04 : key === "q" ? 0.22 : 0.42);
+          enemy.vx *= 0.45;
+          enemy.vy *= 0.45;
+          this.addParticle(enemy.x, enemy.y, power.color, 15, 0.4, "leaf");
+        }
+      } else if (kind === "void") {
+        for (const enemy of targets.filter((enemy) => (enemy.mark || 0) > 0).slice(0, 8)) {
+          const mark = clamp(enemy.mark || 1, 1, 5);
+          enemy.mark = Math.max(0, enemy.mark - mark);
+          this.damageEnemy(enemy, damage * (0.1 + mark * 0.04), { x: 0, y: 0, source: "voidCollapse", kind: "void", sourceId: casterId });
+          const a = Math.atan2(impact.y - enemy.y, impact.x - enemy.x);
+          enemy.vx += Math.cos(a) * (enemy.boss ? 130 : 310);
+          enemy.vy += Math.sin(a) * (enemy.boss ? 130 : 310);
+        }
+      } else if (kind === "time") {
+        for (const enemy of targets) {
+          enemy.chill = Math.max(enemy.chill || 0, 3.4);
+          enemy.stun = Math.max(enemy.stun || 0, enemy.boss ? 0.03 : 0.16);
+        }
+        if (!remote && caster === this.run.player && key !== "f") {
+          caster.cooldowns.q = Math.max(0, caster.cooldowns.q - 0.25);
+          caster.cooldowns.e = Math.max(0, caster.cooldowns.e - 0.18);
+          caster.cooldowns.r = Math.max(0, caster.cooldowns.r - 0.12);
+        }
+      }
+    }
+
     executePowerSkill(key, power, caster, angle, target, options = {}) {
       const owner = options.owner || "player";
       const remote = Boolean(options.remote);
@@ -6750,6 +6943,7 @@
           for (const enemy of this.run.enemies) if (Math.hypot(enemy.x - x, enemy.y - y) < 190) enemy.chill = Math.max(enemy.chill, 3.6);
         }
         if (awakened) this.applyAwakenedSkillBonus(key, power, caster, angle, { x: tx, y: ty }, damage, owner, remote, skillHealAllowed);
+        this.applyPowerIdentity(kind, key, caster, angle, { x: tx, y: ty }, damage, owner, casterId, remote, awakened);
         this.camera.shake = Math.max(this.camera.shake, 7);
         this.audio.skill(kind, key, awakened);
         finishSkillDamageContext();
@@ -6805,6 +6999,7 @@
           this.addShockwave(x, y, 150, power.color, 0);
         }
         if (awakened) this.applyAwakenedSkillBonus(key, power, caster, angle, { x: tx, y: ty }, damage, owner, remote, skillHealAllowed);
+        this.applyPowerIdentity(kind, key, caster, angle, { x, y }, damage, owner, casterId, remote, awakened);
         this.audio.skill(kind, key, awakened);
         finishSkillDamageContext();
         return;
@@ -6867,6 +7062,7 @@
           for (const enemy of this.run.enemies) if (Math.hypot(enemy.x - x, enemy.y - y) < 250) enemy.chill = Math.max(enemy.chill, 2.8);
         }
         if (awakened) this.applyAwakenedSkillBonus(key, power, caster, angle, { x: tx, y: ty }, damage, owner, remote, skillHealAllowed);
+        this.applyPowerIdentity(kind, key, caster, angle, { x: tx, y: ty }, damage, owner, casterId, remote, awakened);
         this.camera.shake = Math.max(this.camera.shake, 9);
         this.audio.skill(kind, key, awakened);
         finishSkillDamageContext();
@@ -6911,6 +7107,7 @@
           areaBoost: awakened ? 1.22 : 1.15,
           awakened: Boolean(awakened)
         });
+        this.applyPowerIdentity(kind, key, caster, angle, { x, y }, damage, owner, casterId, remote, awakened);
         this.camera.shake = Math.max(this.camera.shake, 7);
         this.audio.skill(kind, key, awakened);
       }
@@ -10427,7 +10624,9 @@
           actionTotal: remote.actionTotal || 0,
           hp: remote.hp,
           dead: remote.dead,
-          characterId: remote.characterId
+          characterId: remote.characterId,
+          shadowWeapon: remote.shadowWeapon || 0,
+          shadowWeaponDamageMult: remote.shadowWeaponDamageMult || 1
         }, powerById(remote.power), { ...this.save.customization, color: remote.color });
         this.drawNameTag(ctx, remoteX, remoteY - 54, remote.name || "Người chơi", false, remote.hp, remote.maxHp);
       }
@@ -11285,6 +11484,7 @@
       const t = this.menuTime;
       const facing = actor.facing || 0;
       const character = characterById(actor.characterId || this.save.account?.selectedCharacter || "swordsman");
+      const shadowWeaponActive = (actor.shadowWeapon || 0) > 0 || (actor.shadowWeaponDamageMult || 1) > 1.01;
       const anim = actor.animation || "idle";
       const phase = actor.animTime ?? t;
       const actionTotal = actor.actionTotal || (anim === "ultimate" ? 0.72 : anim === "skill" ? 0.38 : 0.28);
@@ -11448,8 +11648,9 @@
         ctx.stroke();
       }
       ctx.save();
-      ctx.shadowColor = power.color;
-      ctx.shadowBlur = (anim === "skill" || anim === "ultimate") ? this.glow(14) : 0;
+      const weaponAuraColor = shadowWeaponActive ? "#a169ff" : power.color;
+      ctx.shadowColor = weaponAuraColor;
+      ctx.shadowBlur = shadowWeaponActive ? this.glow(22) : (anim === "skill" || anim === "ultimate") ? this.glow(14) : 0;
       if (character.id === "guardian") {
         const thrust = hitFrame ? 30 : holdFrame ? 18 : recoilFrame ? 5 : 0;
         const guardPower = hitFrame || holdFrame ? 1 : 0;
@@ -11730,6 +11931,65 @@
         ctx.globalAlpha = 0.38;
         ctx.fillRect(15, 1.6, bladeLen * 0.35, 1);
         ctx.globalAlpha = 1;
+      }
+      if (shadowWeaponActive) {
+        ctx.save();
+        ctx.globalCompositeOperation = "lighter";
+        ctx.fillStyle = "#101521";
+        ctx.strokeStyle = "#a169ff";
+        ctx.lineWidth = 2;
+        const drawShadowCube = (ox, oy, size, spin) => {
+          ctx.save();
+          ctx.translate(ox, oy);
+          ctx.rotate(t * 3 + spin);
+          ctx.fillRect(-size / 2, -size / 2, size, size);
+          ctx.strokeRect(-size / 2, -size / 2, size, size);
+          ctx.restore();
+        };
+        ctx.globalAlpha = 0.54 + Math.sin(t * 10) * 0.1;
+        if (character.id === "mage") {
+          for (let i = 0; i < 4; i++) drawShadowCube(Math.sin(t * 5 + i) * 8, -26 + i * 15, 6 + i % 2, i);
+          ctx.globalAlpha = 0.72;
+          ctx.strokeStyle = "#d8b7ff";
+          ctx.beginPath();
+          ctx.moveTo(0, -34);
+          ctx.quadraticCurveTo(8 + Math.sin(t * 9) * 3, -5, 0, 29);
+          ctx.stroke();
+        } else if (character.id === "guardian") {
+          for (let i = 0; i < 4; i++) drawShadowCube(13 + i * 8, -15 + i * 10, 7, i);
+          ctx.globalAlpha = 0.68;
+          ctx.strokeStyle = "#d8b7ff";
+          ctx.beginPath();
+          ctx.ellipse(24, 1, 24, 28, 0, 0, TAU);
+          ctx.stroke();
+        } else if (character.id === "ranger") {
+          for (let i = 0; i < 4; i++) drawShadowCube(-8 + i * 18, Math.sin(t * 6 + i) * 8, 6, i);
+          ctx.globalAlpha = 0.72;
+          ctx.strokeStyle = "#d8b7ff";
+          ctx.beginPath();
+          ctx.moveTo(-20, 0);
+          ctx.lineTo(48, 0);
+          ctx.stroke();
+        } else if (character.id === "assassin") {
+          for (let i = 0; i < 4; i++) drawShadowCube(6 + i * 9, (i % 2 ? 11 : -11) + Math.sin(t * 7 + i) * 3, 6, i);
+          ctx.globalAlpha = 0.7;
+          ctx.strokeStyle = "#d8b7ff";
+          ctx.beginPath();
+          ctx.moveTo(-2, -18);
+          ctx.lineTo(43, 18);
+          ctx.moveTo(-2, 18);
+          ctx.lineTo(43, -18);
+          ctx.stroke();
+        } else {
+          for (let i = 0; i < 3; i++) drawShadowCube(10 + i * 13 + Math.sin(t * 8 + i) * 3, Math.sin(t * 5 + i * 1.7) * 7, 8, i);
+          ctx.globalAlpha = 0.72;
+          ctx.strokeStyle = "#d8b7ff";
+          ctx.beginPath();
+          ctx.moveTo(4, -10);
+          ctx.quadraticCurveTo(26, -18 + Math.sin(t * 9) * 3, 55, -5);
+          ctx.stroke();
+        }
+        ctx.restore();
       }
       ctx.restore();
       ctx.restore();
@@ -12101,6 +12361,42 @@
           ctx.stroke();
           ctx.globalAlpha *= 0.16;
           ctx.fill();
+        }
+        if (effect.type === "shadowShard") {
+          const maxTime = Math.max(0.1, effect.maxTime || 0.5);
+          const progress = clamp(1 - effect.time / maxTime, 0, 1);
+          const eased = 1 - Math.pow(1 - progress, 3);
+          const sx = effect.fromX ?? effect.x;
+          const sy = effect.fromY ?? effect.y;
+          const tx = effect.tx ?? effect.x;
+          const ty = effect.ty ?? effect.y;
+          const midX = (sx + tx) / 2;
+          const midY = (sy + ty) / 2 - 54 - Math.min(34, (effect.stacks || 1) * 4);
+          const px = (1 - eased) * (1 - eased) * sx + 2 * (1 - eased) * eased * midX + eased * eased * tx;
+          const py = (1 - eased) * (1 - eased) * sy + 2 * (1 - eased) * eased * midY + eased * eased * ty;
+          ctx.globalAlpha = (1 - progress) * 0.82;
+          ctx.strokeStyle = effect.color || "#a169ff";
+          ctx.lineWidth = 3;
+          ctx.beginPath();
+          ctx.moveTo(sx, sy);
+          ctx.quadraticCurveTo(midX, midY, px, py);
+          ctx.stroke();
+          ctx.translate(px, py);
+          ctx.rotate(this.menuTime * 7 + (effect.stacks || 1));
+          const size = 9 + Math.min(15, (effect.stacks || 1) * 2);
+          ctx.fillStyle = effect.accent || "#101521";
+          ctx.strokeStyle = effect.color || "#a169ff";
+          ctx.fillRect(-size / 2, -size / 2, size, size);
+          ctx.strokeRect(-size / 2, -size / 2, size, size);
+          ctx.globalAlpha = (1 - progress) * 0.42;
+          ctx.strokeStyle = "#d8b7ff";
+          ctx.lineWidth = 1.5;
+          ctx.beginPath();
+          ctx.moveTo(-size * 0.7, 0);
+          ctx.lineTo(size * 0.7, 0);
+          ctx.moveTo(0, -size * 0.7);
+          ctx.lineTo(0, size * 0.7);
+          ctx.stroke();
         }
         if (effect.type === "skillShape") this.drawSkillShape(ctx, effect);
         if (effect.type === "lineTell") {

@@ -7,7 +7,7 @@
   const ROOM_PAD = 86;
   const SAVE_KEY = "soulrift-save-v1";
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
-  const APP_VERSION = "20260604-sharper-weapon-art-76";
+  const APP_VERSION = "20260604-class-attack-poses-77";
   const VERSION_CHECK_INTERVAL = 15000;
   const UPDATE_ATTEMPT_KEY = "soulrift-update-attempt-v1";
   const DOOR_ENTER_TIME = 1.0;
@@ -11060,7 +11060,6 @@
       const deathProgress = anim === "death" ? (actor.actionTime > 0 ? 1 - clamp(actor.actionTime / Math.max(0.1, actionTotal), 0, 1) : 1) : 0;
       const stepStride = Math.round(Math.sin(phase * (anim === "run" ? 12 : anim === "walk" ? 8 : 3)) * 2) / 2;
       const stride = ["walk", "run", "idle"].includes(anim) ? stepStride : 0;
-      const bob = stride * (anim === "idle" ? 1 : anim === "walk" ? 2 : anim === "run" ? 3 : 0) - (hitFrame ? 3 : holdFrame ? 2 : 0) + (recoilFrame ? 1 : 0);
       const dir = Math.cos(facing) >= 0 ? 1 : -1;
       const applyWeaponFacing = (aimAngle, mirrorAngle = aimAngle) => {
         const side = Math.cos(mirrorAngle) >= 0 ? 1 : -1;
@@ -11072,10 +11071,56 @@
         }
         return side;
       };
-      const bodyShift = dir * (hitFrame ? 5 : holdFrame ? 3 : recoilFrame ? -2 : castFrame ? 2 : ultFrame ? 1 : damageFrame ? -4 : 0);
-      const lean = dir * (anim === "dash" ? 0.09 : damageFrame ? -0.14 : hitFrame ? 0.16 : holdFrame ? 0.08 : recoilFrame ? -0.08 : castFrame ? 0.05 : 0);
-      const squashX = anim === "dash" ? 1.08 : hitFrame ? 1.08 : holdFrame ? 1.04 : 1;
-      const squashY = anim === "dash" ? 0.92 : hitFrame ? 0.94 : holdFrame ? 0.96 : 1;
+      const rangerPull = character.id === "ranger" && anim === "attack"
+        ? (actionProgress < 0.5 ? clamp(actionProgress / 0.5, 0, 1) : clamp((0.78 - actionProgress) / 0.28, 0, 1))
+        : 0;
+      const rangerSnap = character.id === "ranger" && anim === "attack" && actionProgress >= 0.48
+        ? Math.sin(clamp((actionProgress - 0.48) / 0.2, 0, 1) * Math.PI)
+        : 0;
+      const attackPose = { lift: 0, shift: 0, lean: 0, squashX: 1, squashY: 1, crouch: 0 };
+      if (anim === "attack") {
+        if (character.id === "ranger") {
+          attackPose.lift = -rangerPull * 1.2 + rangerSnap * 1.4;
+          attackPose.shift = dir * (-3 * rangerPull - 11 * rangerSnap + (recoilFrame ? -4 : 0));
+          attackPose.lean = dir * (-0.05 * rangerPull - 0.18 * rangerSnap + (recoilFrame ? 0.04 : 0));
+          attackPose.squashX = 1 - rangerPull * 0.03 + rangerSnap * 0.04;
+          attackPose.squashY = 1 + rangerPull * 0.02 - rangerSnap * 0.05;
+          attackPose.crouch = 1 + Math.round(rangerPull * 2);
+        } else if (character.id === "guardian") {
+          attackPose.lift = hitFrame ? -2 : holdFrame ? -1 : 0;
+          attackPose.shift = dir * (hitFrame ? 9 : holdFrame ? 6 : recoilFrame ? -1 : 1);
+          attackPose.lean = dir * (hitFrame ? 0.12 : holdFrame ? 0.06 : recoilFrame ? -0.04 : 0);
+          attackPose.squashX = hitFrame ? 1.1 : holdFrame ? 1.06 : 1;
+          attackPose.squashY = hitFrame ? 0.92 : holdFrame ? 0.95 : 1;
+          attackPose.crouch = hitFrame ? 4 : holdFrame ? 3 : 1;
+        } else if (character.id === "mage") {
+          attackPose.lift = hitFrame ? -1.5 : holdFrame ? -1 : 0;
+          attackPose.shift = dir * (hitFrame ? 1 : holdFrame ? 0 : recoilFrame ? -1 : 0);
+          attackPose.lean = dir * (hitFrame ? -0.03 : holdFrame ? 0.04 : recoilFrame ? 0.02 : 0);
+          attackPose.squashX = hitFrame ? 1.02 : 1;
+          attackPose.squashY = hitFrame ? 0.98 : 1;
+          attackPose.crouch = hitFrame || holdFrame ? 1 : 0;
+        } else if (character.id === "assassin") {
+          attackPose.lift = hitFrame ? -4 : holdFrame ? -1 : recoilFrame ? 1 : 0;
+          attackPose.shift = dir * (hitFrame ? 8 : holdFrame ? -3 : recoilFrame ? -1 : 0);
+          attackPose.lean = dir * (hitFrame ? 0.2 : holdFrame ? -0.1 : recoilFrame ? 0.05 : 0);
+          attackPose.squashX = hitFrame ? 1.11 : holdFrame ? 1.04 : 1;
+          attackPose.squashY = hitFrame ? 0.91 : holdFrame ? 0.97 : 1;
+          attackPose.crouch = hitFrame ? 3 : holdFrame ? 1 : 0;
+        } else {
+          attackPose.lift = hitFrame ? -3 : holdFrame ? -2 : recoilFrame ? 1 : 0;
+          attackPose.shift = dir * (hitFrame ? 6 : holdFrame ? 3 : recoilFrame ? -3 : 0);
+          attackPose.lean = dir * (hitFrame ? 0.19 : holdFrame ? 0.09 : recoilFrame ? -0.08 : 0);
+          attackPose.squashX = hitFrame ? 1.09 : holdFrame ? 1.04 : 1;
+          attackPose.squashY = hitFrame ? 0.93 : holdFrame ? 0.96 : 1;
+          attackPose.crouch = hitFrame ? 3 : holdFrame ? 2 : 0;
+        }
+      }
+      const bob = stride * (anim === "idle" ? 1 : anim === "walk" ? 2 : anim === "run" ? 3 : 0) + attackPose.lift;
+      const bodyShift = dir * (castFrame ? 2 : ultFrame ? 1 : damageFrame ? -4 : 0) + attackPose.shift;
+      const lean = dir * (anim === "dash" ? 0.09 : damageFrame ? -0.14 : castFrame ? 0.05 : 0) + attackPose.lean;
+      const squashX = anim === "dash" ? 1.08 : attackPose.squashX;
+      const squashY = anim === "dash" ? 0.92 : attackPose.squashY;
       const color = custom.color || "#d8b46a";
       const auraColor = { gold: "#f2bf63", crimson: "#ff4b55", teal: "#35d6c9", violet: "#a169ff" }[custom.aura] || power.color;
       ctx.save();
@@ -11130,7 +11175,7 @@
         ctx.fillRect(8, -8 + stride, 13 + hitFrame * 7, 4);
       }
       const legSwing = anim === "run" || anim === "walk" ? stride : Math.sin(t * 3) * 0.25;
-      const crouch = anim === "dash" ? 3 : hitFrame ? 3 : holdFrame ? 2 : castFrame ? 1 : 0;
+      const crouch = anim === "dash" ? 3 : castFrame ? 1 : attackPose.crouch;
       ctx.fillStyle = "#1d2230";
       ctx.fillRect(-9 + legSwing * 1.8, 8 + crouch + Math.max(0, -legSwing) * 2, 6, 11 - (anim === "dash" ? 2 : 0));
       ctx.fillRect(3 - legSwing * 1.8, 8 + crouch + Math.max(0, legSwing) * 2, 6, 11 - (anim === "dash" ? 2 : 0));
@@ -11291,16 +11336,12 @@
           ctx.globalAlpha = 1;
         }
       } else if (character.id === "ranger") {
-        const pull = anim === "attack"
-          ? (actionProgress < 0.58 ? clamp(actionProgress / 0.58, 0, 1) : clamp((0.86 - actionProgress) / 0.28, 0, 1))
-          : 0;
-        const snap = anim === "attack" && actionProgress >= 0.54
-          ? Math.sin(clamp((actionProgress - 0.54) / 0.22, 0, 1) * Math.PI)
-          : 0;
+        const pull = rangerPull;
+        const snap = rangerSnap;
         const nockX = 10 - pull * 20;
         const stringX = snap > 0 ? Math.max(nockX, 10 + snap * 14) : nockX;
         applyWeaponFacing(facing);
-        ctx.translate(3 - snap * 8, snap * Math.sin(t * 70) * 0.8);
+        ctx.translate(3 - pull * 2 - snap * 11, 0);
         ctx.scale(0.78 + snap * 0.04, 0.78 - snap * 0.02);
         ctx.lineCap = "round";
         ctx.lineJoin = "round";

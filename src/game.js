@@ -7,7 +7,7 @@
   const ROOM_PAD = 86;
   const SAVE_KEY = "soulrift-save-v1";
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
-  const APP_VERSION = "20260604-weapon-silhouette-122";
+  const APP_VERSION = "20260604-martial-fist-dots-123";
   const VERSION_CHECK_INTERVAL = 15000;
   const UPDATE_ATTEMPT_KEY = "soulrift-update-attempt-v1";
   const CLOUD_MIGRATION_KEY = "soulrift-cloud-migrated-v1";
@@ -13669,29 +13669,16 @@
         const punch = hitFrame ? 19 : holdFrame ? 10 : recoilFrame ? -2 : 2;
         const guard = hitFrame ? 2 : holdFrame ? 1 : 0;
         applyWeaponFacing(facing);
-        ctx.lineCap = "butt";
-        ctx.lineJoin = "round";
         ctx.fillStyle = "rgba(0,0,0,0.25)";
         ctx.beginPath();
-        ctx.ellipse(14 + punch * 0.45, 13, 16, 3.5, 0, 0, TAU);
+        ctx.ellipse(14 + punch * 0.45, 13, 12, 3, 0, 0, TAU);
         ctx.fill();
-        ctx.fillStyle = "#101622";
-        roundPixel(ctx, -6, -11 - guard, 11, 5, 2);
-        roundPixel(ctx, 4, 6, 13 + punch, 5, 2);
-        ctx.fillStyle = "#2b3547";
-        roundPixel(ctx, -4, -10 - guard, 8, 3, 1.5);
-        roundPixel(ctx, 6, 7, 10 + punch, 3, 1.5);
         drawGripHand(-1, -13 - guard, 6, 6);
-        drawGripHand(14 + punch, 4, 7, 7);
-        ctx.fillStyle = character.color;
-        ctx.fillRect(-2, -12 - guard, 7, 2);
-        ctx.fillRect(14 + punch, 4, 8, 2);
-        ctx.fillRect(14 + punch, 9, 7, 2);
+        drawGripHand(16 + punch, 4, 7, 7);
         if (hitFrame || holdFrame) {
           ctx.globalAlpha = 0.28 + hitFrame * 0.14;
           ctx.fillStyle = power.accent;
-          ctx.fillRect(24 + punch, 2, 10, 3);
-          ctx.fillRect(28 + punch, 7, 7, 3);
+          ctx.fillRect(26 + punch, 4, 8, 3);
           ctx.globalAlpha = 1;
         }
       } else if (character.id === "spearman") {

@@ -7,7 +7,7 @@
   const ROOM_PAD = 86;
   const SAVE_KEY = "soulrift-save-v1";
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
-  const APP_VERSION = "20260604-graphics-auto-lag-response-110";
+  const APP_VERSION = "20260604-emergency-visual-budget-111";
   const VERSION_CHECK_INTERVAL = 15000;
   const UPDATE_ATTEMPT_KEY = "soulrift-update-attempt-v1";
   const CLOUD_MIGRATION_KEY = "soulrift-cloud-migrated-v1";
@@ -3063,6 +3063,36 @@
       );
     }
 
+    performancePressure() {
+      return clamp(((this.perf?.lagTime || 0) - 0.2) / 1.15, 0, 1);
+    }
+
+    performanceEmergency() {
+      return this.performancePressure() > 0.32 || (this.perf?.autoLevel || 5) < 3.1;
+    }
+
+    visualBudgetScale() {
+      return clamp(1 - this.performancePressure() * 0.72, 0.22, 1);
+    }
+
+    optionalVisualEffect(type) {
+      return [
+        "attackBurst",
+        "hitSpark",
+        "castBurst",
+        "castCone",
+        "skillShape",
+        "powerGlyph",
+        "shadowShard"
+      ].includes(type);
+    }
+
+    projectileLimit() {
+      const quality = this.perf?.quality ?? 1;
+      const base = this.isMobileDevice() ? 34 : 62;
+      return Math.round(base * (0.46 + quality * 0.54) * this.visualBudgetScale());
+    }
+
     graphicsQualityFromLevel(level = 5) {
       const table = [0.32, 0.5, 0.68, 0.84, 1];
       const value = clamp(Number(level || 5), 1, 5);
@@ -3118,22 +3148,23 @@
     }
 
     particleSpawnChance(shape = "spark") {
-      if (["crit", "plus"].includes(shape)) return 1;
+      const pressure = this.performancePressure();
+      if (["crit", "plus"].includes(shape)) return pressure > 0.62 ? 0.45 : 1;
       const quality = this.perf?.quality ?? 1;
       const mobileBias = this.isMobileDevice() ? 0.58 : 0.82;
-      return clamp(mobileBias * (0.26 + quality * 0.74), 0.08, 0.92);
+      return clamp(mobileBias * (0.26 + quality * 0.74) * this.visualBudgetScale(), 0.03, 0.92);
     }
 
     particleLimit() {
       const quality = this.perf?.quality ?? 1;
       const base = this.isMobileDevice() ? 82 : 155;
-      return Math.round(base * (0.28 + quality * 0.72));
+      return Math.round(base * (0.28 + quality * 0.72) * this.visualBudgetScale());
     }
 
     effectLimit() {
       const quality = this.perf?.quality ?? 1;
       const base = this.isMobileDevice() ? 40 : 72;
-      return Math.round(base * (0.42 + quality * 0.58));
+      return Math.round(base * (0.42 + quality * 0.58) * this.visualBudgetScale());
     }
 
     glow(value) {
@@ -3155,11 +3186,43 @@
           effect.type === "hitSpark" ||
           effect.type === "castBurst" ||
           effect.type === "castCone" ||
+          effect.type === "shadowShard" ||
           effect.type === "skillShape" ||
           effect.type === "powerGlyph"
         ));
-        this.run.effects.splice(index >= 0 ? index : 0, 1);
+        if (index < 0) break;
+        this.run.effects.splice(index, 1);
       }
+    }
+
+    trimOptionalList(list, limit, optional, force = false) {
+      if (!Array.isArray(list) || list.length <= limit) return;
+      let remove = list.length - limit;
+      for (let i = 0; i < list.length && remove > 0;) {
+        if (optional(list[i])) {
+          list.splice(i, 1);
+          remove--;
+        } else {
+          i++;
+        }
+      }
+      if (force && remove > 0 && this.performancePressure() > 0.78) list.splice(0, remove);
+    }
+
+    applyEmergencyVisualBudget() {
+      if (!this.run) return;
+      const pressure = this.performancePressure();
+      if (pressure <= 0.08) return;
+      this.trimEffectList();
+      this.trimVisualList(this.run.particles, this.particleLimit());
+      this.trimVisualList(this.run.damageTexts, Math.round((this.isMobileDevice() ? 14 : 24) * this.visualBudgetScale()));
+      this.trimVisualList(this.run.slashes, Math.round((this.isMobileDevice() ? 14 : 22) * this.visualBudgetScale()));
+      this.trimOptionalList(this.run.shockwaves, Math.round((this.isMobileDevice() ? 8 : 13) * this.visualBudgetScale()), (wave) => !wave.damage);
+      this.trimOptionalList(this.run.trails, Math.round((this.isMobileDevice() ? 12 : 20) * this.visualBudgetScale()), (trail) => trail.damageTick === undefined);
+      this.trimOptionalList(this.run.projectiles, this.projectileLimit(), (projectile) => (
+        projectile.visualOnly ||
+        (!this.inView(projectile.x, projectile.y, 220) && (projectile.age || 0) > 0.18 && projectile.owner !== "enemy")
+      ));
     }
 
     viewBounds(pad = 0) {
@@ -6257,6 +6320,7 @@
       this.updateEffects(dt);
       this.updateParticles(dt);
       this.updateDamageTexts(dt);
+      this.applyEmergencyVisualBudget();
       this.updateStatusEffects(dt);
       this.applyTrainingRules();
       this.updateHud();
@@ -8367,6 +8431,7 @@
     }
 
     spawnProjectile(projectile) {
+      if (this.performanceEmergency() && projectile.visualOnly) return;
       const scale = this.currentSkillAreaScale();
       const next = { ...projectile };
       if (!next.casterId && (next.owner === "player" || next.owner === "ally")) {
@@ -8376,6 +8441,12 @@
         next.radius *= scale;
       }
       this.run.projectiles.push({ id: uid("proj"), ...next, age: 0 });
+      if (this.run.projectiles.length > this.projectileLimit()) {
+        this.trimOptionalList(this.run.projectiles, this.projectileLimit(), (entry) => (
+          entry.visualOnly ||
+          (!this.inView(entry.x, entry.y, 220) && (entry.age || 0) > 0.18 && entry.owner !== "enemy")
+        ));
+      }
     }
 
     areaDamage(x, y, radius, damage, color, kind, ultimate = false, sourceId = this.currentDamageSourceId || "") {
@@ -10592,7 +10663,8 @@
         const fromY = projectile.y;
         projectile.x += projectile.vx * dt;
         projectile.y += projectile.vy * dt;
-        if (this.inView(projectile.x, projectile.y, 90) && chance((this.isMobileDevice() ? 18 : 30) * dt)) {
+        const trailRate = this.performanceEmergency() ? (this.isMobileDevice() ? 4 : 7) : (this.isMobileDevice() ? 18 : 30);
+        if (this.inView(projectile.x, projectile.y, 90) && chance(trailRate * dt)) {
           const trailKind = projectile.kind === "fireball" ? "flame" : projectile.kind === "ice" ? "snow" : projectile.kind === "shadow" ? "shade" : "dot";
           this.addParticle(projectile.x, projectile.y, projectile.color, projectile.radius * 0.9, 0.25, trailKind);
         }
@@ -11294,6 +11366,7 @@
 
     addEffect(effect) {
       if (!this.run) return;
+      if (this.performanceEmergency() && this.optionalVisualEffect(effect.type)) return;
       const scale = this.currentSkillAreaScale();
       const next = { ...effect };
       if (next.type === "ultimate" && next.domain && !next.id) next.id = uid("domain");
@@ -11417,12 +11490,14 @@
 
     addImpact(x, y, color, damage, crit) {
       this.camera.shake = Math.max(this.camera.shake, crit ? 9 : 4);
-      for (let i = 0; i < (crit ? 14 : 8) * this.save.settings.particles; i++) {
+      const pressure = this.performancePressure();
+      const particleCount = Math.round((crit ? 14 : 8) * this.save.settings.particles * clamp(1 - pressure * 0.78, 0.18, 1));
+      for (let i = 0; i < particleCount; i++) {
         this.addParticle(x, y, color, rand(6, crit ? 18 : 13), rand(0.25, 0.7), crit ? "crit" : "spark");
       }
-      if (this.save.settings.damageNumbers) {
+      if (this.save.settings.damageNumbers && pressure < 0.62) {
         this.run.damageTexts.push({ x, y: y - 18, vx: rand(-18, 18), vy: -52, life: 0.72, text: `${crit ? "CRIT " : ""}${Math.ceil(damage)}`, color: crit ? "#ffe45e" : "#ffffff", crit });
-        this.trimVisualList(this.run.damageTexts, this.isMobileDevice() ? 28 : 48);
+        this.trimVisualList(this.run.damageTexts, Math.round((this.isMobileDevice() ? 28 : 48) * this.visualBudgetScale()));
       }
       this.audio.sfx(crit ? 520 : 360, crit ? "square" : "triangle", 0.055, crit ? 0.18 : 0.11);
     }
@@ -11899,11 +11974,12 @@
       const scale = this.worldViewScale();
       this.renderViewW = this.width / scale;
       this.renderViewH = this.height / scale;
+      const emergency = this.performanceEmergency();
       ctx.save();
       ctx.scale(scale, scale);
       ctx.translate(-camX, -camY);
       this.drawRoom(ctx);
-      this.drawTrails(ctx);
+      if (!emergency) this.drawTrails(ctx);
       this.drawHazards(ctx);
       this.drawPickups(ctx);
       this.drawRoomObjects(ctx);
@@ -11956,9 +12032,13 @@
       }
       this.drawSlashes(ctx);
       this.drawShockwaves(ctx);
-      this.drawParticles(ctx);
-      this.drawEffects(ctx, true);
-      this.drawDamageTexts(ctx);
+      if (!emergency) {
+        this.drawParticles(ctx);
+        this.drawEffects(ctx, true);
+        this.drawDamageTexts(ctx);
+      } else if (this.performancePressure() < 0.72) {
+        this.drawParticles(ctx);
+      }
       this.drawBossBars(ctx);
       if (this.run.currentRoom?.intro > 0) this.drawRoomIntro(ctx);
       ctx.restore();
@@ -13789,7 +13869,9 @@
     }
 
     drawEffects(ctx, foreground = false) {
+      const emergency = this.performanceEmergency();
       for (const effect of this.run.effects) {
+        if (emergency && this.optionalVisualEffect(effect.type)) continue;
         const combatFlash = effect.type === "attackBurst" || effect.type === "hitSpark";
         if (foreground !== combatFlash) continue;
         if (Number.isFinite(effect.x) && Number.isFinite(effect.y) && !this.inView(effect.x, effect.y, (effect.radius || effect.reach || 180) + 80)) continue;

@@ -7,7 +7,7 @@
   const ROOM_PAD = 86;
   const SAVE_KEY = "soulrift-save-v1";
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
-  const APP_VERSION = "20260604-soft-render-129";
+  const APP_VERSION = "20260604-gauntlet-menu-130";
   const VERSION_CHECK_INTERVAL = 15000;
   const UPDATE_ATTEMPT_KEY = "soulrift-update-attempt-v1";
   const CLOUD_MIGRATION_KEY = "soulrift-cloud-migrated-v1";
@@ -4138,7 +4138,7 @@
             <span>${this.hasAccount() ? `Quay sức mạnh: ${this.save.account.powerSpins}` : "Cần tạo tài khoản"}</span>
           </div>
           <div class="nav-buttons">
-            ${item("play", "CHƠI", true)}
+            ${item("play", "VƯỢT ẢI", true)}
             ${item("character", "NHÂN VẬT")}
             ${item("settings", "CÀI ĐẶT")}
             ${item("logout-account", "ĐĂNG XUẤT")}
@@ -4294,15 +4294,15 @@
           <div class="panel">
             <div class="panel-header">
               <div>
-                <h2 class="panel-title">Chơi</h2>
-                <p class="panel-subtitle">Chọn kiểu chơi trước khi vào khe nứt.</p>
+                <h2 class="panel-title">Vượt ải</h2>
+                <p class="panel-subtitle">Chọn cách vượt ải rồi bắt đầu bằng nhân vật và power đang mang.</p>
               </div>
             </div>
             <div class="grid cols-3">
               <button class="choice-card" data-action="play-solo">
                 <div class="card-icon">1</div>
-                <h3>Chơi đơn</h3>
-                <p>Chọn độ khó rồi bắt đầu bằng power đang mang.</p>
+                <h3>Một mình</h3>
+                <p>Vượt ải solo, tự chọn độ khó và bắt đầu ngay.</p>
               </button>
               <button class="choice-card" data-action="play-training">
                 <div class="card-icon">T</div>
@@ -4311,8 +4311,8 @@
               </button>
               <button class="choice-card" data-action="play-multiplayer">
                 <div class="card-icon">4</div>
-                <h3>Nhiều người chơi</h3>
-                <p>Tạo phòng hoặc tìm phòng bằng ID.</p>
+                <h3>Cùng bạn</h3>
+                <p>Vượt ải theo phòng, chủ phòng chọn ải và độ khó.</p>
               </button>
             </div>
           </div>
@@ -4338,10 +4338,10 @@
           <div class="panel">
             <div class="panel-header">
               <div>
-                <h2 class="panel-title">Chơi Đơn</h2>
+                <h2 class="panel-title">Vượt ải một mình</h2>
                 <p class="panel-subtitle">${selected ? `Power: ${selected.name}` : "Hãy quay và chọn power trước khi bắt đầu."}</p>
               </div>
-              <button class="btn" data-action="play">TRỞ LẠI</button>
+              <button class="btn" data-action="play">VƯỢT ẢI</button>
             </div>
             <div class="grid cols-3">${difficultyCards}</div>
           </div>
@@ -4380,7 +4380,7 @@
                 <h2 class="panel-title">Phòng Huấn Luyện</h2>
                 <p class="panel-subtitle">${selected ? `Power: ${selected.name}. Vào phòng có 5 dummy để test chiêu.` : "Hãy quay và chọn power trước khi vào phòng huấn luyện."}</p>
               </div>
-              <button class="btn" data-action="play">TRỞ LẠI</button>
+              <button class="btn" data-action="play">VƯỢT ẢI</button>
             </div>
             <div class="grid">
               ${check("trainingDamage", "Gây sát thương", "Bật để dummy mất máu, tắt để chỉ test hitbox và hiệu ứng.", options.damage)}
@@ -4404,10 +4404,10 @@
           <div class="panel">
             <div class="panel-header">
               <div>
-                <h2 class="panel-title">Nhiều Người Chơi</h2>
-                <p class="panel-subtitle">Tạo phòng mới hoặc tìm phòng bằng ID.</p>
+                <h2 class="panel-title">Vượt ải cùng bạn</h2>
+                <p class="panel-subtitle">Tạo phòng mới hoặc tìm phòng để cùng nhau vượt ải.</p>
               </div>
-              <button class="btn" data-action="play">TRỞ LẠI</button>
+              <button class="btn" data-action="play">VƯỢT ẢI</button>
             </div>
             <div class="grid cols-2">
               <button class="choice-card" data-action="create-room-from-play">
@@ -4573,12 +4573,12 @@
           <div class="panel">
             <div class="panel-header">
               <div>
-                <h2 class="panel-title">Tìm Phòng</h2>
-                <p class="panel-subtitle">Nhập ID phòng hoặc chọn phòng đang có.</p>
+                <h2 class="panel-title">Tìm phòng vượt ải</h2>
+                <p class="panel-subtitle">Nhập ID phòng hoặc chọn phòng vượt ải đang có.</p>
               </div>
               <div class="header-actions">
                 <button class="btn icon-label" data-action="reload-rooms"><span class="btn-icon">↻</span> TẢI LẠI</button>
-                <button class="btn" data-action="play-multiplayer">TRỞ LẠI</button>
+                <button class="btn" data-action="play-multiplayer">CÙNG BẠN</button>
               </div>
             </div>
             <div class="room-finder-layout">
@@ -5333,8 +5333,8 @@
           <div class="panel">
             <div class="panel-header">
               <div>
-                <h2 class="panel-title">Nhiều Người</h2>
-                <p class="panel-subtitle">${isHost ? "Chủ phòng chọn ải và bắt đầu khi mọi người sẵn sàng." : "Bạn chỉ cần sẵn sàng, chủ phòng sẽ chọn ải và bắt đầu."}</p>
+                <h2 class="panel-title">Phòng vượt ải</h2>
+                <p class="panel-subtitle">${isHost ? "Chủ phòng chọn khu, độ khó và bắt đầu khi mọi người sẵn sàng." : "Bạn chỉ cần sẵn sàng, chủ phòng sẽ chọn khu, độ khó và bắt đầu."}</p>
               </div>
             </div>
             <div class="grid cols-2 ${this.lobby.code ? "hidden" : ""}">

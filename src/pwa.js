@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const APP_VERSION = "20260605-pwa-app-141";
+  const APP_VERSION = "20260605-pwa-ios-share-142";
   let deferredInstallPrompt = null;
   let startGame = null;
   let iosGuideShown = false;
@@ -89,10 +89,22 @@
       <div class="ios-guide-art" aria-hidden="true">
         <div class="phone-frame">
           <div class="phone-top"></div>
-          <div class="share-demo">
-            <span class="share-icon">↑</span>
-            <b>Chia sẻ</b>
+          <div class="iphone-page-demo">
+            <img src="assets/icons/app-icon.svg" alt="" />
+            <span>SOULRIFT</span>
           </div>
+          <div class="iphone-safari-bar">
+            <span class="safari-aa">AA</span>
+            <span class="safari-address">soulrift</span>
+            <span class="iphone-share-button">
+              <svg viewBox="0 0 32 32" aria-hidden="true">
+                <path d="M16 21V6" />
+                <path d="M10 12l6-6 6 6" />
+                <path d="M9 15H6v11h20V15h-3" />
+              </svg>
+            </span>
+          </div>
+          <div class="share-callout"><span></span><b>Bấm nút chia sẻ này</b></div>
           <div class="add-demo">
             <span>+</span>
             <b>Thêm vào Màn hình chính</b>

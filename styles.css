@@ -572,6 +572,95 @@ button {
   align-self: center;
 }
 
+.account-choice-panel,
+.account-shell {
+  width: min(880px, calc(100vw - 28px));
+  margin: 0 auto;
+}
+
+.account-shell {
+  display: grid;
+  grid-template-columns: minmax(0, 0.92fr) minmax(300px, 1fr);
+  gap: 14px;
+  align-items: stretch;
+}
+
+.account-hero,
+.auth-card,
+.account-option,
+.account-info,
+.account-notice {
+  border: 1px solid rgba(255, 255, 255, 0.13);
+  background: rgba(8, 10, 16, 0.72);
+  padding: 16px;
+}
+
+.account-hero {
+  display: grid;
+  align-content: center;
+  gap: 12px;
+  min-height: 330px;
+}
+
+.account-choice-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  padding: 14px;
+}
+
+.account-option {
+  min-height: 180px;
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+}
+
+.account-option:hover {
+  border-color: rgba(242, 191, 99, 0.5);
+  background: rgba(242, 191, 99, 0.08);
+}
+
+.account-option b,
+.account-option small {
+  display: block;
+}
+
+.account-option b {
+  margin: 12px 0 8px;
+  font-size: 22px;
+}
+
+.account-option small {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.account-option-icon {
+  display: inline-grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.07);
+  color: var(--gold);
+  font-size: 24px;
+  font-weight: 900;
+}
+
+.account-info {
+  grid-column: 1 / -1;
+}
+
+.account-notice {
+  color: #ffd1d8;
+  border-color: rgba(255, 75, 85, 0.45);
+  background: rgba(122, 34, 51, 0.28);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
 .account-badge {
   display: inline-flex;
   margin-bottom: 12px;
@@ -2468,8 +2557,18 @@ button {
   .slot-grid,
   .character-layout,
   .home-grid,
-  .account-grid {
+  .account-grid,
+  .account-shell,
+  .account-choice-grid {
     grid-template-columns: 1fr;
+  }
+
+  .account-choice-grid {
+    padding: 10px;
+  }
+
+  .account-option {
+    min-height: 132px;
   }
 
   .character-preview {

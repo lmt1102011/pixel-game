@@ -7,7 +7,7 @@
   const ROOM_PAD = 86;
   const SAVE_KEY = "soulrift-save-v1";
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
-  const APP_VERSION = "20260604-manager-rules-90";
+  const APP_VERSION = "20260604-auth-polish-91";
   const VERSION_CHECK_INTERVAL = 15000;
   const UPDATE_ATTEMPT_KEY = "soulrift-update-attempt-v1";
   const CLOUD_MIGRATION_KEY = "soulrift-cloud-migrated-v1";
@@ -23,6 +23,7 @@
   };
   const USE_FIREBASE_ANONYMOUS_AUTH = false;
   const CLOUD_SAVE_DEBOUNCE = 900;
+  const ACCOUNT_CLOUD_CHECK_INTERVAL = 5;
   const DOOR_ENTER_TIME = 1.0;
   const DOMAIN_CUTIN_TIME = 1.35;
   const DOMAIN_GROW_TIME = 1.55;
@@ -2168,6 +2169,9 @@
       this.store = new SaveStore();
       this.cloudAccounts = new CloudAccountStore();
       this.cloudSaveTimer = null;
+      this.accountCloudCheckTimer = ACCOUNT_CLOUD_CHECK_INTERVAL;
+      this.accountCloudCheckBusy = false;
+      this.deletedAccountNotice = "";
       this.audio = new AudioEngine(this);
       this.lobby = new PeerLobby(this);
       this.save = defaultSave();
@@ -2221,6 +2225,11 @@
       this.clearResolvedUpdateAttempt();
       this.startUpdateWatcher();
       this.mode = this.hasAccount() ? "menu" : "account";
+      if (this.deletedAccountNotice) {
+        this.showAccountGate("login", this.deletedAccountNotice);
+        requestAnimationFrame((time) => this.loop(time));
+        return;
+      }
       this.showMainMenu();
       requestAnimationFrame((time) => this.loop(time));
     }
@@ -2266,6 +2275,11 @@
         // Non-fatal; cloud accounts remain usable.
       }
       this.save.auth ||= { currentUser: "", accounts: {} };
+      const activeBeforeCloud = this.save.auth.currentUser;
+      if (activeBeforeCloud && !clean[activeBeforeCloud]) {
+        const username = localAccounts[activeBeforeCloud]?.username || this.save.account?.username || "Tài khoản";
+        this.deletedAccountNotice = `${username} đã bị xóa khỏi hệ thống. Vui lòng đăng nhập tài khoản khác hoặc tạo tài khoản mới.`;
+      }
       this.save.auth.accounts = clean;
       if (this.save.auth.currentUser && !this.save.auth.accounts[this.save.auth.currentUser]) {
         this.save.auth.currentUser = "";
@@ -2601,52 +2615,108 @@
       this.showAccountGate();
     }
 
-    showAccountGate() {
+    forceDeletedAccountLogout(key = this.save.auth?.currentUser || "") {
+      const username = this.save.auth?.accounts?.[key]?.username || this.save.account?.username || "tài khoản";
+      if (this.isMultiplayerRun()) this.lobby.sendLeaveRun();
+      if (this.lobby?.code || this.lobby?.joinPending) this.lobby.leaveRoom();
+      this.run = null;
+      this.remotePlayers.clear();
+      this.pauseOverlay = false;
+      this.roomFinderOpen = false;
+      if (key && this.save.auth?.accounts) delete this.save.auth.accounts[key];
+      this.save.auth.currentUser = "";
+      this.applyProfile(defaultProfile(""));
+      this.store.save(this.save);
+      this.toast("Tài khoản đã bị xóa");
+      this.showAccountGate("login", `${username} đã bị xóa khỏi hệ thống. Vui lòng đăng nhập tài khoản khác hoặc tạo tài khoản mới.`);
+    }
+
+    showAccountGate(view = "choice", notice = "") {
       this.mode = "account";
       this.hud.classList.add("hidden");
       this.touchLayer.classList.add("hidden");
       const accountCount = Object.keys(this.save.auth?.accounts || {}).length;
+      const noticeMarkup = notice ? `<div class="account-notice">${notice}</div>` : "";
+      if (view === "login") {
+        this.setScreen(`
+        <section class="account-panel account-shell">
+          <div class="account-hero">
+            <div class="account-badge">SOULRIFT</div>
+            <h2 class="panel-title">Đăng nhập</h2>
+            <p class="panel-subtitle">Dùng tài khoản đã tạo để đồng bộ lượt quay, power và tiến trình.</p>
+            ${noticeMarkup}
+          </div>
+          <div class="account-form auth-card">
+            <label>
+              <span>Tên tài khoản</span>
+              <input id="loginUsername" class="field" maxlength="18" placeholder="Tên đã đăng ký" autocomplete="username" />
+            </label>
+            <label>
+              <span>Mật khẩu</span>
+              <input id="loginPassword" class="field" type="password" maxlength="32" placeholder="Mật khẩu" autocomplete="current-password" />
+            </label>
+            <button class="btn primary" data-action="login-account">ĐĂNG NHẬP</button>
+            <button class="btn" data-action="open-register">TẠO TÀI KHOẢN MỚI</button>
+            <button class="btn ghost" data-action="account-choice">TRỞ LẠI</button>
+          </div>
+        </section>
+        `);
+        return;
+      }
+      if (view === "register") {
+        this.setScreen(`
+        <section class="account-panel account-shell">
+          <div class="account-hero">
+            <div class="account-badge">5 LƯỢT QUAY SỨC MẠNH</div>
+            <h2 class="panel-title">Tạo tài khoản</h2>
+            <p class="panel-subtitle">Tài khoản mới bắt đầu sạch: không có vật phẩm, có 5 lượt quay power và tự lưu lên database.</p>
+            ${noticeMarkup}
+          </div>
+          <div class="account-form auth-card">
+            <label>
+              <span>Tên tài khoản</span>
+              <input id="registerUsername" class="field" maxlength="18" placeholder="3-18 ký tự" autocomplete="username" />
+            </label>
+            <label>
+              <span>Mật khẩu</span>
+              <input id="registerPassword" class="field" type="password" maxlength="32" placeholder="Ít nhất 6 ký tự" autocomplete="new-password" />
+            </label>
+            <label>
+              <span>Xác nhận mật khẩu</span>
+              <input id="registerConfirm" class="field" type="password" maxlength="32" placeholder="Nhập lại mật khẩu" autocomplete="new-password" />
+            </label>
+            <button class="btn primary" data-action="register-account">TẠO TÀI KHOẢN</button>
+            <button class="btn" data-action="open-login">ĐÃ CÓ TÀI KHOẢN</button>
+            <button class="btn ghost" data-action="account-choice">TRỞ LẠI</button>
+          </div>
+        </section>
+        `);
+        return;
+      }
       this.setScreen(`
-        <section class="account-panel wide-panel">
+        <section class="account-panel account-choice-panel">
           <div class="panel-header">
             <div>
-              <h2 class="panel-title">Tài Khoản</h2>
-              <p class="panel-subtitle">Đăng nhập hoặc đăng ký hồ sơ cục bộ. Đã lưu ${accountCount} tài khoản trên máy này.</p>
+              <h2 class="panel-title">SOULRIFT</h2>
+              <p class="panel-subtitle">Chọn cách vào game. Đã đồng bộ ${accountCount} tài khoản trên máy này.</p>
             </div>
           </div>
-          <div class="account-grid">
-            <div class="account-copy">
-              <div class="account-badge">5 LƯỢT QUAY SỨC MẠNH</div>
-              <h3>Khởi đầu sạch</h3>
-              <p>Tài khoản mới không có vật phẩm. Sức mạnh phải quay ở ngoài ải, sau đó chọn một sức mạnh để mang vào trận.</p>
-            </div>
-            <div class="account-form">
-              <h3>Đăng Nhập</h3>
-              <label>
-                <span>Tên tài khoản</span>
-                <input id="loginUsername" class="field" maxlength="18" placeholder="Tên đã đăng ký" autocomplete="username" />
-              </label>
-              <label>
-                <span>Mật khẩu</span>
-                <input id="loginPassword" class="field" type="password" maxlength="32" placeholder="Mật khẩu" autocomplete="current-password" />
-              </label>
-              <button class="btn primary" data-action="login-account">ĐĂNG NHẬP</button>
-            </div>
-            <div class="account-form">
-              <h3>Đăng Ký</h3>
-              <label>
-                <span>Tên tài khoản</span>
-                <input id="registerUsername" class="field" maxlength="18" placeholder="3-18 ký tự" autocomplete="username" />
-              </label>
-              <label>
-                <span>Mật khẩu</span>
-                <input id="registerPassword" class="field" type="password" maxlength="32" placeholder="Ít nhất 6 ký tự" autocomplete="new-password" />
-              </label>
-              <label>
-                <span>Xác nhận</span>
-                <input id="registerConfirm" class="field" type="password" maxlength="32" placeholder="Nhập lại mật khẩu" autocomplete="new-password" />
-              </label>
-              <button class="btn primary" data-action="register-account">TẠO TÀI KHOẢN</button>
+          ${noticeMarkup}
+          <div class="account-choice-grid">
+            <button class="account-option primary-home" data-action="open-login">
+              <span class="account-option-icon">↪</span>
+              <b>Đăng nhập</b>
+              <small>Tiếp tục bằng tài khoản đã có.</small>
+            </button>
+            <button class="account-option" data-action="open-register">
+              <span class="account-option-icon">＋</span>
+              <b>Tạo tài khoản</b>
+              <small>Nhận 5 lượt quay power khởi đầu.</small>
+            </button>
+            <div class="account-copy account-info">
+              <div class="account-badge">QUY TẮC TÀI KHOẢN</div>
+              <h3>Power được quản lý ngoài ải</h3>
+              <p>Người chơi phải có tài khoản mới vào game. Tài khoản bị xóa từ manager sẽ bị đăng xuất tự động khi game phát hiện.</p>
             </div>
           </div>
         </section>
@@ -3133,6 +3203,7 @@
       }
       this.lobby.updatePresence(dt);
       this.updateRoomDirectory(dt);
+      this.updateAccountCloudCheck(dt);
       this.updateQuickActions();
       if (this.mode === "game" && this.run) this.update(dt);
       this.audio.update(dt);
@@ -3143,6 +3214,30 @@
     setScreen(html = "") {
       this.screen.innerHTML = html;
       this.screen.classList.toggle("hidden", !html);
+    }
+
+    updateAccountCloudCheck(dt) {
+      if (!this.hasAccount() || this.accountCloudCheckBusy) return;
+      this.accountCloudCheckTimer -= dt;
+      if (this.accountCloudCheckTimer > 0) return;
+      this.accountCloudCheckTimer = ACCOUNT_CLOUD_CHECK_INTERVAL;
+      const key = this.save.auth?.currentUser || "";
+      if (!key) return;
+      this.accountCloudCheckBusy = true;
+      this.cloudAccounts.getAccount(key)
+        .then((account) => {
+          if (this.save.auth?.currentUser !== key) return;
+          if (!account && !this.cloudAccounts.failed) {
+            this.forceDeletedAccountLogout(key);
+            return;
+          }
+          if (account && !this.run && this.mode !== "game") {
+            this.save.auth.accounts[key] = account;
+          }
+        })
+        .finally(() => {
+          this.accountCloudCheckBusy = false;
+        });
     }
 
     captureScreenScroll() {
@@ -3286,6 +3381,18 @@
     }
 
     handleAction(action, target) {
+      if (action === "open-login") {
+        this.showAccountGate("login");
+        return;
+      }
+      if (action === "open-register") {
+        this.showAccountGate("register");
+        return;
+      }
+      if (action === "account-choice") {
+        this.showAccountGate("choice");
+        return;
+      }
       if (action === "register-account" || action === "create-account") {
         this.registerAccount();
         return;

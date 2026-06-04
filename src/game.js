@@ -7,7 +7,7 @@
   const ROOM_PAD = 86;
   const SAVE_KEY = "soulrift-save-v1";
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
-  const APP_VERSION = "20260604-weapon-left-facing-fix-73";
+  const APP_VERSION = "20260604-smaller-bomber-zone-74";
   const VERSION_CHECK_INTERVAL = 15000;
   const UPDATE_ATTEMPT_KEY = "soulrift-update-attempt-v1";
   const DOOR_ENTER_TIME = 1.0;
@@ -8406,7 +8406,7 @@
         this.addEffect({ type: "danger", x: enemy.x, y: enemy.y, radius: enemy.elite ? 118 : 96, time, color, damage: enemy.damage * 0.45 });
       }
       if (type === "bombZone") {
-        const radius = enemy.elite ? 104 : 86;
+        const radius = enemy.elite ? 84 : 68;
         this.addEffect({ type: "danger", x: targetX, y: targetY, radius, time: time + 0.12, color: "#ff8d3d", damage: enemy.damage * 0.72 });
       }
       if (type === "mineScatter") {
@@ -8414,7 +8414,7 @@
           const a = angle + (i - 1) * 0.62;
           const x = targetX + Math.cos(a) * (42 + i * 18);
           const y = targetY + Math.sin(a) * (42 + i * 18);
-          this.addEffect({ type: "danger", x, y, radius: enemy.elite ? 70 : 58, time: time + 0.18 + i * 0.05, color: "#ff8d3d", damage: enemy.damage * 0.46 });
+          this.addEffect({ type: "danger", x, y, radius: enemy.elite ? 58 : 46, time: time + 0.18 + i * 0.05, color: "#ff8d3d", damage: enemy.damage * 0.46 });
         }
       }
       if (type === "guardSlam") {
@@ -8541,7 +8541,8 @@
       }
       if (type === "casterZone" || type === "bombZone") {
         for (let i = 0; i < 8; i++) {
-          this.addParticle(enemy.windupX + rand(-34, 34), enemy.windupY + rand(-34, 34), this.run.biome.accent, rand(8, 18), rand(0.25, 0.55), "spark");
+          const spread = type === "bombZone" ? 26 : 34;
+          this.addParticle(enemy.windupX + rand(-spread, spread), enemy.windupY + rand(-spread, spread), this.run.biome.accent, rand(8, 18), rand(0.25, 0.55), "spark");
         }
       }
       if (type === "orbNova") {

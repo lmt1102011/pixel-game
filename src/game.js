@@ -7,7 +7,7 @@
   const ROOM_PAD = 86;
   const SAVE_KEY = "soulrift-save-v1";
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
-  const APP_VERSION = "20260605-friends-no-create-room-134";
+  const APP_VERSION = "20260605-friends-fast-social-135";
   const VERSION_CHECK_INTERVAL = 15000;
   const UPDATE_ATTEMPT_KEY = "soulrift-update-attempt-v1";
   const CLOUD_MIGRATION_KEY = "soulrift-cloud-migrated-v1";
@@ -23,7 +23,7 @@
   };
   const USE_FIREBASE_ANONYMOUS_AUTH = false;
   const CLOUD_SAVE_DEBOUNCE = 900;
-  const ACCOUNT_CLOUD_CHECK_INTERVAL = 2;
+  const ACCOUNT_CLOUD_CHECK_INTERVAL = 0.8;
   const DOOR_ENTER_TIME = 1.0;
   const DOMAIN_CUTIN_TIME = 1.35;
   const DOMAIN_GROW_TIME = 1.55;
@@ -919,6 +919,12 @@
       return key ? `${root}/${encodeURIComponent(key)}.json` : `${root}.json`;
     }
 
+    accountChildPath(key = "", segments = []) {
+      const base = `${this.baseUrl}/accounts/${encodeURIComponent(key)}`;
+      const tail = segments.map((segment) => encodeURIComponent(String(segment))).join("/");
+      return `${base}${tail ? `/${tail}` : ""}.json`;
+    }
+
     async getAuthToken() {
       if (!USE_FIREBASE_ANONYMOUS_AUTH || !this.apiKey || typeof fetch !== "function") return "";
       if (this.authToken) return this.authToken;
@@ -973,6 +979,20 @@
     async getAccount(key) {
       const data = await this.request(this.accountPath(key));
       return data && typeof data === "object" ? data : null;
+    }
+
+    async getAccountChild(key, segments = []) {
+      if (!key || !segments.length) return null;
+      return this.request(this.accountChildPath(key, segments));
+    }
+
+    async setAccountChild(key, segments = [], value = null) {
+      if (!key || !segments.length) return false;
+      const options = value === null
+        ? { method: "DELETE" }
+        : { method: "PUT", body: JSON.stringify(value) };
+      const data = await this.request(this.accountChildPath(key, segments), options);
+      return data !== null || !this.failed;
     }
 
     async saveAccount(key, account) {
@@ -2469,6 +2489,8 @@
       this.roomFinderOpen = false;
       this.roomDirectoryTimer = 0;
       this.roomDirectoryBusy = false;
+      this.socialCloudWrites = 0;
+      this.socialActionLocks = new Set();
       this.joystickTouchId = null;
       this.menuTime = 0;
       this.networkTimer = 0;
@@ -2821,6 +2843,20 @@
         roomInvites: normalized.roomInvites
       });
       return account;
+    }
+
+    persistLocalAccountRecord(key = this.save.auth?.currentUser || "") {
+      if (!key || !this.save.auth?.accounts?.[key]) return;
+      this.ensureAccountSocial(key);
+      this.store.save(this.save);
+    }
+
+    beginSocialCloudSync() {
+      this.socialCloudWrites = Math.max(0, Number(this.socialCloudWrites) || 0) + 1;
+    }
+
+    endSocialCloudSync() {
+      this.socialCloudWrites = Math.max(0, (Number(this.socialCloudWrites) || 0) - 1);
     }
 
     applyProfile(profile) {
@@ -4094,7 +4130,7 @@
     }
 
     updateAccountCloudCheck(dt) {
-      if (!this.hasAccount() || this.accountCloudCheckBusy || this.cloudSaveTimer) return;
+      if (!this.hasAccount() || this.accountCloudCheckBusy || this.cloudSaveTimer || this.socialCloudWrites > 0) return;
       this.accountCloudCheckTimer -= dt;
       if (this.accountCloudCheckTimer > 0) return;
       this.accountCloudCheckTimer = ACCOUNT_CLOUD_CHECK_INTERVAL;
@@ -4853,7 +4889,7 @@
       `).join("") : `<div class="empty-state">Chưa có lời mời phòng.</div>`;
       const roomHint = this.lobby?.code && this.lobby.host
         ? `<div class="join-pending"><b>Phòng ${escapeHtml(this.lobby.code)} đang mở</b><span>Bấm Mời ở từng bạn để gửi ID phòng.</span></div>`
-        : `<div class="join-pending"><b>Chưa có phòng đang mở</b><span>Tạo phòng trong Vượt ải cùng bạn rồi quay lại đây để mời.</span></div>`;
+        : "";
       this.mode = "friends";
       this.roomFinderOpen = false;
       this.setScreen(`
@@ -4920,28 +4956,42 @@
         this.toast("Đã gửi lời mời, đang chờ phản hồi");
         return;
       }
-      const remoteRaw = await this.cloudAccounts.getAccount(targetKey);
-      if (!remoteRaw) {
-        this.toast(this.cloudAccounts.failed ? "Chưa kết nối được database" : "Không tìm thấy tài khoản này");
-        return;
-      }
-      const remote = this.normalizeAccountRecord(remoteRaw, targetKey);
-      const now = Date.now();
+      const lockId = `add:${targetKey}`;
+      if (this.socialActionLocks.has(lockId)) return;
+      this.socialActionLocks.add(lockId);
+      this.beginSocialCloudSync();
       const previousLocal = cloneData(local);
-      local.friendRequests ||= { incoming: {}, outgoing: {} };
-      remote.friendRequests ||= { incoming: {}, outgoing: {} };
-      local.friendRequests.outgoing[targetKey] = { username: remote.username || rawName, sentAt: now };
-      remote.friendRequests.incoming[myKey] = { username: local.username || this.save.account.username || "Bạn", sentAt: now };
-      const savedRemote = await this.cloudAccounts.saveAccount(targetKey, remote);
-      if (!savedRemote) {
-        Object.assign(local, previousLocal);
+      const now = Date.now();
+      try {
+        const remoteNameRaw = await this.cloudAccounts.getAccountChild(targetKey, ["username"]);
+        if (remoteNameRaw === null || remoteNameRaw === undefined) {
+          this.toast(this.cloudAccounts.failed ? "Chưa kết nối được database" : "Không tìm thấy tài khoản này");
+          return;
+        }
+        const remoteName = String(remoteNameRaw || rawName).trim() || rawName;
+        local.friendRequests ||= { incoming: {}, outgoing: {} };
+        local.friendRequests.incoming ||= {};
+        local.friendRequests.outgoing ||= {};
+        local.friendRequests.outgoing[targetKey] = { username: remoteName, sentAt: now };
+        this.save.auth.accounts[myKey] = local;
+        this.persistLocalAccountRecord(myKey);
+        this.toast(`Đã gửi lời mời tới ${remoteName}`);
+        this.showFriends();
+        const writes = await Promise.all([
+          this.cloudAccounts.setAccountChild(myKey, ["friendRequests", "outgoing", targetKey], { username: remoteName, sentAt: now }),
+          this.cloudAccounts.setAccountChild(targetKey, ["friendRequests", "incoming", myKey], { username: local.username || this.save.account.username || "Bạn", sentAt: now })
+        ]);
+        if (!writes.every(Boolean)) throw new Error("friend request sync failed");
+        this.lastCloudAccountSignature = this.accountCloudSignature(this.save.auth.accounts[myKey]);
+      } catch {
+        this.save.auth.accounts[myKey] = previousLocal;
+        this.persistLocalAccountRecord(myKey);
+        if (this.mode === "friends") this.showFriends();
         this.toast("Chưa gửi được lời mời");
-        return;
+      } finally {
+        this.endSocialCloudSync();
+        this.socialActionLocks.delete(lockId);
       }
-      this.save.auth.accounts[myKey] = local;
-      await this.saveCloudAccountNow(myKey);
-      this.toast(`Đã gửi lời mời tới ${remote.username || rawName}`);
-      this.showFriends();
     }
 
     async acceptFriendRequest(friendKey = "") {
@@ -4950,33 +5000,56 @@
       const local = this.currentAccountRecord();
       if (!targetKey || !local?.friendRequests?.incoming?.[targetKey]) return;
       const request = local.friendRequests.incoming[targetKey];
-      const remoteRaw = await this.cloudAccounts.getAccount(targetKey);
-      if (!remoteRaw) {
-        delete local.friendRequests.incoming[targetKey];
-        await this.saveCloudAccountNow(myKey);
-        this.showFriends();
-        this.toast("Tài khoản kia không còn tồn tại");
-        return;
-      }
-      const remote = this.normalizeAccountRecord(remoteRaw, targetKey);
+      const lockId = `accept:${targetKey}`;
+      if (this.socialActionLocks.has(lockId)) return;
+      this.socialActionLocks.add(lockId);
+      this.beginSocialCloudSync();
       const now = Date.now();
       const previousLocal = cloneData(local);
-      local.friends[targetKey] = { username: remote.username || request.username || targetKey, since: now };
-      remote.friends[myKey] = { username: local.username || this.save.account.username || "Bạn", since: now };
-      delete local.friendRequests.incoming[targetKey];
-      delete local.friendRequests.outgoing[targetKey];
-      delete remote.friendRequests.outgoing[myKey];
-      delete remote.friendRequests.incoming[myKey];
-      const savedRemote = await this.cloudAccounts.saveAccount(targetKey, remote);
-      if (!savedRemote) {
-        Object.assign(local, previousLocal);
+      try {
+        const remoteNameRaw = await this.cloudAccounts.getAccountChild(targetKey, ["username"]);
+        if (remoteNameRaw === null || remoteNameRaw === undefined) {
+          if (this.cloudAccounts.failed) throw new Error("friend lookup failed");
+          delete local.friendRequests.incoming[targetKey];
+          this.save.auth.accounts[myKey] = local;
+          this.persistLocalAccountRecord(myKey);
+          await this.cloudAccounts.setAccountChild(myKey, ["friendRequests", "incoming", targetKey], null);
+          this.showFriends();
+          this.toast("Tài khoản kia không còn tồn tại");
+          return;
+        }
+        const remoteName = String(remoteNameRaw || request.username || targetKey).trim() || request.username || targetKey;
+        local.friends ||= {};
+        local.friendRequests ||= { incoming: {}, outgoing: {} };
+        local.friendRequests.incoming ||= {};
+        local.friendRequests.outgoing ||= {};
+        local.friends[targetKey] = { username: remoteName, since: now };
+        delete local.friendRequests.incoming[targetKey];
+        delete local.friendRequests.outgoing[targetKey];
+        this.save.auth.accounts[myKey] = local;
+        this.persistLocalAccountRecord(myKey);
+        this.toast(`Đã kết bạn với ${remoteName}`);
+        this.showFriends();
+        const myFriendEntry = { username: local.username || this.save.account.username || "Bạn", since: now };
+        const writes = await Promise.all([
+          this.cloudAccounts.setAccountChild(myKey, ["friends", targetKey], { username: remoteName, since: now }),
+          this.cloudAccounts.setAccountChild(myKey, ["friendRequests", "incoming", targetKey], null),
+          this.cloudAccounts.setAccountChild(myKey, ["friendRequests", "outgoing", targetKey], null),
+          this.cloudAccounts.setAccountChild(targetKey, ["friends", myKey], myFriendEntry),
+          this.cloudAccounts.setAccountChild(targetKey, ["friendRequests", "outgoing", myKey], null),
+          this.cloudAccounts.setAccountChild(targetKey, ["friendRequests", "incoming", myKey], null)
+        ]);
+        if (!writes.every(Boolean)) throw new Error("accept friend sync failed");
+        this.lastCloudAccountSignature = this.accountCloudSignature(this.save.auth.accounts[myKey]);
+      } catch {
+        this.save.auth.accounts[myKey] = previousLocal;
+        this.persistLocalAccountRecord(myKey);
+        if (this.mode === "friends") this.showFriends();
         this.toast("Chưa chấp nhận được lời mời");
-        return;
+      } finally {
+        this.endSocialCloudSync();
+        this.socialActionLocks.delete(lockId);
       }
-      this.save.auth.accounts[myKey] = local;
-      await this.saveCloudAccountNow(myKey);
-      this.toast(`Đã kết bạn với ${remote.username || request.username || targetKey}`);
-      this.showFriends();
     }
 
     async declineFriendRequest(friendKey = "") {
@@ -5029,15 +5102,14 @@
         this.toast("Bạn cần tạo phòng trước khi mời");
         return;
       }
-      const remoteRaw = await this.cloudAccounts.getAccount(targetKey);
-      if (!remoteRaw) {
-        this.toast("Tài khoản bạn bè không còn tồn tại");
-        return;
-      }
-      const remote = this.normalizeAccountRecord(remoteRaw, targetKey);
+      const lockId = `invite:${targetKey}:${this.lobby.code}`;
+      if (this.socialActionLocks.has(lockId)) return;
+      this.socialActionLocks.add(lockId);
+      this.beginSocialCloudSync();
       const now = Date.now();
       const inviteId = `${this.lobby.code}-${myKey}-${now}`;
-      remote.roomInvites[inviteId] = {
+      const friendName = local.friends[targetKey]?.username || targetKey;
+      const invite = {
         id: inviteId,
         fromKey: myKey,
         fromName: local.username || this.save.account.username || "Bạn",
@@ -5045,14 +5117,25 @@
         roomSession: this.lobby.roomSession || "",
         sentAt: now
       };
-      const saved = await this.cloudAccounts.saveAccount(targetKey, remote);
-      if (!saved) {
+      this.toast(`Đang mời ${friendName}...`);
+      try {
+        const remoteNameRaw = await this.cloudAccounts.getAccountChild(targetKey, ["username"]);
+        if (remoteNameRaw === null || remoteNameRaw === undefined) {
+          this.toast(this.cloudAccounts.failed ? "Chưa kết nối được database" : "Tài khoản bạn bè không còn tồn tại");
+          return;
+        }
+        const saved = await this.cloudAccounts.setAccountChild(targetKey, ["roomInvites", inviteId], invite);
+        if (!saved) throw new Error("room invite sync failed");
+        const remoteName = String(remoteNameRaw || friendName).trim() || friendName;
+        this.toast(`Đã mời ${remoteName} vào phòng ${this.lobby.code}`);
+        if (this.mode === "friends") this.showFriends();
+        if (this.mode === "lobby") this.renderLobby();
+      } catch {
         this.toast("Chưa gửi được lời mời phòng");
-        return;
+      } finally {
+        this.endSocialCloudSync();
+        this.socialActionLocks.delete(lockId);
       }
-      this.toast(`Đã mời ${local.friends[targetKey]?.username || remote.username || targetKey} vào phòng ${this.lobby.code}`);
-      if (this.mode === "friends") this.showFriends();
-      if (this.mode === "lobby") this.renderLobby();
     }
 
     async joinFriendRoomInvite(inviteId = "") {

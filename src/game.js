@@ -7,7 +7,7 @@
   const ROOM_PAD = 86;
   const SAVE_KEY = "soulrift-save-v1";
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
-  const APP_VERSION = "20260604-class-attack-poses-77";
+  const APP_VERSION = "20260604-assassin-sustain-78";
   const VERSION_CHECK_INTERVAL = 15000;
   const UPDATE_ATTEMPT_KEY = "soulrift-update-attempt-v1";
   const DOOR_ENTER_TIME = 1.0;
@@ -6955,6 +6955,7 @@
         this.healPlayer(damage * (power.id === "blood" ? 0.05 : p.stats.lifeSteal));
       }
       const assassinBasic = options.source === "assassin" || (options.source === "remoteBasic" && options.kind === "assassin");
+      if (options.source === "assassin") this.healPlayer((p.maxHp || 1) * rand(0.01, 0.03));
       if (assassinBasic && enemy.hp > 0 && chance(0.25)) this.applyAssassinBleed(enemy, damage, options);
       if (crit && (p.stats.chainCrit || power.id === "lightning")) this.chainLightning(enemy, damage * 0.45);
       if (enemy.chill > 0 && enemy.hp <= 0 && p.stats.fracture) this.fracture(enemy);
@@ -6972,7 +6973,7 @@
     }
 
     applyAssassinBleed(enemy, damage, options = {}) {
-      enemy.bleed = Math.max(enemy.bleed || 0, enemy.boss ? 2.4 : 3.2);
+      enemy.bleed = Math.max(enemy.bleed || 0, enemy.boss ? 4.2 : 5.4);
       enemy.bleedTick = Math.min(Number(enemy.bleedTick || 0.45), 0.32);
       enemy.bleedDamage = Math.max(enemy.bleedDamage || 0, Math.max(1.2, damage * (enemy.boss ? 0.09 : 0.14)));
       const angle = Math.atan2(options.y || 0, options.x || 1);

@@ -1686,10 +1686,7 @@ button {
   width: 23px;
   height: 36px;
   background: #151923;
-  box-shadow:
-    inset 7px 0 0 #293144,
-    0 25px 0 -8px #0f131d,
-    inset 0 -7px 0 #0f131d;
+  box-shadow: 0 25px 0 -8px #0f131d;
 }
 
 .preview-leg.left {
@@ -1701,14 +1698,11 @@ button {
 }
 
 .preview-arm {
-  top: 82px;
-  width: 19px;
-  height: 52px;
+  top: 86px;
+  width: 18px;
+  height: 45px;
   background: #151923;
   clip-path: polygon(18% 0, 82% 0, 100% 22%, 88% 100%, 12% 100%, 0 22%);
-  box-shadow:
-    inset 0 16px 0 #293144,
-    inset 0 22px 0 #d7e2ec;
 }
 
 .preview-arm.left {
@@ -1723,42 +1717,23 @@ button {
 
 .preview-body {
   left: 35px;
-  top: 38px;
+  top: 42px;
   width: 58px;
-  height: 91px;
+  height: 87px;
   background: var(--hero);
   clip-path: polygon(18% 0, 82% 0, 92% 14%, 92% 78%, 78% 100%, 22% 100%, 8% 78%, 8% 14%);
 }
 
-.preview-shoulder {
-  top: 77px;
-  width: 25px;
-  height: 19px;
-  background: #293144;
-  border-top: 5px solid #d7e2ec;
-  box-sizing: border-box;
-}
-
-.preview-shoulder.left {
-  left: 19px;
-  clip-path: polygon(8% 22%, 88% 0, 100% 78%, 18% 100%);
-}
-
-.preview-shoulder.right {
-  left: 84px;
-  clip-path: polygon(12% 0, 92% 22%, 82% 100%, 0 78%);
-}
-
 .preview-armor {
-  left: 31px;
-  top: 73px;
-  width: 66px;
-  height: 50px;
-  background: linear-gradient(180deg, #d7e2ec 0 10px, #293144 10px 100%);
-  clip-path: polygon(12% 0, 88% 0, 100% 28%, 84% 100%, 16% 100%, 0 28%);
+  left: 33px;
+  top: 78px;
+  width: 62px;
+  height: 45px;
+  background: #293144;
+  clip-path: polygon(10% 0, 90% 0, 100% 26%, 84% 100%, 16% 100%, 0 26%);
   box-shadow:
-    inset 0 -11px 0 #0f131d,
-    inset 0 -21px 0 -6px var(--power);
+    inset 0 -10px 0 #0f131d,
+    inset 0 15px 0 -11px var(--power);
 }
 
 .preview-armor::before,
@@ -1768,46 +1743,46 @@ button {
 }
 
 .preview-armor::before {
-  left: 29px;
-  top: 10px;
-  width: 8px;
-  height: 30px;
-  background: var(--char);
+  left: -12px;
+  top: 2px;
+  width: 20px;
+  height: 16px;
+  background: #293144;
+  clip-path: polygon(0 26%, 100% 0, 92% 100%, 16% 86%);
 }
 
 .preview-armor::after {
-  left: 12px;
-  top: 33px;
-  width: 42px;
-  height: 8px;
-  background: var(--power);
+  right: -12px;
+  top: 2px;
+  width: 20px;
+  height: 16px;
+  background: #293144;
+  clip-path: polygon(0 0, 100% 26%, 84% 86%, 8% 100%);
 }
 
 .preview-helmet {
-  left: 41px;
-  top: 31px;
-  width: 46px;
-  height: 34px;
+  left: 42px;
+  top: 33px;
+  width: 44px;
+  height: 31px;
   background: #151923;
-  clip-path: polygon(18% 0, 82% 0, 100% 32%, 86% 72%, 14% 72%, 0 32%);
-  box-shadow:
-    inset 0 18px 0 #293144,
-    inset 0 24px 0 #d7e2ec;
+  clip-path: polygon(18% 0, 82% 0, 100% 32%, 86% 76%, 14% 76%, 0 32%);
+  box-shadow: inset 0 20px 0 #293144;
 }
 
 .preview-helmet::after {
   content: "";
   position: absolute;
-  right: 5px;
-  top: 3px;
-  width: 9px;
-  height: 26px;
-  background: var(--char);
+  left: 8px;
+  top: 22px;
+  width: 28px;
+  height: 4px;
+  background: #d7e2ec;
 }
 
 .preview-face {
   left: 42px;
-  top: 57px;
+  top: 58px;
   width: 44px;
   height: 29px;
   background: var(--hero);

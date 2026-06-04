@@ -7,7 +7,7 @@
   const ROOM_PAD = 86;
   const SAVE_KEY = "soulrift-save-v1";
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
-  const APP_VERSION = "20260604-warrior-silhouette-93";
+  const APP_VERSION = "20260604-simple-warrior-94";
   const VERSION_CHECK_INTERVAL = 15000;
   const UPDATE_ATTEMPT_KEY = "soulrift-update-attempt-v1";
   const CLOUD_MIGRATION_KEY = "soulrift-cloud-migrated-v1";
@@ -4245,8 +4245,6 @@
             <span class="preview-arm left"></span>
             <span class="preview-arm right"></span>
             <span class="preview-body"></span>
-            <span class="preview-shoulder left"></span>
-            <span class="preview-shoulder right"></span>
             <span class="preview-armor"></span>
             <span class="preview-helmet"></span>
             <span class="preview-face"></span>
@@ -12009,64 +12007,27 @@
       ctx.fillStyle = "#0f131d";
       ctx.fillRect(-11 + legSwing * 1.8, leftLegY + 9, 9, 3);
       ctx.fillRect(2 - legSwing * 1.8, rightLegY + 9, 9, 3);
-      ctx.fillStyle = armorLight;
-      ctx.fillRect(-8 + legSwing * 1.8, leftLegY + 3, 3, 5);
-      ctx.fillRect(5 - legSwing * 1.8, rightLegY + 3, 3, 5);
       const leftArmY = -4 - legSwing * 1.2 + hitFrame * 4;
       const rightArmY = -4 + legSwing * 1.2 - hitFrame * 3;
       ctx.fillStyle = armorDark;
       roundPixel(ctx, -16 - recoilFrame * 2, leftArmY, 7, 16, 2);
       roundPixel(ctx, 9 + hitFrame * 2, rightArmY, 7, 16, 2);
       ctx.fillStyle = armorCore;
-      ctx.fillRect(-15 - recoilFrame * 2, leftArmY + 6, 5, 6);
-      ctx.fillRect(10 + hitFrame * 2, rightArmY + 6, 5, 6);
-      ctx.fillStyle = armorLight;
-      ctx.fillRect(-15 - recoilFrame * 2, leftArmY + 2, 5, 2);
-      ctx.fillRect(10 + hitFrame * 2, rightArmY + 2, 5, 2);
-      ctx.fillStyle = color;
-      ctx.fillRect(-5, -12 - holdFrame, 10, 8);
-      ctx.fillStyle = armorCore;
-      roundPixel(ctx, -12, -12 - holdFrame, 24, 23, 4);
-      ctx.fillStyle = "#1a2030";
-      ctx.beginPath();
-      ctx.moveTo(-10, -9 - holdFrame);
-      ctx.lineTo(-1, -6 - holdFrame);
-      ctx.lineTo(-2, 3 - holdFrame);
-      ctx.lineTo(-10, 5 - holdFrame);
-      ctx.closePath();
-      ctx.fill();
-      ctx.beginPath();
-      ctx.moveTo(10, -9 - holdFrame);
-      ctx.lineTo(1, -6 - holdFrame);
-      ctx.lineTo(2, 3 - holdFrame);
-      ctx.lineTo(10, 5 - holdFrame);
-      ctx.closePath();
-      ctx.fill();
-      ctx.fillStyle = armorLight;
-      ctx.fillRect(-8, -12 - holdFrame, 16, 3);
-      ctx.fillRect(-6, -7 - holdFrame, 12, 2);
-      ctx.fillStyle = armorTrim;
-      ctx.fillRect(-2, -10 - holdFrame, 4, 15);
+      roundPixel(ctx, -12, -13 - holdFrame, 24, 24, 4);
+      roundPixel(ctx, -17, -11 - holdFrame, 8, 8, 2);
+      roundPixel(ctx, 9, -11 - holdFrame, 8, 8, 2);
       ctx.fillStyle = power.color;
-      ctx.fillRect(-9, 1 - holdFrame, 18, 4);
+      ctx.fillRect(-8, -2 - holdFrame, 16, 3);
       ctx.fillStyle = "#0f131d";
       ctx.fillRect(-10, 7 - holdFrame, 20, 4);
       ctx.fillStyle = armorTrim;
-      ctx.fillRect(-3, 6 - holdFrame, 6, 6);
-      ctx.fillStyle = armorCore;
-      roundPixel(ctx, -18, -12 - holdFrame, 10, 9, 2);
-      roundPixel(ctx, 8, -12 - holdFrame, 10, 9, 2);
-      ctx.fillStyle = armorLight;
-      ctx.fillRect(-15, -11 - holdFrame, 5, 2);
-      ctx.fillRect(10, -11 - holdFrame, 5, 2);
+      ctx.fillRect(-3, 5 - holdFrame, 6, 6);
       ctx.fillStyle = color;
-      roundPixel(ctx, -8, -27 - holdFrame, 16, 18, 4);
+      roundPixel(ctx, -8, -26 - holdFrame, 16, 18, 4);
       ctx.fillStyle = armorDark;
-      roundPixel(ctx, -9, -29 - holdFrame, 18, 10, 3);
+      roundPixel(ctx, -9, -28 - holdFrame, 18, 9, 3);
       ctx.fillStyle = armorLight;
-      ctx.fillRect(-7, -21 - holdFrame, 14, 3);
-      ctx.fillStyle = armorTrim;
-      ctx.fillRect(dir >= 0 ? 5 : -9, -28 - holdFrame, 4, 10);
+      ctx.fillRect(-6, -20 - holdFrame, 12, 2);
       ctx.fillStyle = custom.eyes === "frost" ? "#d9fbff" : custom.eyes === "void" ? "#101521" : custom.eyes === "focus" ? "#35d6c9" : "#ffdf73";
       if (Math.cos(facing) >= -0.3) ctx.fillRect(3, -15 - holdFrame, 3, 2);
       if (Math.cos(facing) <= 0.3) ctx.fillRect(-6, -15 - holdFrame, 3, 2);

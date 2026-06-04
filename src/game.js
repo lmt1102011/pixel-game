@@ -7,7 +7,7 @@
   const ROOM_PAD = 86;
   const SAVE_KEY = "soulrift-save-v1";
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
-  const APP_VERSION = "20260604-mobile-auto-aim-125";
+  const APP_VERSION = "20260604-dead-owner-chest-cleanup-126";
   const VERSION_CHECK_INTERVAL = 15000;
   const UPDATE_ATTEMPT_KEY = "soulrift-update-attempt-v1";
   const CLOUD_MIGRATION_KEY = "soulrift-cloud-migrated-v1";
@@ -9324,6 +9324,50 @@
       return room.rewardOwners.every((id) => claims[id]);
     }
 
+    rewardOwnerActor(ownerId) {
+      if (!ownerId) return this.run?.player || null;
+      if (ownerId === this.lobby.id) return this.run?.player || null;
+      return this.remotePlayers.get(ownerId) || null;
+    }
+
+    rewardOwnerAlive(ownerId) {
+      if (!ownerId) return true;
+      return this.aliveActor(this.rewardOwnerActor(ownerId));
+    }
+
+    shouldDiscardOwnerRewardPickup(pickup) {
+      if (!pickup?.ownerId || pickup.opened || pickup.collected) return false;
+      if (pickup.ownerId === this.lobby.id) return !this.aliveActor(this.run?.player);
+      if (this.isMultiplayerHost()) return !this.aliveActor(this.remotePlayers.get(pickup.ownerId));
+      const remote = this.remotePlayers.get(pickup.ownerId);
+      return Boolean(remote) && !this.aliveActor(remote);
+    }
+
+    discardOwnerRewardPickup(pickup) {
+      if (!pickup) return;
+      pickup.life = 0;
+      pickup.opened = true;
+      pickup.collected = true;
+      const chest = pickup.container === "woodChest" || pickup.container === "goldChest";
+      const countsForClaim = chest || pickup.countsForClaim !== false;
+      const room = this.run?.currentRoom;
+      if (pickup.ownerId && room && countsForClaim) {
+        room.rewardClaims ||= {};
+        room.rewardClaims[pickup.ownerId] = true;
+        room.rewardClaimed = this.allRewardOwnersClaimed(room);
+      }
+      if (chest) {
+        this.addShockwave(pickup.x, pickup.y, 78, pickup.color || "#f2bf63", 0);
+        for (let i = 0; i < 6 * this.save.settings.particles; i++) {
+          this.addParticle(pickup.x + rand(-14, 14), pickup.y + rand(-10, 8), "#aeb3c2", rand(5, 12), rand(0.18, 0.42), "spark", rand(0, TAU), rand(28, 95));
+        }
+      }
+      if (!this.isMultiplayerClient() && room?.cleared && room.rewardClaimed) {
+        if (room.type === "boss" && room.bossExitOpened) this.advanceToNextStageAfterBoss();
+        else this.openNextRoomsAfterReward();
+      }
+    }
+
     rollDistinctRoomReward(usedItems) {
       let reward = this.rollRoomReward();
       for (let tries = 0; reward.type === "item" && usedItems.has(reward.item.id) && tries < 8; tries++) {
@@ -9389,8 +9433,11 @@
     }
 
     pickupTarget(pickup) {
-      if (!pickup?.ownerId || pickup.ownerId === this.lobby.id) return this.run.player.dead ? null : this.run.player;
-      if (this.isMultiplayerHost()) return this.remotePlayers.get(pickup.ownerId) || null;
+      if (!pickup?.ownerId || pickup.ownerId === this.lobby.id) return this.aliveActor(this.run.player) ? this.run.player : null;
+      if (this.isMultiplayerHost()) {
+        const remote = this.remotePlayers.get(pickup.ownerId) || null;
+        return this.aliveActor(remote) ? remote : null;
+      }
       return null;
     }
 
@@ -9416,6 +9463,7 @@
       ));
       if (!chest) return;
       let target = this.remotePlayers.get(remoteId);
+      if (!this.aliveActor(target)) return;
       const requestX = Number(x);
       const requestY = Number(y);
       if (target && Number.isFinite(requestX) && Number.isFinite(requestY)) {
@@ -9423,7 +9471,6 @@
         target.y = requestY;
         target.t = performance.now();
       }
-      target = target || { x: requestX, y: requestY, radius: 22 };
       if (![target.x, target.y].every(Number.isFinite)) return;
       const d = Math.hypot(target.x - chest.x, target.y - chest.y);
       if (d > (target.radius || 22) + chest.radius + 96) return;
@@ -9877,6 +9924,7 @@
 
     handleRemoteCollect(remoteId, pickupId) {
       if (!this.isMultiplayerHost() || !pickupId || !this.run?.currentRoom) return;
+      if (!this.aliveActor(this.remotePlayers.get(remoteId))) return;
       const pickup = this.run.pickups.find((entry) => entry.id === pickupId && (!entry.ownerId || entry.ownerId === remoteId));
       if (!pickup) return;
       pickup.collected = true;
@@ -11260,6 +11308,10 @@
         pickup.age = (pickup.age || 0) + dt;
         if (pickup.type === "reward") {
           const chest = pickup.container === "woodChest" || pickup.container === "goldChest";
+          if (this.shouldDiscardOwnerRewardPickup(pickup)) {
+            this.discardOwnerRewardPickup(pickup);
+            continue;
+          }
           const target = this.pickupTarget(pickup);
           const canCollect = !pickup.ownerId || pickup.ownerId === this.lobby.id;
           if (Number(pickup.dropGrace || 0) > 0) pickup.dropGrace = Math.max(0, Number(pickup.dropGrace || 0) - dt);

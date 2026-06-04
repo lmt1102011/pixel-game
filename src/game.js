@@ -7,7 +7,7 @@
   const ROOM_PAD = 86;
   const SAVE_KEY = "soulrift-save-v1";
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
-  const APP_VERSION = "20260604-skill-quiet-recovery-119";
+  const APP_VERSION = "20260604-new-classes-120";
   const VERSION_CHECK_INTERVAL = 15000;
   const UPDATE_ATTEMPT_KEY = "soulrift-update-attempt-v1";
   const CLOUD_MIGRATION_KEY = "soulrift-cloud-migrated-v1";
@@ -507,6 +507,15 @@
       stats: { hp: 145, energy: 95, speed: 235, damage: 14, crit: 0.12, attackCd: 0.78 }
     },
     {
+      id: "martial",
+      name: "Võ Sư",
+      icon: "QUYỀN",
+      color: "#ffcf6b",
+      attackName: "Liên quyền",
+      attackText: "Đấm áp sát rất nhanh, mỗi đòn thứ ba đá hất lùi và hồi nhẹ năng lượng khi đánh trúng.",
+      stats: { hp: 128, energy: 125, speed: 275, damage: 9.5, crit: 0.16, attackCd: 0.58 }
+    },
+    {
       id: "guardian",
       name: "Hộ Vệ",
       icon: "KHIÊN",
@@ -514,6 +523,15 @@
       attackName: "Lao khiên",
       attackText: "Lao ngắn về phía trước, hất lùi và làm choáng kẻ địch.",
       stats: { hp: 195, energy: 75, speed: 195, damage: 11, crit: 0.06, attackCd: 1.1 }
+    },
+    {
+      id: "spearman",
+      name: "Thương Thủ",
+      icon: "THƯƠNG",
+      color: "#9fd27a",
+      attackName: "Đâm thương",
+      attackText: "Đâm thẳng tầm dài, trúng bằng đầu thương gây sát thương cao hơn.",
+      stats: { hp: 132, energy: 100, speed: 240, damage: 13, crit: 0.11, attackCd: 0.95 }
     },
     {
       id: "mage",
@@ -6837,6 +6855,16 @@
       if (pending.kind === "ranger") this.fireRangerShot(p, pending.angle, pending.combo);
     }
 
+    basicAttackActionTotal(characterId = "swordsman") {
+      if (characterId === "guardian") return 0.7;
+      if (characterId === "mage") return 0.6;
+      if (characterId === "ranger") return 0.72;
+      if (characterId === "assassin") return 0.44;
+      if (characterId === "martial") return 0.42;
+      if (characterId === "spearman") return 0.62;
+      return 0.58;
+    }
+
     dash() {
       const p = this.run?.player;
       const freeEnergy = this.trainingRule("freeEnergy");
@@ -6891,7 +6919,7 @@
       p.facing = angle;
       p.attackCd = (p.basicAttackCd || character.stats.attackCd) * (this.run.curse?.id === "ironPulse" ? 1.14 : 1) * (this.bossDebuffModifiers().attackCdMult || 1) * (this.powerStatusModifiers().attackCdMult || 1);
       p.animation = "attack";
-      p.actionTotal = character.id === "guardian" ? 0.7 : character.id === "mage" ? 0.6 : character.id === "ranger" ? 0.72 : character.id === "assassin" ? 0.44 : 0.58;
+      p.actionTotal = this.basicAttackActionTotal(character.id);
       p.actionTime = p.actionTotal;
       if (character.id === "guardian") p.attackAimLock = p.actionTotal;
       p.combo = Math.min(9, p.combo + 1);
@@ -6908,6 +6936,14 @@
       }
       if (character.id === "ranger") {
         this.basicRangerAttack(p, angle);
+        return;
+      }
+      if (character.id === "martial") {
+        this.basicMartialAttack(p, angle);
+        return;
+      }
+      if (character.id === "spearman") {
+        this.basicSpearmanAttack(p, angle);
         return;
       }
       if (character.id === "assassin") {
@@ -7060,6 +7096,108 @@
       if (this.isMultiplayerClient()) this.sendBasicAttackPacket(characterById("ranger"), p, angle, combo);
     }
 
+    basicMartialAttack(p, angle) {
+      const damage = p.damage * this.playerDamageOutputMult();
+      const hits = this.performMartialStrike(p.x, p.y, angle, damage, p.combo, this.lobby.id, p);
+      if (hits > 0) {
+        const energyGain = Math.min(7, 1.7 + hits * 1.35);
+        p.energy = Math.min(p.maxEnergy || 0, (p.energy || 0) + energyGain);
+        p.energyRegenDelay = Math.min(p.energyRegenDelay || 0, 0.12);
+        this.hitStop = Math.max(this.hitStop || 0, p.combo % 3 === 0 ? 0.06 : 0.035);
+        this.camera.shake = Math.max(this.camera.shake, p.combo % 3 === 0 ? 7 + hits : 3.5 + hits * 0.6);
+      }
+      this.audio.sfx(p.combo % 3 === 0 ? 165 : 260 + p.combo * 12, p.combo % 3 === 0 ? "square" : "triangle", 0.05, p.combo % 3 === 0 ? 0.14 : 0.075);
+    }
+
+    performMartialStrike(x, y, angle, baseDamage, combo = 1, sourceId = "", actor = null) {
+      const finisher = combo % 3 === 0;
+      const range = finisher ? 96 : 76;
+      const arc = finisher ? Math.PI * 0.58 : Math.PI * 0.72;
+      const damage = baseDamage * (finisher ? 1.12 : 0.78 + combo * 0.018);
+      const dirX = Math.cos(angle);
+      const dirY = Math.sin(angle);
+      const centerX = x + dirX * range * 0.48;
+      const centerY = y + dirY * range * 0.48;
+      this.addBasicAttackBurst(centerX, centerY, angle, "martial", range);
+      if (!finisher) {
+        this.addBasicAttackBurst(x + dirX * range * 0.35 - dirY * 14, y + dirY * range * 0.35 + dirX * 14, angle - 0.18, "martial", range * 0.78);
+      }
+      let hits = 0;
+      for (const enemy of [...this.run.enemies]) {
+        const dx = enemy.x - x;
+        const dy = enemy.y - y;
+        const d = Math.hypot(dx, dy);
+        const a = Math.atan2(dy, dx);
+        if (d < range + enemy.radius && Math.abs(angleDelta(a, angle)) < arc * 0.5) {
+          hits++;
+          if (finisher) {
+            enemy.stun = Math.max(enemy.stun || 0, enemy.boss ? 0.06 : 0.22);
+            if (!this.enemyDomainBoundActive(enemy)) {
+              enemy.vx += dirX * (enemy.boss ? 95 : 240);
+              enemy.vy += dirY * (enemy.boss ? 95 : 240);
+            }
+          }
+          this.damageEnemy(enemy, damage, {
+            x: dirX * (finisher ? 1.9 : 1.05),
+            y: dirY * (finisher ? 1.9 : 1.05),
+            source: "martial",
+            kind: "martial",
+            combo,
+            sourceId
+          });
+        }
+      }
+      if (actor && finisher && hits > 0) {
+        actor.vx += dirX * 38;
+        actor.vy += dirY * 38;
+      }
+      return hits;
+    }
+
+    basicSpearmanAttack(p, angle) {
+      const damage = p.damage * this.playerDamageOutputMult();
+      const hits = this.performSpearThrust(p.x, p.y, angle, damage, p.combo, this.lobby.id);
+      if (hits > 0) {
+        this.hitStop = Math.max(this.hitStop || 0, 0.052);
+        this.camera.shake = Math.max(this.camera.shake, 5 + hits * 0.8);
+      }
+      this.audio.sfx(235 + p.combo * 10, "sawtooth", 0.046, 0.105);
+    }
+
+    performSpearThrust(x, y, angle, baseDamage, combo = 1, sourceId = "") {
+      const length = 148 + Math.min(30, combo * 2.5);
+      const width = 23;
+      const dirX = Math.cos(angle);
+      const dirY = Math.sin(angle);
+      const sideX = -dirY;
+      const sideY = dirX;
+      this.addBasicAttackBurst(x + dirX * length * 0.56, y + dirY * length * 0.56, angle, "spearman", length);
+      let hits = 0;
+      for (const enemy of [...this.run.enemies]) {
+        const dx = enemy.x - x;
+        const dy = enemy.y - y;
+        const forward = dx * dirX + dy * dirY;
+        const lateral = Math.abs(dx * sideX + dy * sideY);
+        if (forward < 18 || forward > length + enemy.radius || lateral > width + enemy.radius) continue;
+        const sweet = forward > length * 0.62;
+        hits++;
+        if (sweet && !this.enemyDomainBoundActive(enemy)) {
+          enemy.vx += dirX * (enemy.boss ? 70 : 150);
+          enemy.vy += dirY * (enemy.boss ? 70 : 150);
+        }
+        this.damageEnemy(enemy, baseDamage * (sweet ? 1.34 : 0.78) * (1 + combo * 0.018), {
+          x: dirX * (sweet ? 1.45 : 0.75),
+          y: dirY * (sweet ? 1.45 : 0.75),
+          source: "spearman",
+          kind: "spearman",
+          combo,
+          critBonus: sweet ? 0.1 : 0,
+          sourceId
+        });
+      }
+      return hits;
+    }
+
     basicAssassinAttack(p, angle) {
       const range = 88 + Math.min(24, p.combo * 2);
       const arc = Math.PI * 0.72;
@@ -7169,6 +7307,7 @@
       const strike = (enemy, damage) => this.damageEnemy(enemy, damage, hitOptions);
       const remote = this.remotePlayers.get(remoteId) || {};
       const slot = this.lobby.slots.find((entry) => entry.id === remoteId);
+      const actionDuration = this.basicAttackActionTotal(character.id);
       this.remotePlayers.set(remoteId, {
         ...remote,
         id: remoteId,
@@ -7187,8 +7326,8 @@
         color: attack.color || remote.color || "#d8b46a",
         power: attack.power || remote.power || "fire",
         animation: "attack",
-        actionTotal: character.id === "guardian" ? 0.7 : character.id === "mage" ? 0.6 : character.id === "ranger" ? 0.72 : character.id === "assassin" ? 0.44 : 0.58,
-        actionTime: character.id === "guardian" ? 0.7 : character.id === "mage" ? 0.6 : character.id === "ranger" ? 0.72 : character.id === "assassin" ? 0.44 : 0.58,
+        actionTotal: actionDuration,
+        actionTime: actionDuration,
         guardianParry: character.id === "guardian" ? Math.max(remote.guardianParry || 0, 0.38) : (remote.guardianParry || 0),
         ult: Number.isFinite(remote.ult) ? remote.ult : 0,
         facing: angle,
@@ -7213,6 +7352,16 @@
           kind: character.id === "ranger" ? "rangerBasic" : "mageBasic",
           critBonus: character.id === "ranger" ? 0.28 : 0
         });
+        return;
+      }
+
+      if (character.id === "martial") {
+        this.performMartialStrike(x, y, angle, baseDamage, combo, remoteId);
+        return;
+      }
+
+      if (character.id === "spearman") {
+        this.performSpearThrust(x, y, angle, baseDamage, combo, remoteId);
         return;
       }
 
@@ -11642,6 +11791,8 @@
       if (options.source === "basic") return "swordsman";
       if (options.source === "guardian") return "guardian";
       if (options.source === "guardianReflect") return "guardian";
+      if (options.source === "martial") return "martial";
+      if (options.source === "spearman") return "spearman";
       if (options.source === "assassin") return "assassin";
       if (options.source === "remoteBasic") return options.kind || "swordsman";
       if (options.source === "projectile" && options.kind === "mageBasic") return "mage";
@@ -11653,6 +11804,8 @@
       if (kind === "guardian") return { color: "#ffd36a", accent: "#fff3c2", dust: "#b08b55" };
       if (kind === "mage") return { color: "#78e7ff", accent: "#ffffff", dust: "#5bb8d8" };
       if (kind === "ranger") return { color: "#ffc15a", accent: "#fff0b8", dust: "#b9813e" };
+      if (kind === "martial") return { color: "#ffcf6b", accent: "#fff6c8", dust: "#c9933e" };
+      if (kind === "spearman") return { color: "#9fd27a", accent: "#eefdd6", dust: "#6e8f54" };
       if (kind === "assassin") return { color: "#b8b7ff", accent: "#ffffff", dust: "#7f80c8" };
       return { color: "#dfe6ef", accent: "#ffffff", dust: "#9aa6b5" };
     }
@@ -11661,7 +11814,7 @@
       if (!this.run) return;
       const heavy = kind === "guardian";
       const ranged = kind === "mage" || kind === "ranger";
-      const life = heavy ? 0.24 : kind === "assassin" ? 0.18 : ranged ? 0.19 : 0.22;
+      const life = heavy ? 0.24 : kind === "martial" ? 0.16 : kind === "spearman" ? 0.2 : kind === "assassin" ? 0.18 : ranged ? 0.19 : 0.22;
       const palette = this.characterEffectPalette(kind);
       this.addEffect({
         type: "attackBurst",
@@ -13152,6 +13305,20 @@
           attackPose.squashX = hitFrame ? 1.02 : 1;
           attackPose.squashY = hitFrame ? 0.98 : 1;
           attackPose.crouch = hitFrame || holdFrame ? 1 : 0;
+        } else if (character.id === "martial") {
+          attackPose.lift = hitFrame ? -2 : holdFrame ? -1 : recoilFrame ? 1 : 0;
+          attackPose.shift = dir * (hitFrame ? 7 : holdFrame ? 2 : recoilFrame ? -2 : 0);
+          attackPose.lean = dir * (hitFrame ? 0.18 : holdFrame ? -0.04 : recoilFrame ? 0.04 : 0);
+          attackPose.squashX = hitFrame ? 1.12 : holdFrame ? 1.05 : 1;
+          attackPose.squashY = hitFrame ? 0.9 : holdFrame ? 0.96 : 1;
+          attackPose.crouch = hitFrame ? 4 : holdFrame ? 2 : 0;
+        } else if (character.id === "spearman") {
+          attackPose.lift = hitFrame ? -2 : holdFrame ? -1 : recoilFrame ? 0 : 0;
+          attackPose.shift = dir * (hitFrame ? 9 : holdFrame ? 5 : recoilFrame ? -4 : 0);
+          attackPose.lean = dir * (hitFrame ? 0.1 : holdFrame ? 0.04 : recoilFrame ? -0.07 : 0);
+          attackPose.squashX = hitFrame ? 1.08 : holdFrame ? 1.04 : 1;
+          attackPose.squashY = hitFrame ? 0.93 : holdFrame ? 0.97 : 1;
+          attackPose.crouch = hitFrame ? 3 : holdFrame ? 2 : 0;
         } else if (character.id === "assassin") {
           attackPose.lift = hitFrame ? -4 : holdFrame ? -1 : recoilFrame ? 1 : 0;
           attackPose.shift = dir * (hitFrame ? 8 : holdFrame ? -3 : recoilFrame ? -1 : 0);
@@ -13498,6 +13665,81 @@
         ctx.globalAlpha *= 0.62;
         ctx.fillRect(nockX + 8, -0.7, 28 + pull * 7, 1.4);
         ctx.globalAlpha = 1;
+      } else if (character.id === "martial") {
+        const punch = hitFrame ? 18 : holdFrame ? 9 : recoilFrame ? -3 : 1;
+        const guard = hitFrame ? 4 : holdFrame ? 2 : 0;
+        applyWeaponFacing(facing);
+        ctx.lineCap = "butt";
+        ctx.lineJoin = "round";
+        ctx.fillStyle = "rgba(0,0,0,0.25)";
+        ctx.beginPath();
+        ctx.ellipse(12 + punch * 0.4, 13, 18, 4, 0, 0, TAU);
+        ctx.fill();
+        ctx.fillStyle = "#0f131d";
+        roundPixel(-8, -12 - guard, 19, 7, 3);
+        roundPixel(0, 5 + guard * 0.2, 22 + punch, 7, 3);
+        ctx.fillStyle = "#283142";
+        roundPixel(-5, -10 - guard, 15, 4, 2);
+        roundPixel(3, 7 + guard * 0.2, 18 + punch, 4, 2);
+        drawGripHand(7 - guard, -13 - guard, 7, 7);
+        drawGripHand(18 + punch, 4 + guard * 0.2, 8, 8);
+        ctx.fillStyle = character.color;
+        ctx.fillRect(5 - guard, -12 - guard, 9, 2);
+        ctx.fillRect(18 + punch, 4 + guard * 0.2, 9, 2);
+        ctx.fillRect(18 + punch, 9 + guard * 0.2, 8, 2);
+        if (hitFrame || holdFrame) {
+          ctx.globalAlpha = 0.36 + hitFrame * 0.16;
+          ctx.fillStyle = power.accent;
+          ctx.fillRect(25 + punch, 1, 13, 4);
+          ctx.fillRect(30 + punch, 7, 9, 4);
+          ctx.globalAlpha = 1;
+        }
+      } else if (character.id === "spearman") {
+        const thrust = hitFrame ? 26 : holdFrame ? 15 : recoilFrame ? -5 : 2;
+        const spearTilt = anim === "attack" ? (hitFrame ? -0.03 : recoilFrame ? 0.06 : 0.02) : 0.02;
+        applyWeaponFacing(facing + spearTilt, facing);
+        ctx.translate(thrust, 0);
+        ctx.lineCap = "butt";
+        ctx.lineJoin = "miter";
+        ctx.fillStyle = "rgba(0,0,0,0.26)";
+        ctx.beginPath();
+        ctx.ellipse(24, 14, 38, 4, 0, 0, TAU);
+        ctx.fill();
+        const shaft = ctx.createLinearGradient(-28, -2, 66, 2);
+        shaft.addColorStop(0, "#5f432c");
+        shaft.addColorStop(0.45, "#b9854d");
+        shaft.addColorStop(1, "#4a3322");
+        ctx.fillStyle = shaft;
+        ctx.fillRect(-24, -2.5, 79 + hitFrame * 9, 5);
+        ctx.fillStyle = "#f3ead7";
+        ctx.fillRect(-14, -0.8, 58 + hitFrame * 8, 1.6);
+        ctx.fillStyle = character.color;
+        ctx.fillRect(-2, -6, 6, 12);
+        ctx.fillRect(18, -5, 5, 10);
+        drawGripHand(-7, -5, 6, 6);
+        drawGripHand(11, -4, 6, 6);
+        const tipX = 55 + hitFrame * 9;
+        const spearHead = ctx.createLinearGradient(tipX, -8, tipX + 28, 8);
+        spearHead.addColorStop(0, "#8c98a6");
+        spearHead.addColorStop(0.46, "#f7fbff");
+        spearHead.addColorStop(1, "#c6d2dd");
+        ctx.fillStyle = spearHead;
+        ctx.beginPath();
+        ctx.moveTo(tipX, -7);
+        ctx.lineTo(tipX + 22, -3);
+        ctx.lineTo(tipX + 31, 0);
+        ctx.lineTo(tipX + 22, 3);
+        ctx.lineTo(tipX, 7);
+        ctx.lineTo(tipX + 7, 0);
+        ctx.closePath();
+        ctx.fill();
+        ctx.strokeStyle = "#6f7a88";
+        ctx.lineWidth = 1.1;
+        ctx.stroke();
+        ctx.fillStyle = "#ffffff";
+        ctx.globalAlpha = 0.66;
+        ctx.fillRect(tipX + 7, -0.8, 17, 1.6);
+        ctx.globalAlpha = 1;
       } else if (character.id === "assassin") {
         const fan = hitFrame ? 0.98 : holdFrame ? 0.74 : recoilFrame ? 0.28 : 0.38;
         const extend = hitFrame ? 5 : holdFrame ? 3 : 0;
@@ -13645,6 +13887,22 @@
           ctx.moveTo(24, -18);
           ctx.lineTo(10 + Math.sin(t * 12) * 2, 0);
           ctx.lineTo(24, 18);
+          ctx.stroke();
+        } else if (character.id === "martial") {
+          ribbon(8, -12, 20 + Math.sin(t * 8) * 2, -21, 38, -8, 4.6, 0.42);
+          ribbon(12, 8, 27 + Math.cos(t * 8) * 2, 18, 45, 6, 4.6, 0.42);
+          ember(31, -8, 6, 1);
+          ember(38, 7, 6, 2);
+        } else if (character.id === "spearman") {
+          ribbon(-19, -4, 26, -17 + Math.sin(t * 7) * 2, 78, -2, 4.6, 0.44);
+          ribbon(-14, 4, 30, 15 + Math.cos(t * 7) * 2, 74, 2, 3.2, 0.32);
+          ctx.globalAlpha = 0.42;
+          ctx.strokeStyle = "#d7c4ff";
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.moveTo(55, -8);
+          ctx.lineTo(83, 0);
+          ctx.lineTo(55, 8);
           ctx.stroke();
         } else if (character.id === "assassin") {
           ribbon(-1, -16, 20 + Math.sin(t * 7) * 2, -28, 44, -9, 4.2, 0.46);
@@ -14163,7 +14421,7 @@
           const progress = 1 - effect.time / effect.maxTime;
           const alpha = (1 - progress) * (effect.heavy ? 1 : 0.92);
           const length = effect.reach ? effect.reach : effect.heavy ? 74 : effect.ranged ? 52 : 64;
-          const width = effect.kind === "guardian" ? Math.max(62, length * 0.56) : effect.kind === "assassin" ? 26 : effect.ranged ? 18 : 22;
+          const width = effect.kind === "guardian" ? Math.max(62, length * 0.56) : effect.kind === "martial" ? 30 : effect.kind === "spearman" ? 20 : effect.kind === "assassin" ? 26 : effect.ranged ? 18 : 22;
           ctx.translate(effect.x, effect.y);
           ctx.rotate(effect.angle || 0);
           ctx.globalAlpha = alpha;
@@ -14208,6 +14466,67 @@
             ctx.moveTo(-length * 0.36, 0);
             ctx.lineTo(length * 0.88, 0);
             ctx.stroke();
+          } else if (effect.kind === "martial") {
+            ctx.lineCap = "butt";
+            ctx.lineJoin = "miter";
+            ctx.shadowBlur = this.glow(18);
+            const punchLen = length * (0.55 + progress * 0.12);
+            for (let i = -1; i <= 1; i += 2) {
+              ctx.save();
+              ctx.translate(-length * 0.08, i * width * 0.2);
+              ctx.rotate(i * 0.08);
+              ctx.fillStyle = effect.accent || "#fff6c8";
+              ctx.beginPath();
+              ctx.moveTo(0, -width * 0.18);
+              ctx.lineTo(punchLen * 0.86, -width * 0.16);
+              ctx.lineTo(punchLen, 0);
+              ctx.lineTo(punchLen * 0.86, width * 0.16);
+              ctx.lineTo(0, width * 0.18);
+              ctx.lineTo(-width * 0.24, 0);
+              ctx.closePath();
+              ctx.fill();
+              ctx.strokeStyle = effect.color || "#ffcf6b";
+              ctx.lineWidth = 2.5;
+              ctx.stroke();
+              ctx.restore();
+            }
+            ctx.globalAlpha = alpha * 0.72;
+            ctx.fillStyle = effect.color || "#ffcf6b";
+            ctx.fillRect(length * 0.34, -width * 0.42, width * 0.24, width * 0.24);
+            ctx.fillRect(length * 0.44, -width * 0.05, width * 0.3, width * 0.3);
+            ctx.fillRect(length * 0.28, width * 0.28, width * 0.2, width * 0.2);
+          } else if (effect.kind === "spearman") {
+            ctx.lineCap = "butt";
+            ctx.lineJoin = "miter";
+            ctx.shadowBlur = this.glow(16);
+            const thrustLen = length * (0.98 + progress * 0.12);
+            ctx.fillStyle = effect.accent || "#eefdd6";
+            ctx.beginPath();
+            ctx.moveTo(-length * 0.24, -width * 0.2);
+            ctx.lineTo(thrustLen * 0.78, -width * 0.16);
+            ctx.lineTo(thrustLen, 0);
+            ctx.lineTo(thrustLen * 0.78, width * 0.16);
+            ctx.lineTo(-length * 0.24, width * 0.2);
+            ctx.closePath();
+            ctx.fill();
+            ctx.strokeStyle = effect.color || "#9fd27a";
+            ctx.lineWidth = 3;
+            ctx.stroke();
+            ctx.globalAlpha = alpha * 0.82;
+            ctx.strokeStyle = "#ffffff";
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(-length * 0.18, 0);
+            ctx.lineTo(thrustLen * 0.9, 0);
+            ctx.stroke();
+            ctx.fillStyle = effect.color || "#9fd27a";
+            ctx.beginPath();
+            ctx.moveTo(thrustLen * 0.72, -width * 0.55);
+            ctx.lineTo(thrustLen * 1.02, 0);
+            ctx.lineTo(thrustLen * 0.72, width * 0.55);
+            ctx.lineTo(thrustLen * 0.82, 0);
+            ctx.closePath();
+            ctx.fill();
           } else if (effect.kind === "guardian") {
             ctx.globalAlpha = alpha * 0.86;
             ctx.fillStyle = effect.accent || "#fff3c2";
@@ -14325,6 +14644,58 @@
             ctx.stroke();
             ctx.globalAlpha = alpha * 0.65;
             ctx.fillRect(-8, -3, length * 0.42, 6);
+          } else if (effect.kind === "martial") {
+            ctx.lineCap = "butt";
+            ctx.lineJoin = "miter";
+            ctx.shadowBlur = this.glow(18);
+            ctx.lineWidth = 3;
+            ctx.fillStyle = effect.accent || "#fff6c8";
+            ctx.strokeStyle = effect.color || "#ffcf6b";
+            for (let i = 0; i < 4; i++) {
+              const sx = -8 + i * 9;
+              const sy = (i % 2 ? 1 : -1) * (9 + progress * 4);
+              ctx.save();
+              ctx.translate(sx, sy);
+              ctx.rotate((i % 2 ? 0.22 : -0.22) + progress * 0.08);
+              ctx.fillRect(-7, -5, 14, 10);
+              ctx.strokeRect(-7, -5, 14, 10);
+              ctx.restore();
+            }
+            ctx.globalAlpha = alpha * 0.75;
+            ctx.strokeStyle = "#ffffff";
+            ctx.beginPath();
+            ctx.moveTo(-20, 0);
+            ctx.lineTo(32, 0);
+            ctx.moveTo(0, -18);
+            ctx.lineTo(0, 18);
+            ctx.stroke();
+          } else if (effect.kind === "spearman") {
+            ctx.lineCap = "butt";
+            ctx.lineJoin = "miter";
+            ctx.lineWidth = 4;
+            ctx.strokeStyle = effect.color || "#9fd27a";
+            ctx.beginPath();
+            ctx.moveTo(-length * 0.35, 0);
+            ctx.lineTo(length * 0.92, 0);
+            ctx.stroke();
+            ctx.globalAlpha = alpha * 0.82;
+            ctx.fillStyle = effect.accent || "#eefdd6";
+            ctx.beginPath();
+            ctx.moveTo(length * 0.42, -spread * 0.9);
+            ctx.lineTo(length, 0);
+            ctx.lineTo(length * 0.42, spread * 0.9);
+            ctx.lineTo(length * 0.58, 0);
+            ctx.closePath();
+            ctx.fill();
+            ctx.globalAlpha = alpha * 0.65;
+            ctx.strokeStyle = "#ffffff";
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(-length * 0.18, -spread * 0.38);
+            ctx.lineTo(length * 0.7, -spread * 0.04);
+            ctx.moveTo(-length * 0.18, spread * 0.38);
+            ctx.lineTo(length * 0.7, spread * 0.04);
+            ctx.stroke();
           } else if (effect.kind === "guardian") {
             const plate = effect.heavy ? 48 : 34;
             ctx.lineWidth = 5;

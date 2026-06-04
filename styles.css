@@ -1685,7 +1685,11 @@ button {
   top: 126px;
   width: 23px;
   height: 36px;
-  background: #1d2230;
+  background: #151923;
+  box-shadow:
+    inset 7px 0 0 #293144,
+    0 25px 0 -8px #0f131d,
+    inset 0 -7px 0 #0f131d;
 }
 
 .preview-leg.left {
@@ -1696,34 +1700,122 @@ button {
   left: 69px;
 }
 
+.preview-arm {
+  top: 82px;
+  width: 19px;
+  height: 52px;
+  background: #151923;
+  clip-path: polygon(18% 0, 82% 0, 100% 22%, 88% 100%, 12% 100%, 0 22%);
+  box-shadow:
+    inset 0 16px 0 #293144,
+    inset 0 22px 0 #d7e2ec;
+}
+
+.preview-arm.left {
+  left: 19px;
+  transform: rotate(7deg);
+}
+
+.preview-arm.right {
+  left: 90px;
+  transform: rotate(-7deg);
+}
+
 .preview-body {
   left: 35px;
   top: 38px;
   width: 58px;
   height: 91px;
   background: var(--hero);
-  clip-path: polygon(14% 0, 86% 0, 100% 16%, 100% 78%, 82% 100%, 18% 100%, 0 78%, 0 16%);
+  clip-path: polygon(18% 0, 82% 0, 92% 14%, 92% 78%, 78% 100%, 22% 100%, 8% 78%, 8% 14%);
+}
+
+.preview-shoulder {
+  top: 77px;
+  width: 25px;
+  height: 19px;
+  background: #293144;
+  border-top: 5px solid #d7e2ec;
+  box-sizing: border-box;
+}
+
+.preview-shoulder.left {
+  left: 19px;
+  clip-path: polygon(8% 22%, 88% 0, 100% 78%, 18% 100%);
+}
+
+.preview-shoulder.right {
+  left: 84px;
+  clip-path: polygon(12% 0, 92% 22%, 82% 100%, 0 78%);
 }
 
 .preview-armor {
   left: 31px;
-  top: 78px;
+  top: 73px;
   width: 66px;
-  height: 39px;
-  background: #2f3546;
-  box-shadow: inset 0 11px 0 var(--power);
+  height: 50px;
+  background: linear-gradient(180deg, #d7e2ec 0 10px, #293144 10px 100%);
+  clip-path: polygon(12% 0, 88% 0, 100% 28%, 84% 100%, 16% 100%, 0 28%);
+  box-shadow:
+    inset 0 -11px 0 #0f131d,
+    inset 0 -21px 0 -6px var(--power);
+}
+
+.preview-armor::before,
+.preview-armor::after {
+  content: "";
+  position: absolute;
+}
+
+.preview-armor::before {
+  left: 29px;
+  top: 10px;
+  width: 8px;
+  height: 30px;
+  background: var(--char);
+}
+
+.preview-armor::after {
+  left: 12px;
+  top: 33px;
+  width: 42px;
+  height: 8px;
+  background: var(--power);
+}
+
+.preview-helmet {
+  left: 41px;
+  top: 31px;
+  width: 46px;
+  height: 34px;
+  background: #151923;
+  clip-path: polygon(18% 0, 82% 0, 100% 32%, 86% 72%, 14% 72%, 0 32%);
+  box-shadow:
+    inset 0 18px 0 #293144,
+    inset 0 24px 0 #d7e2ec;
+}
+
+.preview-helmet::after {
+  content: "";
+  position: absolute;
+  right: 5px;
+  top: 3px;
+  width: 9px;
+  height: 26px;
+  background: var(--char);
 }
 
 .preview-face {
   left: 42px;
-  top: 44px;
+  top: 57px;
   width: 44px;
-  height: 21px;
-  background: #c9d0db;
+  height: 29px;
+  background: var(--hero);
+  clip-path: polygon(6% 0, 94% 0, 100% 72%, 72% 100%, 28% 100%, 0 72%);
 }
 
 .preview-eye {
-  top: 61px;
+  top: 69px;
   width: 9px;
   height: 7px;
   background: #ffdf73;
@@ -1751,7 +1843,7 @@ button {
 
 .preview-mouth {
   left: 59px;
-  top: 76px;
+  top: 83px;
   width: 13px;
   height: 5px;
   background: #4b1622;
@@ -1779,7 +1871,7 @@ button {
 .preview-accessory.preview-horns::after {
   content: "";
   position: absolute;
-  top: 20px;
+  top: 12px;
   width: 14px;
   height: 28px;
   background: #f2f0e6;
@@ -1795,7 +1887,7 @@ button {
 
 .preview-accessory.preview-halo {
   left: 38px;
-  top: 16px;
+  top: 6px;
   width: 52px;
   height: 14px;
   border: 4px solid #f2bf63;

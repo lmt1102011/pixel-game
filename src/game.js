@@ -7,7 +7,7 @@
   const ROOM_PAD = 86;
   const SAVE_KEY = "soulrift-save-v1";
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
-  const APP_VERSION = "20260604-live-account-sync-92";
+  const APP_VERSION = "20260604-warrior-silhouette-93";
   const VERSION_CHECK_INTERVAL = 15000;
   const UPDATE_ATTEMPT_KEY = "soulrift-update-attempt-v1";
   const CLOUD_MIGRATION_KEY = "soulrift-cloud-migrated-v1";
@@ -4242,8 +4242,13 @@
             <span class="preview-cloak preview-${custom.accessory}"></span>
             <span class="preview-leg left"></span>
             <span class="preview-leg right"></span>
+            <span class="preview-arm left"></span>
+            <span class="preview-arm right"></span>
             <span class="preview-body"></span>
+            <span class="preview-shoulder left"></span>
+            <span class="preview-shoulder right"></span>
             <span class="preview-armor"></span>
+            <span class="preview-helmet"></span>
             <span class="preview-face"></span>
             <span class="preview-eye left preview-${custom.eyes}"></span>
             <span class="preview-eye right preview-${custom.eyes}"></span>
@@ -11938,6 +11943,10 @@
       const squashX = anim === "dash" ? 1.08 : attackPose.squashX;
       const squashY = anim === "dash" ? 0.92 : attackPose.squashY;
       const color = custom.color || "#d8b46a";
+      const armorDark = character.id === "assassin" ? "#151923" : "#171c28";
+      const armorCore = character.id === "guardian" ? "#303849" : character.id === "assassin" ? "#222838" : "#293144";
+      const armorLight = "#d7e2ec";
+      const armorTrim = character.color || power.color;
       const auraColor = { gold: "#f2bf63", crimson: "#ff4b55", teal: "#35d6c9", violet: "#a169ff" }[custom.aura] || power.color;
       ctx.save();
       ctx.translate(Math.round(x), Math.round(y + bob));
@@ -11992,37 +12001,90 @@
       }
       const legSwing = anim === "run" || anim === "walk" ? stride : Math.sin(t * 3) * 0.25;
       const crouch = anim === "dash" ? 3 : castFrame ? 1 : attackPose.crouch;
-      ctx.fillStyle = "#1d2230";
-      ctx.fillRect(-9 + legSwing * 1.8, 8 + crouch + Math.max(0, -legSwing) * 2, 6, 11 - (anim === "dash" ? 2 : 0));
-      ctx.fillRect(3 - legSwing * 1.8, 8 + crouch + Math.max(0, legSwing) * 2, 6, 11 - (anim === "dash" ? 2 : 0));
-      ctx.fillStyle = "#202637";
-      ctx.fillRect(-15 - recoilFrame * 2, -3 - legSwing * 1.2 + hitFrame * 4, 6, 15);
-      ctx.fillRect(9 + hitFrame * 2, -3 + legSwing * 1.2 - hitFrame * 3, 6, 15);
+      const leftLegY = 8 + crouch + Math.max(0, -legSwing) * 2;
+      const rightLegY = 8 + crouch + Math.max(0, legSwing) * 2;
+      ctx.fillStyle = armorDark;
+      roundPixel(ctx, -10 + legSwing * 1.8, leftLegY, 7, 12 - (anim === "dash" ? 2 : 0), 2);
+      roundPixel(ctx, 3 - legSwing * 1.8, rightLegY, 7, 12 - (anim === "dash" ? 2 : 0), 2);
+      ctx.fillStyle = "#0f131d";
+      ctx.fillRect(-11 + legSwing * 1.8, leftLegY + 9, 9, 3);
+      ctx.fillRect(2 - legSwing * 1.8, rightLegY + 9, 9, 3);
+      ctx.fillStyle = armorLight;
+      ctx.fillRect(-8 + legSwing * 1.8, leftLegY + 3, 3, 5);
+      ctx.fillRect(5 - legSwing * 1.8, rightLegY + 3, 3, 5);
+      const leftArmY = -4 - legSwing * 1.2 + hitFrame * 4;
+      const rightArmY = -4 + legSwing * 1.2 - hitFrame * 3;
+      ctx.fillStyle = armorDark;
+      roundPixel(ctx, -16 - recoilFrame * 2, leftArmY, 7, 16, 2);
+      roundPixel(ctx, 9 + hitFrame * 2, rightArmY, 7, 16, 2);
+      ctx.fillStyle = armorCore;
+      ctx.fillRect(-15 - recoilFrame * 2, leftArmY + 6, 5, 6);
+      ctx.fillRect(10 + hitFrame * 2, rightArmY + 6, 5, 6);
+      ctx.fillStyle = armorLight;
+      ctx.fillRect(-15 - recoilFrame * 2, leftArmY + 2, 5, 2);
+      ctx.fillRect(10 + hitFrame * 2, rightArmY + 2, 5, 2);
       ctx.fillStyle = color;
-      roundPixel(ctx, -10, -18 - holdFrame, 20, 27, 5);
-      ctx.fillStyle = "#2f3546";
-      ctx.fillRect(-11, -4 - holdFrame, 22, 12);
+      ctx.fillRect(-5, -12 - holdFrame, 10, 8);
+      ctx.fillStyle = armorCore;
+      roundPixel(ctx, -12, -12 - holdFrame, 24, 23, 4);
+      ctx.fillStyle = "#1a2030";
+      ctx.beginPath();
+      ctx.moveTo(-10, -9 - holdFrame);
+      ctx.lineTo(-1, -6 - holdFrame);
+      ctx.lineTo(-2, 3 - holdFrame);
+      ctx.lineTo(-10, 5 - holdFrame);
+      ctx.closePath();
+      ctx.fill();
+      ctx.beginPath();
+      ctx.moveTo(10, -9 - holdFrame);
+      ctx.lineTo(1, -6 - holdFrame);
+      ctx.lineTo(2, 3 - holdFrame);
+      ctx.lineTo(10, 5 - holdFrame);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillStyle = armorLight;
+      ctx.fillRect(-8, -12 - holdFrame, 16, 3);
+      ctx.fillRect(-6, -7 - holdFrame, 12, 2);
+      ctx.fillStyle = armorTrim;
+      ctx.fillRect(-2, -10 - holdFrame, 4, 15);
       ctx.fillStyle = power.color;
-      ctx.fillRect(-8, -1 - holdFrame, 16, 3);
-      ctx.fillStyle = "#c9d0db";
-      ctx.fillRect(-7, -16 - holdFrame, 14, 5);
+      ctx.fillRect(-9, 1 - holdFrame, 18, 4);
+      ctx.fillStyle = "#0f131d";
+      ctx.fillRect(-10, 7 - holdFrame, 20, 4);
+      ctx.fillStyle = armorTrim;
+      ctx.fillRect(-3, 6 - holdFrame, 6, 6);
+      ctx.fillStyle = armorCore;
+      roundPixel(ctx, -18, -12 - holdFrame, 10, 9, 2);
+      roundPixel(ctx, 8, -12 - holdFrame, 10, 9, 2);
+      ctx.fillStyle = armorLight;
+      ctx.fillRect(-15, -11 - holdFrame, 5, 2);
+      ctx.fillRect(10, -11 - holdFrame, 5, 2);
+      ctx.fillStyle = color;
+      roundPixel(ctx, -8, -27 - holdFrame, 16, 18, 4);
+      ctx.fillStyle = armorDark;
+      roundPixel(ctx, -9, -29 - holdFrame, 18, 10, 3);
+      ctx.fillStyle = armorLight;
+      ctx.fillRect(-7, -21 - holdFrame, 14, 3);
+      ctx.fillStyle = armorTrim;
+      ctx.fillRect(dir >= 0 ? 5 : -9, -28 - holdFrame, 4, 10);
       ctx.fillStyle = custom.eyes === "frost" ? "#d9fbff" : custom.eyes === "void" ? "#101521" : custom.eyes === "focus" ? "#35d6c9" : "#ffdf73";
-      if (Math.cos(facing) >= -0.3) ctx.fillRect(3, -10 - holdFrame, 3, 2);
-      if (Math.cos(facing) <= 0.3) ctx.fillRect(-6, -10 - holdFrame, 3, 2);
+      if (Math.cos(facing) >= -0.3) ctx.fillRect(3, -15 - holdFrame, 3, 2);
+      if (Math.cos(facing) <= 0.3) ctx.fillRect(-6, -15 - holdFrame, 3, 2);
       ctx.fillStyle = custom.mouth === "mask" ? "#111521" : "#4b1622";
-      if (custom.mouth === "smirk") ctx.fillRect(-2, -5 - holdFrame, 6, 1);
-      else if (custom.mouth === "grim") ctx.fillRect(-4, -5 - holdFrame, 8, 1);
-      else ctx.fillRect(-2, -5 - holdFrame, 4, 2);
+      if (custom.mouth === "mask") ctx.fillRect(-7, -11 - holdFrame, 14, 3);
+      else if (custom.mouth === "smirk") ctx.fillRect(-2, -10 - holdFrame, 6, 1);
+      else if (custom.mouth === "grim") ctx.fillRect(-4, -10 - holdFrame, 8, 1);
+      else ctx.fillRect(-2, -10 - holdFrame, 4, 2);
       if (custom.accessory === "horns") {
         ctx.fillStyle = "#f2f0e6";
-        ctx.fillRect(-13, -22 - holdFrame, 5, 8);
-        ctx.fillRect(8, -22 - holdFrame, 5, 8);
+        ctx.fillRect(-14, -31 - holdFrame, 5, 9);
+        ctx.fillRect(9, -31 - holdFrame, 5, 9);
       }
       if (custom.accessory === "halo") {
         ctx.strokeStyle = "#f2bf63";
         ctx.lineWidth = 2;
         ctx.beginPath();
-        ctx.ellipse(0, -24 - holdFrame, 12, 4, 0, 0, TAU);
+        ctx.ellipse(0, -33 - holdFrame, 12, 4, 0, 0, TAU);
         ctx.stroke();
       }
       ctx.save();

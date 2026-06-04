@@ -7,7 +7,7 @@
   const ROOM_PAD = 86;
   const SAVE_KEY = "soulrift-save-v1";
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
-  const APP_VERSION = "20260605-room-leave-host-transfer-139";
+  const APP_VERSION = "20260605-instant-room-invite-140";
   const VERSION_CHECK_INTERVAL = 15000;
   const UPDATE_ATTEMPT_KEY = "soulrift-update-attempt-v1";
   const CLOUD_MIGRATION_KEY = "soulrift-cloud-migrated-v1";
@@ -4487,7 +4487,7 @@
       if (action === "accept-friend") this.acceptFriendRequest(target.dataset.friend);
       if (action === "decline-friend") this.declineFriendRequest(target.dataset.friend);
       if (action === "remove-friend") this.removeFriend(target.dataset.friend);
-      if (action === "invite-friend") this.inviteFriendToRoom(target.dataset.friend);
+      if (action === "invite-friend") this.inviteFriendToRoom(target.dataset.friend, target);
       if (action === "join-friend-invite") this.joinFriendRoomInvite(target.dataset.invite);
       if (action === "dismiss-room-invite") this.dismissRoomInvite(target.dataset.invite);
       if (action === "inventory") {
@@ -4971,6 +4971,16 @@
       this.roomInviteCooldownTimers.set(key, timer);
     }
 
+    clearRoomInviteCooldown(friendKey = "", code = this.lobby?.code || "") {
+      const key = this.roomInviteCooldownKey(friendKey, code);
+      if (!key) return;
+      this.roomInviteCooldowns.delete(key);
+      if (this.roomInviteCooldownTimers.has(key)) {
+        window.clearTimeout(this.roomInviteCooldownTimers.get(key));
+        this.roomInviteCooldownTimers.delete(key);
+      }
+    }
+
     refreshRoomInviteCooldownViews() {
       if (this.mode === "lobby") this.renderLobby();
       else if (this.mode === "friends") this.showFriends();
@@ -5282,7 +5292,7 @@
       this.showFriends();
     }
 
-    async inviteFriendToRoom(friendKey = "") {
+    async inviteFriendToRoom(friendKey = "", button = null) {
       const targetKey = accountKey(friendKey);
       const myKey = this.save.auth?.currentUser || "";
       const local = this.currentAccountRecord();
@@ -5304,7 +5314,6 @@
       }
       this.socialActionLocks.add(lockId);
       this.beginSocialCloudSync();
-      this.refreshRoomInviteCooldownViews();
       const now = Date.now();
       const inviteId = `${this.lobby.code}-${myKey}-${now}`;
       const invite = {
@@ -5315,18 +5324,27 @@
         roomSession: this.lobby.roomSession || "",
         sentAt: now
       };
-      this.toast(`Đang mời ${friendName}...`);
+      this.setRoomInviteCooldown(targetKey);
+      if (button) {
+        button.disabled = true;
+        button.textContent = "ĐÃ MỜI";
+      } else {
+        this.refreshRoomInviteCooldownViews();
+      }
+      this.toast(`Đã mời ${friendName}`);
       try {
         const saved = await this.cloudAccounts.setAccountChild(targetKey, ["roomInvites", inviteId], invite);
         if (!saved) throw new Error("room invite sync failed");
-        this.setRoomInviteCooldown(targetKey);
-        this.toast(`Đã mời ${friendName} vào phòng ${this.lobby.code}`);
       } catch {
+        this.clearRoomInviteCooldown(targetKey);
+        if (button) {
+          button.disabled = false;
+          button.textContent = "MỜI";
+        }
         this.toast("Chưa gửi được lời mời phòng");
       } finally {
         this.endSocialCloudSync();
         this.socialActionLocks.delete(lockId);
-        this.refreshRoomInviteCooldownViews();
       }
     }
 

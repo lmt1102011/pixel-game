@@ -7,7 +7,7 @@
   const ROOM_PAD = 86;
   const SAVE_KEY = "soulrift-save-v1";
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
-  const APP_VERSION = "20260604-pixel-step-walk-97";
+  const APP_VERSION = "20260604-weapon-grip-hands-98";
   const VERSION_CHECK_INTERVAL = 15000;
   const UPDATE_ATTEMPT_KEY = "soulrift-update-attempt-v1";
   const CLOUD_MIGRATION_KEY = "soulrift-cloud-migrated-v1";
@@ -4253,6 +4253,8 @@
             <span class="preview-mouth preview-${custom.mouth}"></span>
             <span class="preview-accessory preview-${custom.accessory}"></span>
             <span class="preview-weapon"></span>
+            <span class="preview-hand main"></span>
+            <span class="preview-hand off"></span>
           </div>
           <div class="preview-name">
             <b>${character.name}</b>
@@ -12058,6 +12060,12 @@
         ctx.ellipse(0, -33 - holdFrame, 12, 4, 0, 0, TAU);
         ctx.stroke();
       }
+      const drawGripHand = (hx, hy, w = 5, h = 5) => {
+        ctx.fillStyle = "#0f131d";
+        roundPixel(ctx, hx - 1, hy - 1, w + 2, h + 2, 2);
+        ctx.fillStyle = color;
+        roundPixel(ctx, hx, hy, w, h, 2);
+      };
       ctx.save();
       const weaponAuraColor = shadowWeaponActive ? "#a169ff" : power.color;
       ctx.shadowColor = weaponAuraColor;
@@ -12100,6 +12108,7 @@
         ctx.fillStyle = "#fff3c2";
         ctx.fillRect(20, -12, 6, 27);
         ctx.fillRect(13, -1, 20, 5);
+        drawGripHand(12, -4, 6, 7);
         ctx.fillStyle = power.accent;
         ctx.beginPath();
         ctx.arc(23, 1, 5 + guardPower * 1.5, 0, TAU);
@@ -12152,6 +12161,9 @@
         ctx.fillRect(-5, 11, 10, 3);
         ctx.fillStyle = power.accent;
         ctx.fillRect(-4, 25, 8, 4);
+        const mageGripX = side > 0 ? -8 : 3;
+        drawGripHand(mageGripX, -5, 5, 5);
+        drawGripHand(mageGripX, 9, 5, 5);
         ctx.strokeStyle = "#dfe8ef";
         ctx.lineWidth = 2;
         ctx.beginPath();
@@ -12224,6 +12236,8 @@
         ctx.moveTo(13, 5);
         ctx.quadraticCurveTo(9, 12, 14, 18);
         ctx.stroke();
+        drawGripHand(2, 5, 6, 6);
+        drawGripHand(nockX - 4, -3, 5, 6);
         ctx.strokeStyle = character.color;
         ctx.lineWidth = 5 + snap * 1.1;
         ctx.beginPath();
@@ -12280,6 +12294,7 @@
           ctx.fillRect(0, -4, 3, 8);
           ctx.fillRect(-1, -5, 5, 2);
           ctx.fillRect(-1, 3, 5, 2);
+          drawGripHand(-6, -3, 5, 6);
           const dagger = ctx.createLinearGradient(3, -3.5, 3 + daggerLen, 3.5);
           dagger.addColorStop(0, "#8895a6");
           dagger.addColorStop(0.45, "#f7fbff");
@@ -12320,6 +12335,7 @@
         ctx.fillRect(7, -7, 4, 14);
         ctx.fillRect(3, -5, 13, 3);
         ctx.fillRect(3, 2, 13, 3);
+        drawGripHand(-3, -3, 6, 6);
         const blade = ctx.createLinearGradient(11, -5, 11 + bladeLen, 5);
         blade.addColorStop(0, "#9aa6b5");
         blade.addColorStop(0.42, "#f7fbff");

@@ -1917,6 +1917,25 @@ button {
     13px 8px 0 -1px #dfe8ef;
 }
 
+.preview-hand {
+  width: 14px;
+  height: 13px;
+  background: var(--hero);
+  border: 3px solid #0f131d;
+  box-sizing: border-box;
+  z-index: 4;
+}
+
+.preview-hand.main {
+  left: 77px;
+  top: 81px;
+  transform: rotate(-24deg);
+}
+
+.preview-hand.off {
+  display: none;
+}
+
 .char-guardian .preview-weapon {
   left: 78px;
   top: 70px;
@@ -1945,6 +1964,12 @@ button {
   height: 5px;
   background: #fff3c2;
   box-shadow: none;
+}
+
+.char-guardian .preview-hand.main {
+  left: 84px;
+  top: 91px;
+  transform: rotate(-10deg);
 }
 
 .char-mage .preview-weapon {
@@ -1977,6 +2002,21 @@ button {
   height: 5px;
   background: #dfe8ef;
   box-shadow: none;
+}
+
+.char-mage .preview-hand.main,
+.char-mage .preview-hand.off {
+  display: block;
+  left: 84px;
+  transform: rotate(2deg);
+}
+
+.char-mage .preview-hand.main {
+  top: 78px;
+}
+
+.char-mage .preview-hand.off {
+  top: 101px;
 }
 
 .char-ranger .preview-weapon {
@@ -2017,6 +2057,22 @@ button {
     -16px -14px 0 -13px #dfe8ef;
 }
 
+.char-ranger .preview-hand.main,
+.char-ranger .preview-hand.off {
+  display: block;
+  transform: rotate(-13deg);
+}
+
+.char-ranger .preview-hand.main {
+  left: 84px;
+  top: 91px;
+}
+
+.char-ranger .preview-hand.off {
+  left: 101px;
+  top: 78px;
+}
+
 .char-assassin .preview-weapon {
   left: 78px;
   top: 67px;
@@ -2045,6 +2101,22 @@ button {
 
 .char-assassin .preview-weapon::after {
   top: 25px;
+  transform: rotate(38deg);
+}
+
+.char-assassin .preview-hand.main,
+.char-assassin .preview-hand.off {
+  display: block;
+  left: 80px;
+}
+
+.char-assassin .preview-hand.main {
+  top: 72px;
+  transform: rotate(-38deg);
+}
+
+.char-assassin .preview-hand.off {
+  top: 98px;
   transform: rotate(38deg);
 }
 

@@ -7,7 +7,7 @@
   const ROOM_PAD = 86;
   const SAVE_KEY = "soulrift-save-v1";
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
-  const APP_VERSION = "20260604-friends-invites-133";
+  const APP_VERSION = "20260605-friends-no-create-room-134";
   const VERSION_CHECK_INTERVAL = 15000;
   const UPDATE_ATTEMPT_KEY = "soulrift-update-attempt-v1";
   const CLOUD_MIGRATION_KEY = "soulrift-cloud-migrated-v1";
@@ -4320,10 +4320,6 @@
       if (action === "invite-friend") this.inviteFriendToRoom(target.dataset.friend);
       if (action === "join-friend-invite") this.joinFriendRoomInvite(target.dataset.invite);
       if (action === "dismiss-room-invite") this.dismissRoomInvite(target.dataset.invite);
-      if (action === "create-room-for-friends") {
-        this.lobby.create();
-        this.showFriends();
-      }
       if (action === "inventory") {
         if (this.run && ["game", "pause", "merchant", "runInventory"].includes(this.mode)) this.showRunInventory();
         else this.showInventory();
@@ -4857,7 +4853,7 @@
       `).join("") : `<div class="empty-state">Chưa có lời mời phòng.</div>`;
       const roomHint = this.lobby?.code && this.lobby.host
         ? `<div class="join-pending"><b>Phòng ${escapeHtml(this.lobby.code)} đang mở</b><span>Bấm Mời ở từng bạn để gửi ID phòng.</span></div>`
-        : `<button class="btn primary" data-action="create-room-for-friends">TẠO PHÒNG ĐỂ MỜI</button>`;
+        : `<div class="join-pending"><b>Chưa có phòng đang mở</b><span>Tạo phòng trong Vượt ải cùng bạn rồi quay lại đây để mời.</span></div>`;
       this.mode = "friends";
       this.roomFinderOpen = false;
       this.setScreen(`

@@ -7,7 +7,7 @@
   const ROOM_PAD = 86;
   const SAVE_KEY = "soulrift-save-v1";
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
-  const APP_VERSION = "20260604-smaller-bomber-zone-74";
+  const APP_VERSION = "20260604-neon-coin-burst-75";
   const VERSION_CHECK_INTERVAL = 15000;
   const UPDATE_ATTEMPT_KEY = "soulrift-update-attempt-v1";
   const DOOR_ENTER_TIME = 1.0;
@@ -7441,8 +7441,7 @@
       chest.life = 0;
       const color = chest.color || "#f2bf63";
       const rewards = [
-        { reward: chest.chestReward, countsForClaim: true, container: chest.chestReward?.type === "item" ? "looseItem" : "material" },
-        { reward: chest.coinReward, countsForClaim: false, container: "coin" }
+        { reward: chest.chestReward, countsForClaim: true, container: chest.chestReward?.type === "item" ? "looseItem" : "material" }
       ].filter((entry) => entry.reward);
       const lootBase = rand(0, TAU);
       rewards.forEach((entry, index) => {
@@ -7472,6 +7471,39 @@
           color: this.rewardColor(entry.reward)
         });
       });
+      const coinAmount = Math.max(0, Math.floor(Number(chest.coinReward?.amount || 0)));
+      if (coinAmount > 0) {
+        const coinBase = lootBase + Math.PI * 0.45 + rand(-0.45, 0.45);
+        for (let i = 0; i < coinAmount; i++) {
+          const spreadAngle = coinBase + (i / Math.max(1, coinAmount)) * TAU * 2.2 + rand(-0.34, 0.34);
+          const burst = rand(300, 590) + Math.sin(i * 1.7) * 42;
+          const stagger = Math.min(0.42, i * 0.012);
+          const scatter = 0.32 + rand(0, 0.2);
+          this.run.pickups.push({
+            id: uid("coin"),
+            x: chest.x + rand(-5, 5),
+            y: chest.y - 14 + rand(-5, 2),
+            vx: Math.cos(spreadAngle) * burst + rand(-28, 28),
+            vy: Math.sin(spreadAngle) * burst * 0.46 - 210 + rand(-44, 20),
+            type: "reward",
+            container: "coin",
+            ownerId: chest.ownerId || "",
+            ownerName: chest.ownerName || "",
+            reward: { ...chest.coinReward, amount: 1, silent: true },
+            countsForClaim: false,
+            radius: 8,
+            life: 90,
+            age: 0,
+            scatterTime: scatter,
+            scatterTotal: scatter,
+            magnetDelay: 0.42 + stagger + rand(0, 0.08),
+            dropGrace: 0.48 + stagger,
+            requiresMagnetPickup: true,
+            magnetStarted: false,
+            color: "#ffd84d"
+          });
+        }
+      }
       this.addShockwave(chest.x, chest.y, 118, color, 0);
       for (let i = 0; i < 18 * this.save.settings.particles; i++) {
         const a = -Math.PI / 2 + rand(-1.25, 1.25);
@@ -7803,13 +7835,13 @@
       }
       if (reward.type === "coin") {
         this.run.runGold = (this.run.runGold || 0) + reward.amount;
-        this.toast(`${materialLabel("gold")} x${reward.amount}`);
+        if (!reward.silent) this.toast(`${materialLabel("gold")} x${reward.amount}`);
       }
       if (reward.type !== "coin") {
         this.save.powers[this.run.power.id].mastery += 1;
         if (this.save.powers[this.run.power.id].mastery % 4 === 0) this.save.powers[this.run.power.id].level += 1;
       }
-      this.persist();
+      if (!reward.silent) this.persist();
       return true;
     }
 
@@ -7825,11 +7857,17 @@
       }
       if (this.isMultiplayerClient()) this.lobby.sendCollect(pickup.id);
       const color = this.rewardColor(pickup.reward);
-      this.addShockwave(pickup.x, pickup.y, 140, color, 0);
-      for (let i = 0; i < 14 * this.save.settings.particles; i++) {
-        this.addParticle(pickup.x, pickup.y, color, rand(8, 20), rand(0.3, 0.75), i % 3 === 0 ? "ring" : "spark");
+      if (pickup.reward.type === "coin") {
+        for (let i = 0; i < 4 * this.save.settings.particles; i++) {
+          this.addParticle(pickup.x, pickup.y, "#ffd84d", rand(4, 9), rand(0.16, 0.34), "spark", rand(0, TAU), rand(25, 90));
+        }
+      } else {
+        this.addShockwave(pickup.x, pickup.y, 140, color, 0);
+        for (let i = 0; i < 14 * this.save.settings.particles; i++) {
+          this.addParticle(pickup.x, pickup.y, color, rand(8, 20), rand(0.3, 0.75), i % 3 === 0 ? "ring" : "spark");
+        }
       }
-      if (this.run.currentRoom?.cleared) {
+      if (this.run.currentRoom?.cleared && pickup.countsForClaim !== false) {
         if (!this.isMultiplayerClient() && this.run.currentRoom.type === "boss" && this.run.currentRoom.bossExitOpened && this.run.currentRoom.rewardClaimed) {
           this.advanceToNextStageAfterBoss();
         } else {
@@ -10380,25 +10418,35 @@
         if (pickup.type === "reward") {
           const color = pickup.color || this.rewardColor(pickup.reward);
           const chest = pickup.container === "woodChest" || pickup.container === "goldChest";
-          const bob = chest ? 0 : Math.sin(this.menuTime * 7 + (pickup.age || 0) * 3) * 4;
+          const bob = chest ? 0 : pickup.container === "coin" ? Math.sin(this.menuTime * 9 + (pickup.age || 0) * 4) * 1.5 : Math.sin(this.menuTime * 7 + (pickup.age || 0) * 3) * 4;
           ctx.translate(pickup.x, pickup.y + bob);
           ctx.globalAlpha = 0.92;
           ctx.shadowColor = color;
           ctx.shadowBlur = this.glow(16);
           if (pickup.container === "coin" || pickup.reward?.type === "coin") {
-            ctx.fillStyle = "#f2bf63";
-            ctx.strokeStyle = "#fff0ad";
-            ctx.lineWidth = 2;
-            for (let i = 0; i < 3; i++) {
-              ctx.beginPath();
-              ctx.ellipse(i * 5 - 5, i * -3 + 4, 8, 5, -0.25, 0, TAU);
-              ctx.fill();
-              ctx.stroke();
-            }
-            ctx.fillStyle = "#3a2509";
-            ctx.font = "900 9px ui-sans-serif, system-ui";
-            ctx.textAlign = "center";
-            ctx.fillText("$", 0, 5);
+            const pulse = 1 + Math.sin(this.menuTime * 10 + (pickup.age || 0) * 16) * 0.05;
+            const r = Math.max(6, Number(pickup.radius || 8)) * pulse;
+            ctx.shadowColor = "#ffd84d";
+            ctx.shadowBlur = this.glow(12);
+            ctx.fillStyle = "#ffd84d";
+            ctx.beginPath();
+            ctx.arc(0, 0, r, 0, TAU);
+            ctx.fill();
+            ctx.strokeStyle = "#fff7a8";
+            ctx.lineWidth = 1.8;
+            ctx.stroke();
+            ctx.globalAlpha = 0.5;
+            ctx.strokeStyle = "#fffbd1";
+            ctx.lineWidth = 1.2;
+            ctx.beginPath();
+            ctx.arc(0, 0, r * 0.58, 0, TAU);
+            ctx.stroke();
+            ctx.globalAlpha = 0.82;
+            ctx.fillStyle = "#fffbd1";
+            ctx.beginPath();
+            ctx.arc(-r * 0.28, -r * 0.32, r * 0.18, 0, TAU);
+            ctx.fill();
+            ctx.globalAlpha = 0.92;
           } else if (pickup.container === "woodChest" || pickup.container === "goldChest") {
             const gold = pickup.container === "goldChest";
             const openDuration = gold ? 0.62 : 0.42;

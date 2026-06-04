@@ -7,7 +7,7 @@
   const ROOM_PAD = 86;
   const SAVE_KEY = "soulrift-save-v1";
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
-  const APP_VERSION = "20260604-graphics-auto-balance-109";
+  const APP_VERSION = "20260604-graphics-auto-lag-response-110";
   const VERSION_CHECK_INTERVAL = 15000;
   const UPDATE_ATTEMPT_KEY = "soulrift-update-attempt-v1";
   const CLOUD_MIGRATION_KEY = "soulrift-cloud-migrated-v1";
@@ -2260,6 +2260,7 @@
         displayedAutoLevel: 5,
         stableTime: 0,
         overloadTime: 0,
+        lagTime: 0,
         renderScale: 1,
         appliedRenderScale: 1,
         resizeAt: 0
@@ -2993,15 +2994,25 @@
       const softFloor = idle ? 4.7 : inCombat ? (this.isMobileDevice() ? 3.65 : 3.85) : 4.45;
       const hardFloor = inCombat ? (this.isMobileDevice() ? 3.15 : 3.35) : 4.25;
       const spike = frame > targetDt * (this.isMobileDevice() ? 1.95 : 1.8);
-      const overloaded = pressure > (inCombat ? 0.0048 : 0.0095) || spike;
-      if (overloaded && (inCombat || spike)) {
+      const heavyFrame = frame > (this.isMobileDevice() ? 0.042 : 0.038);
+      const sustainedSlow = (this.perf.fastDt || frame) > targetDt + (this.isMobileDevice() ? 0.012 : 0.01)
+        || this.perf.avgDt > targetDt + (this.isMobileDevice() ? 0.009 : 0.0075);
+      const realLag = heavyFrame || sustainedSlow;
+      this.perf.lagTime = realLag
+        ? Math.min(2.5, (this.perf.lagTime || 0) + frame)
+        : Math.max(0, (this.perf.lagTime || 0) - frame * 1.35);
+      const forcedLag = this.perf.lagTime > 0.22;
+      const emergencyLag = frame > 0.07 || this.perf.lagTime > 0.72;
+      const overloaded = pressure > (inCombat ? 0.0048 : 0.0095) || spike || forcedLag;
+      if (overloaded && (inCombat || spike || forcedLag)) {
         this.perf.overloadTime = Math.min(2.2, (this.perf.overloadTime || 0) + frame);
-        const severe = spike || pressure > targetDt * 0.55;
-        const readyToDrop = severe || this.perf.overloadTime > (inCombat ? 0.42 : 0.9);
+        const severe = emergencyLag || spike || pressure > targetDt * 0.55;
+        const readyToDrop = severe || forcedLag || this.perf.overloadTime > (inCombat ? 0.42 : 0.9);
         if (readyToDrop) {
           const severity = clamp(pressure / targetDt, 0, 1.7);
-          const loadBoost = clamp(load, 0.5, 2.2);
-          const dropRate = (severe ? 1.05 : 0.42) * (0.45 + severity * 0.72) * loadBoost;
+          const loadBoost = clamp(load + (forcedLag ? 0.65 : 0), 0.5, 2.4);
+          const lagBoost = forcedLag ? clamp(this.perf.lagTime * 1.15, 0.35, 1.65) : 0;
+          const dropRate = ((severe ? 1.35 : 0.56) * (0.45 + severity * 0.78) * loadBoost) + lagBoost;
           nextLevel -= dropRate * frame;
         }
         this.perf.stableTime = 0;
@@ -3009,17 +3020,18 @@
         this.perf.overloadTime = Math.max(0, (this.perf.overloadTime || 0) - frame * 1.6);
         const headroom = clamp((targetDt - Math.max(this.perf.fastDt, this.perf.avgDt) - 0.0008) / targetDt, 0, 1);
         this.perf.stableTime = Math.min(3, (this.perf.stableTime || 0) + frame);
-        if (idle) {
+        if (idle && !forcedLag) {
           nextLevel += (0.95 + headroom * 0.35) * frame;
-        } else if (this.perf.stableTime > 0.45 && headroom > 0.05) {
+        } else if (!forcedLag && this.perf.stableTime > 0.45 && headroom > 0.05) {
           nextLevel += (0.18 + headroom * 0.34) * frame;
         }
       }
-      const floor = spike && inCombat && this.perf.overloadTime > 1 ? hardFloor : softFloor;
+      const lagFloor = emergencyLag ? (this.isMobileDevice() ? 2.45 : 2.65) : forcedLag ? (this.isMobileDevice() ? 2.9 : 3.05) : softFloor;
+      const floor = Math.min(lagFloor, spike && inCombat && this.perf.overloadTime > 1 ? hardFloor : softFloor);
       this.perf.autoLevel = clamp(Math.max(nextLevel, floor), 1, 5);
       this.perf.displayedAutoLevel = Math.round(this.perf.autoLevel * 100) / 100;
       this.perf.quality = this.graphicsQualityFromLevel(this.perf.displayedAutoLevel);
-      this.updateRenderScale(overloaded && inCombat && this.perf.overloadTime > 0.65);
+      this.updateRenderScale(overloaded && ((inCombat && this.perf.overloadTime > 0.45) || forcedLag));
     }
 
     graphicsCombatLoad() {
@@ -3063,9 +3075,11 @@
 
     graphicsRenderScale() {
       const quality = this.perf?.quality ?? 1;
-      const base = this.isMobileDevice() ? 0.68 : 0.72;
+      const lag = clamp(((this.perf?.lagTime || 0) - 0.18) / 0.9, 0, 1);
+      const base = this.isMobileDevice() ? 0.68 - lag * 0.12 : 0.72 - lag * 0.1;
       const range = this.isMobileDevice() ? 0.32 : 0.28;
-      return clamp(base + quality * range, this.isMobileDevice() ? 0.78 : 0.82, 1);
+      const floor = this.isMobileDevice() ? 0.68 : 0.74;
+      return clamp(base + quality * range, floor, 1);
     }
 
     updateRenderScale(force = false) {
@@ -4706,7 +4720,7 @@
       const autoLevel = Number.isFinite(this.perf?.displayedAutoLevel) ? this.perf.displayedAutoLevel.toFixed(2) : "5.00";
       return `
         <label class="setting-row">
-          <div><h3>Chế độ đồ họa</h3><p>${mode === "manual" ? "Khóa chất lượng theo mức bên dưới." : `Tự động giữ nét, chỉ giảm khi combat nặng. Hiện ${autoLevel}/5.`}</p></div>
+          <div><h3>Chế độ đồ họa</h3><p>${mode === "manual" ? "Khóa chất lượng theo mức bên dưới." : `Tự động giữ nét, nhưng hạ bắt buộc khi FPS tụt thật. Hiện ${autoLevel}/5.`}</p></div>
           <select class="field setting-select" data-setting="graphicsMode" data-setting-type="string">
             <option value="auto" ${mode === "auto" ? "selected" : ""}>Tự động</option>
             <option value="manual" ${mode === "manual" ? "selected" : ""}>Thủ công</option>

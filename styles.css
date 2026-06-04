@@ -2226,6 +2226,20 @@ button {
   accent-color: var(--teal);
 }
 
+.training-setting h3 {
+  margin: 0 0 5px;
+  color: var(--ink);
+  font-size: 15px;
+  letter-spacing: 0;
+}
+
+.training-setting input[type="checkbox"] {
+  justify-self: end;
+  width: 24px;
+  height: 24px;
+  accent-color: var(--teal);
+}
+
 .setting-select {
   width: 100%;
   min-height: 42px;

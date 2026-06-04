@@ -7,7 +7,7 @@
   const ROOM_PAD = 86;
   const SAVE_KEY = "soulrift-save-v1";
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
-  const APP_VERSION = "20260604-smart-graphics-107";
+  const APP_VERSION = "20260604-training-room-108";
   const VERSION_CHECK_INTERVAL = 15000;
   const UPDATE_ATTEMPT_KEY = "soulrift-update-attempt-v1";
   const CLOUD_MIGRATION_KEY = "soulrift-cloud-migrated-v1";
@@ -2214,6 +2214,7 @@
       this.accountCloudCheckBusy = false;
       this.deletedAccountNotice = "";
       this.lastCloudAccountSignature = "";
+      this.trainingOptions = { damage: true, freeEnergy: true, noCooldown: true };
       this.audio = new AudioEngine(this);
       this.lobby = new PeerLobby(this);
       this.save = defaultSave();
@@ -3592,6 +3593,7 @@
       }
       if (action === "play") this.showPlayMenu();
       if (action === "play-solo") this.showSoloMenu();
+      if (action === "play-training") this.showTrainingSetup();
       if (action === "play-multiplayer") this.showMultiplayerHub();
       if (action === "find-room") this.showRoomFinder();
       if (action === "reload-rooms") {
@@ -3605,6 +3607,7 @@
         this.renderLobby();
       }
       if (action === "start-solo-difficulty") this.startSelectedRun("", { difficulty: target.dataset.difficulty || "normal" });
+      if (action === "start-training") this.startTrainingRun();
       if (action === "character-tab") this.showCharacterTab(target.dataset.tab || "character");
       if (action === "character") this.showCharacter();
       if (action === "inventory") {
@@ -3709,11 +3712,16 @@
                 <p class="panel-subtitle">Chọn kiểu chơi trước khi vào khe nứt.</p>
               </div>
             </div>
-            <div class="grid cols-2">
+            <div class="grid cols-3">
               <button class="choice-card" data-action="play-solo">
                 <div class="card-icon">1</div>
                 <h3>Chơi đơn</h3>
                 <p>Chọn độ khó rồi bắt đầu bằng power đang mang.</p>
+              </button>
+              <button class="choice-card" data-action="play-training">
+                <div class="card-icon">T</div>
+                <h3>Phòng huấn luyện</h3>
+                <p>Chỉnh luật test chiêu, stamina, cooldown rồi thử với 5 dummy.</p>
               </button>
               <button class="choice-card" data-action="play-multiplayer">
                 <div class="card-icon">4</div>
@@ -3750,6 +3758,52 @@
               <button class="btn" data-action="play">TRỞ LẠI</button>
             </div>
             <div class="grid cols-3">${difficultyCards}</div>
+          </div>
+        </section>
+      `);
+    }
+
+    defaultTrainingOptions() {
+      return {
+        damage: true,
+        freeEnergy: true,
+        noCooldown: true
+      };
+    }
+
+    showTrainingSetup() {
+      this.mode = "play";
+      this.roomFinderOpen = false;
+      const selected = this.save.account.selectedPower ? powerById(this.save.account.selectedPower) : null;
+      const options = { ...this.defaultTrainingOptions(), ...(this.trainingOptions || {}) };
+      const check = (id, title, text, checked) => `
+        <label class="setting-row training-setting">
+          <div>
+            <h3>${title}</h3>
+            <p>${text}</p>
+          </div>
+          <input id="${id}" type="checkbox" ${checked ? "checked" : ""} />
+        </label>
+      `;
+      this.setScreen(`
+        <section class="shell">
+          ${this.navHtml("play")}
+          <div class="panel">
+            <div class="panel-header">
+              <div>
+                <h2 class="panel-title">Phòng Huấn Luyện</h2>
+                <p class="panel-subtitle">${selected ? `Power: ${selected.name}. Vào phòng có 5 dummy để test chiêu.` : "Hãy quay và chọn power trước khi vào phòng huấn luyện."}</p>
+              </div>
+              <button class="btn" data-action="play">TRỞ LẠI</button>
+            </div>
+            <div class="grid">
+              ${check("trainingDamage", "Gây sát thương", "Bật để dummy mất máu, tắt để chỉ test hitbox và hiệu ứng.", options.damage)}
+              ${check("trainingFreeEnergy", "Không tốn stamina", "Skill, lướt và đòn thường pháp sư không trừ năng lượng.", options.freeEnergy)}
+              ${check("trainingNoCooldown", "Không thời gian hồi", "Q, E, R, tuyệt kỹ và lướt sáng liên tục để test combo.", options.noCooldown)}
+            </div>
+            <div class="actions">
+              <button class="btn primary" data-action="start-training">VÀO PHÒNG HUẤN LUYỆN</button>
+            </div>
           </div>
         </section>
       `);
@@ -3990,6 +4044,20 @@
         return;
       }
       this.startRun(powerById(powerId), forcedBiomeId, options);
+    }
+
+    startTrainingRun() {
+      const getChecked = (id, fallback) => document.getElementById(id)?.checked ?? fallback;
+      this.trainingOptions = {
+        damage: getChecked("trainingDamage", true),
+        freeEnergy: getChecked("trainingFreeEnergy", true),
+        noCooldown: getChecked("trainingNoCooldown", true)
+      };
+      this.startSelectedRun("", {
+        training: true,
+        trainingOptions: this.trainingOptions,
+        difficulty: "normal"
+      });
     }
 
     selectPower(powerId) {
@@ -4828,7 +4896,9 @@
     startRun(power, forcedBiomeId = "", options = {}) {
       this.audio.start();
       if (this.isMobileDevice()) this.enterMobilePlayMode();
-      this.save.progression.runs += 1;
+      const training = Boolean(options.training);
+      const trainingOptions = { ...this.defaultTrainingOptions(), ...(options.trainingOptions || {}) };
+      if (!training) this.save.progression.runs += 1;
       const biomeIndex = Math.max(0, BIOMES.findIndex((biome) => biome.id === forcedBiomeId));
       const startBiome = BIOMES[biomeIndex >= 0 ? biomeIndex : 0];
       const difficulty = DIFFICULTIES.find((entry) => entry.id === options.difficulty) || DIFFICULTIES[1];
@@ -4844,6 +4914,8 @@
         roomsCleared: 0,
         multiplayer: Boolean(options.multiplayer),
         netHost: options.multiplayer ? Boolean(options.host) : true,
+        training,
+        trainingOptions,
         flawless: true,
         biome: startBiome,
         currentRoom: null,
@@ -4893,7 +4965,9 @@
       this.setScreen("");
       this.hud.classList.remove("hidden");
       this.touchLayer.classList.toggle("hidden", !this.isMobileDevice());
-      this.startRoom({ type: "normal", label: "Phòng Thường", icon: "X", color: "#c9d0db" });
+      this.startRoom(training
+        ? { type: "training", label: "Phòng Huấn Luyện", icon: "T", color: "#82ffd3" }
+        : { type: "normal", label: "Phòng Thường", icon: "X", color: "#c9d0db" });
       if (this.isMultiplayerClient()) {
         this.run.enemies = [];
         this.run.projectiles = [];
@@ -4915,6 +4989,34 @@
 
     isMultiplayerClient() {
       return this.isMultiplayerRun() && !this.run.netHost;
+    }
+
+    isTrainingRun() {
+      return Boolean(this.run?.training || this.run?.currentRoom?.type === "training");
+    }
+
+    trainingRule(key) {
+      if (!this.isTrainingRun()) return false;
+      const options = { ...this.defaultTrainingOptions(), ...(this.run?.trainingOptions || this.trainingOptions || {}) };
+      return Boolean(options[key]);
+    }
+
+    applyTrainingRules() {
+      if (!this.isTrainingRun()) return;
+      const p = this.run?.player;
+      if (!p) return;
+      if (this.trainingRule("freeEnergy")) {
+        p.energy = p.maxEnergy;
+        p.energyRegenDelay = 0;
+      }
+      if (this.trainingRule("noCooldown")) {
+        p.cooldowns.q = 0;
+        p.cooldowns.e = 0;
+        p.cooldowns.r = 0;
+        p.cooldowns.f = 0;
+        p.dashCd = 0;
+        p.ult = 100;
+      }
     }
 
     centerActorInRoom(actor, syncDisplay = false) {
@@ -5054,7 +5156,7 @@
         "role", "specialSkill", "ranged", "bulky", "elite", "boss", "attackCd", "skillCd", "windupType",
         "windupTime", "windupTotal", "windupAngle", "windupX", "windupY", "chargeTime",
         "chargeHit", "chargeDir", "chargeSpeed", "chargeDamage", "attackAnim", "attackDir", "facingDir",
-        "launch", "flash", "stun", "domainFreeze", "domainBound", "burn", "chill", "mark", "bleed", "bleedTick", "bleedDamage", "phase", "phaseLock", "fatigueTime", "fatigueMax", "fatigueCounter", "bossDebuff", "aiTimer"
+        "launch", "flash", "stun", "domainFreeze", "domainBound", "burn", "chill", "mark", "bleed", "bleedTick", "bleedDamage", "phase", "phaseLock", "fatigueTime", "fatigueMax", "fatigueCounter", "bossDebuff", "aiTimer", "trainingDummy", "anchorX", "anchorY"
       ]);
     }
 
@@ -5588,7 +5690,7 @@
         type,
         cleared: false,
         started: false,
-        intro: type === "boss" ? 3.0 : 1.25,
+        intro: type === "training" ? 0.75 : type === "boss" ? 3.0 : 1.25,
         timer: 0,
         rewardClaims: {},
         rewardOwners: []
@@ -5614,10 +5716,11 @@
       this.run.player.invuln = 1;
       this.run.player.pendingBasicAttack = null;
       if (type === "healing") this.revivePartyForHealing();
-      this.spawnHazards();
+      if (type !== "training") this.spawnHazards();
       if (type === "treasure") this.spawnTreasureChest();
       else if (type === "merchant") this.spawnMerchantStall();
       else if (type === "curse") this.spawnCurseBook();
+      else if (type === "training") this.spawnTrainingDummies();
       else if (type === "boss") {
         this.run.currentRoom.started = true;
         this.spawnBoss();
@@ -5807,7 +5910,7 @@
 
     spawnHazards() {
       const biome = this.run.biome;
-      if (["treasure", "merchant", "curse", "healing", "boss"].includes(this.run.currentRoom.type)) return;
+      if (["treasure", "merchant", "curse", "healing", "boss", "training"].includes(this.run.currentRoom.type)) return;
       const count = 4 + this.run.stage;
       for (let i = 0; i < count; i++) {
         this.run.hazards.push({
@@ -5838,6 +5941,44 @@
         const pos = this.edgePosition(edge);
         this.run.enemies.push(this.createEnemy(pick(biome.enemies), pos.x, pos.y, type === "elite" || chance(0.12)));
       }
+    }
+
+    spawnTrainingDummies() {
+      if (!this.run) return;
+      const positions = [
+        { x: WORLD_W / 2 - 360, y: WORLD_H / 2 - 145 },
+        { x: WORLD_W / 2 - 180, y: WORLD_H / 2 + 120 },
+        { x: WORLD_W / 2, y: WORLD_H / 2 - 40 },
+        { x: WORLD_W / 2 + 180, y: WORLD_H / 2 + 120 },
+        { x: WORLD_W / 2 + 360, y: WORLD_H / 2 - 145 }
+      ];
+      this.run.enemies = positions.map((pos, index) => {
+        const dummy = this.createEnemy("Training Dummy", pos.x, pos.y, false);
+        dummy.id = `training-dummy-${index + 1}`;
+        dummy.kind = `Dummy ${index + 1}`;
+        dummy.role = "dummy";
+        dummy.specialSkill = "dummy";
+        dummy.trainingDummy = true;
+        dummy.ranged = false;
+        dummy.bulky = true;
+        dummy.elite = false;
+        dummy.boss = false;
+        dummy.radius = 28;
+        dummy.maxHp = 1200;
+        dummy.hp = dummy.maxHp;
+        dummy.speed = 0;
+        dummy.damage = 0;
+        dummy.attackCd = 999;
+        dummy.skillCd = 999;
+        dummy.facingDir = index < 2 ? 1 : -1;
+        dummy.anchorX = pos.x;
+        dummy.anchorY = pos.y;
+        return dummy;
+      });
+      this.run.player.ult = 100;
+      if (this.trainingRule("freeEnergy")) this.run.player.energy = this.run.player.maxEnergy;
+      this.addShockwave(WORLD_W / 2, WORLD_H / 2, 180, "#82ffd3", 0);
+      this.toast("Phòng huấn luyện: 5 dummy đã sẵn sàng");
     }
 
     addRoomObject(type, data = {}) {
@@ -6056,6 +6197,7 @@
       this.updateParticles(dt);
       this.updateDamageTexts(dt);
       this.updateStatusEffects(dt);
+      this.applyTrainingRules();
       this.updateHud();
       this.updateRunLeader();
       this.updateNetwork(dt);
@@ -6083,6 +6225,7 @@
 
     ensureRoomClearState(dt) {
       const room = this.run?.currentRoom;
+      if (this.isTrainingRun()) return;
       if (!room || room.cleared || room.intro > 0 || this.run.enemies.length > 0) return;
       if (this.roomNeedsObjectInteraction(room)) return;
       if (!Number.isFinite(this.run.roomClearTimer) || this.run.roomClearTimer <= 0) this.run.roomClearTimer = 0.35;
@@ -6436,7 +6579,9 @@
 
     dash() {
       const p = this.run?.player;
-      if (!p || p.dead || this.pauseOverlay || p.dashCd > 0 || p.energy < 12) return;
+      const freeEnergy = this.trainingRule("freeEnergy");
+      const noCooldown = this.trainingRule("noCooldown");
+      if (!p || p.dead || this.pauseOverlay || (!noCooldown && p.dashCd > 0) || (!freeEnergy && p.energy < 12)) return;
       let dx = 0;
       let dy = 0;
       if (this.input.keys.has("KeyW")) dy -= 1;
@@ -6457,9 +6602,11 @@
       }
       p.dashVector = { x: dx, y: dy };
       p.dashTime = 0.18;
-      p.dashCd = this.run.power.id === "time" ? 0.48 : 0.7;
-      p.energy -= 12;
-      p.energyRegenDelay = Math.max(p.energyRegenDelay || 0, 0.65);
+      p.dashCd = noCooldown ? 0 : this.run.power.id === "time" ? 0.48 : 0.7;
+      if (!freeEnergy) {
+        p.energy -= 12;
+        p.energyRegenDelay = Math.max(p.energyRegenDelay || 0, 0.65);
+      }
       p.facing = Math.atan2(dy, dx);
       this.camera.shake = Math.max(this.camera.shake, 3);
       this.audio.sfx(160, "sawtooth", 0.055, 0.11);
@@ -6476,7 +6623,8 @@
       const character = characterById(p.characterId);
       const angle = this.basicAimAngle(p);
       const mageBasicCost = 7;
-      if (character.id === "mage" && p.energy < mageBasicCost) {
+      const freeEnergy = this.trainingRule("freeEnergy");
+      if (character.id === "mage" && !freeEnergy && p.energy < mageBasicCost) {
         this.toast("Không đủ năng lượng");
         return;
       }
@@ -6491,8 +6639,10 @@
       this.addAttackDust(p.x + Math.cos(angle) * 24, p.y + Math.sin(angle) * 24, angle, character.id === "guardian");
       if (this.isMultiplayerClient() && character.id !== "ranger") this.sendBasicAttackPacket(character, p, angle);
       if (character.id === "mage") {
-        p.energy = Math.max(0, p.energy - mageBasicCost);
-        p.energyRegenDelay = Math.max(p.energyRegenDelay || 0, 0.78);
+        if (!freeEnergy) {
+          p.energy = Math.max(0, p.energy - mageBasicCost);
+          p.energyRegenDelay = Math.max(p.energyRegenDelay || 0, 0.78);
+        }
         this.basicMageAttack(p, angle);
         return;
       }
@@ -6901,16 +7051,18 @@
       const cost = { q: 18, e: 24, r: 34, f: 0 }[key];
       const cooldown = { q: 3.2, e: 5.4, r: 8.6, f: 0.8 }[key];
       const ultimateCost = key === "f" ? this.ultimateEnergyCost(p) : 0;
-      if (key !== "f" && (p.cooldowns[key] > 0 || p.energy < cost)) return;
-      if (key === "f" && (p.cooldowns.f > 0 || p.ult < 100)) return;
-      if (key === "f" && p.energy < ultimateCost) {
+      const freeEnergy = this.trainingRule("freeEnergy");
+      const noCooldown = this.trainingRule("noCooldown");
+      if (key !== "f" && ((!noCooldown && p.cooldowns[key] > 0) || (!freeEnergy && p.energy < cost))) return;
+      if (key === "f" && ((!noCooldown && p.cooldowns.f > 0) || (!noCooldown && p.ult < 100))) return;
+      if (key === "f" && !freeEnergy && p.energy < ultimateCost) {
         this.toast(`Cần ${ultimateCost} năng lượng để thi triển lãnh địa`);
         return;
       }
-      if (key !== "f") p.energy -= cost;
-      if (key === "f") p.energy = Math.max(0, p.energy - ultimateCost);
-      p.energyRegenDelay = Math.max(p.energyRegenDelay || 0, key === "f" ? 2.15 : key === "r" ? 1.45 : key === "e" ? 1.25 : 1.05);
-      p.cooldowns[key] = cooldown;
+      if (!freeEnergy && key !== "f") p.energy -= cost;
+      if (!freeEnergy && key === "f") p.energy = Math.max(0, p.energy - ultimateCost);
+      if (!freeEnergy) p.energyRegenDelay = Math.max(p.energyRegenDelay || 0, key === "f" ? 2.15 : key === "r" ? 1.45 : key === "e" ? 1.25 : 1.05);
+      if (!noCooldown) p.cooldowns[key] = cooldown;
       p.animation = key === "f" ? "ultimate" : "skill";
       p.actionTotal = key === "f" ? DOMAIN_CUTIN_TIME + DOMAIN_GROW_TIME + 0.15 : key === "r" ? 0.48 : 0.38;
       p.actionTime = p.actionTotal;
@@ -6923,8 +7075,12 @@
       if (key === "e") this.castSkillTwo(power);
       if (key === "r") this.castSkillThree(power, aim, target);
       if (key === "f") {
-        p.ult = 0;
-        p.cooldowns.f = 1;
+        if (!noCooldown) {
+          p.ult = 0;
+          p.cooldowns.f = 1;
+        } else {
+          p.ult = 100;
+        }
         this.castUltimate(power);
       }
     }
@@ -8186,6 +8342,32 @@
       }
     }
 
+    trainingDamageDisabled(enemy) {
+      return Boolean(this.isTrainingRun() && enemy?.trainingDummy && !this.trainingRule("damage"));
+    }
+
+    resetTrainingDummy(enemy) {
+      if (!enemy) return;
+      enemy.hp = enemy.maxHp;
+      enemy.burn = 0;
+      enemy.chill = 0;
+      enemy.mark = 0;
+      enemy.bleed = 0;
+      enemy.bleedTick = 0;
+      enemy.bleedDamage = 0;
+      enemy.stun = 0;
+      enemy.launch = 0.28;
+      enemy.flash = 0.16;
+      enemy.vx = 0;
+      enemy.vy = 0;
+      enemy.x = enemy.anchorX || enemy.x;
+      enemy.y = enemy.anchorY || enemy.y;
+      this.addShockwave(enemy.x, enemy.y, 92, "#82ffd3", 0);
+      for (let i = 0; i < 8 * this.save.settings.particles; i++) {
+        this.addParticle(enemy.x + rand(-enemy.radius, enemy.radius), enemy.y + rand(-enemy.radius, enemy.radius), "#82ffd3", rand(7, 15), rand(0.18, 0.42), "spark");
+      }
+    }
+
     damageEnemy(enemy, amount, options = {}) {
       if (this.isMultiplayerClient()) {
         enemy.flash = Math.max(enemy.flash || 0, 0.08);
@@ -8199,6 +8381,7 @@
       if (enemy.boss && enemy.fatigueTime > 0) damage *= 1.16;
       if (this.run.curse?.id === "doubleDamage") damage *= 2;
       if (this.run.curse?.id === "glassMight") damage *= 1.22;
+      if (this.trainingDamageDisabled(enemy)) damage = 0;
       if (this.run.curse?.id === "explosive" && p.combo % 5 === 0) {
         this.addShockwave(enemy.x, enemy.y, 120, "#ff8d3d", 32);
       }
@@ -8239,6 +8422,10 @@
         this.addBasicHitSpark(enemy.x, enemy.y, hitAngle, basicKind, options.source === "guardian" || crit);
       }
       if (enemy.boss) this.checkBossPhase(enemy);
+      if (enemy.trainingDummy && enemy.hp <= 0) {
+        this.resetTrainingDummy(enemy);
+        return;
+      }
       if (enemy.hp <= 0) this.killEnemy(enemy);
     }
 
@@ -8265,9 +8452,13 @@
       if (enemy.bleedTick > 0) return;
       enemy.bleedTick = 0.46;
       const damage = Math.max(1, Number(enemy.bleedDamage || 1));
-      enemy.hp -= damage;
+      if (!this.trainingDamageDisabled(enemy)) enemy.hp -= damage;
       enemy.flash = Math.max(enemy.flash || 0, 0.08);
       if (chance(0.65)) this.addParticle(enemy.x + rand(-enemy.radius * 0.35, enemy.radius * 0.35), enemy.y + rand(-enemy.radius * 0.45, enemy.radius * 0.3), "#b01d45", rand(5, 10), rand(0.18, 0.36), "spark", -Math.PI / 2 + rand(-0.8, 0.8), rand(35, 100));
+      if (enemy.trainingDummy && enemy.hp <= 0) {
+        this.resetTrainingDummy(enemy);
+        return;
+      }
       if (enemy.hp <= 0) this.killEnemy(enemy);
     }
 
@@ -8464,6 +8655,10 @@
     }
 
     killEnemy(enemy) {
+      if (this.isTrainingRun() && enemy?.trainingDummy) {
+        this.resetTrainingDummy(enemy);
+        return;
+      }
       const index = this.run.enemies.indexOf(enemy);
       if (index >= 0) this.run.enemies.splice(index, 1);
       for (let i = 0; i < 16 * this.save.settings.particles; i++) {
@@ -8521,6 +8716,7 @@
     clearRoom() {
       const room = this.run.currentRoom;
       if (!room) return;
+      if (this.isTrainingRun()) return;
       if (room.cleared) {
         this.clearRoomHazards();
         return;
@@ -8555,7 +8751,7 @@
     }
 
     roomDropsReward(room) {
-      return room && !["healing", "merchant", "curse"].includes(room.type);
+      return room && !["healing", "merchant", "curse", "training"].includes(room.type);
     }
 
     xpToNextLevel(level = this.save.progression?.level || 1) {
@@ -9565,6 +9761,15 @@
         if (enemy.mark > 0 && enemy.mark >= 4) {
           enemy.mark = 0;
           this.damageEnemy(enemy, 38, { x: 0, y: 0, source: "mark", kind: "void" });
+        }
+        if (enemy.trainingDummy) {
+          enemy.vx = 0;
+          enemy.vy = 0;
+          enemy.x = enemy.anchorX || enemy.x;
+          enemy.y = enemy.anchorY || enemy.y;
+          enemy.facingDir = p.x >= enemy.x ? 1 : -1;
+          if (enemy.hp <= 0) this.resetTrainingDummy(enemy);
+          continue;
         }
         if (enemy.domainFreeze > 0) {
           enemy.domainFreeze = Math.max(0, enemy.domainFreeze - dt);
@@ -11563,6 +11768,7 @@
 
     compactObjectiveText() {
       const enemies = this.run?.enemies.length || 0;
+      if (this.isTrainingRun()) return `${enemies} dummy`;
       if (enemies > 0) return `${enemies} quái`;
       const pending = this.run?.pendingDoor;
       if (pending) return `Vào cửa ${Math.ceil(pending.timer)}s`;
@@ -11575,6 +11781,7 @@
     roomObjectiveText() {
       const room = this.run?.currentRoom;
       const enemies = this.run?.enemies.length || 0;
+      if (this.isTrainingRun()) return `Test chiêu với ${enemies} dummy - ESC để thoát`;
       if (enemies > 0) return `Hạ ${enemies} quái`;
       const activeObject = this.run?.roomObjects?.find((object) => !object.opened && object.type !== "nextDoor");
       if (activeObject?.type === "treasureChest") return "Chạm rương kho báu";
@@ -13185,12 +13392,61 @@
       return hash % 4;
     }
 
+    drawTrainingDummy(ctx, enemy) {
+      const color = enemy.flash > 0 ? "#ffffff" : "#82ffd3";
+      const wood = "#8b5a36";
+      const dark = "#111821";
+      const metal = "#d7e1ea";
+      ctx.save();
+      ctx.fillStyle = "rgba(130,255,211,0.12)";
+      ctx.beginPath();
+      ctx.arc(0, 2, 36 + Math.sin(this.menuTime * 4 + enemy.anchorX * 0.01) * 2, 0, TAU);
+      ctx.fill();
+      ctx.fillStyle = "#0b0d13";
+      ctx.fillRect(-28, 22, 56, 7);
+      ctx.fillStyle = wood;
+      ctx.fillRect(-5, -12, 10, 38);
+      ctx.fillRect(-22, -2, 44, 8);
+      ctx.fillStyle = dark;
+      ctx.fillRect(-23, -38, 46, 40);
+      ctx.fillStyle = color;
+      ctx.fillRect(-17, -32, 34, 28);
+      ctx.fillStyle = dark;
+      ctx.fillRect(-12, -27, 24, 18);
+      ctx.fillStyle = metal;
+      ctx.fillRect(-7, -22, 14, 8);
+      ctx.fillStyle = color;
+      ctx.fillRect(-3, -19, 6, 2);
+      ctx.strokeStyle = metal;
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(-26, -34);
+      ctx.lineTo(26, 0);
+      ctx.moveTo(26, -34);
+      ctx.lineTo(-26, 0);
+      ctx.stroke();
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 2;
+      ctx.strokeRect(-30, -42, 60, 49);
+      ctx.fillStyle = "#f3ead7";
+      ctx.font = "8px Inter, sans-serif";
+      ctx.textAlign = "center";
+      ctx.fillText("DUMMY", 0, -48);
+      ctx.restore();
+    }
+
     drawEnemy(ctx, enemy) {
       ctx.save();
       const lift = enemy.launch > 0 ? Math.sin((enemy.launch / (enemy.boss ? 0.12 : 0.45)) * Math.PI) * (enemy.boss ? 7 : 18) : 0;
       ctx.translate(Math.round(enemy.x), Math.round(enemy.y - lift));
       const scale = enemy.boss ? 2.6 : enemy.elite ? 1.35 : 1;
       ctx.scale(scale, scale);
+      if (enemy.trainingDummy) {
+        this.drawTrainingDummy(ctx, enemy);
+        ctx.restore();
+        this.drawEnemyHp(ctx, enemy);
+        return;
+      }
       ctx.scale(enemy.facingDir === -1 ? -1 : 1, 1);
       const color = enemy.flash > 0 ? "#ffffff" : enemy.elite ? "#ffbd5e" : this.enemyColor(enemy.kind);
       const dark = enemy.boss ? "#181019" : "#151923";

@@ -2475,6 +2475,102 @@ button {
   text-align: center;
 }
 
+.invite-notifications {
+  position: fixed;
+  top: calc(16px + env(safe-area-inset-top));
+  right: calc(16px + env(safe-area-inset-right));
+  z-index: 34;
+  display: grid;
+  gap: 10px;
+  width: min(380px, calc(100vw - 28px));
+  pointer-events: none;
+}
+
+.invite-notice {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr);
+  gap: 10px;
+  align-items: center;
+  padding: 12px;
+  border: 1px solid rgba(242, 191, 99, 0.48);
+  background: rgba(9, 12, 20, 0.94);
+  box-shadow: 0 18px 42px rgba(0, 0, 0, 0.58);
+  color: var(--ink);
+  pointer-events: auto;
+  animation: inviteSlideIn 260ms cubic-bezier(0.2, 0.9, 0.2, 1) both;
+}
+
+.invite-notice.leaving {
+  animation: inviteSlideOut 220ms ease both;
+}
+
+.invite-notice-icon {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border: 1px solid rgba(242, 191, 99, 0.58);
+  background: rgba(242, 191, 99, 0.16);
+  color: var(--gold);
+  font-weight: 950;
+}
+
+.invite-notice-copy {
+  min-width: 0;
+}
+
+.invite-notice-copy b,
+.invite-notice-copy span {
+  display: block;
+  overflow-wrap: anywhere;
+}
+
+.invite-notice-copy b {
+  margin-bottom: 3px;
+  font-size: 14px;
+}
+
+.invite-notice-copy span {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.invite-notice-actions {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.invite-notice-actions .btn {
+  min-height: 36px;
+  padding: 7px 9px;
+  text-align: center;
+}
+
+@keyframes inviteSlideIn {
+  from {
+    opacity: 0;
+    transform: translateX(110%);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes inviteSlideOut {
+  from {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(110%);
+  }
+}
+
 .mobile-gate {
   position: fixed;
   inset: 0;
@@ -3092,6 +3188,16 @@ button {
     padding: 10px;
     font-size: 12px;
   }
+
+  .invite-notifications {
+    top: calc(10px + env(safe-area-inset-top));
+    right: calc(10px + env(safe-area-inset-right));
+    width: min(340px, calc(100vw - 20px));
+  }
+
+  .invite-notice {
+    padding: 10px;
+  }
 }
 
 @media (max-height: 520px) and (hover: none), (max-height: 520px) and (pointer: coarse) {
@@ -3225,6 +3331,16 @@ body.is-mobile-ui .lobby-invite-panel {
 
 body.is-mobile-ui .lobby-invite-box {
   max-height: 100%;
+}
+
+body.is-mobile-ui .invite-notifications {
+  top: calc(10px + env(safe-area-inset-top));
+  right: calc(10px + env(safe-area-inset-right));
+  width: min(340px, calc(100vw - 20px));
+}
+
+body.is-mobile-ui .invite-notice {
+  padding: 10px;
 }
 
 body.is-mobile-ui .friend-actions,

@@ -7,7 +7,7 @@
   const ROOM_PAD = 86;
   const SAVE_KEY = "soulrift-save-v1";
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
-  const APP_VERSION = "20260604-responsive-auto-117";
+  const APP_VERSION = "20260604-hard-drop-skill-recover-118";
   const VERSION_CHECK_INTERVAL = 15000;
   const UPDATE_ATTEMPT_KEY = "soulrift-update-attempt-v1";
   const CLOUD_MIGRATION_KEY = "soulrift-cloud-migrated-v1";
@@ -2263,6 +2263,7 @@
         emergencyHold: 0,
         panicHold: 0,
         levelChangeLock: 0,
+        skillQuietTime: 0,
         stableTime: 0,
         overloadTime: 0,
         lagTime: 0,
@@ -2991,6 +2992,7 @@
         this.perf.emergencyHold = 0;
         this.perf.panicHold = 0;
         this.perf.levelChangeLock = 0;
+        this.perf.skillQuietTime = 0;
         this.perf.lagTime = 0;
         this.perf.overloadTime = 0;
         this.updateRenderScale(false);
@@ -2999,27 +3001,31 @@
       const targetDt = this.isMobileDevice() ? 0.0225 : 0.0195;
       const load = this.graphicsCombatLoad();
       const activeCombat = this.graphicsActiveCombat();
-      const idle = !this.run || this.mode !== "game" || this.pauseOverlay || !activeCombat;
+      const skillActive = this.graphicsPlayerSkillActive();
+      const stressActive = activeCombat || skillActive || load > 0.28;
+      const idle = !this.run || this.mode !== "game" || this.pauseOverlay || !stressActive;
       const avgDt = this.perf.avgDt || frame;
       const fastDt = this.perf.fastDt || frame;
-      const heavyFrame = frame > (this.isMobileDevice() ? 0.046 : 0.04);
+      this.perf.skillQuietTime = skillActive ? 0 : Math.min(8, (this.perf.skillQuietTime || 0) + frame);
+      const heavyFrame = frame > (this.isMobileDevice() ? 0.04 : 0.034);
       const sustainedSlow = (this.perf.fastDt || frame) > targetDt + (this.isMobileDevice() ? 0.012 : 0.01)
         || this.perf.avgDt > targetDt + (this.isMobileDevice() ? 0.009 : 0.0075);
-      const severeFrame = frame > (this.isMobileDevice() ? 0.07 : 0.062);
-      const severeSlow = fastDt > targetDt + (this.isMobileDevice() ? 0.019 : 0.016)
-        || avgDt > targetDt + (this.isMobileDevice() ? 0.016 : 0.013);
-      const realLag = !idle && (heavyFrame || sustainedSlow);
-      const severeLag = !idle && (severeFrame || severeSlow);
+      const severeFrame = frame > (this.isMobileDevice() ? 0.058 : 0.05);
+      const severeSlow = fastDt > targetDt + (this.isMobileDevice() ? 0.014 : 0.012)
+        || avgDt > targetDt + (this.isMobileDevice() ? 0.012 : 0.01);
+      const instantLag = stressActive && (heavyFrame || sustainedSlow);
+      const realLag = stressActive && (heavyFrame || sustainedSlow);
+      const severeLag = stressActive && (severeFrame || severeSlow);
       this.perf.lagTime = realLag
-        ? Math.min(4.5, (this.perf.lagTime || 0) + frame * (severeLag ? 1.45 : 1))
+        ? Math.min(4.5, (this.perf.lagTime || 0) + frame * (severeLag ? 2.35 : 1.65))
         : Math.max(0, (this.perf.lagTime || 0) - frame * (idle ? 6.2 : 1.55));
-      const rawPressure = clamp(((this.perf.lagTime || 0) - 0.24) / 1.05, 0, 1);
+      const rawPressure = clamp(((this.perf.lagTime || 0) - 0.08) / 0.62, 0, 1);
       const pressureNow = clamp(Number(this.perf.pressure || 0), 0, 1);
-      const pressureRate = rawPressure > pressureNow ? 3.2 : idle ? 5.2 : 0.9;
+      const pressureRate = rawPressure > pressureNow ? 8.5 : idle ? 5.2 : 0.9;
       const pressureBlend = 1 - Math.exp(-frame * pressureRate);
       this.perf.pressure = pressureNow + (rawPressure - pressureNow) * pressureBlend;
-      const emergencyLag = !idle && (this.perf.lagTime > 0.42 || severeLag || this.perf.pressure > 0.34);
-      const panicLag = !idle && (this.perf.lagTime > 1.1 || frame > 0.095 || this.perf.pressure > 0.72);
+      const emergencyLag = stressActive && (this.perf.lagTime > 0.18 || severeLag || this.perf.pressure > 0.18);
+      const panicLag = stressActive && (this.perf.lagTime > 0.62 || frame > 0.075 || this.perf.pressure > 0.55);
       this.perf.emergencyHold = emergencyLag
         ? Math.max(this.perf.emergencyHold || 0, 1.8)
         : idle ? 0 : Math.max(0, (this.perf.emergencyHold || 0) - frame);
@@ -3027,7 +3033,7 @@
         ? Math.max(this.perf.panicHold || 0, 2.2)
         : idle ? 0 : Math.max(0, (this.perf.panicHold || 0) - frame);
       this.perf.levelChangeLock = Math.max(0, (this.perf.levelChangeLock || 0) - frame);
-      const overloaded = !idle && (realLag || this.perf.lagTime > 0.42 || this.perf.pressure > 0.32);
+      const overloaded = stressActive && (instantLag || realLag || this.perf.lagTime > 0.18 || this.perf.pressure > 0.16);
       if (overloaded) {
         this.perf.overloadTime = Math.min(3, (this.perf.overloadTime || 0) + frame);
         this.perf.stableTime = 0;
@@ -3038,33 +3044,34 @@
       const currentLevel = Number.isFinite(this.perf.autoLevel) ? this.perf.autoLevel : baseLevel;
       let targetLevel = Number.isFinite(this.perf.targetAutoLevel) ? this.perf.targetAutoLevel : currentLevel;
       const canShiftLevel = (this.perf.levelChangeLock || 0) <= 0;
-      const stableForRecover = !activeCombat && (
+      const skillQuiet = (this.perf.skillQuietTime || 0) > 0.85;
+      const stableForRecover = skillQuiet && (
         idle || (
-          this.perf.stableTime > 1.8
-          && this.perf.pressure < 0.16
-          && this.perf.lagTime < 0.18
+          this.perf.stableTime > 1.2
+          && this.perf.pressure < 0.12
+          && this.perf.lagTime < 0.12
         )
       );
-      if (idle) {
+      if (idle && skillQuiet) {
         targetLevel = baseLevel;
         this.perf.levelChangeLock = 0;
-      } else if ((panicLag || emergencyLag || this.perf.overloadTime > 0.55) && canShiftLevel) {
-        const dropStep = panicLag ? 0.75 : emergencyLag ? 0.45 : 0.25;
-        const floor = panicLag ? 1.25 : emergencyLag ? 2.05 : 3.25;
+      } else if ((panicLag || emergencyLag || this.perf.overloadTime > 0.16) && (canShiftLevel || panicLag || emergencyLag)) {
+        const dropStep = panicLag ? 1.35 : emergencyLag ? 0.9 : 0.48;
+        const floor = panicLag ? 1 : emergencyLag ? 1.55 : 2.45;
         targetLevel = Math.max(Math.min(baseLevel, targetLevel) - dropStep, Math.min(baseLevel, floor));
-        this.perf.levelChangeLock = panicLag ? 0.42 : emergencyLag ? 0.58 : 0.76;
+        this.perf.levelChangeLock = panicLag ? 0.16 : emergencyLag ? 0.22 : 0.34;
       } else if (stableForRecover && canShiftLevel && targetLevel < baseLevel) {
-        const recoverStep = this.perf.stableTime > 4 ? 0.45 : 0.24;
+        const recoverStep = idle ? 0.75 : this.perf.stableTime > 4 ? 0.34 : 0.18;
         targetLevel = Math.min(baseLevel, targetLevel + recoverStep);
-        this.perf.levelChangeLock = 0.85;
+        this.perf.levelChangeLock = idle ? 0.38 : 0.9;
       }
       targetLevel = clamp(Math.round(targetLevel * 10) / 10, 1, 5);
-      if (activeCombat && targetLevel > currentLevel) targetLevel = currentLevel;
+      if (skillActive && targetLevel > currentLevel) targetLevel = currentLevel;
       this.perf.targetAutoLevel = targetLevel;
       const levelDelta = targetLevel - currentLevel;
       const maxStep = (levelDelta < 0
-        ? (panicLag ? 1.85 : emergencyLag ? 1.15 : 0.72)
-        : (idle ? 1.35 : 0.42)) * frame;
+        ? (panicLag ? 8.5 : emergencyLag ? 5.8 : 3.2)
+        : (idle ? 2.6 : 0.5)) * frame;
       this.perf.autoLevel = currentLevel + clamp(levelDelta, -maxStep, maxStep);
       if (Math.abs(this.perf.autoLevel - baseLevel) < 0.02 && targetLevel === baseLevel) this.perf.autoLevel = baseLevel;
       this.perf.displayedAutoLevel = Math.round(this.perf.autoLevel * 100) / 100;
@@ -3079,6 +3086,33 @@
       if (["treasure", "merchant", "healing", "curse", "training"].includes(room.type)) return false;
       if (room.type === "boss" && !room.started) return false;
       return true;
+    }
+
+    graphicsPlayerSkillActive() {
+      if (!this.run || this.mode !== "game") return false;
+      const actorBusy = (actor) => Boolean(actor && (
+        (["skill", "ultimate"].includes(actor.animation) && (actor.actionTime || 0) > 0)
+        || (actor.domainLock || 0) > 0
+        || (actor.shadowWeapon || 0) > 0
+      ));
+      if (actorBusy(this.run.player)) return true;
+      for (const remote of this.remotePlayers?.values?.() || []) {
+        if (actorBusy(remote)) return true;
+      }
+      const playerOwned = (entry) => entry?.owner === "player" || entry?.owner === "ally" || Boolean(entry?.casterId);
+      const skillProjectile = (projectile) => playerOwned(projectile)
+        && !projectile.visualOnly
+        && !["mageBasic", "rangerBasic"].includes(projectile.kind)
+        && (projectile.life ?? 0) > 0;
+      if ((this.run.projectiles || []).some(skillProjectile)) return true;
+      const skillEffectTypes = new Set(["skillShape", "castBurst", "castCone", "powerGlyph", "shadowShard", "zone", "pull", "ultimate"]);
+      const skillEffect = (effect) => skillEffectTypes.has(effect?.type)
+        && playerOwned(effect)
+        && (effect.time ?? 0) > 0.03;
+      if ((this.run.effects || []).some(skillEffect)) return true;
+      if ((this.run.trails || []).some((trail) => Boolean(trail?.casterId) && trail.damageTick !== undefined && (trail.life ?? 0) > 0.03)) return true;
+      if ((this.run.shockwaves || []).some((wave) => playerOwned(wave) && wave.owner !== "enemy" && (wave.damage || 0) > 0 && (wave.life ?? 0) > 0.03)) return true;
+      return false;
     }
 
     graphicsCombatLoad() {
@@ -3115,16 +3149,16 @@
     }
 
     performanceEmergency() {
-      return (this.perf?.emergencyHold || 0) > 0 || this.performancePressure() > 0.52;
+      return (this.perf?.emergencyHold || 0) > 0 || this.performancePressure() > 0.22;
     }
 
     performancePanic() {
-      return (this.perf?.panicHold || 0) > 0 || this.performancePressure() > 0.88;
+      return (this.perf?.panicHold || 0) > 0 || this.performancePressure() > 0.62;
     }
 
     visualBudgetScale() {
       const pressure = this.performancePressure();
-      return clamp(1 - pressure * 0.72, this.performancePanic() ? 0.14 : 0.28, 1);
+      return clamp(1 - pressure * 0.92, this.performancePanic() ? 0.08 : 0.18, 1);
     }
 
     optionalVisualEffect(type) {
@@ -3158,11 +3192,11 @@
     graphicsRenderScale() {
       const quality = this.perf?.quality ?? 1;
       const lag = this.performancePressure();
-      const base = this.isMobileDevice() ? 0.66 - lag * 0.24 : 0.7 - lag * 0.2;
+      const base = this.isMobileDevice() ? 0.62 - lag * 0.3 : 0.68 - lag * 0.26;
       const range = this.isMobileDevice() ? 0.34 : 0.3;
       const floor = this.performancePanic()
-        ? (this.isMobileDevice() ? 0.42 : 0.52)
-        : (this.isMobileDevice() ? 0.58 : 0.66);
+        ? (this.isMobileDevice() ? 0.36 : 0.46)
+        : (this.isMobileDevice() ? 0.5 : 0.58);
       const rawScale = clamp(base + quality * range, floor, 1);
       const step = this.isMobileDevice() ? 0.05 : 0.04;
       return clamp(Math.round(rawScale / step) * step, floor, 1);
@@ -3174,39 +3208,40 @@
       const manualScale = this.save?.settings?.graphicsMode === "manual";
       const pressure = this.performancePressure();
       const activeCombat = this.graphicsActiveCombat();
-      const idle = !this.run || this.mode !== "game" || this.pauseOverlay || !activeCombat;
-      const stableForResizeRecover = !activeCombat && (
+      const skillActive = this.graphicsPlayerSkillActive();
+      const idle = !this.run || this.mode !== "game" || this.pauseOverlay || (!activeCombat && !skillActive);
+      const stableForResizeRecover = !skillActive && (
         idle || (
-          (this.perf.stableTime || 0) > 2.2
+          (this.perf.stableTime || 0) > 1.3
           && pressure < 0.1
           && !this.performanceEmergency()
         )
       );
       let stableTarget = currentTarget;
       const targetGap = desired - currentTarget;
-      if (manualScale || idle || force && targetGap < -0.18) {
+      if (manualScale || idle || force && targetGap < -0.06) {
         stableTarget = desired;
       } else if (targetGap < -0.001) {
-        const dropGap = this.performancePanic() ? 0.06 : this.performanceEmergency() || force ? 0.08 : 0.12;
+        const dropGap = this.performancePanic() ? 0.025 : this.performanceEmergency() || force ? 0.04 : 0.07;
         if (Math.abs(targetGap) >= dropGap && (force || this.performanceEmergency() || pressure > 0.24)) {
           stableTarget = desired;
         }
       } else if (targetGap > 0.001 && targetGap >= 0.1 && stableForResizeRecover) {
         stableTarget = desired;
       }
-      const targetBlend = manualScale ? 1 : stableTarget < currentTarget ? (force ? 0.22 : 0.12) : idle ? 0.32 : 0.08;
+      const targetBlend = manualScale ? 1 : stableTarget < currentTarget ? (force ? 0.72 : 0.46) : idle ? 0.32 : 0.08;
       const next = currentTarget + (stableTarget - currentTarget) * targetBlend;
       this.perf.renderScaleTarget = next;
       this.perf.renderScale = next;
       const current = Number.isFinite(this.perf.appliedRenderScale) ? this.perf.appliedRenderScale : 1;
       const now = performance.now();
       const diff = Math.abs(next - current);
-      const resizeThreshold = manualScale ? 0.025 : next < current ? 0.08 : 0.12;
+      const resizeThreshold = manualScale ? 0.025 : next < current ? 0.035 : 0.12;
       if (diff < resizeThreshold) return;
-      const urgentDrop = !manualScale && force && next < current && diff > 0.2 && (this.performancePanic() || pressure > 0.72);
+      const urgentDrop = !manualScale && force && next < current && diff > 0.055 && (this.performancePanic() || this.performanceEmergency() || pressure > 0.28);
       if (!urgentDrop && now < (this.perf.resizeAt || 0)) return;
       this.perf.appliedRenderScale = next;
-      this.perf.resizeAt = now + (manualScale ? 140 : idle ? 260 : next < current ? urgentDrop ? 350 : 760 : 2200);
+      this.perf.resizeAt = now + (manualScale ? 140 : idle ? 260 : next < current ? urgentDrop ? 110 : 260 : 2200);
       this.resize();
       if (this.run && next < current) {
         this.trimEffectList();
@@ -7356,6 +7391,7 @@
         maxTime: visualTime,
         color: powerById(kind).color,
         accent: powerById(kind).accent,
+        casterId: this.currentDamageSourceId || "",
         ...scaledExtra
       });
     }
@@ -11516,7 +11552,8 @@
 
     addShockwave(x, y, radius, color, damage = 0, options = {}) {
       const owner = typeof options === "string" ? options : options.owner || "player";
-      this.run.shockwaves.push({ x, y, radius, color, life: 0.42, maxLife: 0.42, damage, owner, hit: new Set() });
+      const casterId = typeof options === "string" ? (this.currentDamageSourceId || "") : (options.casterId || this.currentDamageSourceId || "");
+      this.run.shockwaves.push({ x, y, radius, color, life: 0.42, maxLife: 0.42, damage, owner, casterId, hit: new Set() });
       this.trimVisualList(this.run.shockwaves, this.isMobileDevice() ? 16 : 24);
     }
 

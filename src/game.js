@@ -7,7 +7,7 @@
   const ROOM_PAD = 86;
   const SAVE_KEY = "soulrift-save-v1";
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
-  const APP_VERSION = "20260604-power-identity-skills-103";
+  const APP_VERSION = "20260604-domain-identity-104";
   const VERSION_CHECK_INTERVAL = 15000;
   const UPDATE_ATTEMPT_KEY = "soulrift-update-attempt-v1";
   const CLOUD_MIGRATION_KEY = "soulrift-cloud-migrated-v1";
@@ -10488,16 +10488,16 @@
 
     powerDomainTickRate(kind) {
       return {
-        lightning: 0.32,
-        fire: 0.38,
+        lightning: 0.3,
+        fire: 0.5,
         blood: 0.42,
-        crystal: 0.45,
-        ice: 0.48,
-        shadow: 0.48,
-        gravity: 0.5,
-        nature: 0.5,
-        void: 0.5,
-        time: 0.5
+        crystal: 0.38,
+        ice: 0.46,
+        shadow: 0.42,
+        gravity: 0.82,
+        nature: 0.36,
+        void: 0.48,
+        time: 0.58
       }[kind] || 0.48;
     }
 
@@ -10514,6 +10514,203 @@
         void: "void",
         time: "clock"
       }[kind] || "spark";
+    }
+
+    domainEnemies(effect, radius, limit = 99) {
+      return [...(this.run?.enemies || [])]
+        .filter((enemy) => enemy && enemy.hp > 0 && Math.hypot(enemy.x - effect.x, enemy.y - effect.y) < radius + enemy.radius)
+        .sort((a, b) => Math.hypot(a.x - effect.x, a.y - effect.y) - Math.hypot(b.x - effect.x, b.y - effect.y))
+        .slice(0, limit);
+    }
+
+    domainCaster(effect) {
+      const casterId = effect?.casterId || this.lobby.id;
+      if (casterId === this.lobby.id) return this.run?.player || null;
+      return this.remotePlayers.get(casterId) || null;
+    }
+
+    restoreDomainEnergy(effect, amount, color = "#75e66e") {
+      const caster = this.domainCaster(effect);
+      if (!caster || caster.dead || amount <= 0) return false;
+      const before = Number(caster.energy || 0);
+      caster.energy = Math.min(Number(caster.maxEnergy || 0), before + amount);
+      if (caster.energy <= before) return false;
+      caster.energyRegenDelay = Math.min(Number(caster.energyRegenDelay || 0), 0.12);
+      if ((effect.casterId || this.lobby.id) === this.lobby.id && amount >= 1.6) {
+        this.addImpact(caster.x, caster.y - 22, color, Math.round(amount), false);
+      }
+      return true;
+    }
+
+    addRootSnareVisual(enemy, caster, color) {
+      const rootCount = this.isMobileDevice() ? 2 : 3;
+      for (let i = 0; i < rootCount; i++) {
+        const a = (i / rootCount) * TAU + rand(-0.25, 0.25);
+        const sx = enemy.x + Math.cos(a) * (enemy.radius + 18);
+        const sy = enemy.y + Math.sin(a) * (enemy.radius + 18);
+        this.run.slashes.push({
+          x: sx,
+          y: sy,
+          tx: enemy.x + rand(-enemy.radius * 0.3, enemy.radius * 0.3),
+          ty: enemy.y - enemy.radius * 0.2 + rand(-8, 8),
+          line: true,
+          life: 0.22,
+          maxLife: 0.22,
+          color
+        });
+      }
+      this.trimVisualList(this.run.slashes, this.isMobileDevice() ? 24 : 38);
+      if (caster && chance(0.65)) {
+        this.run.slashes.push({
+          x: enemy.x,
+          y: enemy.y - enemy.radius * 0.4,
+          tx: caster.x,
+          ty: caster.y - 14,
+          line: true,
+          life: 0.18,
+          maxLife: 0.18,
+          color: "#ffe082"
+        });
+        this.trimVisualList(this.run.slashes, this.isMobileDevice() ? 24 : 38);
+      }
+      this.addParticle(enemy.x, enemy.y - enemy.radius * 0.4, color, rand(9, 17), rand(0.3, 0.6), "leaf");
+    }
+
+    updatePowerDomainIdentity(effect, radius, color) {
+      const kind = effect.kind || "fire";
+      const power = powerById(kind);
+      const damage = Number(effect.damage || 18);
+      const sourceId = effect.casterId || "";
+      const caster = this.domainCaster(effect);
+      const targets = this.domainEnemies(effect, radius, kind === "gravity" ? 4 : kind === "nature" ? 6 : 8);
+      const canDamage = !this.isMultiplayerClient();
+      if (!targets.length) return;
+
+      if (kind === "fire") {
+        for (const enemy of targets.slice(0, 5)) {
+          if (canDamage) {
+            enemy.burn = Math.max(enemy.burn || 0, 3.2);
+            const burningBonus = (enemy.burn || 0) > 2.4 ? 0.34 : 0.18;
+            this.damageEnemy(enemy, damage * burningBonus, { x: 0, y: 0, source: "domain", kind, noKnockback: true, sourceId });
+          }
+          this.addParticle(enemy.x, enemy.y, power.color, rand(10, 20), rand(0.28, 0.6), "flame");
+          if (chance(0.35)) this.addSkillShape(kind, "fireballBurst", enemy.x, enemy.y, rand(0, TAU), 72, 0.34);
+        }
+      } else if (kind === "ice") {
+        for (const enemy of targets.slice(0, 5)) {
+          if (canDamage) {
+            enemy.chill = Math.max(enemy.chill || 0, 3.4);
+            enemy.stun = Math.max(enemy.stun || 0, enemy.boss ? 0.05 : 0.18);
+            this.damageEnemy(enemy, damage * ((enemy.chill || 0) > 2.8 ? 0.26 : 0.12), { x: 0, y: 0, source: "domain", kind, noKnockback: true, sourceId });
+          }
+          this.addSkillShape(kind, "iceLance", enemy.x - 70, enemy.y, 0, 96, 0.28, { length: 130, width: 24 });
+          this.addParticle(enemy.x, enemy.y - enemy.radius * 0.4, power.accent, rand(8, 15), rand(0.25, 0.5), "snow");
+        }
+      } else if (kind === "lightning") {
+        const strike = targets[Math.floor(rand(0, targets.length))] || targets[0];
+        if (strike) {
+          this.burstLines(strike.x, strike.y, power.accent, 5, 160, 0.13);
+          if (canDamage) {
+            this.damageEnemy(strike, damage * 0.62, { x: 0, y: 0, source: "domain", kind, noKnockback: true, sourceId });
+            this.chainLightning(strike, damage * 0.36);
+            strike.stun = Math.max(strike.stun || 0, strike.boss ? 0.04 : 0.16);
+          }
+        }
+      } else if (kind === "shadow") {
+        for (const enemy of targets.slice(0, 5)) {
+          enemy.mark += 1;
+          if (caster) this.addShadowShard(enemy, caster, 1);
+          if (canDamage && (enemy.mark || 0) >= 3) {
+            enemy.mark = Math.max(0, enemy.mark - 2);
+            this.damageEnemy(enemy, damage * 0.34, { x: 0, y: 0, source: "domain", kind, noKnockback: true, sourceId });
+          }
+        }
+        if (caster && this.restoreDomainEnergy(effect, Math.min((caster.maxEnergy || 0) * 0.05, 1.2 + targets.length * 0.9), power.color)) {
+          this.applyShadowWeaponBuff(caster, 1, (effect.casterId || this.lobby.id) === this.lobby.id);
+        }
+      } else if (kind === "blood") {
+        for (const enemy of targets.slice(0, 6)) {
+          this.applyBloodBleed(enemy, damage, 4.8, sourceId);
+          if (canDamage && enemy.hp < enemy.maxHp * 0.55) this.damageEnemy(enemy, damage * 0.18, { x: 0, y: 0, source: "domain", kind, noKnockback: true, sourceId });
+        }
+        if ((effect.casterId || this.lobby.id) === this.lobby.id && canDamage) this.healPlayer(Math.min(5.5, targets.length * 0.75), { source: "power", allowAfterCombat: true });
+      } else if (kind === "gravity") {
+        const meteorTargets = targets.slice(0, effect.awakened ? 3 : 2);
+        for (const enemy of meteorTargets) {
+          const impactX = enemy.x + rand(-enemy.radius * 0.3, enemy.radius * 0.3);
+          const impactY = enemy.y + rand(-enemy.radius * 0.2, enemy.radius * 0.2);
+          this.addSkillShape(kind, "gravityMeteor", impactX, impactY, -Math.PI / 2, 140, 0.5);
+          this.addShockwave(impactX, impactY, 118, power.accent, 0);
+          if (canDamage) {
+            this.areaDamage(impactX, impactY, 92, damage * 0.78, power.color, kind, false, sourceId);
+            enemy.stun = Math.max(enemy.stun || 0, enemy.boss ? 0.06 : 0.22);
+          }
+        }
+      } else if (kind === "crystal") {
+        for (const enemy of targets.slice(0, 4)) {
+          const a = Math.atan2(enemy.y - effect.y, enemy.x - effect.x);
+          this.addSkillShape(kind, "crystalFan", enemy.x, enemy.y, a, 86, 0.3);
+          if (canDamage) {
+            for (let i = -1; i <= 1; i++) {
+              const pa = a + Math.PI + i * 0.2;
+              this.spawnProjectile({
+                owner: effect.owner || "player",
+                casterId: sourceId,
+                x: enemy.x + Math.cos(pa) * 24,
+                y: enemy.y + Math.sin(pa) * 24,
+                vx: Math.cos(pa) * 500,
+                vy: Math.sin(pa) * 500,
+                radius: 5,
+                damage: damage * 0.3,
+                life: 0.42,
+                color: i === 0 ? power.accent : power.color,
+                pierce: 0,
+                kind
+              });
+            }
+          }
+        }
+      } else if (kind === "nature") {
+        let drained = 0;
+        for (const enemy of targets.slice(0, 6)) {
+          this.addRootSnareVisual(enemy, caster, power.color);
+          if (canDamage) {
+            enemy.stun = Math.max(enemy.stun || 0, enemy.boss ? 0.04 : 0.2);
+            enemy.vx *= 0.38;
+            enemy.vy *= 0.38;
+            this.damageEnemy(enemy, damage * 0.18, { x: 0, y: 0, source: "domain", kind, noKnockback: true, sourceId });
+          }
+          drained += enemy.boss ? 0.7 : 1.15;
+        }
+        this.restoreDomainEnergy(effect, drained, power.accent);
+      } else if (kind === "void") {
+        for (const enemy of targets.slice(0, 6)) {
+          enemy.mark += enemy.boss ? 1 : 2;
+          const a = Math.atan2(effect.y - enemy.y, effect.x - enemy.x);
+          this.run.slashes.push({ x: enemy.x, y: enemy.y, tx: enemy.x + Math.cos(a) * 46, ty: enemy.y + Math.sin(a) * 46, line: true, life: 0.18, maxLife: 0.18, color: power.accent });
+          if (canDamage && (enemy.mark || 0) >= 4) {
+            enemy.mark = 0;
+            this.damageEnemy(enemy, damage * 0.58, { x: 0, y: 0, source: "domain", kind, noKnockback: true, sourceId });
+            this.addShockwave(enemy.x, enemy.y, 80, power.color, 0);
+          }
+        }
+        this.trimVisualList(this.run.slashes, this.isMobileDevice() ? 24 : 38);
+      } else if (kind === "time") {
+        const center = targets[0] || { x: effect.x, y: effect.y, radius: 0 };
+        this.addSkillShape(kind, "timeStop", center.x, center.y, 0, 120, 0.42);
+        if (canDamage) {
+          for (const enemy of targets.slice(0, 5)) {
+            enemy.domainFreeze = Math.max(enemy.domainFreeze || 0, enemy.boss ? 0.12 : 0.36);
+            enemy.chill = Math.max(enemy.chill || 0, 2.2);
+          }
+        }
+        const localCaster = (effect.casterId || this.lobby.id) === this.lobby.id ? this.run.player : null;
+        if (localCaster) {
+          localCaster.cooldowns.q = Math.max(0, localCaster.cooldowns.q - 0.1);
+          localCaster.cooldowns.e = Math.max(0, localCaster.cooldowns.e - 0.08);
+          localCaster.cooldowns.r = Math.max(0, localCaster.cooldowns.r - 0.06);
+        }
+      }
     }
 
     updatePowerDomain(effect, dt) {
@@ -10558,73 +10755,7 @@
       effect.tick = Number.isFinite(effect.tick) ? effect.tick - dt : 0;
       if (effect.tick > 0) return;
       effect.tick = this.powerDomainTickRate(kind);
-      if (!this.isMultiplayerClient()) {
-        for (const enemy of [...this.run.enemies]) {
-          const d = Math.hypot(enemy.x - effect.x, enemy.y - effect.y);
-          if (d >= radius + enemy.radius) continue;
-          const force = Math.max(0.32, 1 - d / Math.max(1, radius));
-          const baseDamage = (effect.damage || 18) * force;
-          let domainDamage = 0;
-          if (kind === "fire") enemy.burn = Math.max(enemy.burn || 0, 2.2);
-          if (kind === "fire") domainDamage = baseDamage * 0.72;
-          if (kind === "ice") {
-            enemy.chill = Math.max(enemy.chill || 0, 2.4);
-            domainDamage = baseDamage * 0.28;
-          }
-          if (kind === "lightning") domainDamage = baseDamage * 1.05;
-          if (kind === "shadow" || kind === "void") enemy.mark += kind === "void" ? 2 : 1;
-          if (kind === "shadow") domainDamage = baseDamage * 0.45;
-          if (kind === "blood") domainDamage = baseDamage * 0.58;
-          if (kind === "gravity") domainDamage = baseDamage * 0.32;
-          if (kind === "nature") {
-            enemy.stun = Math.max(enemy.stun || 0, enemy.boss ? 0.04 : 0.16);
-            domainDamage = baseDamage * 0.24;
-          }
-          if (kind === "void") domainDamage = baseDamage * 0.44;
-          if (kind === "time") {
-            enemy.chill = Math.max(enemy.chill || 0, 2.8);
-            domainDamage = baseDamage * 0.22;
-          }
-          if (domainDamage > 0) {
-            this.damageEnemy(enemy, domainDamage, {
-              x: (enemy.x - effect.x) / (d || 1),
-              y: (enemy.y - effect.y) / (d || 1),
-              source: "domain",
-              kind
-            });
-          }
-        }
-        if (kind === "lightning") this.burstLines(effect.x, effect.y, color, 4, radius * 0.72, 0.11);
-        if (kind === "crystal") {
-          for (let i = 0; i < 3; i++) {
-            const a = rand(0, TAU);
-            this.spawnProjectile({
-              owner: effect.owner || "player",
-              x: effect.x + Math.cos(a) * rand(30, radius * 0.45),
-              y: effect.y + Math.sin(a) * rand(30, radius * 0.45),
-              vx: Math.cos(a) * 420,
-              vy: Math.sin(a) * 420,
-              radius: 6,
-              damage: (effect.damage || 18) * 0.45,
-              life: 0.42,
-              color,
-              pierce: 0,
-              kind
-            });
-          }
-        }
-      }
-      const p = this.run.player;
-      const localCasterInside = (!effect.casterId || effect.casterId === this.lobby.id) && this.aliveActor(p) && Math.hypot(p.x - effect.x, p.y - effect.y) < radius + p.radius;
-      if (localCasterInside) {
-        if (kind === "nature") this.healPlayer(1.0, { source: "power" });
-        if (kind === "blood") this.healPlayer(0.75, { source: "power" });
-        if (kind === "time") {
-          p.cooldowns.q = Math.max(0, p.cooldowns.q - 0.12);
-          p.cooldowns.e = Math.max(0, p.cooldowns.e - 0.12);
-          p.cooldowns.r = Math.max(0, p.cooldowns.r - 0.12);
-        }
-      }
+      this.updatePowerDomainIdentity(effect, radius, color);
       const particleScale = clamp(this.perf?.quality ?? 1, 0.35, 1) * (this.isMobileDevice() ? 0.35 : 0.55);
       const count = Math.max(2, Math.round(5 * this.save.settings.particles * particleScale));
       for (let i = 0; i < count; i++) {
@@ -13942,24 +14073,55 @@
         }
       } else if (kind === "gravity") {
         ctx.lineWidth = 4;
-        for (let i = 0; i < (lowDetail ? 2 : 3); i++) {
-          ctx.save();
-          ctx.rotate(progress * 1.8 + i * 0.45);
-          ctx.globalAlpha = alpha * (0.84 - i * 0.18);
-          const s = r * (0.25 + i * 0.14);
-          ctx.strokeRect(-s, -s, s * 2, s * 2);
-          ctx.restore();
-        }
-        ctx.globalAlpha = alpha * 0.75;
-        ctx.beginPath();
-        ctx.arc(0, 0, r * 0.68, 0, TAU);
-        ctx.stroke();
-        const nodes = lowDetail ? 4 : 6;
-        for (let i = 0; i < nodes; i++) {
-          const a = (i / nodes) * TAU - progress;
+        if (effect.variant === "gravityMeteor") {
+          ctx.globalAlpha = alpha * 0.82;
+          ctx.strokeStyle = effect.accent || "#59ffd4";
+          ctx.lineWidth = 5;
           ctx.beginPath();
-          ctx.arc(Math.cos(a) * r * 0.56, Math.sin(a) * r * 0.56, 8, 0, TAU);
+          ctx.moveTo(-r * 0.35, -r * 0.9);
+          ctx.lineTo(0, -r * 0.18);
+          ctx.lineTo(r * 0.28, -r * 0.82);
+          ctx.stroke();
+          ctx.save();
+          ctx.translate(0, -r * 0.05 + progress * r * 0.28);
+          ctx.rotate(progress * 1.4);
+          ctx.fillStyle = "#2d2448";
+          ctx.strokeStyle = effect.color;
+          ctx.lineWidth = 3;
+          ctx.beginPath();
+          ctx.moveTo(0, -r * 0.34);
+          ctx.lineTo(r * 0.32, -r * 0.08);
+          ctx.lineTo(r * 0.22, r * 0.32);
+          ctx.lineTo(-r * 0.28, r * 0.24);
+          ctx.lineTo(-r * 0.36, -r * 0.16);
+          ctx.closePath();
           ctx.fill();
+          ctx.stroke();
+          ctx.restore();
+          ctx.globalAlpha = alpha * 0.5;
+          ctx.beginPath();
+          ctx.arc(0, 0, r * (0.34 + progress * 0.18), 0, TAU);
+          ctx.stroke();
+        } else {
+          for (let i = 0; i < (lowDetail ? 2 : 3); i++) {
+            ctx.save();
+            ctx.rotate(progress * 1.8 + i * 0.45);
+            ctx.globalAlpha = alpha * (0.84 - i * 0.18);
+            const s = r * (0.25 + i * 0.14);
+            ctx.strokeRect(-s, -s, s * 2, s * 2);
+            ctx.restore();
+          }
+          ctx.globalAlpha = alpha * 0.75;
+          ctx.beginPath();
+          ctx.arc(0, 0, r * 0.68, 0, TAU);
+          ctx.stroke();
+          const nodes = lowDetail ? 4 : 6;
+          for (let i = 0; i < nodes; i++) {
+            const a = (i / nodes) * TAU - progress;
+            ctx.beginPath();
+            ctx.arc(Math.cos(a) * r * 0.56, Math.sin(a) * r * 0.56, 8, 0, TAU);
+            ctx.fill();
+          }
         }
       } else if (kind === "crystal") {
         ctx.lineWidth = 3;

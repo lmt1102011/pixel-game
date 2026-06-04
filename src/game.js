@@ -7,7 +7,7 @@
   const ROOM_PAD = 86;
   const SAVE_KEY = "soulrift-save-v1";
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
-  const APP_VERSION = "20260604-new-classes-120";
+  const APP_VERSION = "20260604-training-room-fix-121";
   const VERSION_CHECK_INTERVAL = 15000;
   const UPDATE_ATTEMPT_KEY = "soulrift-update-attempt-v1";
   const CLOUD_MIGRATION_KEY = "soulrift-cloud-migrated-v1";
@@ -13676,11 +13676,11 @@
         ctx.ellipse(12 + punch * 0.4, 13, 18, 4, 0, 0, TAU);
         ctx.fill();
         ctx.fillStyle = "#0f131d";
-        roundPixel(-8, -12 - guard, 19, 7, 3);
-        roundPixel(0, 5 + guard * 0.2, 22 + punch, 7, 3);
+        roundPixel(ctx, -8, -12 - guard, 19, 7, 3);
+        roundPixel(ctx, 0, 5 + guard * 0.2, 22 + punch, 7, 3);
         ctx.fillStyle = "#283142";
-        roundPixel(-5, -10 - guard, 15, 4, 2);
-        roundPixel(3, 7 + guard * 0.2, 18 + punch, 4, 2);
+        roundPixel(ctx, -5, -10 - guard, 15, 4, 2);
+        roundPixel(ctx, 3, 7 + guard * 0.2, 18 + punch, 4, 2);
         drawGripHand(7 - guard, -13 - guard, 7, 7);
         drawGripHand(18 + punch, 4 + guard * 0.2, 8, 8);
         ctx.fillStyle = character.color;

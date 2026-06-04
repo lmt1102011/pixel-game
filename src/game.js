@@ -7,7 +7,7 @@
   const ROOM_PAD = 86;
   const SAVE_KEY = "soulrift-save-v1";
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
-  const APP_VERSION = "20260604-auto-panic-performance-112";
+  const APP_VERSION = "20260604-stable-auto-graphics-113";
   const VERSION_CHECK_INTERVAL = 15000;
   const UPDATE_ATTEMPT_KEY = "soulrift-update-attempt-v1";
   const CLOUD_MIGRATION_KEY = "soulrift-cloud-migrated-v1";
@@ -2258,10 +2258,14 @@
         quality: 1,
         autoLevel: 5,
         displayedAutoLevel: 5,
+        pressure: 0,
+        emergencyHold: 0,
+        panicHold: 0,
         stableTime: 0,
         overloadTime: 0,
         lagTime: 0,
         renderScale: 1,
+        renderScaleTarget: 1,
         appliedRenderScale: 1,
         resizeAt: 0
       };
@@ -2980,6 +2984,11 @@
         this.perf.autoLevel = level;
         this.perf.displayedAutoLevel = Math.round(level * 100) / 100;
         this.perf.quality = this.graphicsQualityFromLevel(level);
+        this.perf.pressure = 0;
+        this.perf.emergencyHold = 0;
+        this.perf.panicHold = 0;
+        this.perf.lagTime = 0;
+        this.perf.overloadTime = 0;
         this.updateRenderScale(false);
         return;
       }
@@ -3001,9 +3010,22 @@
       this.perf.lagTime = realLag
         ? Math.min(4.5, (this.perf.lagTime || 0) + frame)
         : Math.max(0, (this.perf.lagTime || 0) - frame * 1.1);
+      const rawPressure = clamp(((this.perf.lagTime || 0) - 0.08) / 0.72, 0, 1);
+      const pressureNow = clamp(Number(this.perf.pressure || 0), 0, 1);
+      const pressureRate = rawPressure > pressureNow ? 8.4 : 1.45;
+      const pressureBlend = 1 - Math.exp(-frame * pressureRate);
+      this.perf.pressure = pressureNow + (rawPressure - pressureNow) * pressureBlend;
       const forcedLag = this.perf.lagTime > 0.14;
       const emergencyLag = frame > 0.055 || this.perf.lagTime > 0.45;
       const panicLag = frame > 0.09 || this.perf.lagTime > 0.95 || (this.perf.fastDt || frame) > targetDt + (this.isMobileDevice() ? 0.023 : 0.019);
+      const emergencyTrigger = emergencyLag || rawPressure > 0.34 || this.perf.pressure > 0.3 || nextLevel < 3.2;
+      const panicTrigger = panicLag || rawPressure > 0.82 || this.perf.pressure > 0.76 || nextLevel < 1.65;
+      this.perf.emergencyHold = emergencyTrigger
+        ? Math.max(this.perf.emergencyHold || 0, 0.8)
+        : Math.max(0, (this.perf.emergencyHold || 0) - frame);
+      this.perf.panicHold = panicTrigger
+        ? Math.max(this.perf.panicHold || 0, 1.05)
+        : Math.max(0, (this.perf.panicHold || 0) - frame);
       const overloaded = pressure > (inCombat ? 0.0048 : 0.0095) || spike || forcedLag;
       if (overloaded && (inCombat || spike || forcedLag)) {
         this.perf.overloadTime = Math.min(2.2, (this.perf.overloadTime || 0) + frame);
@@ -3029,7 +3051,13 @@
       }
       const lagFloor = panicLag ? 1 : emergencyLag ? (this.isMobileDevice() ? 1.45 : 1.65) : forcedLag ? (this.isMobileDevice() ? 2.05 : 2.25) : softFloor;
       const floor = Math.min(lagFloor, spike && inCombat && this.perf.overloadTime > 1 ? hardFloor : softFloor);
-      this.perf.autoLevel = clamp(Math.max(nextLevel, floor), 1, 5);
+      const desiredLevel = clamp(Math.max(nextLevel, floor), 1, 5);
+      const currentLevel = Number.isFinite(this.perf.autoLevel) ? this.perf.autoLevel : desiredLevel;
+      const levelDelta = desiredLevel - currentLevel;
+      const maxStep = (levelDelta < 0
+        ? (panicLag ? 3.1 : emergencyLag ? 2.05 : forcedLag ? 1.35 : 0.85)
+        : (idle ? 0.52 : 0.24)) * frame;
+      this.perf.autoLevel = currentLevel + clamp(levelDelta, -maxStep, maxStep);
       this.perf.displayedAutoLevel = Math.round(this.perf.autoLevel * 100) / 100;
       this.perf.quality = this.graphicsQualityFromLevel(this.perf.displayedAutoLevel);
       this.updateRenderScale(overloaded && ((inCombat && this.perf.overloadTime > 0.45) || forcedLag));
@@ -3065,15 +3093,15 @@
     }
 
     performancePressure() {
-      return clamp(((this.perf?.lagTime || 0) - 0.08) / 0.72, 0, 1);
+      return clamp(Number(this.perf?.pressure || 0), 0, 1);
     }
 
     performanceEmergency() {
-      return this.performancePressure() > 0.18 || (this.perf?.autoLevel || 5) < 3.6;
+      return (this.perf?.emergencyHold || 0) > 0 || this.performancePressure() > 0.3 || (this.perf?.autoLevel || 5) < 3.25;
     }
 
     performancePanic() {
-      return this.performancePressure() > 0.68 || (this.perf?.autoLevel || 5) < 2.05;
+      return (this.perf?.panicHold || 0) > 0 || this.performancePressure() > 0.76 || (this.perf?.autoLevel || 5) < 1.75;
     }
 
     visualBudgetScale() {
@@ -3120,16 +3148,20 @@
     }
 
     updateRenderScale(force = false) {
-      const next = this.graphicsRenderScale();
+      const desired = this.graphicsRenderScale();
+      const currentTarget = Number.isFinite(this.perf.renderScaleTarget) ? this.perf.renderScaleTarget : desired;
+      const targetBlend = desired < currentTarget ? (force ? 0.46 : 0.28) : 0.08;
+      const next = currentTarget + (desired - currentTarget) * targetBlend;
+      this.perf.renderScaleTarget = next;
       this.perf.renderScale = next;
       const current = Number.isFinite(this.perf.appliedRenderScale) ? this.perf.appliedRenderScale : 1;
       const now = performance.now();
       const diff = Math.abs(next - current);
-      if (diff < (force ? 0.012 : 0.035)) return;
-      const urgentDrop = force && next < current && diff > 0.08;
+      if (diff < (force ? 0.035 : 0.055)) return;
+      const urgentDrop = force && next < current && diff > 0.14;
       if (!urgentDrop && now < (this.perf.resizeAt || 0)) return;
       this.perf.appliedRenderScale = next;
-      this.perf.resizeAt = now + (force || next < current ? 90 : 320);
+      this.perf.resizeAt = now + (next < current ? 220 : 700);
       this.resize();
       if (this.run && next < current) {
         this.trimEffectList();

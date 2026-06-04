@@ -7,7 +7,7 @@
   const ROOM_PAD = 86;
   const SAVE_KEY = "soulrift-save-v1";
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
-  const APP_VERSION = "20260604-punchier-audio-84";
+  const APP_VERSION = "20260604-guardian-shield-reflect-85";
   const VERSION_CHECK_INTERVAL = 15000;
   const UPDATE_ATTEMPT_KEY = "soulrift-update-attempt-v1";
   const DOOR_ENTER_TIME = 1.0;
@@ -5960,6 +5960,7 @@
       p.invuln = Math.max(p.invuln, 0.12);
       p.guardianParry = Math.max(p.guardianParry || 0, 0.38);
       this.addBasicAttackBurst(p.x + Math.cos(angle) * range * 0.5, p.y + Math.sin(angle) * range * 0.5, angle, "guardian", range);
+      const reflected = this.reflectGuardianAttackProjectiles(p, angle, range, arc, "player", this.lobby.id);
       let hits = 0;
       for (const enemy of [...this.run.enemies]) {
         const d = Math.hypot(enemy.x - p.x, enemy.y - p.y);
@@ -5969,15 +5970,15 @@
           enemy.stun = Math.max(enemy.stun, enemy.boss ? 0.08 : 0.38);
           enemy.launch = Math.max(enemy.launch || 0, enemy.boss ? 0.12 : 0.45);
           this.damageEnemy(enemy, p.damage * this.playerDamageOutputMult() * 1.15, {
-            x: Math.cos(angle) * 1.6,
-            y: Math.sin(angle) * 1.6,
+            x: Math.cos(angle) * 2.6,
+            y: Math.sin(angle) * 2.6,
             source: "guardian",
             combo: p.combo
           });
         }
       }
       if (hits > 0) this.hitStop = Math.max(this.hitStop || 0, 0.075);
-      this.camera.shake = Math.max(this.camera.shake, hits ? 10 : 3);
+      this.camera.shake = Math.max(this.camera.shake, hits ? 10 : reflected ? 8 : 3);
       this.audio.sfx(155, "square", 0.09, 0.14);
     }
 
@@ -6160,6 +6161,10 @@
       const dirY = Math.sin(angle);
       const hitOptions = { x: dirX, y: dirY, source: "remoteBasic", kind: character.id, combo, sourceId: remoteId };
       if (character.id === "ranger") hitOptions.critBonus = 0.28;
+      if (character.id === "guardian") {
+        hitOptions.x = dirX * 2.6;
+        hitOptions.y = dirY * 2.6;
+      }
       const strike = (enemy, damage) => this.damageEnemy(enemy, damage, hitOptions);
       const remote = this.remotePlayers.get(remoteId) || {};
       const slot = this.lobby.slots.find((entry) => entry.id === remoteId);
@@ -6183,6 +6188,7 @@
         animation: "attack",
         actionTotal: character.id === "guardian" ? 0.7 : character.id === "mage" ? 0.6 : character.id === "ranger" ? 0.72 : character.id === "assassin" ? 0.44 : 0.58,
         actionTime: character.id === "guardian" ? 0.7 : character.id === "mage" ? 0.6 : character.id === "ranger" ? 0.72 : character.id === "assassin" ? 0.44 : 0.58,
+        guardianParry: character.id === "guardian" ? Math.max(remote.guardianParry || 0, 0.38) : (remote.guardianParry || 0),
         ult: Number.isFinite(remote.ult) ? remote.ult : 0,
         facing: angle,
         t: performance.now()
@@ -6222,6 +6228,10 @@
         return;
       }
       this.addBasicAttackBurst(x + dirX * range * 0.42, y + dirY * range * 0.42, angle, character.id, range);
+      if (character.id === "guardian") {
+        const guardianActor = { ...(this.remotePlayers.get(remoteId) || {}), id: remoteId, x, y, radius: 22 };
+        this.reflectGuardianAttackProjectiles(guardianActor, angle, range, arc, "ally", remoteId);
+      }
       for (const enemy of [...this.run.enemies]) {
         const d = Math.hypot(enemy.x - x, enemy.y - y);
         const a = Math.atan2(enemy.y - y, enemy.x - x);
@@ -7136,27 +7146,61 @@
       return realTarget;
     }
 
-    tryGuardianProjectileReflect(target, projectile) {
-      if (!this.guardianParryOpen(target) || !projectile || projectile.owner !== "enemy") return false;
-      const guardian = this.markGuardianParry(target);
-      const guardianRadius = guardian.radius || target.radius || 22;
-      const nearest = this.nearestEnemy(guardian.x, guardian.y, 920);
-      const speed = Math.max(620, Math.hypot(projectile.vx || 0, projectile.vy || 0) * 1.08);
-      const angle = nearest ? Math.atan2(nearest.y - guardian.y, nearest.x - guardian.x) : Math.atan2(-(projectile.vy || 0), -(projectile.vx || 1));
-      projectile.owner = target.local ? "player" : "ally";
-      projectile.x = guardian.x + Math.cos(angle) * (guardianRadius + projectile.radius + 10);
-      projectile.y = guardian.y + Math.sin(angle) * (guardianRadius + projectile.radius + 10);
-      projectile.vx = Math.cos(angle) * speed;
-      projectile.vy = Math.sin(angle) * speed;
-      projectile.damage = Math.max(1, projectile.damage * 0.5);
-      projectile.life = Math.max(projectile.life || 0, 0.7);
+    guardianAttackHitboxContains(x, y, angle, range, arc, targetX, targetY, radius = 0) {
+      const dx = targetX - x;
+      const dy = targetY - y;
+      const d = Math.hypot(dx, dy);
+      if (d > range + radius + 20) return false;
+      const targetAngle = Math.atan2(dy, dx);
+      const radiusArcBonus = Math.min(0.24, (radius + 8) / Math.max(36, d));
+      return Math.abs(angleDelta(targetAngle, angle)) < arc * 0.5 + radiusArcBonus;
+    }
+
+    reflectEnemyProjectileFromGuardian(guardian, projectile, angle, owner = "player", casterId = "") {
+      if (!guardian || !projectile || projectile.owner !== "enemy") return false;
+      const radius = projectile.radius || 8;
+      const guardianRadius = guardian.radius || 22;
+      const speed = Math.max(700, Math.hypot(projectile.vx || 0, projectile.vy || 0) * 1.16);
+      const reflectAngle = Number.isFinite(angle) ? angle : Math.atan2(-(projectile.vy || 0), -(projectile.vx || 1));
+      projectile.owner = owner;
+      projectile.casterId = casterId || guardian.id || (owner === "player" ? this.lobby.id : "");
+      projectile.x = guardian.x + Math.cos(reflectAngle) * (guardianRadius + radius + 16);
+      projectile.y = guardian.y + Math.sin(reflectAngle) * (guardianRadius + radius + 16);
+      projectile.vx = Math.cos(reflectAngle) * speed;
+      projectile.vy = Math.sin(reflectAngle) * speed;
+      projectile.angle = reflectAngle;
+      projectile.damage = Math.max(1, (Number(projectile.damage) || 1) * 0.55);
+      projectile.life = Math.max(projectile.life || 0, 0.78);
+      projectile.pierce = Math.max(0, Number(projectile.pierce) || 0);
+      projectile.hitIds = [];
+      projectile.visualImpact = false;
       projectile.color = "#ffd36a";
       projectile.kind = "guardianReflect";
-      this.addBasicAttackBurst(guardian.x + Math.cos(angle) * 52, guardian.y + Math.sin(angle) * 52, angle, "guardian", 104);
-      this.addShockwave(guardian.x, guardian.y, 96, "#ffd36a", 0);
+      this.addBasicAttackBurst(guardian.x + Math.cos(reflectAngle) * 58, guardian.y + Math.sin(reflectAngle) * 58, reflectAngle, "guardian", 112);
+      this.addShockwave(guardian.x + Math.cos(reflectAngle) * 42, guardian.y + Math.sin(reflectAngle) * 42, 104, "#ffd36a", 0);
       this.camera.shake = Math.max(this.camera.shake, 8);
       this.audio.sfx(150, "square", 0.08, 0.13);
       return true;
+    }
+
+    reflectGuardianAttackProjectiles(guardian, angle, range = 104, arc = Math.PI * 0.72, owner = "player", casterId = "") {
+      if (!this.run?.projectiles?.length || !guardian) return 0;
+      let reflected = 0;
+      for (const projectile of this.run.projectiles) {
+        if (!projectile || projectile.owner !== "enemy" || projectile.life <= 0) continue;
+        if (!this.guardianAttackHitboxContains(guardian.x, guardian.y, angle, range, arc, projectile.x, projectile.y, projectile.radius || 8)) continue;
+        if (this.reflectEnemyProjectileFromGuardian(guardian, projectile, angle, owner, casterId)) reflected++;
+      }
+      if (reflected > 0) this.hitStop = Math.max(this.hitStop || 0, 0.04 + reflected * 0.012);
+      return reflected;
+    }
+
+    tryGuardianProjectileReflect(target, projectile) {
+      if (!this.guardianParryOpen(target) || !projectile || projectile.owner !== "enemy") return false;
+      const guardian = this.markGuardianParry(target);
+      const nearest = this.nearestEnemy(guardian.x, guardian.y, 920);
+      const angle = nearest ? Math.atan2(nearest.y - guardian.y, nearest.x - guardian.x) : Math.atan2(-(projectile.vy || 0), -(projectile.vx || 1));
+      return this.reflectEnemyProjectileFromGuardian(guardian, projectile, angle, target.local ? "player" : "ally", target.local ? this.lobby.id : target.id);
     }
 
     tryGuardianEffectReflect(target, effect) {

@@ -7,7 +7,7 @@
   const ROOM_PAD = 86;
   const SAVE_KEY = "soulrift-save-v1";
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
-  const APP_VERSION = "20260604-mobile-ui-compact-124";
+  const APP_VERSION = "20260604-mobile-auto-aim-125";
   const VERSION_CHECK_INTERVAL = 15000;
   const UPDATE_ATTEMPT_KEY = "soulrift-update-attempt-v1";
   const CLOUD_MIGRATION_KEY = "soulrift-cloud-migrated-v1";
@@ -3614,17 +3614,14 @@
 
     basicAimAngle(player) {
       if (this.isMobileDevice()) {
-        const characterId = player?.characterId || this.save.account.selectedCharacter;
-        if (["mage", "ranger"].includes(characterId)) {
-          const target = this.nearestEnemy(player.x, player.y, 980);
-          if (target) {
-            const dx = target.x - player.x;
-            const dy = target.y - player.y;
-            const len = Math.hypot(dx, dy) || 1;
-            this.input.touch.aimX = dx / len;
-            this.input.touch.aimY = dy / len;
-            return Math.atan2(dy, dx);
-          }
+        const target = this.mobileAutoAimTarget(player);
+        if (target) {
+          const dx = target.x - player.x;
+          const dy = target.y - player.y;
+          const len = Math.hypot(dx, dy) || 1;
+          this.input.touch.aimX = dx / len;
+          this.input.touch.aimY = dy / len;
+          return Math.atan2(dy, dx);
         }
         const mag = Math.hypot(this.input.touch.x, this.input.touch.y);
         if (mag > 0.12) {
@@ -3643,8 +3640,39 @@
       return this.basicAimAngle(player);
     }
 
+    mobileAutoAimTarget(player, range = 1180) {
+      if (!this.run || !player || !this.isMobileDevice()) return null;
+      let best = null;
+      let bestScore = Infinity;
+      const aimX = Number.isFinite(this.input.touch.aimX) ? this.input.touch.aimX : Math.cos(player.facing || 0);
+      const aimY = Number.isFinite(this.input.touch.aimY) ? this.input.touch.aimY : Math.sin(player.facing || 0);
+      for (const enemy of this.run.enemies) {
+        if (!enemy || enemy.dead || enemy.hp <= 0) continue;
+        const dx = enemy.x - player.x;
+        const dy = enemy.y - player.y;
+        const d = Math.hypot(dx, dy);
+        if (d > range) continue;
+        const dot = d > 0 ? (dx / d) * aimX + (dy / d) * aimY : 1;
+        const facingBonus = clamp((dot + 1) * 0.5, 0, 1);
+        const bossBonus = enemy.boss ? 90 : 0;
+        const score = d - facingBonus * 120 - bossBonus;
+        if (score < bestScore) {
+          bestScore = score;
+          best = enemy;
+        }
+      }
+      return best;
+    }
+
     skillTargetPoint(player, angle, distance = 230) {
       if (this.isMobileDevice()) {
+        const target = this.mobileAutoAimTarget(player, Math.max(1180, distance + 260));
+        if (target) {
+          return {
+            x: clamp(target.x, ROOM_PAD, WORLD_W - ROOM_PAD),
+            y: clamp(target.y, ROOM_PAD, WORLD_H - ROOM_PAD)
+          };
+        }
         return {
           x: clamp(player.x + Math.cos(angle) * distance, ROOM_PAD, WORLD_W - ROOM_PAD),
           y: clamp(player.y + Math.sin(angle) * distance, ROOM_PAD, WORLD_H - ROOM_PAD)
@@ -6841,6 +6869,17 @@
       }
       if (p.attackAimLock > 0 && p.characterId === "guardian" && p.animation === "attack") p.facing = this.basicAimAngle(p);
       if (p.pendingBasicAttack) p.facing = p.pendingBasicAttack.angle;
+      if (this.isMobileDevice() && !p.pendingBasicAttack && p.dashTime <= 0) {
+        const target = this.mobileAutoAimTarget(p);
+        if (target) {
+          const dx = target.x - p.x;
+          const dy = target.y - p.y;
+          const len = Math.hypot(dx, dy) || 1;
+          this.input.touch.aimX = dx / len;
+          this.input.touch.aimY = dy / len;
+          p.facing = Math.atan2(dy, dx);
+        }
+      }
 
       let speed = p.speed * (debuffMods.speedMult || 1) * (powerMods.speedMult || 1);
       if (this.run.power.id === "time") speed += 18;

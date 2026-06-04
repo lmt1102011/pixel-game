@@ -7,7 +7,7 @@
   const ROOM_PAD = 86;
   const SAVE_KEY = "soulrift-save-v1";
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
-  const APP_VERSION = "20260604-gauntlet-menu-130";
+  const APP_VERSION = "20260604-play-gauntlet-131";
   const VERSION_CHECK_INTERVAL = 15000;
   const UPDATE_ATTEMPT_KEY = "soulrift-update-attempt-v1";
   const CLOUD_MIGRATION_KEY = "soulrift-cloud-migrated-v1";
@@ -4138,7 +4138,7 @@
             <span>${this.hasAccount() ? `Quay sức mạnh: ${this.save.account.powerSpins}` : "Cần tạo tài khoản"}</span>
           </div>
           <div class="nav-buttons">
-            ${item("play", "VƯỢT ẢI", true)}
+            ${item("play", "CHƠI", true)}
             ${item("character", "NHÂN VẬT")}
             ${item("settings", "CÀI ĐẶT")}
             ${item("logout-account", "ĐĂNG XUẤT")}
@@ -4178,6 +4178,7 @@
         return;
       }
       if (action === "play") this.showPlayMenu();
+      if (action === "play-gauntlet") this.showGauntletMenu();
       if (action === "play-solo") this.showSoloMenu();
       if (action === "play-training") this.showTrainingSetup();
       if (action === "play-multiplayer") this.showMultiplayerHub();
@@ -4294,25 +4295,57 @@
           <div class="panel">
             <div class="panel-header">
               <div>
-                <h2 class="panel-title">Vượt ải</h2>
-                <p class="panel-subtitle">Chọn cách vượt ải rồi bắt đầu bằng nhân vật và power đang mang.</p>
+                <h2 class="panel-title">Chơi</h2>
+                <p class="panel-subtitle">Chọn nội dung muốn vào. Vượt ải sẽ tách tiếp thành chơi đơn hoặc chơi nhiều người.</p>
               </div>
             </div>
             <div class="grid cols-3">
-              <button class="choice-card" data-action="play-solo">
-                <div class="card-icon">1</div>
-                <h3>Một mình</h3>
-                <p>Vượt ải solo, tự chọn độ khó và bắt đầu ngay.</p>
+              <button class="choice-card" data-action="play-gauntlet">
+                <div class="card-icon">ẢI</div>
+                <h3>Vượt ải</h3>
+                <p>Vào ải một mình hoặc cùng bạn trong phòng.</p>
               </button>
               <button class="choice-card" data-action="play-training">
                 <div class="card-icon">T</div>
                 <h3>Phòng huấn luyện</h3>
                 <p>Chỉnh luật test chiêu, stamina, cooldown rồi thử với 5 dummy.</p>
               </button>
+              <button class="choice-card" data-action="find-room">
+                <div class="card-icon">ID</div>
+                <h3>Phòng online</h3>
+                <p>Xem nhanh các phòng vượt ải đang mở hoặc nhập ID.</p>
+              </button>
+            </div>
+          </div>
+        </section>
+      `);
+    }
+
+    showGauntletMenu() {
+      this.mode = "play";
+      this.roomFinderOpen = false;
+      const selected = this.save.account.selectedPower ? powerById(this.save.account.selectedPower) : null;
+      this.setScreen(`
+        <section class="shell">
+          ${this.navHtml("play")}
+          <div class="panel">
+            <div class="panel-header">
+              <div>
+                <h2 class="panel-title">Vượt ải</h2>
+                <p class="panel-subtitle">${selected ? `Power: ${selected.name}. Chọn chơi đơn hoặc chơi nhiều người.` : "Hãy quay và chọn power trước khi bắt đầu."}</p>
+              </div>
+              <button class="btn" data-action="play">CHƠI</button>
+            </div>
+            <div class="grid cols-2">
+              <button class="choice-card" data-action="play-solo">
+                <div class="card-icon">1</div>
+                <h3>Chơi đơn</h3>
+                <p>Tự chọn độ khó rồi vào ải ngay.</p>
+              </button>
               <button class="choice-card" data-action="play-multiplayer">
                 <div class="card-icon">4</div>
-                <h3>Cùng bạn</h3>
-                <p>Vượt ải theo phòng, chủ phòng chọn ải và độ khó.</p>
+                <h3>Chơi nhiều người</h3>
+                <p>Tạo phòng hoặc tìm phòng để vượt ải cùng bạn.</p>
               </button>
             </div>
           </div>
@@ -4341,7 +4374,7 @@
                 <h2 class="panel-title">Vượt ải một mình</h2>
                 <p class="panel-subtitle">${selected ? `Power: ${selected.name}` : "Hãy quay và chọn power trước khi bắt đầu."}</p>
               </div>
-              <button class="btn" data-action="play">VƯỢT ẢI</button>
+              <button class="btn" data-action="play-gauntlet">VƯỢT ẢI</button>
             </div>
             <div class="grid cols-3">${difficultyCards}</div>
           </div>
@@ -4380,7 +4413,7 @@
                 <h2 class="panel-title">Phòng Huấn Luyện</h2>
                 <p class="panel-subtitle">${selected ? `Power: ${selected.name}. Vào phòng có 5 dummy để test chiêu.` : "Hãy quay và chọn power trước khi vào phòng huấn luyện."}</p>
               </div>
-              <button class="btn" data-action="play">VƯỢT ẢI</button>
+              <button class="btn" data-action="play">CHƠI</button>
             </div>
             <div class="grid">
               ${check("trainingDamage", "Gây sát thương", "Bật để dummy mất máu, tắt để chỉ test hitbox và hiệu ứng.", options.damage)}
@@ -4407,7 +4440,7 @@
                 <h2 class="panel-title">Vượt ải cùng bạn</h2>
                 <p class="panel-subtitle">Tạo phòng mới hoặc tìm phòng để cùng nhau vượt ải.</p>
               </div>
-              <button class="btn" data-action="play">VƯỢT ẢI</button>
+              <button class="btn" data-action="play-gauntlet">VƯỢT ẢI</button>
             </div>
             <div class="grid cols-2">
               <button class="choice-card" data-action="create-room-from-play">
@@ -4578,7 +4611,7 @@
               </div>
               <div class="header-actions">
                 <button class="btn icon-label" data-action="reload-rooms"><span class="btn-icon">↻</span> TẢI LẠI</button>
-                <button class="btn" data-action="play-multiplayer">CÙNG BẠN</button>
+                <button class="btn" data-action="play-multiplayer">CHƠI NHIỀU NGƯỜI</button>
               </div>
             </div>
             <div class="room-finder-layout">

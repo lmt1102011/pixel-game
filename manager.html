@@ -4,6 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="theme-color" content="#090b12" />
+    <link rel="icon" href="data:," />
     <title>SOULRIFT Manager</title>
     <style>
       :root {
@@ -350,6 +351,7 @@
       const ADMIN_FNV = "93fc9c10";
       const DB_URL = firebaseConfig.databaseURL.replace(/\/$/, "");
       const SESSION_KEY = "soulrift-manager-unlocked";
+      const USE_FIREBASE_ANONYMOUS_AUTH = false;
       let firebaseAuthToken = "";
       let firebaseAuthPromise = null;
 
@@ -532,7 +534,7 @@
       }
 
       async function getFirebaseAuthToken() {
-        if (!firebaseConfig.apiKey) return "";
+        if (!USE_FIREBASE_ANONYMOUS_AUTH || !firebaseConfig.apiKey) return "";
         if (firebaseAuthToken) return firebaseAuthToken;
         if (firebaseAuthPromise) return firebaseAuthPromise;
         firebaseAuthPromise = fetch(`https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=${encodeURIComponent(firebaseConfig.apiKey)}`, {
@@ -567,6 +569,9 @@
         }
         if (!response.ok) {
           const body = await response.text().catch(() => "");
+          if (response.status === 401) {
+            throw new Error("Firebase đang chặn /accounts: hãy cập nhật Realtime Database Rules theo file firebase-rules-manager.json rồi bấm RELOAD.");
+          }
           throw new Error(`${response.status} ${body}`.trim());
         }
         return response.status === 204 ? null : response.json();

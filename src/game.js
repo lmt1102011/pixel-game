@@ -7,7 +7,7 @@
   const ROOM_PAD = 86;
   const SAVE_KEY = "soulrift-save-v1";
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
-  const APP_VERSION = "20260604-wider-mobile-view-83";
+  const APP_VERSION = "20260604-punchier-audio-84";
   const VERSION_CHECK_INTERVAL = 15000;
   const UPDATE_ATTEMPT_KEY = "soulrift-update-attempt-v1";
   const DOOR_ENTER_TIME = 1.0;
@@ -866,6 +866,8 @@
       this.game = game;
       this.ctx = null;
       this.master = null;
+      this.sfxMaster = null;
+      this.output = null;
       this.timer = 0;
       this.step = 0;
       this.biome = BIOMES[0];
@@ -873,13 +875,32 @@
     }
 
     start() {
-      if (this.ctx || !this.game.save.settings.music) return;
+      if (this.ctx) {
+        if (this.ctx.state === "suspended") {
+          const resume = this.ctx.resume();
+          if (resume?.catch) resume.catch(() => {});
+        }
+        return;
+      }
+      if (!this.game.save.settings.music && !this.game.save.settings.sfx) return;
       const Ctor = window.AudioContext || window.webkitAudioContext;
       if (!Ctor) return;
       this.ctx = new Ctor();
+      this.output = this.ctx.createDynamicsCompressor ? this.ctx.createDynamicsCompressor() : this.ctx.createGain();
+      if (this.output.threshold) {
+        this.output.threshold.value = -18;
+        this.output.knee.value = 18;
+        this.output.ratio.value = 4.5;
+        this.output.attack.value = 0.003;
+        this.output.release.value = 0.16;
+      }
+      this.output.connect(this.ctx.destination);
       this.master = this.ctx.createGain();
-      this.master.gain.value = 0.045;
-      this.master.connect(this.ctx.destination);
+      this.master.gain.value = 0.052;
+      this.master.connect(this.output);
+      this.sfxMaster = this.ctx.createGain();
+      this.sfxMaster.gain.value = 1.18;
+      this.sfxMaster.connect(this.output);
     }
 
     setBiome(biome) {
@@ -916,20 +937,62 @@
     }
 
     sfx(freq, type = "square", length = 0.05, volume = 0.12) {
+      if (!this.ctx) this.start();
       if (!this.ctx || !this.game.save.settings.sfx) return;
+      const now = this.ctx.currentTime;
+      const punch = clamp(volume * 1.45, 0.015, 0.28);
+      const mainLength = Math.max(0.018, length);
+      this.tone(freq, type, mainLength, punch, now, { slide: type !== "sine" || volume >= 0.09 });
+      if (volume >= 0.045) {
+        const snapFreq = clamp(freq * 2.15, 280, 1320);
+        this.tone(snapFreq, type === "sine" ? "triangle" : "square", Math.min(0.028, mainLength * 0.42), punch * 0.26, now, { slide: false });
+      }
+      if (volume >= 0.07 || length >= 0.07) {
+        const bodyFreq = clamp(freq * 0.48, 54, 210);
+        this.tone(bodyFreq, "sine", Math.min(0.16, mainLength * 0.9 + 0.025), punch * 0.42, now + 0.004, { slide: true });
+        this.noiseBurst(now, Math.min(0.036, mainLength * 0.46), punch * 0.24);
+      }
+    }
+
+    tone(freq, type, length, volume, now, options = {}) {
       const osc = this.ctx.createOscillator();
       const env = this.ctx.createGain();
+      const safeFreq = clamp(freq, 32, 1800);
       osc.type = type;
-      osc.frequency.value = freq;
+      osc.frequency.setValueAtTime(options.slide ? safeFreq * 1.08 : safeFreq, now);
+      if (options.slide) osc.frequency.exponentialRampToValueAtTime(Math.max(32, safeFreq * 0.82), now + Math.max(0.012, length * 0.75));
       env.gain.value = 0;
       osc.connect(env);
-      env.connect(this.ctx.destination);
-      const now = this.ctx.currentTime;
+      env.connect(this.sfxMaster || this.ctx.destination);
       env.gain.setValueAtTime(0, now);
-      env.gain.linearRampToValueAtTime(volume, now + 0.006);
+      env.gain.linearRampToValueAtTime(volume, now + 0.004);
       env.gain.exponentialRampToValueAtTime(0.001, now + length);
       osc.start(now);
       osc.stop(now + length + 0.02);
+    }
+
+    noiseBurst(now, length, volume) {
+      const frames = Math.max(1, Math.floor(this.ctx.sampleRate * length));
+      const buffer = this.ctx.createBuffer(1, frames, this.ctx.sampleRate);
+      const data = buffer.getChannelData(0);
+      for (let i = 0; i < frames; i++) {
+        const fade = 1 - i / frames;
+        data[i] = (Math.random() * 2 - 1) * fade;
+      }
+      const src = this.ctx.createBufferSource();
+      const filter = this.ctx.createBiquadFilter();
+      const env = this.ctx.createGain();
+      src.buffer = buffer;
+      filter.type = "bandpass";
+      filter.frequency.value = 920;
+      filter.Q.value = 0.65;
+      env.gain.setValueAtTime(Math.max(0.001, volume), now);
+      env.gain.exponentialRampToValueAtTime(0.001, now + length);
+      src.connect(filter);
+      filter.connect(env);
+      env.connect(this.sfxMaster || this.ctx.destination);
+      src.start(now);
+      src.stop(now + length + 0.01);
     }
   }
 
@@ -5808,7 +5871,7 @@
       p.energyRegenDelay = Math.max(p.energyRegenDelay || 0, 0.65);
       p.facing = Math.atan2(dy, dx);
       this.camera.shake = Math.max(this.camera.shake, 3);
-      this.audio.sfx(160, "sawtooth", 0.05, 0.08);
+      this.audio.sfx(160, "sawtooth", 0.055, 0.11);
       if (this.run.power.id === "shadow") {
         for (const enemy of this.run.enemies) {
           if (Math.hypot(enemy.x - p.x, enemy.y - p.y) < 76) enemy.mark = Math.max(enemy.mark, 3);
@@ -5862,7 +5925,7 @@
       const arc = Math.PI * 0.72;
       const damage = p.damage * this.playerDamageOutputMult() * (1 + p.combo * 0.04);
       this.addBasicAttackBurst(p.x + Math.cos(angle) * range * 0.4, p.y + Math.sin(angle) * range * 0.4, angle, "swordsman", range);
-      this.audio.sfx(220 + p.combo * 22, "sawtooth", 0.04, 0.08);
+      this.audio.sfx(220 + p.combo * 22, "sawtooth", 0.048, 0.11);
       let hits = 0;
       for (const enemy of [...this.run.enemies]) {
         const d = Math.hypot(enemy.x - p.x, enemy.y - p.y);
@@ -5915,7 +5978,7 @@
       }
       if (hits > 0) this.hitStop = Math.max(this.hitStop || 0, 0.075);
       this.camera.shake = Math.max(this.camera.shake, hits ? 10 : 3);
-      this.audio.sfx(155, "square", 0.08, 0.1);
+      this.audio.sfx(155, "square", 0.09, 0.14);
     }
 
     spawnPhantomBlade(x, y, angle, damage, owner = "player", casterId = "") {
@@ -5944,7 +6007,7 @@
         color: "#e8edf7"
       });
       this.trimVisualList(this.run.slashes, this.isMobileDevice() ? 24 : 38);
-      this.audio.sfx(520, "triangle", 0.035, 0.045);
+      this.audio.sfx(520, "triangle", 0.04, 0.07);
     }
 
     basicMageAttack(p, angle) {
@@ -5964,12 +6027,12 @@
         pierce: 0,
         kind: "mageBasic"
       });
-      this.audio.sfx(420, "sine", 0.08, 0.08);
+      this.audio.sfx(420, "sine", 0.085, 0.11);
     }
 
     basicRangerAttack(p, angle) {
       p.pendingBasicAttack = { kind: "ranger", angle, combo: p.combo, time: 0.36 };
-      this.audio.sfx(180, "triangle", 0.035, 0.12);
+      this.audio.sfx(180, "triangle", 0.04, 0.14);
     }
 
     fireRangerShot(p, angle, combo = p.combo) {
@@ -5991,7 +6054,7 @@
         kind: "rangerBasic"
       });
       this.camera.shake = Math.max(this.camera.shake, 4);
-      this.audio.sfx(330, "triangle", 0.06, 0.075);
+      this.audio.sfx(330, "triangle", 0.065, 0.12);
       if (this.isMultiplayerClient()) this.sendBasicAttackPacket(characterById("ranger"), p, angle, combo);
     }
 
@@ -6000,7 +6063,7 @@
       const arc = Math.PI * 0.72;
       const damage = p.damage * this.playerDamageOutputMult() * (0.8 + p.combo * 0.025);
       const flurry = chance(0.2);
-      this.audio.sfx(360 + p.combo * 18, "triangle", 0.035, 0.055);
+      this.audio.sfx(360 + p.combo * 18, "triangle", 0.038, 0.08);
       const hits = this.performAssassinSlash(p.x, p.y, angle, range, arc, damage, p.combo);
       if (flurry) {
         this.queueAssassinSlash(p.x, p.y, angle + 0.22, range * 0.96, arc, damage * 0.65, p.combo, 0.12);
@@ -6018,7 +6081,7 @@
       const armHalf = range * 0.56;
       const hitWidth = 20;
       this.addBasicAttackBurst(centerX, centerY, angle, "assassin", range);
-      this.audio.sfx(410 + combo * 12, "triangle", 0.025, 0.045);
+      this.audio.sfx(410 + combo * 12, "triangle", 0.03, 0.07);
       let hits = 0;
       for (const enemy of [...this.run.enemies]) {
         const hit = [-0.62, 0.62].some((offset) => {
@@ -6591,7 +6654,7 @@
         }
         if (awakened) this.applyAwakenedSkillBonus(key, power, caster, angle, { x: tx, y: ty }, damage, owner, remote, skillHealAllowed);
         this.camera.shake = Math.max(this.camera.shake, 7);
-        this.audio.sfx(kind === "lightning" ? 520 : kind === "gravity" ? 110 : 260, kind === "fire" ? "sawtooth" : "triangle", 0.08, 0.1);
+        this.audio.sfx(kind === "lightning" ? 520 : kind === "gravity" ? 110 : 260, kind === "fire" ? "sawtooth" : "triangle", 0.09, 0.14);
         finishSkillDamageContext();
         return;
       }
@@ -6645,7 +6708,7 @@
           this.addShockwave(x, y, 150, power.color, 0);
         }
         if (awakened) this.applyAwakenedSkillBonus(key, power, caster, angle, { x: tx, y: ty }, damage, owner, remote, skillHealAllowed);
-        this.audio.sfx(kind === "time" ? 190 : 180, "sine", 0.12, 0.08);
+        this.audio.sfx(kind === "time" ? 190 : 180, "sine", 0.13, 0.12);
         finishSkillDamageContext();
         return;
       }
@@ -6708,7 +6771,7 @@
         }
         if (awakened) this.applyAwakenedSkillBonus(key, power, caster, angle, { x: tx, y: ty }, damage, owner, remote, skillHealAllowed);
         this.camera.shake = Math.max(this.camera.shake, 9);
-        this.audio.sfx(kind === "lightning" ? 560 : kind === "gravity" || kind === "void" ? 90 : 120, "sawtooth", 0.14, 0.1);
+        this.audio.sfx(kind === "lightning" ? 560 : kind === "gravity" || kind === "void" ? 90 : 120, "sawtooth", 0.16, 0.16);
         finishSkillDamageContext();
         return;
       }
@@ -6752,7 +6815,7 @@
           awakened: Boolean(awakened)
         });
         this.camera.shake = Math.max(this.camera.shake, 7);
-        this.audio.sfx(kind === "time" ? 130 : 70, "sawtooth", 0.2, 0.1);
+        this.audio.sfx(kind === "time" ? 130 : 70, "sawtooth", 0.24, 0.18);
       }
       finishSkillDamageContext();
     }
@@ -7052,7 +7115,7 @@
         kind: "guardian"
       });
       this.camera.shake = Math.max(this.camera.shake, 9);
-      this.audio.sfx(130, "square", 0.07, 0.11);
+      this.audio.sfx(130, "square", 0.08, 0.14);
       return true;
     }
 
@@ -7092,7 +7155,7 @@
       this.addBasicAttackBurst(guardian.x + Math.cos(angle) * 52, guardian.y + Math.sin(angle) * 52, angle, "guardian", 104);
       this.addShockwave(guardian.x, guardian.y, 96, "#ffd36a", 0);
       this.camera.shake = Math.max(this.camera.shake, 8);
-      this.audio.sfx(150, "square", 0.07, 0.1);
+      this.audio.sfx(150, "square", 0.08, 0.13);
       return true;
     }
 
@@ -7117,7 +7180,7 @@
       this.addBasicAttackBurst(guardian.x + Math.cos(angle) * 52, guardian.y + Math.sin(angle) * 52, angle, "guardian", 104);
       this.addShockwave(guardian.x, guardian.y, 106, "#ffd36a", 0);
       this.camera.shake = Math.max(this.camera.shake, 8);
-      this.audio.sfx(150, "square", 0.07, 0.1);
+      this.audio.sfx(150, "square", 0.08, 0.13);
       return true;
     }
 
@@ -7558,7 +7621,7 @@
           rand(90, 280)
         );
       }
-      this.audio.sfx(420, "triangle", 0.09, 0.09);
+      this.audio.sfx(420, "triangle", 0.1, 0.13);
     }
 
     rewardColor(reward) {
@@ -9220,7 +9283,7 @@
         object.openTimer = 0.85;
         this.addShockwave(object.x, object.y, 120, "#f2bf63", 0);
         this.camera.shake = Math.max(this.camera.shake, 5);
-        this.audio.sfx(520, "triangle", 0.12, 0.12);
+        this.audio.sfx(520, "triangle", 0.14, 0.16);
         return;
       }
       if (object.type === "bossGate") {
@@ -9717,7 +9780,7 @@
         this.run.damageTexts.push({ x, y: y - 18, vx: rand(-18, 18), vy: -52, life: 0.72, text: `${crit ? "CRIT " : ""}${Math.ceil(damage)}`, color: crit ? "#ffe45e" : "#ffffff", crit });
         this.trimVisualList(this.run.damageTexts, this.isMobileDevice() ? 28 : 48);
       }
-      this.audio.sfx(crit ? 520 : 360, crit ? "square" : "triangle", 0.045, crit ? 0.13 : 0.08);
+      this.audio.sfx(crit ? 520 : 360, crit ? "square" : "triangle", 0.055, crit ? 0.18 : 0.11);
     }
 
     isBasicHit(options) {

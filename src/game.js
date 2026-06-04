@@ -7,7 +7,7 @@
   const ROOM_PAD = 86;
   const SAVE_KEY = "soulrift-save-v1";
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
-  const APP_VERSION = "20260604-time-e-heal-nerf-81";
+  const APP_VERSION = "20260604-clear-heal-lock-82";
   const VERSION_CHECK_INTERVAL = 15000;
   const UPDATE_ATTEMPT_KEY = "soulrift-update-attempt-v1";
   const DOOR_ENTER_TIME = 1.0;
@@ -5757,8 +5757,8 @@
       p.x = clamp(p.x + p.vx * dt, ROOM_PAD + p.radius, WORLD_W - ROOM_PAD - p.radius);
       p.y = clamp(p.y + p.vy * dt, ROOM_PAD + p.radius, WORLD_H - ROOM_PAD - p.radius);
 
-      if (this.run.power.id === "nature" && Math.floor(this.menuTime * 2) % 7 === 0 && chance(dt * 0.5)) {
-        this.healPlayer(0.45);
+      if (this.run.power.id === "nature" && this.powerHealingAvailable() && Math.floor(this.menuTime * 2) % 7 === 0 && chance(dt * 0.5)) {
+        this.healPlayer(0.45, { source: "power" });
         this.addParticle(p.x + rand(-14, 14), p.y + rand(-16, 8), "#75e66e", 16, 0.6, "leaf");
       }
     }
@@ -6435,13 +6435,16 @@
       this.trimVisualList(this.run.slashes, this.isMobileDevice() ? 24 : 38);
     }
 
-    applyAwakenedSkillBonus(key, power, caster, angle, target, damage, owner = "player", remote = false) {
+    applyAwakenedSkillBonus(key, power, caster, angle, target, damage, owner = "player", remote = false, skillHealAllowed = false) {
       const kind = power.id;
       const x = caster.x;
       const y = caster.y;
       const tx = target?.x ?? x + Math.cos(angle) * 220;
       const ty = target?.y ?? y + Math.sin(angle) * 220;
       const pulse = key === "q" ? 0.42 : key === "e" ? 0.34 : key === "r" ? 0.58 : 0.72;
+      const healFromSkill = (amount) => {
+        if (skillHealAllowed) this.healPlayer(amount, { source: "power", allowAfterCombat: true });
+      };
       this.addSkillShape(kind, `awakened-${key}`, key === "e" ? x : tx, key === "e" ? y : ty, angle, 135 + pulse * 130, 0.45 + pulse * 0.2);
       if (kind === "fire") {
         const px = x + Math.cos(angle) * (key === "r" ? 210 : 128);
@@ -6463,7 +6466,7 @@
         for (const enemy of this.run.enemies) if (Math.hypot(enemy.x - tx, enemy.y - ty) < 170) enemy.mark += 2;
       } else if (kind === "blood") {
         this.coneDamage(x, y, angle, 170 + pulse * 120, Math.PI * 0.9, damage * (0.25 + pulse * 0.24), power.color, kind);
-        if (!remote) this.healPlayer(4 + damage * 0.07);
+        healFromSkill(4 + damage * 0.07);
       } else if (kind === "gravity") {
         this.addEffect({ type: "pull", x: tx, y: ty, radius: 210 + pulse * 150, time: 0.85 + pulse * 0.65, color: power.color });
         this.areaDamage(tx, ty, 95 + pulse * 60, damage * (0.24 + pulse * 0.24), power.color, kind);
@@ -6474,7 +6477,7 @@
         }
       } else if (kind === "nature") {
         this.addEffect({ type: "zone", x: tx, y: ty, radius: 115 + pulse * 80, time: 2.2, tick: 0.2, color: power.color, kind });
-        if (!remote) this.healPlayer(5 + pulse * 8);
+        healFromSkill(5 + pulse * 8);
       } else if (kind === "void") {
         this.addEffect({ type: "pull", x: tx, y: ty, radius: 230 + pulse * 140, time: 1.0 + pulse * 0.55, color: power.color });
         for (const enemy of this.run.enemies) if (Math.hypot(enemy.x - tx, enemy.y - ty) < 210 + pulse * 80) enemy.mark += 3;
@@ -6501,6 +6504,10 @@
       const kind = power.id;
       const casterId = options.casterId || (owner === "player" ? this.lobby.id : "");
       const domainBoost = key !== "f" ? this.powerDomainBoost(kind, caster, casterId) : { damageMult: 1, areaMult: 1, active: false };
+      const skillHealAllowed = !remote && this.powerHealingAvailable();
+      const healFromSkill = (amount) => {
+        if (skillHealAllowed) this.healPlayer(amount, { source: "power", allowAfterCombat: true });
+      };
       const previousSkillAreaScale = this.currentSkillAreaScale();
       const previousDamageSourceId = this.currentDamageSourceId || "";
       this.skillAreaScale = Math.max(previousSkillAreaScale, domainBoost.areaMult || 1);
@@ -6541,7 +6548,7 @@
         } else if (kind === "blood") {
           this.addSkillShape(kind, "bloodArc", x, y, angle, 205);
           this.coneDamage(x, y, angle, 205, Math.PI * 1.1, damage * 1.28, power.color, kind);
-          if (!remote) this.healPlayer(6 + damage * 0.1);
+          healFromSkill(6 + damage * 0.1);
         } else if (kind === "gravity") {
           this.addSkillShape(kind, "gravityCrush", forwardX, forwardY, angle, 205);
           this.addEffect({ type: "pull", x: forwardX, y: forwardY, radius: 245, time: 1.05, color: power.color });
@@ -6578,7 +6585,7 @@
           this.areaDamage(x, y, 175, damage * 0.95, power.color, kind);
           for (const enemy of this.run.enemies) if (Math.hypot(enemy.x - x, enemy.y - y) < 190) enemy.chill = Math.max(enemy.chill, 3.6);
         }
-        if (awakened) this.applyAwakenedSkillBonus(key, power, caster, angle, { x: tx, y: ty }, damage, owner, remote);
+        if (awakened) this.applyAwakenedSkillBonus(key, power, caster, angle, { x: tx, y: ty }, damage, owner, remote, skillHealAllowed);
         this.camera.shake = Math.max(this.camera.shake, 7);
         this.audio.sfx(kind === "lightning" ? 520 : kind === "gravity" ? 110 : 260, kind === "fire" ? "sawtooth" : "triangle", 0.08, 0.1);
         finishSkillDamageContext();
@@ -6604,7 +6611,7 @@
           if (!remote) caster.hp = Math.max(1, caster.hp - 8);
           caster.shield = Math.max(caster.shield || 0, 38);
           this.areaDamage(x, y, 125, damage * 0.8, power.color, kind);
-          if (!remote) this.healPlayer(9);
+          healFromSkill(9);
         } else if (kind === "gravity") {
           caster.shield = Math.max(caster.shield || 0, 46);
           this.addEffect({ type: "pull", x, y, radius: 205, time: 0.9, color: power.color });
@@ -6615,7 +6622,7 @@
             this.spawnProjectile({ owner, x, y, vx: Math.cos(a) * 430, vy: Math.sin(a) * 430, radius: 6, damage: damage * 0.45, life: 0.55, color: power.color, pierce: 0, kind });
           }
         } else if (kind === "nature") {
-          if (!remote) this.healPlayer(22);
+          healFromSkill(22);
           this.areaDamage(x, y, 115, damage * 0.55, power.color, kind);
           for (const enemy of this.run.enemies) if (Math.hypot(enemy.x - x, enemy.y - y) < 135) enemy.stun = Math.max(enemy.stun, 0.25);
         } else if (kind === "void") {
@@ -6627,13 +6634,13 @@
           this.addShockwave(x, y, 130, power.color, 18);
         } else if (kind === "time") {
           if (!remote) {
-            this.healPlayer(4);
+            healFromSkill(4);
             caster.cooldowns.q = Math.max(0, caster.cooldowns.q - 1.6);
             caster.cooldowns.r = Math.max(0, caster.cooldowns.r - 2.2);
           }
           this.addShockwave(x, y, 150, power.color, 0);
         }
-        if (awakened) this.applyAwakenedSkillBonus(key, power, caster, angle, { x: tx, y: ty }, damage, owner, remote);
+        if (awakened) this.applyAwakenedSkillBonus(key, power, caster, angle, { x: tx, y: ty }, damage, owner, remote, skillHealAllowed);
         this.audio.sfx(kind === "time" ? 190 : 180, "sine", 0.12, 0.08);
         finishSkillDamageContext();
         return;
@@ -6664,7 +6671,7 @@
         } else if (kind === "blood") {
           this.addSkillShape(kind, "bloodOrbit", x, y, angle, 220, 0.85);
           this.addEffect({ type: "zone", x, y, radius: 185, time: 4.0, tick: 0.08, color: power.color, kind });
-          if (!remote) this.healPlayer(12);
+          healFromSkill(12);
         } else if (kind === "gravity") {
           this.addSkillShape(kind, "blackAnchor", tx, ty, angle, 235, 0.9);
           this.addEffect({ type: "pull", x: tx, y: ty, radius: 340, time: 2.4, color: power.color });
@@ -6695,7 +6702,7 @@
           }
           for (const enemy of this.run.enemies) if (Math.hypot(enemy.x - x, enemy.y - y) < 250) enemy.chill = Math.max(enemy.chill, 2.8);
         }
-        if (awakened) this.applyAwakenedSkillBonus(key, power, caster, angle, { x: tx, y: ty }, damage, owner, remote);
+        if (awakened) this.applyAwakenedSkillBonus(key, power, caster, angle, { x: tx, y: ty }, damage, owner, remote, skillHealAllowed);
         this.camera.shake = Math.max(this.camera.shake, 9);
         this.audio.sfx(kind === "lightning" ? 560 : kind === "gravity" || kind === "void" ? 90 : 120, "sawtooth", 0.14, 0.1);
         finishSkillDamageContext();
@@ -6707,8 +6714,8 @@
         const radius = awakened ? 330 : 280;
         this.startDomainCinematic(power, caster, angle, options);
         this.freezeEnemiesForDomain(DOMAIN_CUTIN_TIME + 0.28, power.accent);
-        if (kind === "blood" && !remote) this.healPlayer(36);
-        if (kind === "nature" && !remote) this.healPlayer(48);
+        if (kind === "blood") healFromSkill(36);
+        if (kind === "nature") healFromSkill(48);
         if (kind === "time" && !remote) {
           caster.cooldowns.q = 0;
           caster.cooldowns.e = 0;
@@ -6875,7 +6882,7 @@
       }
       if (kind === "fire" && !options.visualOnly) this.addTrailDamage(x + Math.cos(angle) * 36, y + Math.sin(angle) * 36, power.color);
       if (!subtle && (kind === "gravity" || kind === "void" || kind === "time")) this.addShockwave(x, y, radius * (kind === "time" ? 1.1 : 0.9), power.color, 0);
-      if (kind === "nature" && healNature) this.healPlayer(0.35 + intensity * 0.45);
+      if (kind === "nature" && healNature) this.healPlayer(0.35 + intensity * 0.45, { source: "power" });
     }
 
     castSkillOne(power, angle = this.skillAimAngle(this.run.player)) {
@@ -6968,10 +6975,10 @@
         enemy.vy += Math.sin(a) * 120;
       }
       if (power.id === "blood" || p.stats.lifeSteal) {
-        this.healPlayer(damage * (power.id === "blood" ? 0.028 : p.stats.lifeSteal));
+        this.healPlayer(damage * (power.id === "blood" ? 0.028 : p.stats.lifeSteal), { source: "power", allowAfterCombat: true });
       }
       const assassinBasic = options.source === "assassin" || (options.source === "remoteBasic" && options.kind === "assassin");
-      if (options.source === "assassin" && sourceId === this.lobby.id) this.healPlayer((p.maxHp || 1) * rand(0.01, 0.03));
+      if (options.source === "assassin" && sourceId === this.lobby.id) this.healPlayer((p.maxHp || 1) * rand(0.01, 0.03), { source: "power", allowAfterCombat: true });
       if (assassinBasic && enemy.hp > 0 && chance(0.25)) this.applyAssassinBleed(enemy, damage, options);
       if (crit && (p.stats.chainCrit || power.id === "lightning")) this.chainLightning(enemy, damage * 0.45);
       if (enemy.chill > 0 && enemy.hp <= 0 && p.stats.fracture) this.fracture(enemy);
@@ -7152,13 +7159,25 @@
       }
     }
 
-    healPlayer(amount) {
-      if (!this.run) return;
+    powerHealingAvailable() {
+      const room = this.run?.currentRoom;
+      if (!this.run || !room) return false;
+      if (room.cleared || room.rewardDropped || room.rewardClaimed || this.run.roomClearTimer > 0) return false;
+      return (this.run.enemies || []).some((enemy) => enemy && enemy.hp > 0);
+    }
+
+    healPlayer(amount, options = {}) {
+      if (!this.run) return false;
+      if (options.source === "power" && !options.allowAfterCombat && !this.powerHealingAvailable()) return false;
       const p = this.run.player;
-      if (p.dead) return;
+      if (p.dead) return false;
       const healed = amount * (this.bossDebuffModifiers().healMult || 1);
+      const before = p.hp;
       p.hp = Math.min(p.maxHp, p.hp + healed);
-      if (healed >= 2) this.addParticle(p.x, p.y - 18, "#70e083", 18, 0.6, "plus");
+      const actual = p.hp - before;
+      if (actual <= 0) return false;
+      if (actual >= 2) this.addParticle(p.x, p.y - 18, "#70e083", 18, 0.6, "plus");
+      return true;
     }
 
     killEnemy(enemy) {
@@ -9492,8 +9511,8 @@
       const p = this.run.player;
       const localCasterInside = (!effect.casterId || effect.casterId === this.lobby.id) && this.aliveActor(p) && Math.hypot(p.x - effect.x, p.y - effect.y) < radius + p.radius;
       if (localCasterInside) {
-        if (kind === "nature") this.healPlayer(1.0);
-        if (kind === "blood") this.healPlayer(0.75);
+        if (kind === "nature") this.healPlayer(1.0, { source: "power" });
+        if (kind === "blood") this.healPlayer(0.75, { source: "power" });
         if (kind === "time") {
           p.cooldowns.q = Math.max(0, p.cooldowns.q - 0.12);
           p.cooldowns.e = Math.max(0, p.cooldowns.e - 0.12);

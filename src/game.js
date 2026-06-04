@@ -7,7 +7,7 @@
   const ROOM_PAD = 86;
   const SAVE_KEY = "soulrift-save-v1";
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
-  const APP_VERSION = "20260604-domain-containment-101";
+  const APP_VERSION = "20260604-power-identity-skills-102";
   const VERSION_CHECK_INTERVAL = 15000;
   const UPDATE_ATTEMPT_KEY = "soulrift-update-attempt-v1";
   const CLOUD_MIGRATION_KEY = "soulrift-cloud-migrated-v1";
@@ -64,9 +64,9 @@
       passive: "Đòn đánh thiêu đốt và cộng dồn sát thương nóng chảy.",
       skills: {
         basic: "Chém Tro Tàn",
-        q: "Quạt Lửa",
+        q: "Hỏa Cầu",
         e: "Khiên Dung Nham",
-        r: "Dấu Thiên Thạch",
+        r: "Mưa Thiên Thạch",
         f: "Vương Miện Hỏa Ngục"
       }
     },
@@ -208,9 +208,9 @@
       passive: "Né hoàn hảo hoàn trả hồi chiêu.",
       skills: {
         basic: "Kim Giây",
-        q: "Vòng Ngưng Đọng",
+        q: "Ngưng Thời",
         e: "Tua Ngược",
-        r: "Dư Ảnh",
+        r: "Đồng Hồ Ngưng Đọng",
         f: "Đổ Đồng Hồ Cát"
       }
     }
@@ -4960,7 +4960,7 @@
 
     compactProjectile(projectile) {
       return this.compactFields(projectile, [
-        "id", "owner", "casterId", "x", "y", "vx", "vy", "radius", "damage", "life", "age", "angle", "color", "pierce", "kind", "bossDebuff", "visualOnly", "visualImpact"
+        "id", "owner", "casterId", "x", "y", "vx", "vy", "radius", "damage", "explosionRadius", "explosionDamage", "life", "age", "angle", "color", "pierce", "kind", "bossDebuff", "visualOnly", "visualImpact"
       ]);
     }
 
@@ -7224,6 +7224,37 @@
       return stacks;
     }
 
+    stopTimeInArea(x, y, radius, duration, damage, color, casterId = "") {
+      if (!this.run) return 0;
+      this.addShockwave(x, y, radius * 0.72, color, 0);
+      if (this.isMultiplayerClient()) return 0;
+      let frozen = 0;
+      for (const enemy of [...this.run.enemies]) {
+        const d = Math.hypot(enemy.x - x, enemy.y - y);
+        if (d > radius + enemy.radius) continue;
+        const force = Math.max(0.35, 1 - d / Math.max(1, radius));
+        const freeze = enemy.boss ? Math.min(duration, 0.62) : duration;
+        enemy.domainFreeze = Math.max(enemy.domainFreeze || 0, freeze);
+        enemy.chill = Math.max(enemy.chill || 0, freeze + 0.8);
+        enemy.vx = 0;
+        enemy.vy = 0;
+        enemy.attackAnim = Math.max(enemy.attackAnim || 0, 0.12);
+        if (damage > 0) {
+          this.damageEnemy(enemy, damage * force, {
+            x: 0,
+            y: 0,
+            source: "timeStop",
+            kind: "time",
+            noKnockback: true,
+            sourceId: casterId
+          });
+        }
+        frozen += 1;
+        if (chance(0.8)) this.addParticle(enemy.x, enemy.y - enemy.radius * 0.4, color, rand(7, 15), rand(0.28, 0.58), "clock");
+      }
+      return frozen;
+    }
+
     applyPowerIdentity(kind, key, caster, angle, impact, damage, owner = "player", casterId = "", remote = false, awakened = false) {
       if (!this.run || !caster || !impact) return;
       const radius = key === "f" ? 360 : key === "r" ? 280 : key === "e" ? 220 : 190;
@@ -7338,9 +7369,26 @@
 
       if (key === "q") {
         if (kind === "fire") {
-          this.addSkillShape(kind, "flameFan", x, y, angle, 230);
-          this.coneDamage(x, y, angle, 235, Math.PI * 0.78, damage * 1.55, power.color, kind);
-          this.addTrailDamage(x + Math.cos(angle) * 82, y + Math.sin(angle) * 82, power.color);
+          const sx = x + Math.cos(angle) * 42;
+          const sy = y + Math.sin(angle) * 42;
+          this.addSkillShape(kind, "fireballCast", sx, sy, angle, 185, 0.44, { length: 340 });
+          this.spawnProjectile({
+            owner,
+            casterId,
+            x: sx,
+            y: sy,
+            vx: Math.cos(angle) * 760,
+            vy: Math.sin(angle) * 760,
+            radius: 14,
+            damage: damage * 1.12,
+            explosionRadius: 108,
+            explosionDamage: damage * 0.42,
+            life: 0.92,
+            color: power.color,
+            pierce: 0,
+            kind: "fireball"
+          });
+          this.addTrailDamage(sx, sy, power.color);
         } else if (kind === "ice") {
           this.addSkillShape(kind, "iceRing", x, y, angle, 175);
           this.areaDamage(x, y, 168, damage * 1.1, power.color, kind);
@@ -7399,9 +7447,10 @@
           this.areaDamage(tx, ty, 130, damage * 1.25, power.color, kind);
           for (const enemy of this.run.enemies) if (Math.hypot(enemy.x - tx, enemy.y - ty) < 220) enemy.mark += 2;
         } else if (kind === "time") {
-          this.addSkillShape(kind, "timeStop", x, y, angle, 190);
-          this.areaDamage(x, y, 175, damage * 0.95, power.color, kind);
-          for (const enemy of this.run.enemies) if (Math.hypot(enemy.x - x, enemy.y - y) < 190) enemy.chill = Math.max(enemy.chill, 3.6);
+          const stopX = x + Math.cos(angle) * 135;
+          const stopY = y + Math.sin(angle) * 135;
+          this.addSkillShape(kind, "timeStop", stopX, stopY, angle, 190, 0.68);
+          this.stopTimeInArea(stopX, stopY, 188, 1.2, damage * 0.82, power.color, casterId);
         }
         if (awakened) this.applyAwakenedSkillBonus(key, power, caster, angle, { x: tx, y: ty }, damage, owner, remote, skillHealAllowed);
         this.applyPowerIdentity(kind, key, caster, angle, { x: tx, y: ty }, damage, owner, casterId, remote, awakened);
@@ -7457,7 +7506,8 @@
             caster.cooldowns.q = Math.max(0, caster.cooldowns.q - 1.6);
             caster.cooldowns.r = Math.max(0, caster.cooldowns.r - 2.2);
           }
-          this.addShockwave(x, y, 150, power.color, 0);
+          this.addSkillShape(kind, "rewindPulse", x, y, angle, 155, 0.58);
+          this.stopTimeInArea(x, y, 150, 0.75, damage * 0.42, power.color, casterId);
         }
         if (awakened) this.applyAwakenedSkillBonus(key, power, caster, angle, { x: tx, y: ty }, damage, owner, remote, skillHealAllowed);
         this.applyPowerIdentity(kind, key, caster, angle, { x, y }, damage, owner, casterId, remote, awakened);
@@ -7471,6 +7521,27 @@
           this.addSkillShape(kind, "meteor", tx, ty, angle, 210, 0.7);
           this.areaDamage(tx, ty, 165, damage * 1.8, power.color, kind);
           this.addShockwave(tx, ty, 185, power.color, 38);
+          for (let i = 0; i < 4; i++) {
+            const a = -Math.PI / 2 + (i - 1.5) * 0.18;
+            const sx = tx + rand(-170, 170);
+            const sy = ty - 250 - i * 22;
+            this.spawnProjectile({
+              owner,
+              casterId,
+              x: sx,
+              y: sy,
+              vx: Math.cos(a) * 120 + (tx - sx) * 1.9,
+              vy: Math.sin(a) * 120 + 620,
+              radius: 10,
+              damage: damage * 0.58,
+              explosionRadius: 82,
+              explosionDamage: damage * 0.2,
+              life: 0.58,
+              color: power.color,
+              pierce: 0,
+              kind: "fireball"
+            });
+          }
         } else if (kind === "ice") {
           this.addSkillShape(kind, "frozenField", tx, ty, angle, 190, 0.85);
           this.addEffect({ type: "zone", x: tx, y: ty, radius: 180, time: 4.2, tick: 0.1, color: power.color, kind });
@@ -7515,12 +7586,12 @@
           this.addEffect({ type: "pull", x: tx, y: ty, radius: 360, time: 2.5, color: power.color });
           this.areaDamage(tx, ty, 190, damage * 1.25, power.color, kind);
         } else if (kind === "time") {
-          this.addSkillShape(kind, "timeEcho", x, y, angle, 230, 0.82);
-          for (let i = -3; i <= 3; i++) {
-            const a = angle + i * 0.12;
-            this.spawnProjectile({ owner, x, y, vx: Math.cos(a) * 560, vy: Math.sin(a) * 560, radius: 7, damage: damage * 0.72, life: 1.0, color: power.color, pierce: 1, kind });
+          this.addSkillShape(kind, "timePrison", tx, ty, angle, 255, 0.95);
+          this.stopTimeInArea(tx, ty, 255, 2.25, damage * 1.18, power.color, casterId);
+          if (!remote && caster === this.run.player) {
+            caster.cooldowns.q = Math.max(0, caster.cooldowns.q - 0.7);
+            caster.cooldowns.e = Math.max(0, caster.cooldowns.e - 0.45);
           }
-          for (const enemy of this.run.enemies) if (Math.hypot(enemy.x - x, enemy.y - y) < 250) enemy.chill = Math.max(enemy.chill, 2.8);
         }
         if (awakened) this.applyAwakenedSkillBonus(key, power, caster, angle, { x: tx, y: ty }, damage, owner, remote, skillHealAllowed);
         this.applyPowerIdentity(kind, key, caster, angle, { x: tx, y: ty }, damage, owner, casterId, remote, awakened);
@@ -9908,7 +9979,7 @@
         projectile.x += projectile.vx * dt;
         projectile.y += projectile.vy * dt;
         if (this.inView(projectile.x, projectile.y, 90) && chance((this.isMobileDevice() ? 18 : 30) * dt)) {
-          this.addParticle(projectile.x, projectile.y, projectile.color, projectile.radius * 0.9, 0.25, "dot");
+          this.addParticle(projectile.x, projectile.y, projectile.color, projectile.radius * 0.9, 0.25, projectile.kind === "fireball" ? "flame" : "dot");
         }
         if (projectile.visualOnly || ((projectile.owner === "player" || projectile.owner === "ally") && this.isMultiplayerClient())) {
           this.stopVisualProjectileAtEnemy(projectile, fromX, fromY);
@@ -9925,6 +9996,14 @@
             if (projectile.kind === "mageBasic" && chance(0.25)) {
               this.areaDamage(projectile.x, projectile.y, 72, projectile.damage * 0.1, projectile.color, "mageBasic", false, sourceId);
               this.addShockwave(projectile.x, projectile.y, 92, projectile.color, 0);
+            }
+            if (projectile.kind === "fireball") {
+              const explosionRadius = Number(projectile.explosionRadius || 100);
+              this.addSkillShape("fire", "fireballBurst", projectile.x, projectile.y, Math.atan2(projectile.vy || 0, projectile.vx || 1), explosionRadius, 0.46);
+              this.areaDamage(projectile.x, projectile.y, explosionRadius, Number(projectile.explosionDamage || projectile.damage * 0.36), projectile.color || "#ff6b3a", "fire", false, sourceId);
+              this.addShockwave(projectile.x, projectile.y, explosionRadius + 18, projectile.color || "#ff6b3a", 0);
+              projectile.life = 0;
+              projectile.pierce = -1;
             }
             projectile.pierce -= 1;
             if (projectile.kind === "gravity" || projectile.kind === "void") this.addShockwave(projectile.x, projectile.y, 90, projectile.color, 18);
@@ -11799,7 +11878,7 @@
       ctx.save();
       const angle = Number.isFinite(projectile.angle) ? projectile.angle : Math.atan2(projectile.vy || 0, projectile.vx || 1);
       const tail = clamp(Math.hypot(projectile.vx || 0, projectile.vy || 0) / 45, 8, 28);
-      const hideTail = projectile.kind === "mageBasic" || projectile.kind === "rangerBasic";
+      const hideTail = projectile.kind === "mageBasic" || projectile.kind === "rangerBasic" || projectile.kind === "fireball";
       ctx.shadowColor = projectile.color;
       ctx.shadowBlur = this.glow(14);
       if (!hideTail) {
@@ -11815,7 +11894,29 @@
       ctx.translate(drawX, drawY);
       ctx.rotate(angle);
       ctx.fillStyle = projectile.color;
-      if (projectile.kind === "phantomSlash") {
+      if (projectile.kind === "fireball") {
+        const r = projectile.radius;
+        ctx.globalCompositeOperation = "lighter";
+        ctx.globalAlpha = 0.5;
+        ctx.fillStyle = "#ff3b1f";
+        ctx.beginPath();
+        ctx.moveTo(-r * 3.0, 0);
+        ctx.quadraticCurveTo(-r * 1.5, -r * 1.2, r * 0.4, -r * 0.75);
+        ctx.quadraticCurveTo(r * 1.5, 0, r * 0.4, r * 0.75);
+        ctx.quadraticCurveTo(-r * 1.5, r * 1.2, -r * 3.0, 0);
+        ctx.fill();
+        ctx.globalAlpha = 0.88;
+        ctx.fillStyle = projectile.color || "#ff6b3a";
+        ctx.beginPath();
+        ctx.ellipse(0, 0, r * 1.4, r * 0.9, 0, 0, TAU);
+        ctx.fill();
+        ctx.globalAlpha = 0.82;
+        ctx.fillStyle = "#ffd166";
+        ctx.beginPath();
+        ctx.ellipse(r * 0.15, 0, r * 0.74, r * 0.48, 0, 0, TAU);
+        ctx.fill();
+        ctx.globalCompositeOperation = "source-over";
+      } else if (projectile.kind === "phantomSlash") {
         const r = projectile.radius * 2.7;
         ctx.globalAlpha = 0.82;
         ctx.strokeStyle = projectile.color;
@@ -13439,18 +13540,52 @@
 
       if (kind === "fire") {
         ctx.lineWidth = 3 + progress * 4;
-        const fan = lowDetail ? 1 : 2;
-        for (let i = -fan; i <= fan; i++) {
-          const off = i * 24;
-          const reach = r * (0.58 + (fan - Math.abs(i)) * 0.08);
-          ctx.globalAlpha = alpha * (0.72 + (fan - Math.abs(i)) * 0.09);
+        if (effect.variant === "fireballBurst") {
+          ctx.globalAlpha = alpha * 0.78;
           ctx.beginPath();
-          ctx.moveTo(18, off * 0.35);
-          ctx.quadraticCurveTo(reach * 0.38, off - 44, reach, off * 0.12);
-          ctx.quadraticCurveTo(reach * 0.44, off + 38, 22, off * 0.35);
-          ctx.closePath();
+          ctx.arc(0, 0, r * (0.25 + progress * 0.45), 0, TAU);
           ctx.fill();
+          ctx.globalAlpha = alpha;
+          ctx.strokeStyle = accent;
+          ctx.lineWidth = 5;
+          ctx.beginPath();
+          ctx.arc(0, 0, r * (0.42 + progress * 0.35), 0, TAU);
           ctx.stroke();
+          for (let i = 0; i < (lowDetail ? 5 : 8); i++) {
+            const a = (i / (lowDetail ? 5 : 8)) * TAU + progress * 0.35;
+            ctx.beginPath();
+            ctx.moveTo(Math.cos(a) * r * 0.24, Math.sin(a) * r * 0.24);
+            ctx.lineTo(Math.cos(a) * r * 0.74, Math.sin(a) * r * 0.74);
+            ctx.stroke();
+          }
+        } else if (effect.variant === "fireballCast") {
+          ctx.globalAlpha = alpha * 0.7;
+          ctx.lineWidth = 9;
+          ctx.beginPath();
+          ctx.moveTo(0, 0);
+          ctx.quadraticCurveTo(length * 0.24, -20, length * 0.58, 0);
+          ctx.stroke();
+          ctx.globalAlpha = alpha * 0.45;
+          ctx.strokeStyle = accent;
+          ctx.lineWidth = 3;
+          ctx.beginPath();
+          ctx.moveTo(20, 0);
+          ctx.lineTo(length * 0.62, 0);
+          ctx.stroke();
+        } else {
+          const fan = lowDetail ? 1 : 2;
+          for (let i = -fan; i <= fan; i++) {
+            const off = i * 24;
+            const reach = r * (0.58 + (fan - Math.abs(i)) * 0.08);
+            ctx.globalAlpha = alpha * (0.72 + (fan - Math.abs(i)) * 0.09);
+            ctx.beginPath();
+            ctx.moveTo(18, off * 0.35);
+            ctx.quadraticCurveTo(reach * 0.38, off - 44, reach, off * 0.12);
+            ctx.quadraticCurveTo(reach * 0.44, off + 38, 22, off * 0.35);
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+          }
         }
         if (effect.variant === "meteor") {
           ctx.globalAlpha = alpha;
@@ -13674,6 +13809,27 @@
         ctx.moveTo(0, 0);
         ctx.lineTo(Math.cos(1.3 + progress * 1.8) * r * 0.24, Math.sin(1.3 + progress * 1.8) * r * 0.24);
         ctx.stroke();
+        if (effect.variant === "timeStop" || effect.variant === "timePrison" || effect.variant === "rewindPulse") {
+          const prison = effect.variant === "timePrison";
+          ctx.globalAlpha = alpha * (prison ? 0.72 : 0.52);
+          ctx.strokeStyle = accent;
+          ctx.lineWidth = prison ? 4 : 3;
+          const bars = prison ? 8 : 5;
+          for (let i = 0; i < bars; i++) {
+            const a = (i / bars) * TAU;
+            const px = Math.cos(a) * r * 0.48;
+            const py = Math.sin(a) * r * 0.48;
+            ctx.beginPath();
+            ctx.moveTo(px, py - r * 0.12);
+            ctx.lineTo(px, py + r * 0.12);
+            ctx.stroke();
+          }
+          ctx.globalAlpha = alpha * 0.32;
+          ctx.fillStyle = effect.color;
+          ctx.beginPath();
+          ctx.arc(0, 0, r * (prison ? 0.66 : 0.5), 0, TAU);
+          ctx.fill();
+        }
       }
 
       if (effect.variant === "ultimate") {

@@ -7,7 +7,7 @@
   const ROOM_PAD = 86;
   const SAVE_KEY = "soulrift-save-v1";
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
-  const APP_VERSION = "20260604-shield-hand-behind-100";
+  const APP_VERSION = "20260604-domain-containment-101";
   const VERSION_CHECK_INTERVAL = 15000;
   const UPDATE_ATTEMPT_KEY = "soulrift-update-attempt-v1";
   const CLOUD_MIGRATION_KEY = "soulrift-cloud-migrated-v1";
@@ -4954,7 +4954,7 @@
         "role", "specialSkill", "ranged", "bulky", "elite", "boss", "attackCd", "skillCd", "windupType",
         "windupTime", "windupTotal", "windupAngle", "windupX", "windupY", "chargeTime",
         "chargeHit", "chargeDir", "chargeSpeed", "chargeDamage", "attackAnim", "attackDir", "facingDir",
-        "launch", "flash", "stun", "domainFreeze", "burn", "chill", "mark", "bleed", "bleedTick", "bleedDamage", "phase", "phaseLock", "fatigueTime", "fatigueMax", "fatigueCounter", "bossDebuff", "aiTimer"
+        "launch", "flash", "stun", "domainFreeze", "domainBound", "burn", "chill", "mark", "bleed", "bleedTick", "bleedDamage", "phase", "phaseLock", "fatigueTime", "fatigueMax", "fatigueCounter", "bossDebuff", "aiTimer"
       ]);
     }
 
@@ -6313,6 +6313,7 @@
       p.vy = my * speed * movePower;
       p.x = clamp(p.x + p.vx * dt, ROOM_PAD + p.radius, WORLD_W - ROOM_PAD - p.radius);
       p.y = clamp(p.y + p.vy * dt, ROOM_PAD + p.radius, WORLD_H - ROOM_PAD - p.radius);
+      this.applyCasterDomainContainment(p, this.lobby.id);
 
       if (this.run.power.id === "nature" && this.powerHealingAvailable() && Math.floor(this.menuTime * 2) % 7 === 0 && chance(dt * 0.5)) {
         this.healPlayer(0.45, { source: "power" });
@@ -6902,6 +6903,83 @@
       return finalRadius;
     }
 
+    domainContainmentId(effect) {
+      if (!effect || effect.type !== "ultimate" || !effect.domain) return "";
+      return effect.id || `${effect.kind || "power"}:${effect.casterId || "local"}:${Math.round(effect.x || 0)}:${Math.round(effect.y || 0)}`;
+    }
+
+    activeContainmentDomains() {
+      if (!this.run) return [];
+      return (this.run.effects || []).filter((effect) => (
+        effect.type === "ultimate"
+        && effect.domain
+        && effect.time > 0
+        && !(effect.castDelay > 0)
+      ));
+    }
+
+    activeDomainByContainmentId(id) {
+      if (!id) return null;
+      return this.activeContainmentDomains().find((effect) => this.domainContainmentId(effect) === id) || null;
+    }
+
+    constrainActorToDomain(actor, effect) {
+      if (!actor || !effect) return false;
+      const radius = Math.max(18, this.powerDomainRadius(effect));
+      const limit = Math.max(8, radius - Math.max(6, actor.radius || 18) * 0.65);
+      const dx = actor.x - effect.x;
+      const dy = actor.y - effect.y;
+      const d = Math.hypot(dx, dy);
+      if (d <= limit) return false;
+      const nx = d > 0 ? dx / d : 1;
+      const ny = d > 0 ? dy / d : 0;
+      actor.x = effect.x + nx * limit;
+      actor.y = effect.y + ny * limit;
+      const outward = (actor.vx || 0) * nx + (actor.vy || 0) * ny;
+      if (outward > 0) {
+        actor.vx -= nx * outward;
+        actor.vy -= ny * outward;
+      }
+      return true;
+    }
+
+    applyCasterDomainContainment(actor, casterId = this.lobby.id) {
+      if (!actor || actor.dead) return false;
+      const domain = this.activeContainmentDomains().find((effect) => (
+        !effect.casterId || effect.casterId === casterId
+      ));
+      if (!domain) return false;
+      const locked = this.constrainActorToDomain(actor, domain);
+      if (locked) {
+        actor.dashTime = 0;
+        actor.domainBound = this.domainContainmentId(domain);
+      }
+      return locked;
+    }
+
+    applyEnemyDomainContainment(enemy) {
+      if (!enemy || enemy.hp <= 0) return false;
+      let domain = this.activeDomainByContainmentId(enemy.domainBound);
+      if (!domain) {
+        enemy.domainBound = "";
+        domain = this.activeContainmentDomains().find((effect) => (
+          Math.hypot(enemy.x - effect.x, enemy.y - effect.y) <= this.powerDomainRadius(effect) + (enemy.radius || 18)
+        ));
+        if (domain) enemy.domainBound = this.domainContainmentId(domain);
+      }
+      if (!domain) return false;
+      const locked = this.constrainActorToDomain(enemy, domain);
+      if (locked) {
+        enemy.vx *= 0.35;
+        enemy.vy *= 0.35;
+      }
+      return locked;
+    }
+
+    enemyDomainBoundActive(enemy) {
+      return Boolean(enemy?.domainBound && this.activeDomainByContainmentId(enemy.domainBound));
+    }
+
     activePowerDomain(kind, caster, casterId = this.lobby.id) {
       if (!this.run || !caster) return null;
       return (this.run.effects || []).find((effect) => (
@@ -7187,6 +7265,7 @@
         if (!remote && caster === this.run.player) this.healPlayer(Math.min(10, targets.length * 1.6), { source: "power", allowAfterCombat: true });
       } else if (kind === "gravity") {
         for (const enemy of targets) {
+          if (this.enemyDomainBoundActive(enemy)) continue;
           const d = Math.hypot(impact.x - enemy.x, impact.y - enemy.y) || 1;
           enemy.vx += ((impact.x - enemy.x) / d) * (enemy.boss ? 170 : 430);
           enemy.vy += ((impact.y - enemy.y) / d) * (enemy.boss ? 170 : 430);
@@ -7210,6 +7289,7 @@
           const mark = clamp(enemy.mark || 1, 1, 5);
           enemy.mark = Math.max(0, enemy.mark - mark);
           this.damageEnemy(enemy, damage * (0.1 + mark * 0.04), { x: 0, y: 0, source: "voidCollapse", kind: "void", sourceId: casterId });
+          if (this.enemyDomainBoundActive(enemy)) continue;
           const a = Math.atan2(impact.y - enemy.y, impact.x - enemy.x);
           enemy.vx += Math.cos(a) * (enemy.boss ? 130 : 310);
           enemy.vy += Math.sin(a) * (enemy.boss ? 130 : 310);
@@ -7706,12 +7786,18 @@
       enemy.hp -= damage;
       enemy.flash = 0.12;
       enemy.stun = Math.max(enemy.stun, enemy.boss ? 0.04 : 0.12);
-      enemy.vx += (options.x || 0) * (enemy.boss ? 80 : 260);
-      enemy.vy += (options.y || 0) * (enemy.boss ? 80 : 260);
+      const suppressKnockback = options.noKnockback || options.source === "domain" || this.enemyDomainBoundActive(enemy);
+      if (!suppressKnockback) {
+        enemy.vx += (options.x || 0) * (enemy.boss ? 80 : 260);
+        enemy.vy += (options.y || 0) * (enemy.boss ? 80 : 260);
+      } else {
+        enemy.vx *= 0.55;
+        enemy.vy *= 0.55;
+      }
       if (power.id === "fire" || options.kind === "fire" || p.stats.burnDash) enemy.burn = Math.max(enemy.burn, 3);
       if (power.id === "ice" || options.kind === "ice") enemy.chill = Math.max(enemy.chill, 2.4);
       if (power.id === "shadow" || power.id === "void") enemy.mark += 1;
-      if (power.id === "gravity") {
+      if (power.id === "gravity" && !suppressKnockback) {
         const a = angleTo(enemy, p);
         enemy.vx += Math.cos(a) * 120;
         enemy.vy += Math.sin(a) * 120;
@@ -7779,8 +7865,10 @@
       target.actionTotal = Math.max(target.actionTotal || 0, 0.38);
       target.actionTime = Math.max(target.actionTime || 0, 0.24);
       source.stun = Math.max(source.stun || 0, source.boss ? 0.08 : 0.34);
-      source.vx += Math.cos(angle) * (source.boss ? 110 : 320);
-      source.vy += Math.sin(angle) * (source.boss ? 110 : 320);
+      if (!this.enemyDomainBoundActive(source)) {
+        source.vx += Math.cos(angle) * (source.boss ? 110 : 320);
+        source.vy += Math.sin(angle) * (source.boss ? 110 : 320);
+      }
       this.addBasicAttackBurst(target.x + Math.cos(angle) * 52, target.y + Math.sin(angle) * 52, angle, "guardian", 104);
       this.addShockwave(source.x, source.y, source.boss ? 130 : 96, "#ffd36a", 0);
       this.damageEnemy(source, Math.max(1, amount * 0.5), {
@@ -9079,7 +9167,9 @@
         enemy.vy *= Math.pow(0.35, dt);
         enemy.x = clamp(enemy.x + enemy.vx * dt, ROOM_PAD + enemy.radius, WORLD_W - ROOM_PAD - enemy.radius);
         enemy.y = clamp(enemy.y + enemy.vy * dt, ROOM_PAD + enemy.radius, WORLD_H - ROOM_PAD - enemy.radius);
+        this.applyEnemyDomainContainment(enemy);
         if (!p.dead) this.keepEnemyOutOfPlayer(enemy, p);
+        this.applyEnemyDomainContainment(enemy);
       }
     }
 
@@ -10208,6 +10298,16 @@
       const shrinkTotal = Math.max(0, Number(effect.shrinkTotal) || 0);
       const shrinking = shrinkTotal > 0 && effect.time <= shrinkTotal;
       const radius = this.powerDomainRadius(effect);
+      if (!this.isMultiplayerClient()) {
+        const domainId = this.domainContainmentId(effect);
+        for (const enemy of this.run.enemies) {
+          const d = Math.hypot(enemy.x - effect.x, enemy.y - effect.y);
+          if (d <= radius + (enemy.radius || 18)) {
+            enemy.domainBound = domainId;
+            this.applyEnemyDomainContainment(enemy);
+          }
+        }
+      }
       if (shrinking) {
         if (chance(0.35 * clamp(this.perf?.quality ?? 1, 0.35, 1))) {
           const a = rand(0, TAU);
@@ -10363,6 +10463,7 @@
       if (!this.run) return;
       const scale = this.currentSkillAreaScale();
       const next = { ...effect };
+      if (next.type === "ultimate" && next.domain && !next.id) next.id = uid("domain");
       if (!next.casterId && ["zone", "pull", "ultimate"].includes(next.type)) next.casterId = this.currentDamageSourceId || "";
       if (scale > 1 && ["zone", "pull"].includes(next.type) && Number.isFinite(next.radius)) {
         next.radius *= scale;

@@ -2987,3 +2987,253 @@ button {
     height: 54px;
   }
 }
+
+body.is-desktop-ui .mobile-gate,
+body.is-desktop-ui .touch-layer {
+  display: none !important;
+}
+
+body.is-mobile-ui .touch-layer:not(.hidden) {
+  display: block;
+}
+
+body.is-mobile-ui .screen {
+  padding: calc(10px + env(safe-area-inset-top)) calc(10px + env(safe-area-inset-right)) calc(10px + env(safe-area-inset-bottom)) calc(10px + env(safe-area-inset-left));
+  place-items: stretch;
+  overflow-y: auto;
+}
+
+body.is-mobile-ui .shell {
+  grid-template-columns: 1fr;
+  width: 100%;
+  max-height: none;
+  gap: 10px;
+}
+
+body.is-mobile-ui .panel,
+body.is-mobile-ui .wide-panel,
+body.is-mobile-ui .main-nav {
+  max-height: none;
+  min-height: auto;
+  padding: 14px;
+}
+
+body.is-mobile-ui .logo {
+  margin-bottom: 10px;
+}
+
+body.is-mobile-ui .logo h1 {
+  font-size: 34px;
+}
+
+body.is-mobile-ui .logo p,
+body.is-mobile-ui .account-strip {
+  display: none;
+}
+
+body.is-mobile-ui .nav-buttons {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 7px;
+}
+
+body.is-mobile-ui .btn,
+body.is-mobile-ui .icon-btn {
+  min-height: 44px;
+  padding: 8px 9px;
+  font-size: 12px;
+  text-align: center;
+}
+
+body.is-mobile-ui .grid.cols-2,
+body.is-mobile-ui .grid.cols-3,
+body.is-mobile-ui .slot-grid,
+body.is-mobile-ui .character-layout,
+body.is-mobile-ui .home-grid,
+body.is-mobile-ui .account-grid,
+body.is-mobile-ui .account-shell,
+body.is-mobile-ui .account-choice-grid {
+  grid-template-columns: 1fr;
+}
+
+body.is-mobile-ui .hud {
+  inset: calc(6px + env(safe-area-inset-top)) calc(100px + env(safe-area-inset-right)) auto calc(8px + env(safe-area-inset-left));
+  grid-template-columns: minmax(132px, 176px) minmax(0, 1fr);
+  gap: 6px;
+  align-items: start;
+}
+
+body.is-mobile-ui .brand-mini {
+  display: none;
+}
+
+body.is-mobile-ui .hud-left {
+  min-width: 0;
+  max-width: 176px;
+}
+
+body.is-mobile-ui .bar-frame {
+  height: 13px;
+  margin-bottom: 4px;
+  box-shadow: none;
+}
+
+body.is-mobile-ui .bar-frame b {
+  font-size: 9px;
+}
+
+body.is-mobile-ui .status-strip {
+  gap: 4px;
+}
+
+body.is-mobile-ui .status-icon {
+  width: 24px;
+  height: 24px;
+  font-size: 9px;
+  box-shadow: inset 0 0 8px color-mix(in srgb, var(--status), transparent 86%);
+}
+
+body.is-mobile-ui .hud-center {
+  grid-column: 2;
+  flex-direction: row;
+  justify-content: center;
+  align-items: flex-start;
+  min-width: 0;
+  gap: 4px;
+}
+
+body.is-mobile-ui .hud-right,
+body.is-mobile-ui .skill-strip,
+body.is-mobile-ui .skill {
+  display: none;
+}
+
+body.is-mobile-ui .room-pill,
+body.is-mobile-ui .objective-pill {
+  max-width: min(24vw, 150px);
+  min-height: 22px;
+  padding: 4px 6px;
+  overflow: hidden;
+  background: rgba(8, 10, 16, 0.58);
+  box-shadow: none;
+  font-size: 9px;
+  line-height: 1.15;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+body.is-mobile-ui .quick-actions {
+  top: calc(6px + env(safe-area-inset-top));
+  right: calc(8px + env(safe-area-inset-right));
+  gap: 6px;
+}
+
+body.is-mobile-ui .quick-actions button {
+  width: 42px;
+  height: 42px;
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.32), inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+}
+
+body.is-mobile-ui .quick-actions.spectating button {
+  width: 54px;
+}
+
+body.is-mobile-ui .touch-icon {
+  width: 18px;
+  height: 18px;
+}
+
+body.is-mobile-ui .bag-icon {
+  width: 20px;
+  height: 20px;
+}
+
+body.is-mobile-ui .stick {
+  left: calc(12px + env(safe-area-inset-left));
+  bottom: calc(12px + env(safe-area-inset-bottom));
+  width: 112px;
+  height: 112px;
+  border-width: 2px;
+  background: rgba(8, 10, 16, 0.26);
+  box-shadow: inset 0 0 0 13px rgba(255, 255, 255, 0.03), 0 8px 20px rgba(0, 0, 0, 0.24);
+}
+
+body.is-mobile-ui .stick span {
+  left: 37px;
+  top: 37px;
+  width: 38px;
+  height: 38px;
+}
+
+body.is-mobile-ui .touch-actions {
+  right: calc(8px + env(safe-area-inset-right));
+  bottom: calc(12px + env(safe-area-inset-bottom));
+  grid-template-columns: repeat(4, 52px);
+  gap: 6px;
+}
+
+body.is-mobile-ui .touch-actions button {
+  width: 52px;
+  height: 44px;
+  font-size: 10px;
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.28), inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+}
+
+body.is-mobile-ui .touch-actions [data-touch="attack"],
+body.is-mobile-ui .touch-actions [data-touch="dash"] {
+  width: auto;
+  height: 50px;
+  font-size: 11px;
+}
+
+@media (max-height: 420px) {
+  body.is-mobile-ui .hud {
+    inset: calc(5px + env(safe-area-inset-top)) calc(92px + env(safe-area-inset-right)) auto calc(7px + env(safe-area-inset-left));
+    grid-template-columns: minmax(126px, 166px) minmax(0, 1fr);
+  }
+
+  body.is-mobile-ui .bar-frame {
+    height: 12px;
+    margin-bottom: 3px;
+  }
+
+  body.is-mobile-ui .room-pill,
+  body.is-mobile-ui .objective-pill {
+    max-width: min(23vw, 138px);
+    min-height: 20px;
+    padding: 3px 5px;
+    font-size: 8.5px;
+  }
+
+  body.is-mobile-ui .quick-actions button {
+    width: 39px;
+    height: 39px;
+  }
+
+  body.is-mobile-ui .stick {
+    width: 104px;
+    height: 104px;
+  }
+
+  body.is-mobile-ui .stick span {
+    left: 35px;
+    top: 35px;
+    width: 34px;
+    height: 34px;
+  }
+
+  body.is-mobile-ui .touch-actions {
+    grid-template-columns: repeat(4, 49px);
+    gap: 5px;
+  }
+
+  body.is-mobile-ui .touch-actions button {
+    width: 49px;
+    height: 41px;
+    font-size: 9.5px;
+  }
+
+  body.is-mobile-ui .touch-actions [data-touch="attack"],
+  body.is-mobile-ui .touch-actions [data-touch="dash"] {
+    height: 47px;
+  }
+}

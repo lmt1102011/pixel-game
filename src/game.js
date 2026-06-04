@@ -7,7 +7,7 @@
   const ROOM_PAD = 86;
   const SAVE_KEY = "soulrift-save-v1";
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
-  const APP_VERSION = "20260604-martial-fist-dots-123";
+  const APP_VERSION = "20260604-mobile-ui-compact-124";
   const VERSION_CHECK_INTERVAL = 15000;
   const UPDATE_ATTEMPT_KEY = "soulrift-update-attempt-v1";
   const CLOUD_MIGRATION_KEY = "soulrift-cloud-migrated-v1";
@@ -2290,6 +2290,7 @@
         appliedRenderScale: 1,
         resizeAt: 0
       };
+      this.updateDeviceUiMode();
       this.bindEvents();
       this.resize();
       this.updateMobileGate();
@@ -2882,9 +2883,14 @@
       window.addEventListener("resize", () => {
         this.resize();
         this.updateMobileGate();
+        this.updateQuickActions();
       });
       window.addEventListener("orientationchange", () => {
-        window.setTimeout(() => this.updateMobileGate(), 220);
+        window.setTimeout(() => {
+          this.resize();
+          this.updateMobileGate();
+          this.updateQuickActions();
+        }, 220);
       });
       document.addEventListener("fullscreenchange", () => this.updateMobileGate());
       document.addEventListener("webkitfullscreenchange", () => this.updateMobileGate());
@@ -2926,7 +2932,30 @@
     }
 
     isMobileDevice() {
-      return this.pointerQuery.matches;
+      const ua = navigator.userAgent || "";
+      const uaMobile = Boolean(navigator.userAgentData?.mobile) || /Android.+Mobile|iPhone|iPod|Windows Phone|IEMobile|Opera Mini|Mobile/i.test(ua);
+      const touch = (navigator.maxTouchPoints || 0) > 0;
+      const coarse = Boolean(this.pointerQuery?.matches);
+      const shortSide = Math.min(window.innerWidth || 0, window.innerHeight || 0);
+      const longSide = Math.max(window.innerWidth || 0, window.innerHeight || 0);
+      const phoneSizedTouch = touch && coarse && shortSide <= 700 && longSide <= 1400;
+      return uaMobile || phoneSizedTouch;
+    }
+
+    updateDeviceUiMode() {
+      const mobile = this.isMobileDevice();
+      this.mobileUi = mobile;
+      document.body.classList.toggle("is-mobile-ui", mobile);
+      document.body.classList.toggle("is-desktop-ui", !mobile);
+      if (!mobile) {
+        this.input.touch.x = 0;
+        this.input.touch.y = 0;
+        this.input.touch.rawX = 0;
+        this.input.touch.rawY = 0;
+        this.input.touch.active = false;
+        this.joystickTouchId = null;
+        this.touchLayer?.classList.add("hidden");
+      }
     }
 
     isLandscapeView() {
@@ -3397,6 +3426,7 @@
 
     updateMobileGate() {
       if (!this.mobileGate) return;
+      this.updateDeviceUiMode();
       const mobile = this.isMobileDevice();
       const needsLandscape = mobile && !this.isLandscapeView();
       const needsFullscreen = mobile && this.canRequestFullscreen() && !this.isFullscreenActive();
@@ -3551,6 +3581,7 @@
     }
 
     resize() {
+      this.updateDeviceUiMode();
       const maxDpr = Math.min(window.devicePixelRatio || 1, this.isMobileDevice() ? 1 : 1.25);
       const renderScale = Number.isFinite(this.perf?.appliedRenderScale) ? this.perf.appliedRenderScale : 1;
       this.dpr = Math.max(this.isMobileDevice() ? 0.5 : 0.62, maxDpr * renderScale);

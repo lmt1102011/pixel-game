@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const APP_VERSION = "20260605-pwa-ios-share-142";
+  const APP_VERSION = "20260605-pwa-app-gate-143";
   let deferredInstallPrompt = null;
   let startGame = null;
   let iosGuideShown = false;

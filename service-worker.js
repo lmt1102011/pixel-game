@@ -1,10 +1,10 @@
-const SOULRIFT_CACHE = "soulrift-pwa-20260605-pwa-ios-share-142";
+const SOULRIFT_CACHE = "soulrift-pwa-20260605-pwa-app-gate-143";
 const SOULRIFT_ASSETS = [
   "./",
   "./index.html",
-  "./styles.css?v=20260605-pwa-ios-share-142",
-  "./src/pwa.js?v=20260605-pwa-ios-share-142",
-  "./src/game.js?v=20260605-pwa-ios-share-142",
+  "./styles.css?v=20260605-pwa-app-gate-143",
+  "./src/pwa.js?v=20260605-pwa-app-gate-143",
+  "./src/game.js?v=20260605-pwa-app-gate-143",
   "./manifest.webmanifest",
   "./version.json",
   "./assets/icons/app-icon.svg",

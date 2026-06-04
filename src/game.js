@@ -7,7 +7,7 @@
   const ROOM_PAD = 86;
   const SAVE_KEY = "soulrift-save-v1";
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
-  const APP_VERSION = "20260604-guardian-shield-reflect-85";
+  const APP_VERSION = "20260604-anime-audio-mix-86";
   const VERSION_CHECK_INTERVAL = 15000;
   const UPDATE_ATTEMPT_KEY = "soulrift-update-attempt-v1";
   const DOOR_ENTER_TIME = 1.0;
@@ -872,6 +872,8 @@
       this.step = 0;
       this.biome = BIOMES[0];
       this.enabled = true;
+      this.lastCoinAt = 0;
+      this.coinStep = 0;
     }
 
     start() {
@@ -896,10 +898,10 @@
       }
       this.output.connect(this.ctx.destination);
       this.master = this.ctx.createGain();
-      this.master.gain.value = 0.052;
+      this.master.gain.value = 0.058;
       this.master.connect(this.output);
       this.sfxMaster = this.ctx.createGain();
-      this.sfxMaster.gain.value = 1.18;
+      this.sfxMaster.gain.value = 1.28;
       this.sfxMaster.connect(this.output);
     }
 
@@ -911,12 +913,17 @@
       if (!this.ctx || !this.game.save.settings.music) return;
       this.timer -= dt;
       if (this.timer > 0) return;
-      this.timer = this.game.run?.currentRoom?.type === "boss" ? 0.22 : 0.34;
+      const boss = this.game.run?.currentRoom?.type === "boss";
+      this.timer = boss ? 0.18 : 0.26;
       const notes = this.biome.music;
-      const freq = notes[this.step % notes.length] * (this.step % 7 === 0 ? 0.5 : 1);
+      const pattern = [0, 2, 1, 3, 2, 0, 3, 1];
+      const index = pattern[this.step % pattern.length] % notes.length;
+      const freq = notes[index] * (this.step % 8 === 0 ? 0.5 : this.step % 8 === 6 ? 1.5 : 1);
       this.step++;
-      this.note(freq, 0.12, this.game.run?.currentRoom?.type === "boss" ? "sawtooth" : "triangle");
-      if (this.step % 4 === 0) this.note(freq / 2, 0.2, "sine", 0.45);
+      this.note(freq, boss ? 0.14 : 0.12, boss ? "sawtooth" : "triangle", boss ? 0.62 : 0.48);
+      if (this.step % 2 === 0) this.note(notes[(index + 2) % notes.length] * 2, 0.045, "sine", boss ? 0.22 : 0.16);
+      if (this.step % 4 === 0) this.note(notes[0] / 2, boss ? 0.22 : 0.24, "sine", boss ? 0.58 : 0.34);
+      if (this.step % 8 === 5) this.note(notes[3 % notes.length] * 2, boss ? 0.1 : 0.08, "triangle", boss ? 0.34 : 0.22);
     }
 
     note(freq, length = 0.08, type = "square", gain = 1) {
@@ -954,10 +961,90 @@
       }
     }
 
+    coin(amount = 1) {
+      if (!this.ctx) this.start();
+      if (!this.ctx || !this.game.save.settings.sfx) return;
+      const now = this.ctx.currentTime;
+      if (now - this.lastCoinAt < 0.024) return;
+      if (now - this.lastCoinAt > 0.42) this.coinStep = 0;
+      this.lastCoinAt = now;
+      const step = this.coinStep++ % 7;
+      const gain = clamp(0.09 + Math.min(4, amount) * 0.012, 0.09, 0.15);
+      this.tone(1120 + step * 42, "triangle", 0.095, gain, now, { slide: false });
+      this.tone(1980 + step * 74, "sine", 0.13, gain * 0.52, now + 0.014, { slide: false });
+      this.tone(760 + step * 28, "triangle", 0.07, gain * 0.42, now + 0.004, { slide: false });
+      this.noiseBurst(now, 0.016, gain * 0.18);
+    }
+
+    skill(kind, key = "q", awakened = false) {
+      if (!this.ctx) this.start();
+      if (!this.ctx || !this.game.save.settings.sfx) return;
+      const now = this.ctx.currentTime;
+      const keyPower = { q: 1, e: 0.92, r: 1.32, f: 1.85 }[key] || 1;
+      const pitch = { q: 1, e: 0.84, r: 0.72, f: 0.54 }[key] || 1;
+      const level = keyPower * (awakened ? 1.12 : 1);
+      const baseLength = { q: 0.12, e: 0.14, r: 0.19, f: 0.32 }[key] || 0.12;
+      const volume = clamp(0.12 * level, 0.08, 0.31);
+      const play = (freq, type = "triangle", gain = 1, offset = 0, length = baseLength, slide = true) => {
+        this.tone(freq, type, length, volume * gain, now + offset, { slide });
+      };
+      const burst = (gain = 0.18, length = 0.035, offset = 0) => this.noiseBurst(now + offset, length, volume * gain);
+      if (kind === "fire") {
+        play(210 * pitch, "sawtooth", 1.05, 0, baseLength * 1.25, true);
+        play(420 * pitch, "triangle", 0.46, 0.026, baseLength * 0.62, false);
+        burst(0.42, key === "f" ? 0.07 : 0.04);
+      } else if (kind === "ice") {
+        play(880 * pitch, "triangle", 0.82, 0, baseLength * 0.86, false);
+        play(1320 * pitch, "sine", 0.44, 0.025, baseLength * 0.92, false);
+        play(520 * pitch, "sine", 0.36, 0.005, baseLength * 1.3, true);
+      } else if (kind === "lightning") {
+        play(720 * pitch, "square", 0.76, 0, 0.055, true);
+        play(1280 * pitch, "sawtooth", 0.52, 0.018, 0.045, true);
+        play(540 * pitch, "square", 0.5, 0.046, 0.05, true);
+        burst(0.34, 0.024, 0.006);
+      } else if (kind === "shadow") {
+        play(135 * pitch, "sine", 0.88, 0, baseLength * 1.35, true);
+        play(560 * pitch, "triangle", 0.36, 0.035, baseLength * 0.7, false);
+        burst(0.24, 0.045);
+      } else if (kind === "blood") {
+        play(155 * pitch, "sawtooth", 0.94, 0, baseLength * 1.15, true);
+        play(92, "sine", 0.62, 0.01, baseLength * 1.2, true);
+        play(360 * pitch, "triangle", 0.38, 0.04, baseLength * 0.72, false);
+      } else if (kind === "gravity") {
+        play(70, "sine", 1.02, 0, baseLength * 1.55, true);
+        play(128 * pitch, "sawtooth", 0.6, 0.025, baseLength * 1.1, true);
+        burst(0.32, key === "f" ? 0.08 : 0.045, 0.014);
+      } else if (kind === "crystal") {
+        play(760 * pitch, "triangle", 0.68, 0, baseLength * 0.75, false);
+        play(1140 * pitch, "triangle", 0.54, 0.025, baseLength * 0.85, false);
+        play(1520 * pitch, "sine", 0.38, 0.052, baseLength * 0.9, false);
+      } else if (kind === "nature") {
+        play(360 * pitch, "triangle", 0.66, 0, baseLength * 1.0, false);
+        play(610 * pitch, "sine", 0.44, 0.025, baseLength * 1.2, false);
+        burst(0.16, 0.03, 0.01);
+      } else if (kind === "void") {
+        play(58, "sine", 1.04, 0, baseLength * 1.7, true);
+        play(240 * pitch, "sawtooth", 0.54, 0.03, baseLength * 1.0, true);
+        play(700 * pitch, "triangle", 0.24, 0.06, baseLength * 0.65, false);
+      } else if (kind === "time") {
+        play(620 * pitch, "triangle", 0.52, 0, 0.052, false);
+        play(920 * pitch, "triangle", 0.38, 0.052, 0.058, false);
+        play(310 * pitch, "sine", 0.58, 0.012, baseLength * 1.35, true);
+      } else {
+        play(260 * pitch, "triangle", 1, 0, baseLength, true);
+        burst(0.22, 0.035);
+      }
+      if (key === "f") {
+        play(86, "sine", 0.72, 0.08, 0.32, true);
+        play(980 * pitch, "triangle", 0.32, 0.12, 0.16, false);
+      }
+      if (awakened) play(1680 * pitch, "sine", 0.22, 0.075, 0.12, false);
+    }
+
     tone(freq, type, length, volume, now, options = {}) {
       const osc = this.ctx.createOscillator();
       const env = this.ctx.createGain();
-      const safeFreq = clamp(freq, 32, 1800);
+      const safeFreq = clamp(freq, 32, 3600);
       osc.type = type;
       osc.frequency.setValueAtTime(options.slide ? safeFreq * 1.08 : safeFreq, now);
       if (options.slide) osc.frequency.exponentialRampToValueAtTime(Math.max(32, safeFreq * 0.82), now + Math.max(0.012, length * 0.75));
@@ -6664,7 +6751,7 @@
         }
         if (awakened) this.applyAwakenedSkillBonus(key, power, caster, angle, { x: tx, y: ty }, damage, owner, remote, skillHealAllowed);
         this.camera.shake = Math.max(this.camera.shake, 7);
-        this.audio.sfx(kind === "lightning" ? 520 : kind === "gravity" ? 110 : 260, kind === "fire" ? "sawtooth" : "triangle", 0.09, 0.14);
+        this.audio.skill(kind, key, awakened);
         finishSkillDamageContext();
         return;
       }
@@ -6718,7 +6805,7 @@
           this.addShockwave(x, y, 150, power.color, 0);
         }
         if (awakened) this.applyAwakenedSkillBonus(key, power, caster, angle, { x: tx, y: ty }, damage, owner, remote, skillHealAllowed);
-        this.audio.sfx(kind === "time" ? 190 : 180, "sine", 0.13, 0.12);
+        this.audio.skill(kind, key, awakened);
         finishSkillDamageContext();
         return;
       }
@@ -6781,7 +6868,7 @@
         }
         if (awakened) this.applyAwakenedSkillBonus(key, power, caster, angle, { x: tx, y: ty }, damage, owner, remote, skillHealAllowed);
         this.camera.shake = Math.max(this.camera.shake, 9);
-        this.audio.sfx(kind === "lightning" ? 560 : kind === "gravity" || kind === "void" ? 90 : 120, "sawtooth", 0.16, 0.16);
+        this.audio.skill(kind, key, awakened);
         finishSkillDamageContext();
         return;
       }
@@ -6825,7 +6912,7 @@
           awakened: Boolean(awakened)
         });
         this.camera.shake = Math.max(this.camera.shake, 7);
-        this.audio.sfx(kind === "time" ? 130 : 70, "sawtooth", 0.24, 0.18);
+        this.audio.skill(kind, key, awakened);
       }
       finishSkillDamageContext();
     }
@@ -8005,6 +8092,7 @@
       if (this.isMultiplayerClient()) this.lobby.sendCollect(pickup.id);
       const color = this.rewardColor(pickup.reward);
       if (pickup.reward.type === "coin") {
+        this.audio.coin(pickup.reward.amount || 1);
         for (let i = 0; i < 4 * this.save.settings.particles; i++) {
           this.addParticle(pickup.x, pickup.y, "#ffd84d", rand(4, 9), rand(0.16, 0.34), "spark", rand(0, TAU), rand(25, 90));
         }

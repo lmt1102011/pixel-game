@@ -7,7 +7,7 @@
   const ROOM_PAD = 86;
   const SAVE_KEY = "soulrift-save-v1";
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
-  const APP_VERSION = "20260605-fast-room-invite-138";
+  const APP_VERSION = "20260605-room-leave-host-transfer-139";
   const VERSION_CHECK_INTERVAL = 15000;
   const UPDATE_ATTEMPT_KEY = "soulrift-update-attempt-v1";
   const CLOUD_MIGRATION_KEY = "soulrift-cloud-migrated-v1";
@@ -1311,9 +1311,10 @@
       this.lastStartMessage = null;
       this.lastStartAt = 0;
       this.roomSession = "";
+      this.joinedAt = Date.now();
       this.hostTransferStamp = 0;
       this.lastHostTransferId = "";
-      this.slots = [{ ...this.playerProfile(), ready: false, vote: this.mapVote, host: true }];
+      this.slots = [{ ...this.playerProfile(), ready: false, vote: this.mapVote, host: true, joinedAt: this.joinedAt, seenAt: this.joinedAt }];
     }
 
     playerName() {
@@ -1331,12 +1332,18 @@
     }
 
     syncOwnSlot() {
-      this.upsertSlot({ ...this.playerProfile(), ready: this.ready, vote: this.mapVote, host: this.host });
+      this.upsertSlot({ ...this.playerProfile(), ready: this.ready, vote: this.mapVote, host: this.host, joinedAt: this.joinedAt });
     }
 
     slotName(slot, fallback = "Người chơi") {
       const name = String(slot?.name || "").trim();
       return name || fallback;
+    }
+
+    syncJoinedAtFromOwnSlot() {
+      const ownSlot = this.slots.find((slot) => slot?.id === this.id);
+      const joinedAt = Number(ownSlot?.joinedAt || 0);
+      if (joinedAt > 0) this.joinedAt = joinedAt;
     }
 
     makeCode() {
@@ -1357,10 +1364,11 @@
       this.roomSession = uid("room");
       this.ready = false;
       this.joinPending = false;
+      this.joinedAt = Date.now();
       this.presenceTimer = 0;
       this.emptySince = Date.now();
       this.lastLobbyAt = Date.now();
-      this.slots = [{ ...this.playerProfile(), ready: true, vote: this.mapVote, host: true }];
+      this.slots = [{ ...this.playerProfile(), ready: true, vote: this.mapVote, host: true, joinedAt: this.joinedAt, seenAt: this.joinedAt }];
       this.openSignal();
       this.openPeerJsHost();
       this.game.rememberRoomCode(this.code);
@@ -1391,9 +1399,10 @@
       this.ready = false;
       this.joinPending = true;
       this.joinStartedAt = Date.now();
+      this.joinedAt = this.joinStartedAt;
       this.presenceTimer = 0;
       this.lastLobbyAt = 0;
-      this.slots = [{ ...this.playerProfile(), ready: false, vote: this.mapVote, host: false }];
+      this.slots = [{ ...this.playerProfile(), ready: false, vote: this.mapVote, host: false, joinedAt: this.joinedAt, seenAt: this.joinedAt }];
       this.openSignal();
       this.openPeerJsClient();
       this.announceJoin();
@@ -1474,8 +1483,8 @@
       );
     }
 
-    close() {
-      if (this.host && this.code) this.publishDirectoryPresence(false);
+    close(options = {}) {
+      if (!options.keepDirectory && this.host && this.code) this.publishDirectoryPresence(false);
       this.resetPeerLinks();
       for (const timer of this.joinRetryTimers) clearTimeout(timer);
       this.joinRetryTimers = [];
@@ -1504,16 +1513,31 @@
       this.seenSignals.clear();
     }
 
-    leaveRoom() {
-      if (this.host && this.code) this.transferHostBeforeLeave();
-      this.close();
+    leaveRoom(options = {}) {
+      const transferred = !options.silent ? this.sendLeaveRoom() : false;
+      this.close({ keepDirectory: this.host && transferred });
       this.code = "";
       this.host = false;
       this.ready = false;
       this.joinPending = false;
       this.joinStartedAt = 0;
       this.roomSession = "";
-      this.slots = [{ ...this.playerProfile(), ready: false, vote: this.mapVote, host: false }];
+      this.joinedAt = Date.now();
+      this.slots = [{ ...this.playerProfile(), ready: false, vote: this.mapVote, host: false, joinedAt: this.joinedAt, seenAt: this.joinedAt }];
+    }
+
+    sendLeaveRoom() {
+      if (!this.code) return false;
+      if (this.host) {
+        const transferred = this.transferHostBeforeLeave();
+        if (!transferred) this.publishDirectoryPresence(false);
+        return transferred;
+      }
+      const message = { type: "leaveRoom", name: this.playerName() };
+      for (const peer of this.peers.values()) this.sendPeer(peer, message);
+      const target = this.hostId();
+      this.sendSignal(message, target || "");
+      return true;
     }
 
     resetPeerLinks() {
@@ -1598,7 +1622,8 @@
       this.code = "";
       this.ready = false;
       this.joinPending = false;
-      this.slots = [{ ...this.playerProfile(), ready: false, vote: this.mapVote, host: false }];
+      this.joinedAt = Date.now();
+      this.slots = [{ ...this.playerProfile(), ready: false, vote: this.mapVote, host: false, joinedAt: this.joinedAt, seenAt: this.joinedAt }];
       this.game.toast("Không tìm thấy phòng này");
       if (this.game.mode === "lobby" || this.game.roomFinderOpen) this.game.showRoomFinder(false);
     }
@@ -1701,11 +1726,11 @@
       const payload = { ...message, from: this.id, target, sentAt: Date.now(), signalId: message.signalId || uid("signal"), roomSession: message.roomSession || this.roomSession || "" };
       if (this.signal) this.signal.postMessage(payload);
       if (window.fetch && this.signalTopic) {
+        const body = JSON.stringify(payload);
+        const options = { method: "POST", body };
+        if (body.length < 60000) options.keepalive = true;
         for (const relay of SIGNAL_RELAY_URLS) {
-          fetch(`${relay}/${encodeURIComponent(this.signalTopic)}`, {
-            method: "POST",
-            body: JSON.stringify(payload)
-          }).catch(() => {});
+          fetch(`${relay}/${encodeURIComponent(this.signalTopic)}`, options).catch(() => {});
         }
       }
     }
@@ -1718,7 +1743,7 @@
         this.seenSignals.add(message.signalId);
         if (this.seenSignals.size > 300) this.seenSignals.clear();
       }
-      const scopedTypes = new Set(["state", "attack", "skill", "collect", "openChest", "dropItem", "damage", "snapshot", "needSnapshot", "chooseDoor", "leaveRun", "hostTransfer"]);
+      const scopedTypes = new Set(["state", "attack", "skill", "collect", "openChest", "dropItem", "damage", "snapshot", "needSnapshot", "chooseDoor", "leaveRun", "leaveRoom", "hostTransfer"]);
       if (message.roomSession && this.roomSession && message.roomSession !== this.roomSession && scopedTypes.has(message.type)) return;
       if (message.type === "start" && (!message.roomSession || !this.roomSession || message.roomSession !== this.roomSession)) return;
 
@@ -1746,6 +1771,7 @@
       if (message.type === "lobby" && !this.host && Array.isArray(message.slots)) {
         if (message.roomSession) this.roomSession = message.roomSession;
         this.slots = message.slots;
+        this.syncJoinedAtFromOwnSlot();
         this.joinPending = false;
         this.lastLobbyAt = Date.now();
         this.game.rememberRoomCode(this.code);
@@ -1773,6 +1799,7 @@
       }
 
       if (message.type === "hostTransfer") this.handleHostTransfer(message);
+      if (message.type === "leaveRoom") this.handlePeerLeaveRoom(message.from);
       if (message.type === "state") this.applyRemoteState(message.from, message.state);
       if (message.type === "attack" && this.host) this.game.handleRemoteAttack(message.from, message.attack);
       if (message.type === "skill" && this.host) this.game.handleRemoteSkill(message.from, message.skill);
@@ -1928,7 +1955,7 @@
         peer.remoteId = senderId;
         this.peers.set(senderId, peer);
       }
-      const scopedTypes = new Set(["state", "attack", "skill", "collect", "openChest", "dropItem", "damage", "snapshot", "needSnapshot", "chooseDoor", "leaveRun", "hostTransfer"]);
+      const scopedTypes = new Set(["state", "attack", "skill", "collect", "openChest", "dropItem", "damage", "snapshot", "needSnapshot", "chooseDoor", "leaveRun", "leaveRoom", "hostTransfer"]);
       if (message.roomSession && this.roomSession && message.roomSession !== this.roomSession && scopedTypes.has(message.type)) return;
       if (message.type === "start" && (!message.roomSession || !this.roomSession || message.roomSession !== this.roomSession)) return;
       if (message.type === "ready") {
@@ -1960,6 +1987,7 @@
       if (message.type === "lobby" && !this.host && Array.isArray(message.slots)) {
         if (message.roomSession) this.roomSession = message.roomSession;
         this.slots = message.slots;
+        this.syncJoinedAtFromOwnSlot();
         this.joinPending = false;
         this.lastLobbyAt = Date.now();
         this.game.rememberRoomCode(this.code);
@@ -1969,6 +1997,9 @@
       }
       if (message.type === "hostTransfer") {
         this.handleHostTransfer({ ...message, from: senderId });
+      }
+      if (message.type === "leaveRoom") {
+        this.handlePeerLeaveRoom(senderId);
       }
       if (message.type === "state") {
         this.applyRemoteState(senderId, message.state);
@@ -2030,7 +2061,9 @@
     upsertSlot(slot) {
       const existing = this.slots.find((entry) => entry.id === slot.id);
       const fallback = existing?.name || `Người chơi ${this.slots.length + 1}`;
-      const cleanSlot = { ...slot, name: this.slotName(slot, fallback), seenAt: Date.now() };
+      const now = Date.now();
+      const joinedAt = Number(existing?.joinedAt || slot.joinedAt || now);
+      const cleanSlot = { ...slot, name: this.slotName(slot, fallback), joinedAt, seenAt: now };
       if (existing) {
         Object.assign(existing, cleanSlot);
       } else if (this.slots.length < 4) {
@@ -2046,6 +2079,38 @@
         if (this.hasOpenPeer(slot.id)) return true;
         return now - (slot.seenAt || 0) < 12000;
       });
+    }
+
+    handlePeerLeaveRoom(remoteId = "") {
+      if (!remoteId || remoteId === this.id) return;
+      const leavingSlot = this.slots.find((slot) => slot?.id === remoteId);
+      const before = this.slots.length;
+      this.slots = this.slots.filter((slot) => slot?.id && slot.id !== remoteId);
+      const peer = this.peers.get(remoteId);
+      try {
+        peer?.channel?.close?.();
+        peer?.pc?.close?.();
+      } catch {
+        // Best-effort peer cleanup.
+      }
+      this.peers.delete(remoteId);
+      this.game.removeDepartedPlayerArtifacts(remoteId);
+      this.game.remotePlayers.delete(remoteId);
+      if (this.game.run?.leaderId === remoteId) {
+        this.game.run.leaderId = "";
+        this.game.updateRunLeader();
+      }
+      if (before !== this.slots.length || leavingSlot) {
+        if (this.host) {
+          this.broadcastLobby();
+          this.publishDirectoryPresence(this.game.mode === "lobby");
+          if (this.game.run?.multiplayer) {
+            const snapshot = this.game.networkSnapshot(true);
+            if (snapshot) this.broadcastSnapshot(snapshot, snapshot);
+          }
+        }
+        this.renderLobbyIfVisible();
+      }
     }
 
     toggleReady() {
@@ -2135,9 +2200,12 @@
     hostTransferCandidate() {
       const candidates = (this.slots || []).filter((slot) => slot?.id && slot.id !== this.id);
       if (!candidates.length) return null;
-      const alive = candidates.find((slot) => this.game.aliveActor(this.game.remotePlayers.get(slot.id)));
-      if (alive) return alive;
-      return candidates.find((slot) => this.hasOpenPeer(slot.id)) || candidates[0];
+      return [...candidates].sort((a, b) => {
+        const joinedA = Number(a.joinedAt || a.seenAt || 0);
+        const joinedB = Number(b.joinedAt || b.seenAt || 0);
+        if (joinedA !== joinedB) return joinedA - joinedB;
+        return String(a.id).localeCompare(String(b.id));
+      })[0];
     }
 
     hostTransferSlots(newHostId) {
@@ -2152,6 +2220,7 @@
           host: slot.id === newHostId,
           ready: slot.id === newHostId ? true : Boolean(slot.ready),
           vote: this.mapVote,
+          joinedAt: Number(slot.joinedAt || slot.seenAt || now),
           seenAt: now
         });
       }
@@ -2164,6 +2233,7 @@
           ready: true,
           vote: this.mapVote,
           host: true,
+          joinedAt: now,
           seenAt: now
         });
       }
@@ -2229,6 +2299,7 @@
           ...slot,
           host: slot.id === newHostId,
           ready: slot.id === newHostId ? true : Boolean(slot.ready),
+          joinedAt: Number(slot.joinedAt || slot.seenAt || now),
           seenAt: now
         });
       }
@@ -2241,13 +2312,15 @@
           ready: true,
           vote: this.mapVote,
           host: true,
+          joinedAt: now,
           seenAt: now
         });
       }
       if (!seen.has(this.id)) {
-        slots.push({ ...this.playerProfile(), ready: this.ready, vote: this.mapVote, host: this.id === newHostId, seenAt: now });
+        slots.push({ ...this.playerProfile(), ready: this.ready, vote: this.mapVote, host: this.id === newHostId, joinedAt: this.joinedAt || now, seenAt: now });
       }
       this.slots = slots.map((slot) => ({ ...slot, host: slot.id === newHostId }));
+      this.syncJoinedAtFromOwnSlot();
       this.roomSession = message.roomSession || this.roomSession;
       this.mapVote = message.mapVote || this.mapVote;
       this.difficultyVote = message.difficultyVote || this.difficultyVote;
@@ -2272,6 +2345,7 @@
         this.syncOwnSlot();
         this.openPeerJsHost({ retry: true });
         this.broadcastLobby();
+        this.publishDirectoryPresence(this.game.mode === "lobby");
         const immediateSnapshot = this.game.networkSnapshot(true);
         if (immediateSnapshot) this.broadcastSnapshot(immediateSnapshot, immediateSnapshot);
         for (const delay of [220, 650, 1400, 2800]) {
@@ -3157,6 +3231,10 @@
     }
 
     logoutAccount() {
+      if (this.isMultiplayerRun()) this.lobby.sendLeaveRun();
+      if (this.lobby?.code || this.lobby?.joinPending) this.lobby.leaveRoom();
+      this.run = null;
+      this.remotePlayers.clear();
       this.persist();
       this.save.auth.currentUser = "";
       this.applyProfile(defaultProfile(""));
@@ -3290,7 +3368,7 @@
       document.addEventListener("webkitfullscreenchange", () => this.updateMobileGate());
       const notifyLeave = () => {
         if (this.isMultiplayerRun()) this.lobby.sendLeaveRun();
-        else if (this.lobby?.host && this.lobby?.code) this.lobby.transferHostBeforeLeave();
+        else if (this.lobby?.code || this.lobby?.joinPending) this.lobby.sendLeaveRoom();
       };
       window.addEventListener("pagehide", notifyLeave);
       window.addEventListener("beforeunload", notifyLeave);

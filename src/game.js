@@ -7,7 +7,7 @@
   const ROOM_PAD = 86;
   const SAVE_KEY = "soulrift-save-v1";
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
-  const APP_VERSION = "20260604-domain-shrink-105";
+  const APP_VERSION = "20260604-awakened-audio-106";
   const VERSION_CHECK_INTERVAL = 15000;
   const UPDATE_ATTEMPT_KEY = "soulrift-update-attempt-v1";
   const CLOUD_MIGRATION_KEY = "soulrift-cloud-migrated-v1";
@@ -1085,56 +1085,65 @@
       if (!this.ctx) this.start();
       if (!this.ctx || !this.game.save.settings.sfx) return;
       const now = this.ctx.currentTime;
-      const keyPower = { q: 1, e: 0.92, r: 1.32, f: 1.85 }[key] || 1;
-      const pitch = { q: 1, e: 0.84, r: 0.72, f: 0.54 }[key] || 1;
-      const level = keyPower * (awakened ? 1.12 : 1);
-      const baseLength = { q: 0.12, e: 0.14, r: 0.19, f: 0.32 }[key] || 0.12;
-      const volume = clamp(0.12 * level, 0.08, 0.31);
+      const keyPower = { q: 1, e: 0.92, r: 1.34, f: 1.9 }[key] || 1;
+      const pitch = { q: 1, e: 0.86, r: 0.74, f: 0.52 }[key] || 1;
+      const baseLength = { q: 0.13, e: 0.15, r: 0.22, f: 0.36 }[key] || 0.13;
+      const volume = clamp((awakened ? 0.142 : 0.118) * keyPower, 0.08, awakened ? 0.36 : 0.3);
       const play = (freq, type = "triangle", gain = 1, offset = 0, length = baseLength, slide = true) => {
         this.tone(freq, type, length, volume * gain, now + offset, { slide });
       };
       const burst = (gain = 0.18, length = 0.035, offset = 0) => this.noiseBurst(now + offset, length, volume * gain);
+      const taps = (base, count, gap, type = "triangle", gain = 0.4, length = 0.035) => {
+        for (let i = 0; i < count; i++) play(base * (1 + i * 0.045), type, gain * (1 - i * 0.05), i * gap, length, false);
+      };
       if (kind === "fire") {
-        play(210 * pitch, "sawtooth", 1.05, 0, baseLength * 1.25, true);
-        play(420 * pitch, "triangle", 0.46, 0.026, baseLength * 0.62, false);
-        burst(0.42, key === "f" ? 0.07 : 0.04);
+        play(172 * pitch, "sawtooth", 1.08, 0, baseLength * 1.45, true);
+        play(344 * pitch, "triangle", 0.48, 0.022, baseLength * 0.7, false);
+        burst(0.52, key === "f" ? 0.082 : 0.048);
+        if (key === "r" || key === "f") play(82, "sine", 0.68, 0.038, 0.24, true);
       } else if (kind === "ice") {
-        play(880 * pitch, "triangle", 0.82, 0, baseLength * 0.86, false);
-        play(1320 * pitch, "sine", 0.44, 0.025, baseLength * 0.92, false);
-        play(520 * pitch, "sine", 0.36, 0.005, baseLength * 1.3, true);
+        taps(920 * pitch, key === "r" ? 5 : 3, 0.026, "triangle", 0.56, 0.052);
+        play(1380 * pitch, "sine", 0.32, 0.014, baseLength * 0.9, false);
+        play(430 * pitch, "sine", 0.42, 0.006, baseLength * 1.45, true);
+        burst(0.08, 0.018, 0.02);
       } else if (kind === "lightning") {
-        play(720 * pitch, "square", 0.76, 0, 0.055, true);
-        play(1280 * pitch, "sawtooth", 0.52, 0.018, 0.045, true);
-        play(540 * pitch, "square", 0.5, 0.046, 0.05, true);
-        burst(0.34, 0.024, 0.006);
+        taps(720 * pitch, key === "r" ? 6 : 4, 0.018, "square", 0.52, 0.03);
+        play(1380 * pitch, "sawtooth", 0.44, 0.014, 0.05, true);
+        play(470 * pitch, "square", 0.42, 0.052, 0.055, true);
+        burst(0.42, 0.024, 0.004);
       } else if (kind === "shadow") {
-        play(135 * pitch, "sine", 0.88, 0, baseLength * 1.35, true);
-        play(560 * pitch, "triangle", 0.36, 0.035, baseLength * 0.7, false);
-        burst(0.24, 0.045);
+        play(96, "sine", 1.05, 0, baseLength * 1.75, true);
+        play(410 * pitch, "triangle", 0.38, 0.032, baseLength * 0.9, false);
+        play(670 * pitch, "sine", 0.16, 0.068, baseLength * 0.7, false);
+        burst(0.32, 0.052);
       } else if (kind === "blood") {
-        play(155 * pitch, "sawtooth", 0.94, 0, baseLength * 1.15, true);
-        play(92, "sine", 0.62, 0.01, baseLength * 1.2, true);
-        play(360 * pitch, "triangle", 0.38, 0.04, baseLength * 0.72, false);
+        play(74, "sine", 0.76, 0, 0.075, false);
+        play(92, "sine", 0.66, 0.085, 0.09, false);
+        play(185 * pitch, "sawtooth", 0.78, 0.012, baseLength * 1.25, true);
+        play(360 * pitch, "triangle", 0.3, 0.045, baseLength * 0.74, false);
       } else if (kind === "gravity") {
-        play(70, "sine", 1.02, 0, baseLength * 1.55, true);
-        play(128 * pitch, "sawtooth", 0.6, 0.025, baseLength * 1.1, true);
-        burst(0.32, key === "f" ? 0.08 : 0.045, 0.014);
+        play(46, "sine", 1.2, 0, baseLength * 1.9, true);
+        play(112 * pitch, "sawtooth", 0.62, 0.026, baseLength * 1.25, true);
+        play(220 * pitch, "triangle", 0.24, 0.075, 0.12, false);
+        burst(0.46, key === "f" ? 0.09 : 0.052, 0.016);
       } else if (kind === "crystal") {
-        play(760 * pitch, "triangle", 0.68, 0, baseLength * 0.75, false);
-        play(1140 * pitch, "triangle", 0.54, 0.025, baseLength * 0.85, false);
-        play(1520 * pitch, "sine", 0.38, 0.052, baseLength * 0.9, false);
+        taps(760 * pitch, key === "r" ? 6 : 4, 0.032, "triangle", 0.48, 0.065);
+        play(1520 * pitch, "sine", 0.34, 0.05, baseLength * 0.82, false);
+        play(540 * pitch, "triangle", 0.24, 0.006, baseLength * 1.2, true);
       } else if (kind === "nature") {
-        play(360 * pitch, "triangle", 0.66, 0, baseLength * 1.0, false);
-        play(610 * pitch, "sine", 0.44, 0.025, baseLength * 1.2, false);
-        burst(0.16, 0.03, 0.01);
+        play(285 * pitch, "triangle", 0.58, 0, baseLength * 1.05, false);
+        play(430 * pitch, "sine", 0.34, 0.026, baseLength * 1.28, false);
+        taps(610 * pitch, key === "r" ? 4 : 2, 0.045, "triangle", 0.18, 0.07);
+        burst(0.13, 0.03, 0.01);
       } else if (kind === "void") {
-        play(58, "sine", 1.04, 0, baseLength * 1.7, true);
-        play(240 * pitch, "sawtooth", 0.54, 0.03, baseLength * 1.0, true);
-        play(700 * pitch, "triangle", 0.24, 0.06, baseLength * 0.65, false);
+        play(42, "sine", 1.14, 0, baseLength * 2.0, true);
+        play(236 * pitch, "sawtooth", 0.56, 0.028, baseLength * 1.1, true);
+        play(690 * pitch, "triangle", 0.22, 0.06, baseLength * 0.7, false);
+        burst(0.3, 0.06, 0.02);
       } else if (kind === "time") {
-        play(620 * pitch, "triangle", 0.52, 0, 0.052, false);
-        play(920 * pitch, "triangle", 0.38, 0.052, 0.058, false);
-        play(310 * pitch, "sine", 0.58, 0.012, baseLength * 1.35, true);
+        taps(620 * pitch, key === "r" ? 5 : 3, 0.048, "triangle", 0.34, 0.032);
+        play(310 * pitch, "sine", 0.6, 0.012, baseLength * 1.45, true);
+        play(1240 * pitch, "sine", 0.18, 0.09, 0.08, false);
       } else {
         play(260 * pitch, "triangle", 1, 0, baseLength, true);
         burst(0.22, 0.035);
@@ -1143,7 +1152,37 @@
         play(86, "sine", 0.72, 0.08, 0.32, true);
         play(980 * pitch, "triangle", 0.32, 0.12, 0.16, false);
       }
-      if (awakened) play(1680 * pitch, "sine", 0.22, 0.075, 0.12, false);
+      if (awakened) {
+        if (kind === "fire") {
+          play(720 * pitch, "sawtooth", 0.22, 0.09, 0.11, true);
+          burst(0.26, 0.035, 0.085);
+        } else if (kind === "ice") {
+          taps(1680 * pitch, 3, 0.025, "sine", 0.16, 0.05);
+        } else if (kind === "lightning") {
+          taps(1760 * pitch, 4, 0.012, "square", 0.13, 0.024);
+        } else if (kind === "shadow") {
+          play(52, "sine", 0.46, 0.082, 0.18, true);
+          play(880 * pitch, "triangle", 0.12, 0.11, 0.08, false);
+        } else if (kind === "blood") {
+          play(68, "sine", 0.42, 0.13, 0.1, false);
+          play(240 * pitch, "sawtooth", 0.22, 0.15, 0.12, true);
+        } else if (kind === "gravity") {
+          play(36, "sine", 0.72, 0.095, 0.28, true);
+          burst(0.22, 0.07, 0.12);
+        } else if (kind === "crystal") {
+          taps(1420 * pitch, 4, 0.028, "triangle", 0.16, 0.065);
+        } else if (kind === "nature") {
+          taps(520 * pitch, 4, 0.04, "sine", 0.14, 0.08);
+        } else if (kind === "void") {
+          play(34, "sine", 0.5, 0.08, 0.25, true);
+          play(980 * pitch, "sawtooth", 0.1, 0.13, 0.055, true);
+        } else if (kind === "time") {
+          taps(1080 * pitch, 5, 0.032, "triangle", 0.13, 0.035);
+          play(270 * pitch, "sine", 0.24, 0.14, 0.18, true);
+        } else {
+          play(1680 * pitch, "sine", 0.18, 0.075, 0.12, false);
+        }
+      }
     }
 
     tone(freq, type, length, volume, now, options = {}) {
@@ -7088,49 +7127,147 @@
       const tx = target?.x ?? x + Math.cos(angle) * 220;
       const ty = target?.y ?? y + Math.sin(angle) * 220;
       const pulse = key === "q" ? 0.42 : key === "e" ? 0.34 : key === "r" ? 0.58 : 0.72;
+      const sourceId = this.currentDamageSourceId || "";
+      const localCaster = !remote && caster === this.run.player;
       const healFromSkill = (amount) => {
         if (skillHealAllowed) this.healPlayer(amount, { source: "power", allowAfterCombat: true });
       };
-      this.addSkillShape(kind, `awakened-${key}`, key === "e" ? x : tx, key === "e" ? y : ty, angle, 135 + pulse * 130, 0.45 + pulse * 0.2);
+      const shapeX = key === "e" ? x : tx;
+      const shapeY = key === "e" ? y : ty;
+      this.addSkillShape(kind, `awakened-${key}`, shapeX, shapeY, angle, 145 + pulse * 120, 0.42 + pulse * 0.16);
       if (kind === "fire") {
-        const px = x + Math.cos(angle) * (key === "r" ? 210 : 128);
-        const py = y + Math.sin(angle) * (key === "r" ? 210 : 128);
+        const reach = key === "r" ? 230 : key === "e" ? 82 : 150;
+        const px = key === "e" ? x : x + Math.cos(angle) * reach;
+        const py = key === "e" ? y : y + Math.sin(angle) * reach;
+        this.addSkillShape(kind, key === "q" ? "fireballBurst" : key === "r" ? "meteor" : "fireballCast", px, py, angle, 100 + pulse * 92, 0.38);
         this.addTrailDamage(px, py, power.color);
-        this.areaDamage(px, py, 78 + pulse * 72, damage * (0.28 + pulse * 0.28), power.color, kind);
-      } else if (kind === "ice") {
-        this.areaDamage(tx, ty, 92 + pulse * 84, damage * (0.22 + pulse * 0.22), power.color, kind);
-        for (const enemy of this.run.enemies) if (Math.hypot(enemy.x - tx, enemy.y - ty) < 150 + pulse * 100) enemy.chill = Math.max(enemy.chill, 2.2 + pulse);
-        this.addShockwave(tx, ty, 120 + pulse * 80, power.color, 0);
-      } else if (kind === "lightning") {
-        this.burstLines(x, y, power.accent, key === "f" ? 10 : 5, 210 + pulse * 220, 0.16);
-        this.lineDamage(x, y, angle, 360 + pulse * 220, 30 + pulse * 20, damage * (0.24 + pulse * 0.2), power.color, kind, 5);
-      } else if (kind === "shadow") {
-        for (const offset of [-0.24, 0.24]) {
-          const a = angle + offset;
-          this.spawnProjectile({ owner, x, y, vx: Math.cos(a) * 720, vy: Math.sin(a) * 720, radius: 8, damage: damage * (0.28 + pulse * 0.18), life: 0.78, color: power.color, pierce: 2, kind });
+        this.areaDamage(px, py, 72 + pulse * 58, damage * (key === "r" ? 0.52 : 0.34), power.color, kind, false, sourceId);
+        if (key === "q" || key === "r") {
+          for (const offset of [-0.16, 0.16]) {
+            const a = angle + offset;
+            this.spawnProjectile({
+              owner,
+              casterId: sourceId,
+              x: x + Math.cos(a) * 30,
+              y: y + Math.sin(a) * 30,
+              vx: Math.cos(a) * 620,
+              vy: Math.sin(a) * 620,
+              radius: 8,
+              damage: damage * 0.28,
+              explosionRadius: 70,
+              explosionDamage: damage * 0.14,
+              life: 0.58,
+              color: power.accent,
+              pierce: 0,
+              kind: "fireball"
+            });
+          }
         }
-        for (const enemy of this.run.enemies) if (Math.hypot(enemy.x - tx, enemy.y - ty) < 170) enemy.mark += 2;
+      } else if (kind === "ice") {
+        const centerX = key === "e" ? x : tx;
+        const centerY = key === "e" ? y : ty;
+        this.addSkillShape(kind, key === "q" ? "iceLance" : key === "e" ? "mirrorBurst" : "frozenField", centerX, centerY, angle, 126 + pulse * 92, 0.46, { length: 250 + pulse * 120, width: 34 });
+        this.freezeIceInArea(centerX, centerY, 92 + pulse * 76, key === "r" ? 0.76 : 0.44, damage * (key === "r" ? 0.38 : 0.22), power.color, sourceId);
+        if (key !== "e") {
+          for (let i = -2; i <= 2; i++) {
+            const a = angle + i * 0.18;
+            this.spawnProjectile({ owner, casterId: sourceId, x: centerX, y: centerY, vx: Math.cos(a) * 520, vy: Math.sin(a) * 520, radius: 5, damage: damage * 0.2, life: 0.42, color: i ? power.color : power.accent, pierce: 0, kind });
+          }
+        }
+      } else if (kind === "lightning") {
+        this.burstLines(x, y, power.accent, key === "r" ? 10 : 6, 220 + pulse * 240, 0.14);
+        const length = key === "r" ? 640 : 440 + pulse * 150;
+        this.lineDamage(x, y, angle, length, 36 + pulse * 24, damage * (key === "r" ? 0.5 : 0.32), power.color, kind, 7);
+        const first = this.enemiesInLine(x, y, angle, length, 58, 1)[0] || this.nearestEnemy(tx, ty, 260);
+        if (first) {
+          this.chainLightning(first, damage * (key === "r" ? 0.44 : 0.28));
+          if (!this.isMultiplayerClient()) first.stun = Math.max(first.stun || 0, first.boss ? 0.06 : 0.22);
+        }
+        if (key === "e" && !remote) this.run.drones.push({ angle: rand(0, TAU), cooldown: 0, radius: 138, temporary: 5.4, color: power.accent });
+      } else if (kind === "shadow") {
+        const offsets = key === "r" ? [-0.42, -0.14, 0.14, 0.42] : [-0.28, 0.28];
+        for (const offset of offsets) {
+          const a = angle + offset;
+          this.spawnProjectile({ owner, casterId: sourceId, x, y, vx: Math.cos(a) * 760, vy: Math.sin(a) * 760, radius: 8, damage: damage * (0.24 + pulse * 0.14), life: 0.78, color: power.color, pierce: 2, kind });
+        }
+        for (const enemy of this.enemiesNear(key === "e" ? x : tx, key === "e" ? y : ty, 190 + pulse * 92, key === "r" ? 8 : 5)) {
+          enemy.mark += key === "r" ? 3 : 2;
+          this.addShadowShard(enemy, caster, key === "r" ? 2 : 1);
+        }
+        if (key !== "q") this.consumeShadowMarks(key, caster, { x: key === "e" ? x : tx, y: key === "e" ? y : ty }, damage, owner, sourceId, remote);
+        else this.applyShadowWeaponBuff(caster, 2, localCaster);
       } else if (kind === "blood") {
-        this.coneDamage(x, y, angle, 170 + pulse * 120, Math.PI * 0.9, damage * (0.25 + pulse * 0.24), power.color, kind);
-        healFromSkill(4 + damage * 0.07);
+        const radius = key === "e" ? 155 : 180 + pulse * 120;
+        if (key === "e") {
+          this.addShockwave(x, y, radius, power.color, 0);
+          this.areaDamage(x, y, radius * 0.72, damage * 0.22, power.color, kind, false, sourceId);
+          for (const enemy of this.enemiesNear(x, y, radius, 8)) this.applyBloodBleed(enemy, damage, 6.0, sourceId);
+        } else {
+          this.coneDamage(x, y, angle, radius, Math.PI * 0.95, damage * (key === "r" ? 0.52 : 0.34), power.color, kind);
+          for (const enemy of this.enemiesNear(x, y, radius + 35, 8)) {
+            const a = Math.atan2(enemy.y - y, enemy.x - x);
+            if (Math.abs(angleDelta(a, angle)) < Math.PI * 0.56) this.applyBloodBleed(enemy, damage, key === "r" ? 7.2 : 5.4, sourceId);
+          }
+        }
+        healFromSkill(3 + damage * 0.045);
       } else if (kind === "gravity") {
-        this.addEffect({ type: "pull", x: tx, y: ty, radius: 210 + pulse * 150, time: 0.85 + pulse * 0.65, color: power.color });
-        this.areaDamage(tx, ty, 95 + pulse * 60, damage * (0.24 + pulse * 0.24), power.color, kind);
+        const centerX = key === "e" ? x : tx;
+        const centerY = key === "e" ? y : ty;
+        this.addEffect({ type: "pull", x: centerX, y: centerY, radius: 230 + pulse * 120, time: 0.7 + pulse * 0.45, color: power.color, casterId: sourceId });
+        const meteorTargets = this.enemiesNear(centerX, centerY, 270 + pulse * 90, key === "r" ? 4 : 2);
+        for (const enemy of meteorTargets.length ? meteorTargets : [{ x: centerX, y: centerY, radius: 20 }]) {
+          const mx = enemy.x + rand(-30, 30);
+          const my = enemy.y + rand(-24, 24);
+          this.addSkillShape(kind, "gravityMeteor", mx, my, -Math.PI / 2, 120 + pulse * 60, 0.48);
+          this.areaDamage(mx, my, 76 + pulse * 44, damage * (key === "r" ? 0.48 : 0.3), power.color, kind, false, sourceId);
+        }
       } else if (kind === "crystal") {
-        for (let i = 0; i < 5; i++) {
-          const a = angle + (i - 2) * 0.16;
-          this.spawnProjectile({ owner, x: x + Math.cos(a) * 28, y: y + Math.sin(a) * 28, vx: Math.cos(a) * 760, vy: Math.sin(a) * 760, radius: 6, damage: damage * (0.18 + pulse * 0.16), life: 0.82, color: power.color, pierce: 1, kind });
+        const shardCount = key === "r" ? 9 : key === "e" ? 8 : 6;
+        const originX = key === "e" ? x : tx;
+        const originY = key === "e" ? y : ty;
+        this.addSkillShape(kind, key === "r" ? "crystalRain" : "crystalShell", originX, originY, angle, 150 + pulse * 80, 0.48);
+        for (let i = 0; i < shardCount; i++) {
+          const a = key === "e" ? (i / shardCount) * TAU : angle + (i - (shardCount - 1) / 2) * 0.12;
+          this.spawnProjectile({ owner, casterId: sourceId, x: originX + Math.cos(a) * 24, y: originY + Math.sin(a) * 24, vx: Math.cos(a) * 700, vy: Math.sin(a) * 700, radius: 5, damage: damage * (key === "r" ? 0.24 : 0.18), life: 0.72, color: i % 2 ? power.color : power.accent, pierce: key === "q" ? 1 : 0, kind });
         }
       } else if (kind === "nature") {
-        this.addEffect({ type: "zone", x: tx, y: ty, radius: 115 + pulse * 80, time: 2.2, tick: 0.2, color: power.color, kind });
-        healFromSkill(5 + pulse * 8);
+        const centerX = key === "e" ? x : tx;
+        const centerY = key === "e" ? y : ty;
+        this.addEffect({ type: "zone", x: centerX, y: centerY, radius: 120 + pulse * 80, time: key === "r" ? 3.0 : 2.0, tick: 0.22, color: power.color, kind, casterId: sourceId });
+        let drained = 0;
+        for (const enemy of this.enemiesNear(centerX, centerY, 180 + pulse * 90, key === "r" ? 8 : 5)) {
+          this.addRootSnareVisual(enemy, caster, power.color);
+          if (!this.isMultiplayerClient()) {
+            enemy.stun = Math.max(enemy.stun || 0, enemy.boss ? 0.04 : 0.2);
+            this.damageEnemy(enemy, damage * 0.16, { x: 0, y: 0, source: "awakenedRoot", kind, noKnockback: true, sourceId });
+          }
+          drained += enemy.boss ? 0.8 : 1.25;
+        }
+        this.restoreDomainEnergy({ casterId: sourceId || this.lobby.id }, drained + 2, power.accent);
+        healFromSkill(3 + pulse * 4);
       } else if (kind === "void") {
-        this.addEffect({ type: "pull", x: tx, y: ty, radius: 230 + pulse * 140, time: 1.0 + pulse * 0.55, color: power.color });
-        for (const enemy of this.run.enemies) if (Math.hypot(enemy.x - tx, enemy.y - ty) < 210 + pulse * 80) enemy.mark += 3;
+        const centerX = key === "e" ? x : tx;
+        const centerY = key === "e" ? y : ty;
+        this.addSkillShape(kind, key === "e" ? "phaseSlash" : "abyssWell", centerX, centerY, angle, 170 + pulse * 100, 0.52, { length: 260 + pulse * 140 });
+        this.addEffect({ type: "pull", x: centerX, y: centerY, radius: 230 + pulse * 120, time: 0.8 + pulse * 0.45, color: power.color, casterId: sourceId });
+        for (const enemy of this.enemiesNear(centerX, centerY, 235 + pulse * 90, key === "r" ? 9 : 6)) {
+          enemy.mark += key === "r" ? 4 : 3;
+          if (!this.isMultiplayerClient() && (enemy.mark || 0) >= 4) {
+            enemy.mark = Math.max(0, enemy.mark - 4);
+            this.damageEnemy(enemy, damage * (key === "r" ? 0.56 : 0.34), { x: 0, y: 0, source: "awakenedVoid", kind, noKnockback: true, sourceId });
+            this.addShockwave(enemy.x, enemy.y, 78, power.accent, 0);
+          }
+        }
       } else if (kind === "time") {
-        this.areaDamage(x, y, 130 + pulse * 120, damage * (0.2 + pulse * 0.2), power.color, kind);
-        for (const enemy of this.run.enemies) if (Math.hypot(enemy.x - x, enemy.y - y) < 180 + pulse * 110) enemy.chill = Math.max(enemy.chill, 3.0 + pulse);
-        if (!remote && key !== "f") caster.cooldowns[key] = Math.max(0, caster.cooldowns[key] - 0.6);
+        const centerX = key === "e" ? x : tx;
+        const centerY = key === "e" ? y : ty;
+        this.addSkillShape(kind, key === "r" ? "timePrison" : key === "e" ? "rewindPulse" : "timeStop", centerX, centerY, angle, 150 + pulse * 110, 0.58);
+        this.stopTimeInArea(centerX, centerY, 145 + pulse * 95, key === "r" ? 1.35 : 0.78, damage * (key === "r" ? 0.45 : 0.24), power.color, sourceId);
+        if (!remote && key !== "f") {
+          caster.cooldowns.q = Math.max(0, caster.cooldowns.q - 0.4);
+          caster.cooldowns.e = Math.max(0, caster.cooldowns.e - 0.32);
+          caster.cooldowns.r = Math.max(0, caster.cooldowns.r - 0.24);
+        }
       }
       this.camera.shake = Math.max(this.camera.shake, 5 + pulse * 7);
     }

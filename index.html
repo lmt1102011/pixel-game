@@ -4,13 +4,102 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
     <meta name="theme-color" content="#090b12" />
-    <meta name="soulrift-version" content="20260605-instant-room-invite-140" />
-    <link rel="icon" href="data:," />
+    <meta name="description" content="Soulrift - game vượt ải hành động nhiều người với power, boss, kho báu và nhân vật riêng." />
+    <meta name="soulrift-version" content="20260605-pwa-app-141" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="Soulrift" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <link rel="manifest" href="manifest.webmanifest" />
+    <link rel="icon" href="assets/icons/app-icon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png" />
     <title>SOULRIFT</title>
-    <link rel="stylesheet" href="styles.css?v=20260605-instant-room-invite-140" />
+    <link rel="stylesheet" href="styles.css?v=20260605-pwa-app-141" />
   </head>
   <body>
     <canvas id="gameCanvas" aria-label="Khung chơi Soulrift"></canvas>
+
+    <section id="installLanding" class="install-landing hidden" aria-hidden="true">
+      <div class="install-shell">
+        <div class="install-copy">
+          <img class="install-logo" src="assets/icons/app-icon.svg" alt="Logo Soulrift" />
+          <p class="install-kicker">PWA game hành động vượt ải</p>
+          <h1>SOULRIFT</h1>
+          <p class="install-lead">Chọn nhân vật, quay sức mạnh, vượt phòng cùng bạn bè và săn boss trong một app nhẹ, có thể mở từ màn hình chính.</p>
+          <div class="install-actions">
+            <button id="pwaInstallButton" class="btn primary" type="button">TẢI APP</button>
+            <button id="pwaIosHelpButton" class="btn hidden" type="button">HƯỚNG DẪN IPHONE</button>
+          </div>
+          <div class="install-note">Trên PC bạn sẽ vào game trực tiếp. Trên điện thoại hãy tải app để chơi ổn định, toàn màn hình và đúng giao diện.</div>
+        </div>
+
+        <div class="install-art" aria-label="Minh họa gameplay Soulrift">
+          <svg viewBox="0 0 620 420" role="img" aria-labelledby="landingArtTitle">
+            <title id="landingArtTitle">Minh họa nhân vật Soulrift chiến đấu trong ải</title>
+            <defs>
+              <linearGradient id="roomBg" x1="0" y1="0" x2="1" y2="1">
+                <stop stop-color="#111827"/>
+                <stop offset=".52" stop-color="#090c14"/>
+                <stop offset="1" stop-color="#182033"/>
+              </linearGradient>
+              <linearGradient id="slashGlow" x1="0" y1="0" x2="1" y2="0">
+                <stop stop-color="#f2bf63"/>
+                <stop offset=".52" stop-color="#35d6c9"/>
+                <stop offset="1" stop-color="#a169ff"/>
+              </linearGradient>
+            </defs>
+            <rect x="22" y="24" width="576" height="360" rx="18" fill="url(#roomBg)" stroke="#2d3850" stroke-width="3"/>
+            <path d="M74 312h470M94 258h430M120 204h380" stroke="#233049" stroke-width="2"/>
+            <g class="door-demo">
+              <path d="M268 88h84c22 22 32 51 32 88v94H236v-94c0-37 10-66 32-88Z" fill="#161f30" stroke="#f2bf63" stroke-width="5"/>
+              <path d="M255 181c32-25 78-25 110 0" fill="none" stroke="#70e083" stroke-width="6" stroke-linecap="round"/>
+              <circle cx="310" cy="215" r="8" fill="#f2bf63"/>
+            </g>
+            <g class="boss-demo">
+              <ellipse cx="468" cy="260" rx="56" ry="20" fill="#05070d" opacity=".5"/>
+              <path d="M428 166h78l25 58-22 62h-84l-28-61 31-59Z" fill="#312036" stroke="#ff4b55" stroke-width="5"/>
+              <path d="M421 168l-34-34 57 9M510 168l42-33-15 58" fill="#ff4b55"/>
+              <circle cx="449" cy="220" r="8" fill="#ffe1a0"/>
+              <circle cx="486" cy="220" r="8" fill="#ffe1a0"/>
+            </g>
+            <g class="hero-demo">
+              <ellipse cx="186" cy="288" rx="48" ry="15" fill="#05070d" opacity=".5"/>
+              <rect x="160" y="202" width="52" height="80" rx="13" fill="#29364d" stroke="#f2bf63" stroke-width="4"/>
+              <rect x="167" y="167" width="38" height="44" rx="10" fill="#f3ead7"/>
+              <path d="M154 218l-42 36M214 218l42-28" stroke="#f3ead7" stroke-width="12" stroke-linecap="round"/>
+              <path d="M248 184 356 130" stroke="url(#slashGlow)" stroke-width="15" stroke-linecap="round"/>
+              <path d="M254 218 378 174" stroke="#f2bf63" stroke-width="4" stroke-linecap="round"/>
+            </g>
+            <g class="loot-demo">
+              <rect x="82" y="286" width="54" height="38" rx="6" fill="#8a5b2d" stroke="#f2bf63" stroke-width="4"/>
+              <path d="M82 301h54M109 286v38" stroke="#f2bf63" stroke-width="4"/>
+              <circle cx="116" cy="265" r="7" fill="#f2bf63"/>
+              <circle cx="93" cy="252" r="5" fill="#f2bf63"/>
+              <circle cx="138" cy="249" r="5" fill="#f2bf63"/>
+            </g>
+          </svg>
+        </div>
+      </div>
+
+      <div class="install-feature-row" aria-label="Tính năng nổi bật">
+        <div><b>Nhiều người chơi</b><span>Mời bạn bè vào phòng và vượt ải cùng nhau.</span></div>
+        <div><b>Power riêng</b><span>Mỗi sức mạnh có skill, thức tỉnh và lãnh địa riêng.</span></div>
+        <div><b>App nhẹ</b><span>Mở từ màn hình chính, toàn màn hình trên điện thoại.</span></div>
+      </div>
+    </section>
+
+    <div id="pwaInstallDialog" class="pwa-install-dialog hidden" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="pwaDialogTitle">
+      <div class="pwa-dialog-card">
+        <div class="panel-header">
+          <div>
+            <h2 id="pwaDialogTitle" class="panel-title">Tải Soulrift</h2>
+            <p class="panel-subtitle">Cài app để chơi trên điện thoại.</p>
+          </div>
+          <button id="pwaDialogClose" class="btn danger" type="button">ĐÓNG</button>
+        </div>
+        <div id="pwaDialogBody" class="pwa-dialog-body"></div>
+      </div>
+    </div>
 
     <div id="hud" class="hud hidden" aria-live="polite">
       <div class="hud-left">
@@ -41,7 +130,7 @@
       </button>
     </div>
 
-    <div id="mobileGate" class="mobile-gate" role="dialog" aria-modal="true" aria-labelledby="mobileGateTitle">
+    <div id="mobileGate" class="mobile-gate hidden" role="dialog" aria-modal="true" aria-labelledby="mobileGateTitle">
       <div class="mobile-gate-panel">
         <div class="mobile-gate-icon" aria-hidden="true">XOAY</div>
         <h2 id="mobileGateTitle">Bắt buộc xoay ngang</h2>
@@ -64,6 +153,7 @@
     </div>
 
     <script src="https://unpkg.com/peerjs@1.5.5/dist/peerjs.min.js"></script>
-    <script src="src/game.js?v=20260605-instant-room-invite-140"></script>
+    <script src="src/pwa.js?v=20260605-pwa-app-141"></script>
+    <script src="src/game.js?v=20260605-pwa-app-141"></script>
   </body>
 </html>

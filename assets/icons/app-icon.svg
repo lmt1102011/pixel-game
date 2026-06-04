@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Soulrift logo">
+  <defs>
+    <linearGradient id="bg" x1="76" y1="54" x2="438" y2="466" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#171d2b"/>
+      <stop offset=".58" stop-color="#090c14"/>
+      <stop offset="1" stop-color="#141622"/>
+    </linearGradient>
+    <linearGradient id="rift" x1="222" y1="70" x2="312" y2="436" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#ffe2a4"/>
+      <stop offset=".48" stop-color="#35d6c9"/>
+      <stop offset="1" stop-color="#a169ff"/>
+    </linearGradient>
+    <filter id="glow" x="-35%" y="-35%" width="170%" height="170%">
+      <feGaussianBlur stdDeviation="12" result="blur"/>
+      <feColorMatrix in="blur" values="0 0 0 0 0.21 0 0 0 0 0.84 0 0 0 0 0.79 0 0 0 .75 0"/>
+      <feMerge>
+        <feMergeNode/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  <rect width="512" height="512" rx="116" fill="url(#bg)"/>
+  <path d="M92 150c38-58 96-90 164-90 67 0 126 32 164 90" fill="none" stroke="#f2bf63" stroke-width="22" stroke-linecap="round" opacity=".78"/>
+  <path d="M91 362c39 58 97 90 165 90 67 0 126-32 165-90" fill="none" stroke="#f2bf63" stroke-width="22" stroke-linecap="round" opacity=".48"/>
+  <path d="M279 66 194 236h82l-43 210 102-252h-88L279 66Z" fill="url(#rift)" filter="url(#glow)"/>
+  <path d="M160 292c34 36 72 54 114 54 32 0 57-10 74-30 11-13 16-28 15-45-2-30-28-53-79-69-32-10-52-17-59-22-8-5-11-11-9-18 3-12 19-20 41-20 28 0 57 11 87 32l37-52c-37-30-78-45-123-45-41 0-74 11-98 34-21 20-31 45-29 75 2 32 27 56 75 72 35 12 57 20 65 26 8 5 11 11 9 18-3 13-21 21-48 21-32 0-64-14-96-42l-36 51Z" fill="#f3ead7" opacity=".92"/>
+</svg>

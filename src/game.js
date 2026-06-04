@@ -7,7 +7,7 @@
   const ROOM_PAD = 86;
   const SAVE_KEY = "soulrift-save-v1";
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
-  const APP_VERSION = "20260604-stable-auto-graphics-113";
+  const APP_VERSION = "20260604-super-stable-graphics-114";
   const VERSION_CHECK_INTERVAL = 15000;
   const UPDATE_ATTEMPT_KEY = "soulrift-update-attempt-v1";
   const CLOUD_MIGRATION_KEY = "soulrift-cloud-migrated-v1";
@@ -2257,10 +2257,12 @@
         fastDt: 1 / 60,
         quality: 1,
         autoLevel: 5,
+        targetAutoLevel: 5,
         displayedAutoLevel: 5,
         pressure: 0,
         emergencyHold: 0,
         panicHold: 0,
+        levelChangeLock: 0,
         stableTime: 0,
         overloadTime: 0,
         lagTime: 0,
@@ -2982,11 +2984,13 @@
       if (this.save.settings.graphicsMode === "manual") {
         const level = clamp(Number(this.save.settings.graphicsLevel || 5), 1, 5);
         this.perf.autoLevel = level;
+        this.perf.targetAutoLevel = level;
         this.perf.displayedAutoLevel = Math.round(level * 100) / 100;
         this.perf.quality = this.graphicsQualityFromLevel(level);
         this.perf.pressure = 0;
         this.perf.emergencyHold = 0;
         this.perf.panicHold = 0;
+        this.perf.levelChangeLock = 0;
         this.perf.lagTime = 0;
         this.perf.overloadTime = 0;
         this.updateRenderScale(false);
@@ -3012,7 +3016,7 @@
         : Math.max(0, (this.perf.lagTime || 0) - frame * 1.1);
       const rawPressure = clamp(((this.perf.lagTime || 0) - 0.08) / 0.72, 0, 1);
       const pressureNow = clamp(Number(this.perf.pressure || 0), 0, 1);
-      const pressureRate = rawPressure > pressureNow ? 8.4 : 1.45;
+      const pressureRate = rawPressure > pressureNow ? 4.8 : 0.65;
       const pressureBlend = 1 - Math.exp(-frame * pressureRate);
       this.perf.pressure = pressureNow + (rawPressure - pressureNow) * pressureBlend;
       const forcedLag = this.perf.lagTime > 0.14;
@@ -3021,11 +3025,12 @@
       const emergencyTrigger = emergencyLag || rawPressure > 0.34 || this.perf.pressure > 0.3 || nextLevel < 3.2;
       const panicTrigger = panicLag || rawPressure > 0.82 || this.perf.pressure > 0.76 || nextLevel < 1.65;
       this.perf.emergencyHold = emergencyTrigger
-        ? Math.max(this.perf.emergencyHold || 0, 0.8)
+        ? Math.max(this.perf.emergencyHold || 0, 1.8)
         : Math.max(0, (this.perf.emergencyHold || 0) - frame);
       this.perf.panicHold = panicTrigger
-        ? Math.max(this.perf.panicHold || 0, 1.05)
+        ? Math.max(this.perf.panicHold || 0, 2.2)
         : Math.max(0, (this.perf.panicHold || 0) - frame);
+      this.perf.levelChangeLock = Math.max(0, (this.perf.levelChangeLock || 0) - frame);
       const overloaded = pressure > (inCombat ? 0.0048 : 0.0095) || spike || forcedLag;
       if (overloaded && (inCombat || spike || forcedLag)) {
         this.perf.overloadTime = Math.min(2.2, (this.perf.overloadTime || 0) + frame);
@@ -3053,10 +3058,28 @@
       const floor = Math.min(lagFloor, spike && inCombat && this.perf.overloadTime > 1 ? hardFloor : softFloor);
       const desiredLevel = clamp(Math.max(nextLevel, floor), 1, 5);
       const currentLevel = Number.isFinite(this.perf.autoLevel) ? this.perf.autoLevel : desiredLevel;
-      const levelDelta = desiredLevel - currentLevel;
+      let targetLevel = Number.isFinite(this.perf.targetAutoLevel) ? this.perf.targetAutoLevel : currentLevel;
+      const targetDelta = desiredLevel - targetLevel;
+      const canShiftLevel = (this.perf.levelChangeLock || 0) <= 0;
+      const stableForRecover = this.perf.stableTime > (idle ? 1.8 : 3.2)
+        && this.perf.pressure < 0.12
+        && this.perf.lagTime < 0.08;
+      if (targetDelta < -0.08 && (canShiftLevel || panicLag || emergencyLag)) {
+        const severeDrop = panicLag || this.perf.lagTime > 1.1;
+        const dropStep = severeDrop ? 0.6 : emergencyLag ? 0.38 : forcedLag ? 0.24 : 0.14;
+        targetLevel = Math.max(desiredLevel, targetLevel - dropStep);
+        this.perf.levelChangeLock = severeDrop ? 0.55 : emergencyLag ? 0.75 : 1.05;
+      } else if (targetDelta > 0.16 && stableForRecover && canShiftLevel) {
+        const recoverStep = idle ? 0.12 : 0.08;
+        targetLevel = Math.min(desiredLevel, targetLevel + recoverStep);
+        this.perf.levelChangeLock = idle ? 1.25 : 2.25;
+      }
+      targetLevel = clamp(Math.round(targetLevel * 10) / 10, 1, 5);
+      this.perf.targetAutoLevel = targetLevel;
+      const levelDelta = targetLevel - currentLevel;
       const maxStep = (levelDelta < 0
-        ? (panicLag ? 3.1 : emergencyLag ? 2.05 : forcedLag ? 1.35 : 0.85)
-        : (idle ? 0.52 : 0.24)) * frame;
+        ? (panicLag ? 1.2 : emergencyLag ? 0.78 : forcedLag ? 0.48 : 0.28)
+        : (idle ? 0.16 : 0.07)) * frame;
       this.perf.autoLevel = currentLevel + clamp(levelDelta, -maxStep, maxStep);
       this.perf.displayedAutoLevel = Math.round(this.perf.autoLevel * 100) / 100;
       this.perf.quality = this.graphicsQualityFromLevel(this.perf.displayedAutoLevel);
@@ -3144,24 +3167,44 @@
       const floor = this.performancePanic()
         ? (this.isMobileDevice() ? 0.42 : 0.52)
         : (this.isMobileDevice() ? 0.58 : 0.66);
-      return clamp(base + quality * range, floor, 1);
+      const rawScale = clamp(base + quality * range, floor, 1);
+      const step = this.isMobileDevice() ? 0.05 : 0.04;
+      return clamp(Math.round(rawScale / step) * step, floor, 1);
     }
 
     updateRenderScale(force = false) {
       const desired = this.graphicsRenderScale();
       const currentTarget = Number.isFinite(this.perf.renderScaleTarget) ? this.perf.renderScaleTarget : desired;
-      const targetBlend = desired < currentTarget ? (force ? 0.46 : 0.28) : 0.08;
-      const next = currentTarget + (desired - currentTarget) * targetBlend;
+      const manualScale = this.save?.settings?.graphicsMode === "manual";
+      const pressure = this.performancePressure();
+      const stableForResizeRecover = (this.perf.stableTime || 0) > 3.4
+        && pressure < 0.1
+        && !this.performanceEmergency();
+      let stableTarget = currentTarget;
+      const targetGap = desired - currentTarget;
+      if (manualScale || force && Math.abs(targetGap) > 0.18) {
+        stableTarget = desired;
+      } else if (targetGap < -0.001) {
+        const dropGap = this.performancePanic() ? 0.06 : this.performanceEmergency() || force ? 0.08 : 0.12;
+        if (Math.abs(targetGap) >= dropGap && (force || this.performanceEmergency() || pressure > 0.24)) {
+          stableTarget = desired;
+        }
+      } else if (targetGap > 0.001 && targetGap >= 0.1 && stableForResizeRecover) {
+        stableTarget = desired;
+      }
+      const targetBlend = manualScale ? 1 : stableTarget < currentTarget ? (force ? 0.25 : 0.16) : 0.035;
+      const next = currentTarget + (stableTarget - currentTarget) * targetBlend;
       this.perf.renderScaleTarget = next;
       this.perf.renderScale = next;
       const current = Number.isFinite(this.perf.appliedRenderScale) ? this.perf.appliedRenderScale : 1;
       const now = performance.now();
       const diff = Math.abs(next - current);
-      if (diff < (force ? 0.035 : 0.055)) return;
-      const urgentDrop = force && next < current && diff > 0.14;
+      const resizeThreshold = manualScale ? 0.025 : next < current ? 0.08 : 0.12;
+      if (diff < resizeThreshold) return;
+      const urgentDrop = !manualScale && force && next < current && diff > 0.2 && (this.performancePanic() || pressure > 0.72);
       if (!urgentDrop && now < (this.perf.resizeAt || 0)) return;
       this.perf.appliedRenderScale = next;
-      this.perf.resizeAt = now + (next < current ? 220 : 700);
+      this.perf.resizeAt = now + (manualScale ? 140 : next < current ? urgentDrop ? 650 : 1400 : 3200);
       this.resize();
       if (this.run && next < current) {
         this.trimEffectList();
@@ -3177,9 +3220,11 @@
       if (this.save.settings.graphicsMode === "manual") {
         this.perf.quality = this.graphicsQualityFromLevel(this.save.settings.graphicsLevel);
         this.perf.autoLevel = this.save.settings.graphicsLevel;
+        this.perf.targetAutoLevel = this.save.settings.graphicsLevel;
         this.perf.displayedAutoLevel = Math.round(this.perf.autoLevel * 100) / 100;
       } else if (!Number.isFinite(this.perf.autoLevel)) {
         this.perf.autoLevel = this.save.settings.graphicsLevel;
+        this.perf.targetAutoLevel = this.save.settings.graphicsLevel;
         this.perf.displayedAutoLevel = Math.round(this.perf.autoLevel * 100) / 100;
         this.perf.quality = this.graphicsQualityFromLevel(this.perf.displayedAutoLevel);
       }

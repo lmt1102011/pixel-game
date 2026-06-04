@@ -7,7 +7,7 @@
   const ROOM_PAD = 86;
   const SAVE_KEY = "soulrift-save-v1";
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
-  const APP_VERSION = "20260604-auth-polish-91";
+  const APP_VERSION = "20260604-live-account-sync-92";
   const VERSION_CHECK_INTERVAL = 15000;
   const UPDATE_ATTEMPT_KEY = "soulrift-update-attempt-v1";
   const CLOUD_MIGRATION_KEY = "soulrift-cloud-migrated-v1";
@@ -23,7 +23,7 @@
   };
   const USE_FIREBASE_ANONYMOUS_AUTH = false;
   const CLOUD_SAVE_DEBOUNCE = 900;
-  const ACCOUNT_CLOUD_CHECK_INTERVAL = 5;
+  const ACCOUNT_CLOUD_CHECK_INTERVAL = 2;
   const DOOR_ENTER_TIME = 1.0;
   const DOMAIN_CUTIN_TIME = 1.35;
   const DOMAIN_GROW_TIME = 1.55;
@@ -947,14 +947,16 @@
 
     async saveAccount(key, account) {
       if (!key || !account) return false;
+      const payload = {
+        ...account,
+        updatedAt: new Date().toISOString()
+      };
       const data = await this.request(this.accountPath(key), {
         method: "PUT",
-        body: JSON.stringify({
-          ...account,
-          updatedAt: new Date().toISOString()
-        })
+        body: JSON.stringify(payload)
       });
-      return data !== null || !this.failed;
+      if (data && typeof data === "object") return data;
+      return data !== null || !this.failed ? payload : null;
     }
 
     async deleteAccount(key) {
@@ -2172,6 +2174,7 @@
       this.accountCloudCheckTimer = ACCOUNT_CLOUD_CHECK_INTERVAL;
       this.accountCloudCheckBusy = false;
       this.deletedAccountNotice = "";
+      this.lastCloudAccountSignature = "";
       this.audio = new AudioEngine(this);
       this.lobby = new PeerLobby(this);
       this.save = defaultSave();
@@ -2466,6 +2469,65 @@
       this.normalizeActiveProfile();
     }
 
+    accountCloudSignature(account) {
+      if (!account) return "";
+      try {
+        return JSON.stringify({
+          passwordHash: account.passwordHash || "",
+          updatedAt: account.updatedAt || "",
+          profile: account.profile || null
+        });
+      } catch {
+        return `${account.updatedAt || ""}:${account.passwordHash || ""}`;
+      }
+    }
+
+    applyCloudAccountUpdate(key, account) {
+      if (!key || !account?.profile) return;
+      const previousPower = this.save.account?.selectedPower || "";
+      const previousCharacter = this.save.account?.selectedCharacter || "";
+      this.save.auth.accounts[key] = account;
+      this.applyProfile(account.profile);
+      this.store.save(this.save);
+      this.lastCloudAccountSignature = this.accountCloudSignature(account);
+      this.applyCloudProfileToCurrentRun(previousPower, previousCharacter);
+      if (this.lobby?.syncOwnSlot) this.lobby.syncOwnSlot();
+      if (this.mode === "lobby") this.renderLobby();
+      if (this.mode === "powers") this.showPowers();
+      else if (this.mode === "awakening") this.showAwakening();
+      else if (this.mode === "stats") this.showStatPoints(true);
+      else if (this.mode === "inventory") this.showInventory();
+      else if (this.mode === "character") this.showCharacter();
+      else if (this.mode === "custom") this.showCustomization(true);
+      else if (this.mode === "menu") this.showMainMenu();
+      this.toast("Tài khoản đã được cập nhật");
+    }
+
+    applyCloudProfileToCurrentRun(previousPower = "", previousCharacter = "") {
+      if (!this.run?.player) return;
+      const selectedPower = this.save.account?.selectedPower || "";
+      if (selectedPower && selectedPower !== previousPower && this.save.account.ownedPowers.includes(selectedPower)) {
+        this.run.power = powerById(selectedPower);
+      }
+      const p = this.run.player;
+      const character = characterById(this.save.account.selectedCharacter || previousCharacter || p.characterId || "swordsman");
+      const stats = this.effectiveCharacterStats(character);
+      const hpRatio = p.maxHp > 0 ? clamp(p.hp / p.maxHp, 0, 1) : 1;
+      const energyRatio = p.maxEnergy > 0 ? clamp(p.energy / p.maxEnergy, 0, 1) : 1;
+      p.name = this.save.account.username || p.name || "Bạn";
+      p.characterId = character.id;
+      p.baseStats = { ...stats };
+      p.maxHp = stats.hp;
+      p.maxEnergy = stats.energy;
+      if (!p.dead) p.hp = Math.max(1, Math.min(p.maxHp, Math.round(p.maxHp * hpRatio)));
+      p.energy = Math.max(0, Math.min(p.maxEnergy, Math.round(p.maxEnergy * energyRatio)));
+      p.speed = stats.speed;
+      p.damage = stats.damage;
+      p.crit = stats.crit;
+      p.basicAttackCd = stats.attackCd;
+      if (this.isMultiplayerRun()) this.lobby.sendState(this.networkPlayerState(this.lobby.id, p));
+    }
+
     normalizeActiveProfile() {
       if (!CHARACTER_TYPES.some((character) => character.id === this.save.account.selectedCharacter)) {
         this.save.account.selectedCharacter = "swordsman";
@@ -2561,9 +2623,21 @@
       if (!this.validateAccountForm(username, password, confirm, true)) return;
       const key = accountKey(username);
       const cloudAccount = await this.cloudAccounts.getAccount(key);
-      if (this.save.auth.accounts[key] || cloudAccount) {
+      if (cloudAccount) {
         this.toast("Tài khoản này đã tồn tại");
         return;
+      }
+      if (this.save.auth.accounts[key] && this.cloudAccounts.failed) {
+        this.toast("Chưa kiểm tra được database, hãy thử lại");
+        return;
+      }
+      if (this.save.auth.accounts[key] && !this.cloudAccounts.failed) {
+        delete this.save.auth.accounts[key];
+        if (this.save.auth.currentUser === key) {
+          this.save.auth.currentUser = "";
+          this.applyProfile(defaultProfile(""));
+        }
+        this.store.save(this.save);
       }
       const profile = defaultProfile(username);
       this.save.auth.accounts[key] = {
@@ -2574,8 +2648,8 @@
       };
       this.save.auth.currentUser = key;
       this.applyProfile(profile);
-      this.persist();
-      this.saveCloudAccountNow(key);
+      this.persist(false);
+      this.saveCloudAccountNow(key, { allowCreate: true });
       this.toast(`Chào mừng ${username}`);
       this.showMainMenu();
     }
@@ -2587,6 +2661,10 @@
       const key = accountKey(username);
       const cloudAccount = await this.cloudAccounts.getAccount(key);
       if (cloudAccount) this.save.auth.accounts[key] = cloudAccount;
+      if (!cloudAccount && this.save.auth.accounts[key] && !this.cloudAccounts.failed) {
+        delete this.save.auth.accounts[key];
+        this.store.save(this.save);
+      }
       const account = this.save.auth.accounts[key];
       if (!account) {
         this.toast("Không tìm thấy tài khoản");
@@ -3217,7 +3295,7 @@
     }
 
     updateAccountCloudCheck(dt) {
-      if (!this.hasAccount() || this.accountCloudCheckBusy) return;
+      if (!this.hasAccount() || this.accountCloudCheckBusy || this.cloudSaveTimer) return;
       this.accountCloudCheckTimer -= dt;
       if (this.accountCloudCheckTimer > 0) return;
       this.accountCloudCheckTimer = ACCOUNT_CLOUD_CHECK_INTERVAL;
@@ -3231,8 +3309,12 @@
             this.forceDeletedAccountLogout(key);
             return;
           }
-          if (account && !this.run && this.mode !== "game") {
-            this.save.auth.accounts[key] = account;
+          if (account) {
+            const remoteSignature = this.accountCloudSignature(account);
+            const localSignature = this.accountCloudSignature(this.save.auth.accounts?.[key]);
+            if (remoteSignature && remoteSignature !== localSignature && remoteSignature !== this.lastCloudAccountSignature) {
+              this.applyCloudAccountUpdate(key, account);
+            }
           }
         })
         .finally(() => {
@@ -4597,14 +4679,14 @@
       this.showAwakening();
     }
 
-    persist() {
+    persist(syncCloud = true) {
       const active = this.save.auth?.currentUser;
       if (active && this.save.auth.accounts?.[active] && this.save.account?.created) {
         this.save.auth.accounts[active].username = this.save.account.username;
         this.save.auth.accounts[active].profile = this.profileSnapshot();
       }
       this.store.save(this.save);
-      this.queueCloudAccountSave(active);
+      if (syncCloud) this.queueCloudAccountSave(active);
     }
 
     queueCloudAccountSave(key = this.save.auth?.currentUser) {
@@ -4616,10 +4698,22 @@
       }, CLOUD_SAVE_DEBOUNCE);
     }
 
-    saveCloudAccountNow(key = this.save.auth?.currentUser) {
+    async saveCloudAccountNow(key = this.save.auth?.currentUser, options = {}) {
       if (!key || !this.save.auth?.accounts?.[key]) return;
       const account = cloneData(this.save.auth.accounts[key]);
-      this.cloudAccounts.saveAccount(key, account);
+      if (!options.allowCreate) {
+        const remote = await this.cloudAccounts.getAccount(key);
+        if (!remote && !this.cloudAccounts.failed) {
+          this.forceDeletedAccountLogout(key);
+          return;
+        }
+      }
+      const saved = await this.cloudAccounts.saveAccount(key, account);
+      if (saved && this.save.auth?.accounts?.[key]) {
+        this.save.auth.accounts[key] = saved;
+        this.lastCloudAccountSignature = this.accountCloudSignature(saved);
+        this.store.save(this.save);
+      }
     }
 
     toast(message) {

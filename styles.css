@@ -1683,36 +1683,36 @@ button {
 
 .preview-leg {
   top: 126px;
-  width: 23px;
+  width: 20px;
   height: 36px;
-  background: #151923;
+  background: #111722;
   box-shadow: 0 25px 0 -8px #0f131d;
 }
 
 .preview-leg.left {
-  left: 42px;
+  left: 44px;
 }
 
 .preview-leg.right {
-  left: 69px;
+  left: 70px;
 }
 
 .preview-arm {
   top: 86px;
-  width: 18px;
-  height: 45px;
-  background: #151923;
+  width: 17px;
+  height: 43px;
+  background: #111722;
   clip-path: polygon(18% 0, 82% 0, 100% 22%, 88% 100%, 12% 100%, 0 22%);
 }
 
 .preview-arm.left {
-  left: 19px;
-  transform: rotate(7deg);
+  left: 23px;
+  transform: rotate(5deg);
 }
 
 .preview-arm.right {
-  left: 90px;
-  transform: rotate(-7deg);
+  left: 88px;
+  transform: rotate(-5deg);
 }
 
 .preview-body {
@@ -1725,12 +1725,12 @@ button {
 }
 
 .preview-armor {
-  left: 33px;
-  top: 78px;
-  width: 62px;
-  height: 45px;
-  background: #293144;
-  clip-path: polygon(10% 0, 90% 0, 100% 26%, 84% 100%, 16% 100%, 0 26%);
+  left: 35px;
+  top: 77px;
+  width: 58px;
+  height: 46px;
+  background: #283142;
+  clip-path: polygon(12% 0, 88% 0, 100% 24%, 82% 100%, 18% 100%, 0 24%);
   box-shadow:
     inset 0 -10px 0 #0f131d,
     inset 0 15px 0 -11px var(--power);
@@ -1743,21 +1743,21 @@ button {
 }
 
 .preview-armor::before {
-  left: -12px;
-  top: 2px;
-  width: 20px;
-  height: 16px;
-  background: #293144;
-  clip-path: polygon(0 26%, 100% 0, 92% 100%, 16% 86%);
+  left: -9px;
+  top: 3px;
+  width: 17px;
+  height: 14px;
+  background: #283142;
+  clip-path: polygon(0 28%, 100% 0, 90% 100%, 16% 84%);
 }
 
 .preview-armor::after {
-  right: -12px;
-  top: 2px;
-  width: 20px;
-  height: 16px;
-  background: #293144;
-  clip-path: polygon(0 0, 100% 26%, 84% 86%, 8% 100%);
+  right: -9px;
+  top: 3px;
+  width: 17px;
+  height: 14px;
+  background: #283142;
+  clip-path: polygon(0 0, 100% 28%, 84% 84%, 10% 100%);
 }
 
 .preview-helmet {
@@ -1765,9 +1765,9 @@ button {
   top: 33px;
   width: 44px;
   height: 31px;
-  background: #151923;
+  background: #111722;
   clip-path: polygon(18% 0, 82% 0, 100% 32%, 86% 76%, 14% 76%, 0 32%);
-  box-shadow: inset 0 20px 0 #293144;
+  box-shadow: inset 0 20px 0 #283142;
 }
 
 .preview-helmet::after {

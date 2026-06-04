@@ -7,7 +7,7 @@
   const ROOM_PAD = 86;
   const SAVE_KEY = "soulrift-save-v1";
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
-  const APP_VERSION = "20260604-grip-hands-only-99";
+  const APP_VERSION = "20260604-shield-hand-behind-100";
   const VERSION_CHECK_INTERVAL = 15000;
   const UPDATE_ATTEMPT_KEY = "soulrift-update-attempt-v1";
   const CLOUD_MIGRATION_KEY = "soulrift-cloud-migrated-v1";
@@ -12073,6 +12073,7 @@
         ctx.beginPath();
         ctx.ellipse(25, 17, 15, 5, 0, 0, TAU);
         ctx.fill();
+        drawGripHand(12, -4, 6, 7);
         ctx.fillStyle = metal;
         ctx.beginPath();
         ctx.moveTo(23, -20);
@@ -12098,7 +12099,6 @@
         ctx.fillStyle = "#fff3c2";
         ctx.fillRect(20, -12, 6, 27);
         ctx.fillRect(13, -1, 20, 5);
-        drawGripHand(12, -4, 6, 7);
         ctx.fillStyle = power.accent;
         ctx.beginPath();
         ctx.arc(23, 1, 5 + guardPower * 1.5, 0, TAU);

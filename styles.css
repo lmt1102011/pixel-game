@@ -1928,6 +1928,7 @@ button {
   background: #dfe8ef;
   clip-path: polygon(50% 0, 90% 15%, 78% 72%, 50% 100%, 22% 72%, 10% 15%);
   box-shadow: inset 0 0 0 7px var(--char), inset 0 0 0 11px #dfe8ef, 0 3px 0 rgba(0, 0, 0, 0.32);
+  z-index: 5;
 }
 
 .char-guardian .preview-weapon::before {
@@ -1952,6 +1953,7 @@ button {
   left: 84px;
   top: 91px;
   transform: rotate(-10deg);
+  z-index: 3;
 }
 
 .char-mage .preview-weapon {

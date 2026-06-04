@@ -1925,24 +1925,24 @@ button {
 .char-martial .preview-hand.main,
 .char-martial .preview-hand.off {
   display: block;
-  width: 16px;
-  height: 15px;
+  width: 14px;
+  height: 13px;
   border-width: 3px;
-  box-shadow:
-    inset 0 -4px 0 var(--char),
-    18px 3px 0 -4px rgba(255, 246, 200, 0.82);
+  box-shadow: inset 0 -4px 0 var(--char);
 }
 
 .char-martial .preview-hand.main {
-  left: 93px;
-  top: 91px;
-  transform: rotate(-8deg);
+  left: 99px;
+  top: 89px;
+  transform: rotate(-5deg);
 }
 
 .char-martial .preview-hand.off {
   left: 77px;
-  top: 73px;
-  transform: rotate(-18deg);
+  top: 78px;
+  transform: rotate(-12deg);
+  width: 12px;
+  height: 12px;
 }
 
 .char-guardian .preview-weapon {
@@ -1984,33 +1984,33 @@ button {
 }
 
 .char-spearman .preview-weapon {
-  left: 67px;
-  top: 78px;
-  width: 103px;
-  height: 20px;
+  left: 58px;
+  top: 80px;
+  width: 124px;
+  height: 16px;
   transform: rotate(-16deg);
-  transform-origin: 22px 50%;
+  transform-origin: 32px 50%;
   background: transparent;
   filter: drop-shadow(0 3px 0 rgba(0, 0, 0, 0.34));
 }
 
 .char-spearman .preview-weapon::before {
-  left: 6px;
-  top: 8px;
-  width: 76px;
-  height: 5px;
+  left: 9px;
+  top: 7px;
+  width: 92px;
+  height: 3px;
   background: linear-gradient(90deg, #5f432c, #c18a50 46%, #4a3322);
   clip-path: none;
   box-shadow:
-    22px -5px 0 -2px var(--char),
-    39px -5px 0 -2px var(--char);
+    26px -4px 0 -2px var(--char),
+    47px -4px 0 -2px var(--char);
 }
 
 .char-spearman .preview-weapon::after {
-  left: 75px;
-  top: 2px;
-  width: 29px;
-  height: 17px;
+  left: 97px;
+  top: 3px;
+  width: 25px;
+  height: 11px;
   background: linear-gradient(90deg, #8c98a6, #f7fbff 48%, #c6d2dd);
   clip-path: polygon(0 8%, 72% 24%, 100% 50%, 72% 76%, 0 92%, 20% 50%);
   box-shadow: none;
@@ -2023,13 +2023,13 @@ button {
 }
 
 .char-spearman .preview-hand.main {
-  left: 86px;
-  top: 82px;
+  left: 84px;
+  top: 81px;
 }
 
 .char-spearman .preview-hand.off {
-  left: 105px;
-  top: 76px;
+  left: 104px;
+  top: 77px;
 }
 
 .char-mage .preview-weapon {

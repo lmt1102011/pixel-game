@@ -7,7 +7,7 @@
   const ROOM_PAD = 86;
   const SAVE_KEY = "soulrift-save-v1";
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
-  const APP_VERSION = "20260604-clear-heal-lock-82";
+  const APP_VERSION = "20260604-wider-mobile-view-83";
   const VERSION_CHECK_INTERVAL = 15000;
   const UPDATE_ATTEMPT_KEY = "soulrift-update-attempt-v1";
   const DOOR_ENTER_TIME = 1.0;
@@ -2416,9 +2416,13 @@
     worldViewScale() {
       if (!this.run || !this.isMobileDevice()) return 1;
       const shortSide = Math.min(window.innerWidth, window.innerHeight);
-      if (shortSide <= 380) return 0.62;
-      if (shortSide <= 430) return 0.66;
-      return 0.7;
+      const longSide = Math.max(window.innerWidth, window.innerHeight);
+      const wideLandscape = longSide / Math.max(1, shortSide) >= 1.9;
+      if (shortSide <= 360) return wideLandscape ? 0.5 : 0.52;
+      if (shortSide <= 390) return wideLandscape ? 0.52 : 0.54;
+      if (shortSide <= 430) return 0.55;
+      if (shortSide <= 520) return 0.58;
+      return 0.62;
     }
 
     worldViewWidth() {
@@ -2441,7 +2445,7 @@
         dx = Math.cos(player.facing || 0);
         dy = Math.sin(player.facing || 0);
       }
-      const amount = Math.min(this.worldViewWidth(), this.worldViewHeight()) * 0.075 * clamp(moveMag, 0.35, 1);
+      const amount = Math.min(this.worldViewWidth(), this.worldViewHeight()) * 0.055 * clamp(moveMag, 0.35, 1);
       return { x: dx * amount, y: dy * amount };
     }
 
@@ -5667,7 +5671,7 @@
       const lead = this.mobileCameraLead(player);
       const targetX = clamp(player.x + lead.x - viewW / 2, 0, Math.max(0, WORLD_W - viewW));
       const targetY = clamp(player.y + lead.y - viewH / 2, 0, Math.max(0, WORLD_H - viewH));
-      const follow = this.isMobileDevice() ? 4.2 : 8;
+      const follow = this.isMobileDevice() ? 3.8 : 8;
       this.camera.x += (targetX - this.camera.x) * Math.min(1, dt * follow);
       this.camera.y += (targetY - this.camera.y) * Math.min(1, dt * follow);
       this.camera.shake = Math.max(0, this.camera.shake - dt * (this.isMobileDevice() ? 46 : 34));

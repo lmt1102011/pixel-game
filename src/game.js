@@ -7,7 +7,7 @@
   const ROOM_PAD = 86;
   const SAVE_KEY = "soulrift-save-v1";
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
-  const APP_VERSION = "20260604-combat-locked-auto-116";
+  const APP_VERSION = "20260604-responsive-auto-117";
   const VERSION_CHECK_INTERVAL = 15000;
   const UPDATE_ATTEMPT_KEY = "soulrift-update-attempt-v1";
   const CLOUD_MIGRATION_KEY = "soulrift-cloud-migrated-v1";
@@ -3002,12 +3002,12 @@
       const idle = !this.run || this.mode !== "game" || this.pauseOverlay || !activeCombat;
       const avgDt = this.perf.avgDt || frame;
       const fastDt = this.perf.fastDt || frame;
-      const heavyFrame = frame > (this.isMobileDevice() ? 0.052 : 0.046);
+      const heavyFrame = frame > (this.isMobileDevice() ? 0.046 : 0.04);
       const sustainedSlow = (this.perf.fastDt || frame) > targetDt + (this.isMobileDevice() ? 0.012 : 0.01)
         || this.perf.avgDt > targetDt + (this.isMobileDevice() ? 0.009 : 0.0075);
-      const severeFrame = frame > (this.isMobileDevice() ? 0.085 : 0.075);
-      const severeSlow = fastDt > targetDt + (this.isMobileDevice() ? 0.026 : 0.022)
-        || avgDt > targetDt + (this.isMobileDevice() ? 0.02 : 0.017);
+      const severeFrame = frame > (this.isMobileDevice() ? 0.07 : 0.062);
+      const severeSlow = fastDt > targetDt + (this.isMobileDevice() ? 0.019 : 0.016)
+        || avgDt > targetDt + (this.isMobileDevice() ? 0.016 : 0.013);
       const realLag = !idle && (heavyFrame || sustainedSlow);
       const severeLag = !idle && (severeFrame || severeSlow);
       this.perf.lagTime = realLag
@@ -3018,8 +3018,8 @@
       const pressureRate = rawPressure > pressureNow ? 3.2 : idle ? 5.2 : 0.9;
       const pressureBlend = 1 - Math.exp(-frame * pressureRate);
       this.perf.pressure = pressureNow + (rawPressure - pressureNow) * pressureBlend;
-      const emergencyLag = !idle && (this.perf.lagTime > 0.9 || severeLag || this.perf.pressure > 0.52);
-      const panicLag = !idle && (this.perf.lagTime > 1.85 || frame > 0.12 || this.perf.pressure > 0.88);
+      const emergencyLag = !idle && (this.perf.lagTime > 0.42 || severeLag || this.perf.pressure > 0.34);
+      const panicLag = !idle && (this.perf.lagTime > 1.1 || frame > 0.095 || this.perf.pressure > 0.72);
       this.perf.emergencyHold = emergencyLag
         ? Math.max(this.perf.emergencyHold || 0, 1.8)
         : idle ? 0 : Math.max(0, (this.perf.emergencyHold || 0) - frame);
@@ -3048,11 +3048,11 @@
       if (idle) {
         targetLevel = baseLevel;
         this.perf.levelChangeLock = 0;
-      } else if ((panicLag || emergencyLag || this.perf.overloadTime > 1.2) && canShiftLevel) {
-        const dropStep = panicLag ? 0.55 : emergencyLag ? 0.34 : 0.18;
-        const floor = panicLag ? 1.8 : emergencyLag ? 2.7 : 3.6;
+      } else if ((panicLag || emergencyLag || this.perf.overloadTime > 0.55) && canShiftLevel) {
+        const dropStep = panicLag ? 0.75 : emergencyLag ? 0.45 : 0.25;
+        const floor = panicLag ? 1.25 : emergencyLag ? 2.05 : 3.25;
         targetLevel = Math.max(Math.min(baseLevel, targetLevel) - dropStep, Math.min(baseLevel, floor));
-        this.perf.levelChangeLock = panicLag ? 0.9 : emergencyLag ? 1.15 : 1.35;
+        this.perf.levelChangeLock = panicLag ? 0.42 : emergencyLag ? 0.58 : 0.76;
       } else if (stableForRecover && canShiftLevel && targetLevel < baseLevel) {
         const recoverStep = this.perf.stableTime > 4 ? 0.45 : 0.24;
         targetLevel = Math.min(baseLevel, targetLevel + recoverStep);
@@ -3063,7 +3063,7 @@
       this.perf.targetAutoLevel = targetLevel;
       const levelDelta = targetLevel - currentLevel;
       const maxStep = (levelDelta < 0
-        ? (panicLag ? 0.8 : emergencyLag ? 0.5 : 0.28)
+        ? (panicLag ? 1.85 : emergencyLag ? 1.15 : 0.72)
         : (idle ? 1.35 : 0.42)) * frame;
       this.perf.autoLevel = currentLevel + clamp(levelDelta, -maxStep, maxStep);
       if (Math.abs(this.perf.autoLevel - baseLevel) < 0.02 && targetLevel === baseLevel) this.perf.autoLevel = baseLevel;
@@ -3076,10 +3076,9 @@
       if (!this.run || this.mode !== "game" || this.pauseOverlay) return false;
       const room = this.run.currentRoom;
       if (!room || room.cleared || room.rewardDropped || room.nextOpened) return false;
-      if (room.intro > 0.15) return false;
       if (["treasure", "merchant", "healing", "curse", "training"].includes(room.type)) return false;
       if (room.type === "boss" && !room.started) return false;
-      return (this.run.enemies?.length || 0) > 0;
+      return true;
     }
 
     graphicsCombatLoad() {
@@ -3207,7 +3206,7 @@
       const urgentDrop = !manualScale && force && next < current && diff > 0.2 && (this.performancePanic() || pressure > 0.72);
       if (!urgentDrop && now < (this.perf.resizeAt || 0)) return;
       this.perf.appliedRenderScale = next;
-      this.perf.resizeAt = now + (manualScale ? 140 : idle ? 260 : next < current ? urgentDrop ? 650 : 1600 : 2200);
+      this.perf.resizeAt = now + (manualScale ? 140 : idle ? 260 : next < current ? urgentDrop ? 350 : 760 : 2200);
       this.resize();
       if (this.run && next < current) {
         this.trimEffectList();

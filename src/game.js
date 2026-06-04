@@ -7,7 +7,7 @@
   const ROOM_PAD = 86;
   const SAVE_KEY = "soulrift-save-v1";
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
-  const APP_VERSION = "20260604-super-stable-graphics-114";
+  const APP_VERSION = "20260604-quality-recovery-auto-115";
   const VERSION_CHECK_INTERVAL = 15000;
   const UPDATE_ATTEMPT_KEY = "soulrift-update-attempt-v1";
   const CLOUD_MIGRATION_KEY = "soulrift-cloud-migrated-v1";
@@ -2981,12 +2981,12 @@
       const frame = clamp(dt || 1 / 60, 1 / 120, 0.12);
       this.perf.avgDt = this.perf.avgDt * 0.955 + frame * 0.045;
       this.perf.fastDt = (this.perf.fastDt || this.perf.avgDt) * 0.76 + frame * 0.24;
+      const baseLevel = clamp(Number(this.save.settings.graphicsLevel || 5), 1, 5);
       if (this.save.settings.graphicsMode === "manual") {
-        const level = clamp(Number(this.save.settings.graphicsLevel || 5), 1, 5);
-        this.perf.autoLevel = level;
-        this.perf.targetAutoLevel = level;
-        this.perf.displayedAutoLevel = Math.round(level * 100) / 100;
-        this.perf.quality = this.graphicsQualityFromLevel(level);
+        this.perf.autoLevel = baseLevel;
+        this.perf.targetAutoLevel = baseLevel;
+        this.perf.displayedAutoLevel = Math.round(baseLevel * 100) / 100;
+        this.perf.quality = this.graphicsQualityFromLevel(baseLevel);
         this.perf.pressure = 0;
         this.perf.emergencyHold = 0;
         this.perf.panicHold = 0;
@@ -3000,90 +3000,73 @@
       const load = this.graphicsCombatLoad();
       const inCombat = load > 0.42;
       const idle = !this.run || this.mode !== "game" || this.pauseOverlay || load < 0.16;
-      const fastPressure = (this.perf.fastDt || frame) - targetDt;
-      const slowPressure = this.perf.avgDt - targetDt;
-      const pressure = Math.max(fastPressure, slowPressure, frame - targetDt);
-      let nextLevel = Number.isFinite(this.perf.autoLevel) ? this.perf.autoLevel : 5;
-      const softFloor = idle ? 4.7 : inCombat ? (this.isMobileDevice() ? 3.65 : 3.85) : 4.45;
-      const hardFloor = inCombat ? (this.isMobileDevice() ? 3.15 : 3.35) : 4.25;
-      const spike = frame > targetDt * (this.isMobileDevice() ? 1.95 : 1.8);
-      const heavyFrame = frame > (this.isMobileDevice() ? 0.042 : 0.038);
+      const avgDt = this.perf.avgDt || frame;
+      const fastDt = this.perf.fastDt || frame;
+      const heavyFrame = frame > (this.isMobileDevice() ? 0.052 : 0.046);
       const sustainedSlow = (this.perf.fastDt || frame) > targetDt + (this.isMobileDevice() ? 0.012 : 0.01)
         || this.perf.avgDt > targetDt + (this.isMobileDevice() ? 0.009 : 0.0075);
-      const realLag = heavyFrame || sustainedSlow;
+      const severeFrame = frame > (this.isMobileDevice() ? 0.085 : 0.075);
+      const severeSlow = fastDt > targetDt + (this.isMobileDevice() ? 0.026 : 0.022)
+        || avgDt > targetDt + (this.isMobileDevice() ? 0.02 : 0.017);
+      const realLag = !idle && (heavyFrame || sustainedSlow);
+      const severeLag = !idle && (severeFrame || severeSlow);
       this.perf.lagTime = realLag
-        ? Math.min(4.5, (this.perf.lagTime || 0) + frame)
-        : Math.max(0, (this.perf.lagTime || 0) - frame * 1.1);
-      const rawPressure = clamp(((this.perf.lagTime || 0) - 0.08) / 0.72, 0, 1);
+        ? Math.min(4.5, (this.perf.lagTime || 0) + frame * (severeLag ? 1.45 : 1))
+        : Math.max(0, (this.perf.lagTime || 0) - frame * (idle ? 3.2 : 1.55));
+      const rawPressure = clamp(((this.perf.lagTime || 0) - 0.24) / 1.05, 0, 1);
       const pressureNow = clamp(Number(this.perf.pressure || 0), 0, 1);
-      const pressureRate = rawPressure > pressureNow ? 4.8 : 0.65;
+      const pressureRate = rawPressure > pressureNow ? 3.2 : idle ? 2.4 : 0.9;
       const pressureBlend = 1 - Math.exp(-frame * pressureRate);
       this.perf.pressure = pressureNow + (rawPressure - pressureNow) * pressureBlend;
-      const forcedLag = this.perf.lagTime > 0.14;
-      const emergencyLag = frame > 0.055 || this.perf.lagTime > 0.45;
-      const panicLag = frame > 0.09 || this.perf.lagTime > 0.95 || (this.perf.fastDt || frame) > targetDt + (this.isMobileDevice() ? 0.023 : 0.019);
-      const emergencyTrigger = emergencyLag || rawPressure > 0.34 || this.perf.pressure > 0.3 || nextLevel < 3.2;
-      const panicTrigger = panicLag || rawPressure > 0.82 || this.perf.pressure > 0.76 || nextLevel < 1.65;
-      this.perf.emergencyHold = emergencyTrigger
+      const emergencyLag = !idle && (this.perf.lagTime > 0.9 || severeLag || this.perf.pressure > 0.52);
+      const panicLag = !idle && (this.perf.lagTime > 1.85 || frame > 0.12 || this.perf.pressure > 0.88);
+      this.perf.emergencyHold = emergencyLag
         ? Math.max(this.perf.emergencyHold || 0, 1.8)
         : Math.max(0, (this.perf.emergencyHold || 0) - frame);
-      this.perf.panicHold = panicTrigger
+      this.perf.panicHold = panicLag
         ? Math.max(this.perf.panicHold || 0, 2.2)
         : Math.max(0, (this.perf.panicHold || 0) - frame);
       this.perf.levelChangeLock = Math.max(0, (this.perf.levelChangeLock || 0) - frame);
-      const overloaded = pressure > (inCombat ? 0.0048 : 0.0095) || spike || forcedLag;
-      if (overloaded && (inCombat || spike || forcedLag)) {
-        this.perf.overloadTime = Math.min(2.2, (this.perf.overloadTime || 0) + frame);
-        const severe = panicLag || emergencyLag || spike || pressure > targetDt * 0.55;
-        const readyToDrop = severe || forcedLag || this.perf.overloadTime > (inCombat ? 0.42 : 0.9);
-        if (readyToDrop) {
-          const severity = clamp(pressure / targetDt, 0, 2.4);
-          const loadBoost = clamp(load + (forcedLag ? 0.9 : 0), 0.65, 2.8);
-          const lagBoost = forcedLag ? clamp(this.perf.lagTime * (panicLag ? 2.2 : 1.45), 0.55, 3.4) : 0;
-          const dropRate = ((severe ? 2.15 : 0.95) * (0.58 + severity * 1.05) * loadBoost) + lagBoost;
-          nextLevel -= dropRate * frame;
-        }
+      const overloaded = !idle && (realLag || this.perf.lagTime > 0.42 || this.perf.pressure > 0.32);
+      if (overloaded) {
+        this.perf.overloadTime = Math.min(3, (this.perf.overloadTime || 0) + frame);
         this.perf.stableTime = 0;
       } else {
-        this.perf.overloadTime = Math.max(0, (this.perf.overloadTime || 0) - frame * 1.6);
-        const headroom = clamp((targetDt - Math.max(this.perf.fastDt, this.perf.avgDt) - 0.0008) / targetDt, 0, 1);
-        this.perf.stableTime = Math.min(3, (this.perf.stableTime || 0) + frame);
-        if (idle && !forcedLag) {
-          nextLevel += (0.95 + headroom * 0.35) * frame;
-        } else if (!forcedLag && this.perf.stableTime > 0.45 && headroom > 0.05) {
-          nextLevel += (0.18 + headroom * 0.34) * frame;
-        }
+        this.perf.overloadTime = Math.max(0, (this.perf.overloadTime || 0) - frame * (idle ? 2.8 : 1.4));
+        this.perf.stableTime = Math.min(8, (this.perf.stableTime || 0) + frame);
       }
-      const lagFloor = panicLag ? 1 : emergencyLag ? (this.isMobileDevice() ? 1.45 : 1.65) : forcedLag ? (this.isMobileDevice() ? 2.05 : 2.25) : softFloor;
-      const floor = Math.min(lagFloor, spike && inCombat && this.perf.overloadTime > 1 ? hardFloor : softFloor);
-      const desiredLevel = clamp(Math.max(nextLevel, floor), 1, 5);
-      const currentLevel = Number.isFinite(this.perf.autoLevel) ? this.perf.autoLevel : desiredLevel;
+      const currentLevel = Number.isFinite(this.perf.autoLevel) ? this.perf.autoLevel : baseLevel;
       let targetLevel = Number.isFinite(this.perf.targetAutoLevel) ? this.perf.targetAutoLevel : currentLevel;
-      const targetDelta = desiredLevel - targetLevel;
       const canShiftLevel = (this.perf.levelChangeLock || 0) <= 0;
-      const stableForRecover = this.perf.stableTime > (idle ? 1.8 : 3.2)
-        && this.perf.pressure < 0.12
-        && this.perf.lagTime < 0.08;
-      if (targetDelta < -0.08 && (canShiftLevel || panicLag || emergencyLag)) {
-        const severeDrop = panicLag || this.perf.lagTime > 1.1;
-        const dropStep = severeDrop ? 0.6 : emergencyLag ? 0.38 : forcedLag ? 0.24 : 0.14;
-        targetLevel = Math.max(desiredLevel, targetLevel - dropStep);
-        this.perf.levelChangeLock = severeDrop ? 0.55 : emergencyLag ? 0.75 : 1.05;
-      } else if (targetDelta > 0.16 && stableForRecover && canShiftLevel) {
-        const recoverStep = idle ? 0.12 : 0.08;
-        targetLevel = Math.min(desiredLevel, targetLevel + recoverStep);
-        this.perf.levelChangeLock = idle ? 1.25 : 2.25;
+      const stableForRecover = idle || (
+        this.perf.stableTime > 1.8
+        && this.perf.pressure < 0.16
+        && this.perf.lagTime < 0.18
+      );
+      if (idle) {
+        targetLevel = baseLevel;
+        this.perf.levelChangeLock = 0;
+      } else if ((panicLag || emergencyLag || this.perf.overloadTime > 1.2) && canShiftLevel) {
+        const dropStep = panicLag ? 0.55 : emergencyLag ? 0.34 : 0.18;
+        const floor = panicLag ? 1.8 : emergencyLag ? 2.7 : 3.6;
+        targetLevel = Math.max(Math.min(baseLevel, targetLevel) - dropStep, Math.min(baseLevel, floor));
+        this.perf.levelChangeLock = panicLag ? 0.9 : emergencyLag ? 1.15 : 1.35;
+      } else if (stableForRecover && canShiftLevel && targetLevel < baseLevel) {
+        const recoverStep = this.perf.stableTime > 4 ? 0.45 : 0.24;
+        targetLevel = Math.min(baseLevel, targetLevel + recoverStep);
+        this.perf.levelChangeLock = 0.85;
       }
       targetLevel = clamp(Math.round(targetLevel * 10) / 10, 1, 5);
       this.perf.targetAutoLevel = targetLevel;
       const levelDelta = targetLevel - currentLevel;
       const maxStep = (levelDelta < 0
-        ? (panicLag ? 1.2 : emergencyLag ? 0.78 : forcedLag ? 0.48 : 0.28)
-        : (idle ? 0.16 : 0.07)) * frame;
+        ? (panicLag ? 0.8 : emergencyLag ? 0.5 : 0.28)
+        : (idle ? 1.35 : 0.42)) * frame;
       this.perf.autoLevel = currentLevel + clamp(levelDelta, -maxStep, maxStep);
+      if (Math.abs(this.perf.autoLevel - baseLevel) < 0.02 && targetLevel === baseLevel) this.perf.autoLevel = baseLevel;
       this.perf.displayedAutoLevel = Math.round(this.perf.autoLevel * 100) / 100;
       this.perf.quality = this.graphicsQualityFromLevel(this.perf.displayedAutoLevel);
-      this.updateRenderScale(overloaded && ((inCombat && this.perf.overloadTime > 0.45) || forcedLag));
+      this.updateRenderScale(overloaded && (panicLag || emergencyLag || (inCombat && this.perf.overloadTime > 1.2)));
     }
 
     graphicsCombatLoad() {
@@ -3120,15 +3103,16 @@
     }
 
     performanceEmergency() {
-      return (this.perf?.emergencyHold || 0) > 0 || this.performancePressure() > 0.3 || (this.perf?.autoLevel || 5) < 3.25;
+      return (this.perf?.emergencyHold || 0) > 0 || this.performancePressure() > 0.52;
     }
 
     performancePanic() {
-      return (this.perf?.panicHold || 0) > 0 || this.performancePressure() > 0.76 || (this.perf?.autoLevel || 5) < 1.75;
+      return (this.perf?.panicHold || 0) > 0 || this.performancePressure() > 0.88;
     }
 
     visualBudgetScale() {
-      return clamp(1 - this.performancePressure() * 0.9, 0.06, 1);
+      const pressure = this.performancePressure();
+      return clamp(1 - pressure * 0.72, this.performancePanic() ? 0.14 : 0.28, 1);
     }
 
     optionalVisualEffect(type) {
@@ -3177,12 +3161,13 @@
       const currentTarget = Number.isFinite(this.perf.renderScaleTarget) ? this.perf.renderScaleTarget : desired;
       const manualScale = this.save?.settings?.graphicsMode === "manual";
       const pressure = this.performancePressure();
-      const stableForResizeRecover = (this.perf.stableTime || 0) > 3.4
+      const idle = !this.run || this.mode !== "game" || this.pauseOverlay || this.graphicsCombatLoad() < 0.16;
+      const stableForResizeRecover = idle || (this.perf.stableTime || 0) > 2.2
         && pressure < 0.1
         && !this.performanceEmergency();
       let stableTarget = currentTarget;
       const targetGap = desired - currentTarget;
-      if (manualScale || force && Math.abs(targetGap) > 0.18) {
+      if (manualScale || idle || force && Math.abs(targetGap) > 0.18) {
         stableTarget = desired;
       } else if (targetGap < -0.001) {
         const dropGap = this.performancePanic() ? 0.06 : this.performanceEmergency() || force ? 0.08 : 0.12;
@@ -3192,7 +3177,7 @@
       } else if (targetGap > 0.001 && targetGap >= 0.1 && stableForResizeRecover) {
         stableTarget = desired;
       }
-      const targetBlend = manualScale ? 1 : stableTarget < currentTarget ? (force ? 0.25 : 0.16) : 0.035;
+      const targetBlend = manualScale ? 1 : stableTarget < currentTarget ? (force ? 0.22 : 0.12) : idle ? 0.32 : 0.08;
       const next = currentTarget + (stableTarget - currentTarget) * targetBlend;
       this.perf.renderScaleTarget = next;
       this.perf.renderScale = next;
@@ -3204,7 +3189,7 @@
       const urgentDrop = !manualScale && force && next < current && diff > 0.2 && (this.performancePanic() || pressure > 0.72);
       if (!urgentDrop && now < (this.perf.resizeAt || 0)) return;
       this.perf.appliedRenderScale = next;
-      this.perf.resizeAt = now + (manualScale ? 140 : next < current ? urgentDrop ? 650 : 1400 : 3200);
+      this.perf.resizeAt = now + (manualScale ? 140 : idle ? 260 : next < current ? urgentDrop ? 650 : 1600 : 2200);
       this.resize();
       if (this.run && next < current) {
         this.trimEffectList();
@@ -4880,7 +4865,7 @@
       const autoLevel = Number.isFinite(this.perf?.displayedAutoLevel) ? this.perf.displayedAutoLevel.toFixed(2) : "5.00";
       return `
         <label class="setting-row">
-          <div><h3>Chế độ đồ họa</h3><p>${mode === "manual" ? "Khóa chất lượng theo mức bên dưới." : `Tự động giữ nét, nhưng hạ bắt buộc khi FPS tụt thật. Hiện ${autoLevel}/5.`}</p></div>
+          <div><h3>Chế độ đồ họa</h3><p>${mode === "manual" ? "Khóa chất lượng theo mức bên dưới." : `Tự động giữ mức gốc, chỉ hạ tạm khi lag nặng. Hiện ${autoLevel}/5.`}</p></div>
           <select class="field setting-select" data-setting="graphicsMode" data-setting-type="string">
             <option value="auto" ${mode === "auto" ? "selected" : ""}>Tự động</option>
             <option value="manual" ${mode === "manual" ? "selected" : ""}>Thủ công</option>
@@ -4896,7 +4881,7 @@
       const manual = mode === "manual";
       return `
         <label class="setting-row graphics-setting">
-          <div><h3>Chất lượng đồ họa</h3><p>${manual ? `Mức ${level}/5 đang được áp dụng.` : `Mức ${level}/5 sẽ dùng khi chọn thủ công.`}</p></div>
+          <div><h3>Chất lượng đồ họa</h3><p>${manual ? `Mức ${level}/5 đang được áp dụng.` : `Auto sẽ cố giữ mức gốc ${level}/5.`}</p></div>
           <div class="graphics-range">
             <input data-setting="graphicsLevel" type="range" min="1" max="5" step="0.05" value="${label}" />
             <div class="graphics-steps" aria-hidden="true">
@@ -4915,8 +4900,8 @@
       const levelRow = this.screen.querySelector('[data-setting="graphicsLevel"]')?.closest(".setting-row");
       const modeText = modeRow?.querySelector("p");
       const levelText = levelRow?.querySelector("p");
-      if (modeText) modeText.textContent = mode === "manual" ? "Khóa chất lượng theo mức bên dưới." : `Tự động tối ưu mịn từng 0.1 mức theo FPS. Hiện ${autoLevel}/5.`;
-      if (levelText) levelText.textContent = mode === "manual" ? `Mức ${level}/5 đang được áp dụng.` : `Mức ${level}/5 sẽ dùng khi chọn thủ công.`;
+      if (modeText) modeText.textContent = mode === "manual" ? "Khóa chất lượng theo mức bên dưới." : `Tự động giữ mức gốc, chỉ hạ tạm khi lag nặng. Hiện ${autoLevel}/5.`;
+      if (levelText) levelText.textContent = mode === "manual" ? `Mức ${level}/5 đang được áp dụng.` : `Auto sẽ cố giữ mức gốc ${level}/5.`;
     }
 
     renderLobby() {

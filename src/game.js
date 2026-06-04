@@ -7,7 +7,7 @@
   const ROOM_PAD = 86;
   const SAVE_KEY = "soulrift-save-v1";
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
-  const APP_VERSION = "20260604-host-transfer-leave-128";
+  const APP_VERSION = "20260604-soft-render-129";
   const VERSION_CHECK_INTERVAL = 15000;
   const UPDATE_ATTEMPT_KEY = "soulrift-update-attempt-v1";
   const CLOUD_MIGRATION_KEY = "soulrift-cloud-migrated-v1";
@@ -3482,10 +3482,10 @@
       const base = (this.isMobileDevice() ? 0.62 : 0.68) - lag * (this.isMobileDevice() ? 0.34 : 0.3) - weakBias * (this.isMobileDevice() ? 0.085 : 0.065);
       const range = (this.isMobileDevice() ? 0.34 : 0.3) - weakBias * 0.08;
       const floor = this.performancePanic()
-        ? (this.isMobileDevice() ? 0.34 : 0.42)
+        ? (this.isMobileDevice() ? 0.44 : 0.5)
         : this.performanceEmergency()
-          ? (this.isMobileDevice() ? 0.42 : 0.5)
-          : (this.isMobileDevice() ? 0.48 : 0.56);
+          ? (this.isMobileDevice() ? 0.52 : 0.58)
+          : (this.isMobileDevice() ? 0.58 : 0.64);
       const rawScale = clamp(base + quality * range, floor, 1);
       const step = this.isMobileDevice() ? 0.05 : 0.04;
       return clamp(Math.round(rawScale / step) * step, floor, 1);
@@ -3833,7 +3833,7 @@
       this.updateDeviceUiMode();
       const maxDpr = Math.min(window.devicePixelRatio || 1, this.isMobileDevice() ? 1 : 1.25);
       const renderScale = Number.isFinite(this.perf?.appliedRenderScale) ? this.perf.appliedRenderScale : 1;
-      this.dpr = Math.max(this.isMobileDevice() ? 0.5 : 0.62, maxDpr * renderScale);
+      this.dpr = Math.max(this.isMobileDevice() ? 0.62 : 0.72, maxDpr * renderScale);
       this.width = window.innerWidth;
       this.height = window.innerHeight;
       this.canvas.width = Math.floor(this.width * this.dpr);
@@ -3841,7 +3841,8 @@
       this.canvas.style.width = `${this.width}px`;
       this.canvas.style.height = `${this.height}px`;
       this.ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
-      this.ctx.imageSmoothingEnabled = false;
+      this.ctx.imageSmoothingEnabled = true;
+      this.ctx.imageSmoothingQuality = this.dpr < 0.9 ? "high" : "medium";
     }
 
     updateMouse(event) {
@@ -12634,7 +12635,8 @@
     render() {
       const ctx = this.ctx;
       ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
-      ctx.imageSmoothingEnabled = false;
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = this.dpr < 0.9 ? "high" : "medium";
       ctx.clearRect(0, 0, this.width, this.height);
       if (this.run) this.drawGame(ctx);
       else this.drawMenuBackdrop(ctx);

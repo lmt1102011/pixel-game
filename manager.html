@@ -1,0 +1,823 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#090b12" />
+    <title>SOULRIFT Manager</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #090b12;
+        --panel: #111622;
+        --panel-2: #171d2b;
+        --line: #283247;
+        --text: #eef3ff;
+        --muted: #9aa8bf;
+        --gold: #f2bf63;
+        --red: #ff6072;
+        --blue: #65d7ff;
+        --green: #62e6a7;
+      }
+
+      * { box-sizing: border-box; }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        background:
+          radial-gradient(circle at 18% -10%, rgba(101, 215, 255, 0.14), transparent 34rem),
+          radial-gradient(circle at 80% 0%, rgba(242, 191, 99, 0.12), transparent 30rem),
+          var(--bg);
+        color: var(--text);
+        font-family: Arial, Helvetica, sans-serif;
+      }
+
+      button, input, select {
+        font: inherit;
+      }
+
+      button {
+        min-height: 40px;
+        border: 1px solid var(--line);
+        background: #1d2636;
+        color: var(--text);
+        border-radius: 6px;
+        padding: 0 14px;
+        cursor: pointer;
+      }
+
+      button:hover { border-color: #60708e; }
+      button.primary { background: #304564; border-color: #6181b5; }
+      button.good { background: #1d4938; border-color: #45b881; }
+      button.danger { background: #4b202b; border-color: #d85b73; }
+      button.ghost { background: transparent; }
+      button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+      input, select {
+        width: 100%;
+        min-height: 40px;
+        border: 1px solid var(--line);
+        background: #0c111b;
+        color: var(--text);
+        border-radius: 6px;
+        padding: 0 12px;
+        outline: none;
+      }
+
+      input:focus, select:focus { border-color: var(--blue); }
+      label { display: grid; gap: 6px; color: var(--muted); font-size: 13px; }
+
+      .hidden { display: none !important; }
+
+      .lock {
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        padding: 20px;
+      }
+
+      .lock-box, .panel {
+        background: rgba(17, 22, 34, 0.94);
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
+      }
+
+      .lock-box {
+        width: min(420px, 100%);
+        padding: 22px;
+        display: grid;
+        gap: 16px;
+      }
+
+      .app {
+        min-height: 100vh;
+        display: grid;
+        grid-template-rows: auto 1fr;
+      }
+
+      header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 14px;
+        padding: 16px clamp(14px, 3vw, 28px);
+        border-bottom: 1px solid var(--line);
+        background: rgba(9, 11, 18, 0.86);
+        position: sticky;
+        top: 0;
+        z-index: 5;
+        backdrop-filter: blur(12px);
+      }
+
+      h1, h2, h3, p { margin: 0; }
+      h1 { font-size: clamp(20px, 3vw, 30px); letter-spacing: 0; }
+      h2 { font-size: 18px; }
+      h3 { font-size: 15px; }
+
+      .status {
+        color: var(--muted);
+        font-size: 13px;
+        min-height: 18px;
+      }
+
+      main {
+        display: grid;
+        grid-template-columns: minmax(300px, 380px) 1fr;
+        gap: 16px;
+        padding: 16px clamp(14px, 3vw, 28px) 28px;
+      }
+
+      .panel {
+        min-width: 0;
+        overflow: hidden;
+      }
+
+      .panel-head {
+        padding: 16px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .panel-body {
+        padding: 16px;
+        display: grid;
+        gap: 14px;
+      }
+
+      .row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+      }
+
+      .row-3 {
+        display: grid;
+        grid-template-columns: 1fr 1fr auto;
+        gap: 10px;
+        align-items: end;
+      }
+
+      .account-list {
+        display: grid;
+        gap: 8px;
+        max-height: 58vh;
+        overflow: auto;
+        padding-right: 4px;
+      }
+
+      .account-item {
+        width: 100%;
+        display: grid;
+        grid-template-columns: 1fr auto;
+        align-items: center;
+        gap: 10px;
+        padding: 11px 12px;
+        border: 1px solid var(--line);
+        background: #101622;
+        border-radius: 7px;
+        text-align: left;
+      }
+
+      .account-item.active {
+        border-color: var(--gold);
+        background: #1e2430;
+      }
+
+      .account-item b { display: block; font-size: 14px; }
+      .account-item span { color: var(--muted); font-size: 12px; }
+
+      .detail-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(120px, 1fr));
+        gap: 10px;
+      }
+
+      .power-table {
+        display: grid;
+        gap: 8px;
+      }
+
+      .power-row {
+        display: grid;
+        grid-template-columns: 92px 1fr 90px 100px 88px 88px;
+        gap: 8px;
+        align-items: center;
+        border: 1px solid var(--line);
+        background: #101622;
+        border-radius: 7px;
+        padding: 10px;
+      }
+
+      .power-badge {
+        height: 42px;
+        display: grid;
+        place-items: center;
+        border-radius: 6px;
+        border: 1px solid currentColor;
+        background: color-mix(in srgb, currentColor 14%, transparent);
+        font-weight: 700;
+        font-size: 12px;
+      }
+
+      .check-line {
+        min-height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        color: var(--muted);
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        background: #0c111b;
+      }
+
+      .check-line input {
+        width: 18px;
+        min-height: 18px;
+        accent-color: var(--gold);
+      }
+
+      .empty {
+        border: 1px dashed var(--line);
+        border-radius: 8px;
+        padding: 26px;
+        color: var(--muted);
+        text-align: center;
+      }
+
+      .toolbar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        align-items: center;
+      }
+
+      .danger-text { color: var(--red); }
+      .good-text { color: var(--green); }
+
+      @media (max-width: 920px) {
+        header { align-items: flex-start; flex-direction: column; }
+        main { grid-template-columns: 1fr; }
+        .detail-grid { grid-template-columns: 1fr 1fr; }
+        .power-row { grid-template-columns: 1fr 1fr; }
+        .power-row .power-badge { grid-column: 1 / -1; }
+      }
+
+      @media (max-width: 560px) {
+        .row, .row-3, .detail-grid { grid-template-columns: 1fr; }
+        .toolbar button { flex: 1 1 140px; }
+      }
+    </style>
+  </head>
+  <body>
+    <section id="lockScreen" class="lock">
+      <form id="lockForm" class="lock-box">
+        <div>
+          <h1>SOULRIFT Manager</h1>
+          <p class="status">Nhập mật khẩu quản lý</p>
+        </div>
+        <input id="managerPassword" type="password" autocomplete="current-password" placeholder="Mật khẩu" />
+        <button class="primary" type="submit">MỞ QUẢN LÝ</button>
+        <p id="lockStatus" class="status"></p>
+      </form>
+    </section>
+
+    <section id="app" class="app hidden">
+      <header>
+        <div>
+          <h1>SOULRIFT Manager</h1>
+          <p id="status" class="status">Sẵn sàng</p>
+        </div>
+        <div class="toolbar">
+          <button id="reloadBtn" type="button">RELOAD</button>
+          <button id="lockBtn" class="ghost" type="button">KHÓA</button>
+        </div>
+      </header>
+
+      <main>
+        <section class="panel">
+          <div class="panel-head">
+            <h2>Tài khoản</h2>
+            <span id="accountCount" class="status">0</span>
+          </div>
+          <div class="panel-body">
+            <div class="row">
+              <label>Tên tài khoản
+                <input id="newUsername" maxlength="18" placeholder="Tên mới" />
+              </label>
+              <label>Mật khẩu
+                <input id="newPassword" type="password" placeholder="Ít nhất 6 ký tự" />
+              </label>
+            </div>
+            <button id="createAccountBtn" class="good" type="button">THÊM TÀI KHOẢN</button>
+            <div id="accountList" class="account-list"></div>
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-head">
+            <h2>Chỉnh người chơi</h2>
+            <div class="toolbar">
+              <button id="saveAccountBtn" class="primary" type="button" disabled>LƯU</button>
+              <button id="deleteAccountBtn" class="danger" type="button" disabled>XÓA</button>
+            </div>
+          </div>
+          <div id="detail" class="panel-body">
+            <div class="empty">Chọn một tài khoản để chỉnh</div>
+          </div>
+        </section>
+      </main>
+    </section>
+
+    <script>
+      const firebaseConfig = {
+        apiKey: "AIzaSyCygTrXQD_4mgwS-C9F0gSfIDsOPiINcF0",
+        authDomain: "pixel-game-3e36e.firebaseapp.com",
+        databaseURL: "https://pixel-game-3e36e-default-rtdb.firebaseio.com",
+        projectId: "pixel-game-3e36e",
+        storageBucket: "pixel-game-3e36e.firebasestorage.app",
+        messagingSenderId: "470235410791",
+        appId: "1:470235410791:web:686284cac33b764cecffc2",
+        measurementId: "G-W8XHKVEMS7"
+      };
+
+      const ADMIN_SHA256 = "62d5fafcf9022f8e3a8b2807acd8fa32e25b8c49b3d55ee955f9a11683b43616";
+      const ADMIN_FNV = "93fc9c10";
+      const DB_URL = firebaseConfig.databaseURL.replace(/\/$/, "");
+      const SESSION_KEY = "soulrift-manager-unlocked";
+      let firebaseAuthToken = "";
+      let firebaseAuthPromise = null;
+
+      const POWERS = [
+        { id: "fire", name: "Lửa", icon: "LỬA", color: "#ff6b3a", accent: "#ffd166", rarity: "rare" },
+        { id: "ice", name: "Băng", icon: "BĂNG", color: "#83e8ff", accent: "#d9fbff", rarity: "rare" },
+        { id: "lightning", name: "Sấm Sét", icon: "SÉT", color: "#ffe45e", accent: "#70f6ff", rarity: "epic" },
+        { id: "shadow", name: "Bóng Tối", icon: "TỐI", color: "#8f72ff", accent: "#202335", rarity: "epic" },
+        { id: "blood", name: "Máu", icon: "MÁU", color: "#ff3f5f", accent: "#ffc0c8", rarity: "epic" },
+        { id: "gravity", name: "Trọng Lực", icon: "LỰC", color: "#c89bff", accent: "#ffffff", rarity: "legendary" },
+        { id: "crystal", name: "Pha Lê", icon: "PHA", color: "#9ff4ff", accent: "#bfa2ff", rarity: "rare" },
+        { id: "nature", name: "Thiên Nhiên", icon: "LÁ", color: "#62e6a7", accent: "#d8ff87", rarity: "rare" },
+        { id: "void", name: "Hư Không", icon: "HƯ", color: "#6d6bff", accent: "#0b0d13", rarity: "legendary" },
+        { id: "time", name: "Thời Gian", icon: "GIỜ", color: "#f6e27a", accent: "#8feaff", rarity: "legendary" }
+      ];
+
+      const STAT_IDS = ["hp", "energy", "damage", "speed", "crit", "regen"];
+      const SLOT_NAMES = ["Weapon", "Armor", "Relic 1", "Relic 2", "Charm"];
+      const state = { accounts: {}, selectedKey: "" };
+
+      const $ = (id) => document.getElementById(id);
+
+      function setStatus(message, tone = "") {
+        const el = $("status");
+        if (!el) return;
+        el.textContent = message;
+        el.className = `status ${tone}`;
+      }
+
+      function escapeHtml(value) {
+        return String(value ?? "").replace(/[&<>"']/g, (char) => ({
+          "&": "&amp;",
+          "<": "&lt;",
+          ">": "&gt;",
+          '"': "&quot;",
+          "'": "&#039;"
+        }[char]));
+      }
+
+      function accountKey(username) {
+        return String(username || "").trim().toLowerCase();
+      }
+
+      function hashText(value) {
+        let hash = 2166136261;
+        for (let i = 0; i < value.length; i++) {
+          hash ^= value.charCodeAt(i);
+          hash = Math.imul(hash, 16777619);
+        }
+        return (hash >>> 0).toString(16).padStart(8, "0");
+      }
+
+      function passwordHash(username, password) {
+        return hashText(`${accountKey(username)}:${password}`);
+      }
+
+      async function sha256(value) {
+        if (!crypto?.subtle) return "";
+        const data = new TextEncoder().encode(value);
+        const hash = await crypto.subtle.digest("SHA-256", data);
+        return [...new Uint8Array(hash)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
+      }
+
+      async function managerPasswordOk(password) {
+        const strong = await sha256(password);
+        return strong === ADMIN_SHA256 || hashText(password) === ADMIN_FNV;
+      }
+
+      function defaultProfile(username = "") {
+        const createdAt = username ? new Date().toISOString() : "";
+        return {
+          account: {
+            created: Boolean(username),
+            username,
+            createdAt,
+            powerSpins: 5,
+            ownedPowers: [],
+            selectedPower: "",
+            selectedCharacter: "swordsman",
+            lastSpin: ""
+          },
+          settings: {
+            music: true,
+            sfx: true,
+            graphicsMode: "auto",
+            graphicsLevel: 5,
+            screenShake: 0.3,
+            particles: 1.5,
+            damageNumbers: true
+          },
+          customization: {
+            color: "#d8b46a",
+            eyes: "ember",
+            mouth: "scar",
+            aura: "gold",
+            accessory: "cape",
+            trail: "sparks"
+          },
+          inventory: [],
+          equipped: Object.fromEntries(SLOT_NAMES.map((slot) => [slot, ""])),
+          powers: Object.fromEntries(POWERS.map((power) => [power.id, {
+            level: 1,
+            awakened: false,
+            useAwakened: false,
+            awakenFails: 0,
+            mastery: 0,
+            rarity: power.rarity,
+            unlocked: false
+          }])),
+          materials: {
+            emberGlass: 0,
+            frostCore: 0,
+            stormThread: 0,
+            bloodAmber: 0,
+            gold: 0,
+            bossCore: 0,
+            divineSpark: 0
+          },
+          achievements: {
+            firstRift: false,
+            bossBreaker: false,
+            flawlessRoom: false
+          },
+          progression: {
+            level: 1,
+            xp: 0,
+            totalXp: 0,
+            bestStage: 0,
+            bossesDefeated: 0,
+            roomsCleared: 0,
+            runs: 0,
+            statPoints: 0,
+            statUpgrades: Object.fromEntries(STAT_IDS.map((id) => [id, 0]))
+          }
+        };
+      }
+
+      function mergeDefaults(profile, username) {
+        const base = defaultProfile(username);
+        const walk = (target, source) => {
+          if (!source || typeof source !== "object") return target;
+          for (const [key, value] of Object.entries(source)) {
+            if (value && typeof value === "object" && !Array.isArray(value) && target[key] && typeof target[key] === "object") walk(target[key], value);
+            else target[key] = value;
+          }
+          return target;
+        };
+        return walk(base, profile || {});
+      }
+
+      function normalizeAccount(key, account = {}) {
+        const username = String(account.username || account.profile?.account?.username || key || "").trim();
+        const profile = mergeDefaults(account.profile, username);
+        profile.account.username = username;
+        profile.account.created = Boolean(username);
+        profile.account.createdAt ||= account.createdAt || new Date().toISOString();
+        profile.account.powerSpins = Math.max(0, Math.floor(Number(profile.account.powerSpins || 0)));
+        profile.account.ownedPowers = Array.isArray(profile.account.ownedPowers) ? profile.account.ownedPowers.filter(Boolean) : [];
+        for (const power of POWERS) {
+          profile.powers[power.id] ||= {};
+          profile.powers[power.id].level = Math.max(1, Math.floor(Number(profile.powers[power.id].level || 1)));
+          profile.powers[power.id].mastery = Math.max(0, Math.floor(Number(profile.powers[power.id].mastery || 0)));
+          profile.powers[power.id].awakenFails = Math.max(0, Math.floor(Number(profile.powers[power.id].awakenFails || 0)));
+          profile.powers[power.id].rarity ||= power.rarity;
+          profile.powers[power.id].awakened = Boolean(profile.powers[power.id].awakened);
+          profile.powers[power.id].useAwakened = profile.powers[power.id].awakened && profile.powers[power.id].useAwakened !== false;
+          profile.powers[power.id].unlocked = profile.account.ownedPowers.includes(power.id);
+        }
+        return {
+          username,
+          passwordHash: String(account.passwordHash || ""),
+          createdAt: account.createdAt || profile.account.createdAt,
+          updatedAt: account.updatedAt || "",
+          profile
+        };
+      }
+
+      function dbPath(path) {
+        return `${DB_URL}/${path}.json`;
+      }
+
+      async function getFirebaseAuthToken() {
+        if (!firebaseConfig.apiKey) return "";
+        if (firebaseAuthToken) return firebaseAuthToken;
+        if (firebaseAuthPromise) return firebaseAuthPromise;
+        firebaseAuthPromise = fetch(`https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=${encodeURIComponent(firebaseConfig.apiKey)}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ returnSecureToken: true })
+        })
+          .then((response) => response.ok ? response.json() : null)
+          .then((data) => {
+            firebaseAuthToken = String(data?.idToken || "");
+            return firebaseAuthToken;
+          })
+          .catch(() => "")
+          .finally(() => {
+            firebaseAuthPromise = null;
+          });
+        return firebaseAuthPromise;
+      }
+
+      async function requestDb(path, options = {}, retry = true) {
+        const token = await getFirebaseAuthToken();
+        const rawUrl = dbPath(path);
+        const url = token ? `${rawUrl}?auth=${encodeURIComponent(token)}` : rawUrl;
+        const response = await fetch(url, {
+          cache: "no-store",
+          headers: { "Content-Type": "application/json", ...(options.headers || {}) },
+          ...options
+        });
+        if (response.status === 401 && token && retry) {
+          firebaseAuthToken = "";
+          return requestDb(path, options, false);
+        }
+        if (!response.ok) {
+          const body = await response.text().catch(() => "");
+          throw new Error(`${response.status} ${body}`.trim());
+        }
+        return response.status === 204 ? null : response.json();
+      }
+
+      async function loadAccounts() {
+        setStatus("Đang tải database...");
+        const data = await requestDb("accounts");
+        const next = {};
+        for (const [key, account] of Object.entries(data || {})) {
+          next[key] = normalizeAccount(key, account);
+        }
+        state.accounts = next;
+        if (state.selectedKey && !state.accounts[state.selectedKey]) state.selectedKey = "";
+        renderAccounts();
+        renderDetail();
+        setStatus("Đã tải xong", "good-text");
+      }
+
+      async function saveAccount(key, account) {
+        const normalized = normalizeAccount(key, account);
+        normalized.updatedAt = new Date().toISOString();
+        await requestDb(`accounts/${encodeURIComponent(key)}`, {
+          method: "PUT",
+          body: JSON.stringify(normalized)
+        });
+        state.accounts[key] = normalized;
+        renderAccounts();
+        renderDetail();
+        setStatus(`Đã lưu ${normalized.username}`, "good-text");
+      }
+
+      async function deleteAccount(key) {
+        await requestDb(`accounts/${encodeURIComponent(key)}`, { method: "DELETE" });
+        delete state.accounts[key];
+        if (state.selectedKey === key) state.selectedKey = "";
+        renderAccounts();
+        renderDetail();
+        setStatus("Đã xóa tài khoản", "danger-text");
+      }
+
+      function selectedAccount() {
+        return state.selectedKey ? state.accounts[state.selectedKey] : null;
+      }
+
+      function renderAccounts() {
+        const entries = Object.entries(state.accounts).sort((a, b) => a[1].username.localeCompare(b[1].username, "vi"));
+        $("accountCount").textContent = `${entries.length} tài khoản`;
+        $("accountList").innerHTML = entries.map(([key, account]) => {
+          const spins = Number(account.profile?.account?.powerSpins || 0);
+          const selectedPower = POWERS.find((power) => power.id === account.profile?.account?.selectedPower);
+          return `
+            <button class="account-item ${key === state.selectedKey ? "active" : ""}" data-select="${escapeHtml(key)}" type="button">
+              <span>
+                <b>${escapeHtml(account.username)}</b>
+                <span>${spins} lượt quay - ${escapeHtml(selectedPower?.name || "chưa có power")}</span>
+              </span>
+              <span>${escapeHtml(key)}</span>
+            </button>
+          `;
+        }).join("") || `<div class="empty">Chưa có tài khoản</div>`;
+      }
+
+      function renderDetail() {
+        const account = selectedAccount();
+        $("saveAccountBtn").disabled = !account;
+        $("deleteAccountBtn").disabled = !account;
+        if (!account) {
+          $("detail").innerHTML = `<div class="empty">Chọn một tài khoản để chỉnh</div>`;
+          return;
+        }
+        const profile = normalizeAccount(state.selectedKey, account).profile;
+        const currentPower = profile.account.selectedPower || "";
+        const powerRows = POWERS.map((power) => {
+          const meta = profile.powers[power.id] || {};
+          return `
+            <div class="power-row" data-power-row="${power.id}">
+              <div class="power-badge" style="color:${power.color}">${power.icon}</div>
+              <div>
+                <h3>${escapeHtml(power.name)}</h3>
+                <p class="status">${escapeHtml(power.rarity)}</p>
+              </div>
+              <label>Level
+                <input data-power-field="level" data-power="${power.id}" type="number" min="1" step="1" value="${Number(meta.level || 1)}" />
+              </label>
+              <label>Mastery
+                <input data-power-field="mastery" data-power="${power.id}" type="number" min="0" step="1" value="${Number(meta.mastery || 0)}" />
+              </label>
+              <label class="check-line">
+                <input data-power-field="awakened" data-power="${power.id}" type="checkbox" ${meta.awakened ? "checked" : ""} />
+                Thức tỉnh
+              </label>
+              <label class="check-line">
+                <input data-power-field="useAwakened" data-power="${power.id}" type="checkbox" ${meta.useAwakened ? "checked" : ""} />
+                Dùng TT
+              </label>
+            </div>
+          `;
+        }).join("");
+
+        $("detail").innerHTML = `
+          <div class="detail-grid">
+            <label>Tài khoản
+              <input value="${escapeHtml(account.username)}" disabled />
+            </label>
+            <label>Lượt quay sức mạnh
+              <input id="powerSpins" type="number" min="0" step="1" value="${Number(profile.account.powerSpins || 0)}" />
+            </label>
+            <label>Power đang dùng
+              <select id="selectedPower">
+                <option value="">Chưa có power</option>
+                ${POWERS.map((power) => `<option value="${power.id}" ${currentPower === power.id ? "selected" : ""}>${escapeHtml(power.name)}</option>`).join("")}
+              </select>
+            </label>
+            <label>Mật khẩu mới
+              <input id="resetPassword" type="password" placeholder="Bỏ trống nếu không đổi" />
+            </label>
+          </div>
+
+          <div class="row-3">
+            <label>Cộng lượt quay
+              <input id="spinDelta" type="number" step="1" value="1" />
+            </label>
+            <label>Điểm nâng chỉ số
+              <input id="statPoints" type="number" min="0" step="1" value="${Number(profile.progression?.statPoints || 0)}" />
+            </label>
+            <button id="addSpinBtn" class="good" type="button">CỘNG</button>
+          </div>
+
+          <div>
+            <h2>Sức mạnh</h2>
+            <div class="power-table">${powerRows}</div>
+          </div>
+        `;
+      }
+
+      function collectSelectedAccount() {
+        const account = selectedAccount();
+        if (!account) return null;
+        const normalized = normalizeAccount(state.selectedKey, account);
+        const profile = normalized.profile;
+        const selectedPower = $("selectedPower")?.value || "";
+        profile.account.powerSpins = Math.max(0, Math.floor(Number($("powerSpins")?.value || 0)));
+        profile.account.selectedPower = selectedPower;
+        profile.account.ownedPowers = selectedPower ? [selectedPower] : [];
+        profile.progression ||= defaultProfile(profile.account.username).progression;
+        profile.progression.statPoints = Math.max(0, Math.floor(Number($("statPoints")?.value || 0)));
+
+        for (const power of POWERS) {
+          const level = document.querySelector(`[data-power-field="level"][data-power="${power.id}"]`);
+          const mastery = document.querySelector(`[data-power-field="mastery"][data-power="${power.id}"]`);
+          const awakened = document.querySelector(`[data-power-field="awakened"][data-power="${power.id}"]`);
+          const useAwakened = document.querySelector(`[data-power-field="useAwakened"][data-power="${power.id}"]`);
+          profile.powers[power.id] ||= {};
+          profile.powers[power.id].level = Math.max(1, Math.floor(Number(level?.value || 1)));
+          profile.powers[power.id].mastery = Math.max(0, Math.floor(Number(mastery?.value || 0)));
+          profile.powers[power.id].rarity ||= power.rarity;
+          profile.powers[power.id].awakened = Boolean(awakened?.checked);
+          profile.powers[power.id].useAwakened = Boolean(profile.powers[power.id].awakened && useAwakened?.checked);
+          profile.powers[power.id].unlocked = selectedPower === power.id;
+        }
+
+        const newPassword = $("resetPassword")?.value || "";
+        if (newPassword) {
+          if (newPassword.length < 6) throw new Error("Mật khẩu mới cần ít nhất 6 ký tự");
+          normalized.passwordHash = passwordHash(normalized.username, newPassword);
+        }
+        normalized.profile = profile;
+        return normalized;
+      }
+
+      async function createAccount() {
+        const username = $("newUsername").value.trim().slice(0, 18);
+        const password = $("newPassword").value;
+        if (username.length < 3 || username.length > 18) throw new Error("Tên tài khoản cần 3-18 ký tự");
+        if (!/^[\p{L}\p{N}_ ]+$/u.test(username)) throw new Error("Tên chỉ dùng chữ, số, dấu cách và gạch dưới");
+        if (password.length < 6) throw new Error("Mật khẩu cần ít nhất 6 ký tự");
+        const key = accountKey(username);
+        if (state.accounts[key]) throw new Error("Tài khoản này đã tồn tại");
+        const profile = defaultProfile(username);
+        const account = {
+          username,
+          passwordHash: passwordHash(username, password),
+          createdAt: profile.account.createdAt,
+          profile
+        };
+        await saveAccount(key, account);
+        state.selectedKey = key;
+        $("newUsername").value = "";
+        $("newPassword").value = "";
+        renderAccounts();
+        renderDetail();
+      }
+
+      async function saveSelected() {
+        const account = collectSelectedAccount();
+        if (!account) return;
+        await saveAccount(state.selectedKey, account);
+      }
+
+      async function addSpins() {
+        const account = collectSelectedAccount();
+        if (!account) return;
+        const delta = Math.floor(Number($("spinDelta")?.value || 0));
+        account.profile.account.powerSpins = Math.max(0, Number(account.profile.account.powerSpins || 0) + delta);
+        await saveAccount(state.selectedKey, account);
+      }
+
+      function unlockApp() {
+        $("lockScreen").classList.add("hidden");
+        $("app").classList.remove("hidden");
+        loadAccounts().catch((error) => setStatus(`Lỗi tải database: ${error.message}`, "danger-text"));
+      }
+
+      $("lockForm").addEventListener("submit", async (event) => {
+        event.preventDefault();
+        const password = $("managerPassword").value;
+        if (await managerPasswordOk(password)) {
+          sessionStorage.setItem(SESSION_KEY, "1");
+          unlockApp();
+        } else {
+          $("lockStatus").textContent = "Sai mật khẩu";
+        }
+      });
+
+      $("reloadBtn").addEventListener("click", () => loadAccounts().catch((error) => setStatus(`Lỗi tải database: ${error.message}`, "danger-text")));
+      $("lockBtn").addEventListener("click", () => {
+        sessionStorage.removeItem(SESSION_KEY);
+        location.reload();
+      });
+
+      $("createAccountBtn").addEventListener("click", () => createAccount().catch((error) => setStatus(error.message, "danger-text")));
+      $("saveAccountBtn").addEventListener("click", () => saveSelected().catch((error) => setStatus(error.message, "danger-text")));
+      $("deleteAccountBtn").addEventListener("click", () => {
+        const account = selectedAccount();
+        if (!account) return;
+        if (!confirm(`Xóa tài khoản ${account.username}?`)) return;
+        deleteAccount(state.selectedKey).catch((error) => setStatus(error.message, "danger-text"));
+      });
+
+      document.addEventListener("click", (event) => {
+        const selectButton = event.target.closest("[data-select]");
+        if (selectButton) {
+          state.selectedKey = selectButton.dataset.select;
+          renderAccounts();
+          renderDetail();
+        }
+        if (event.target.id === "addSpinBtn") addSpins().catch((error) => setStatus(error.message, "danger-text"));
+      });
+
+      if (sessionStorage.getItem(SESSION_KEY) === "1") unlockApp();
+    </script>
+  </body>
+</html>

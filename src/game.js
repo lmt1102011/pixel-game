@@ -7,9 +7,21 @@
   const ROOM_PAD = 86;
   const SAVE_KEY = "soulrift-save-v1";
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
-  const APP_VERSION = "20260604-shadow-polish-88";
+  const APP_VERSION = "20260604-manager-89";
   const VERSION_CHECK_INTERVAL = 15000;
   const UPDATE_ATTEMPT_KEY = "soulrift-update-attempt-v1";
+  const CLOUD_MIGRATION_KEY = "soulrift-cloud-migrated-v1";
+  const FIREBASE_CONFIG = {
+    apiKey: "AIzaSyCygTrXQD_4mgwS-C9F0gSfIDsOPiINcF0",
+    authDomain: "pixel-game-3e36e.firebaseapp.com",
+    databaseURL: "https://pixel-game-3e36e-default-rtdb.firebaseio.com",
+    projectId: "pixel-game-3e36e",
+    storageBucket: "pixel-game-3e36e.firebasestorage.app",
+    messagingSenderId: "470235410791",
+    appId: "1:470235410791:web:686284cac33b764cecffc2",
+    measurementId: "G-W8XHKVEMS7"
+  };
+  const CLOUD_SAVE_DEBOUNCE = 900;
   const DOOR_ENTER_TIME = 1.0;
   const DOMAIN_CUTIN_TIME = 1.35;
   const DOMAIN_GROW_TIME = 1.55;
@@ -858,6 +870,95 @@
       } catch {
         return null;
       }
+    }
+  }
+
+  class CloudAccountStore {
+    constructor(config = FIREBASE_CONFIG) {
+      this.baseUrl = String(config.databaseURL || "").replace(/\/$/, "");
+      this.apiKey = String(config.apiKey || "");
+      this.authToken = "";
+      this.authPromise = null;
+      this.failed = false;
+    }
+
+    accountPath(key = "") {
+      const root = `${this.baseUrl}/accounts`;
+      return key ? `${root}/${encodeURIComponent(key)}.json` : `${root}.json`;
+    }
+
+    async getAuthToken() {
+      if (!this.apiKey || typeof fetch !== "function") return "";
+      if (this.authToken) return this.authToken;
+      if (this.authPromise) return this.authPromise;
+      this.authPromise = fetch(`https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=${encodeURIComponent(this.apiKey)}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ returnSecureToken: true })
+      })
+        .then((response) => response.ok ? response.json() : null)
+        .then((data) => {
+          this.authToken = String(data?.idToken || "");
+          return this.authToken;
+        })
+        .catch(() => "")
+        .finally(() => {
+          this.authPromise = null;
+        });
+      return this.authPromise;
+    }
+
+    async request(path, options = {}, retry = true) {
+      if (!this.baseUrl || typeof fetch !== "function") return null;
+      const token = await this.getAuthToken();
+      const url = token ? `${path}${path.includes("?") ? "&" : "?"}auth=${encodeURIComponent(token)}` : path;
+      try {
+        const response = await fetch(url, {
+          cache: "no-store",
+          headers: { "Content-Type": "application/json", ...(options.headers || {}) },
+          ...options
+        });
+        if (response.status === 401 && token && retry) {
+          this.authToken = "";
+          return this.request(path, options, false);
+        }
+        if (!response.ok) throw new Error(`Cloud ${response.status}`);
+        this.failed = false;
+        if (response.status === 204) return {};
+        return await response.json();
+      } catch {
+        this.failed = true;
+        return null;
+      }
+    }
+
+    async loadAccounts() {
+      const data = await this.request(this.accountPath());
+      if (!data || typeof data !== "object") return data === null && this.failed ? null : {};
+      return data;
+    }
+
+    async getAccount(key) {
+      const data = await this.request(this.accountPath(key));
+      return data && typeof data === "object" ? data : null;
+    }
+
+    async saveAccount(key, account) {
+      if (!key || !account) return false;
+      const data = await this.request(this.accountPath(key), {
+        method: "PUT",
+        body: JSON.stringify({
+          ...account,
+          updatedAt: new Date().toISOString()
+        })
+      });
+      return data !== null || !this.failed;
+    }
+
+    async deleteAccount(key) {
+      if (!key) return false;
+      const data = await this.request(this.accountPath(key), { method: "DELETE" });
+      return data !== null || !this.failed;
     }
   }
 
@@ -2064,6 +2165,8 @@
       this.mobileGateButton = document.getElementById("mobileGateButton");
       this.pointerQuery = matchMedia("(hover: none), (pointer: coarse)");
       this.store = new SaveStore();
+      this.cloudAccounts = new CloudAccountStore();
+      this.cloudSaveTimer = null;
       this.audio = new AudioEngine(this);
       this.lobby = new PeerLobby(this);
       this.save = defaultSave();
@@ -2111,6 +2214,7 @@
     async init() {
       const loaded = await this.store.load();
       this.save = mergeSave(defaultSave(), loaded);
+      await this.syncCloudAccountsAtBoot();
       this.normalizeSave();
       this.applyGraphicsSettings();
       this.clearResolvedUpdateAttempt();
@@ -2118,6 +2222,54 @@
       this.mode = this.hasAccount() ? "menu" : "account";
       this.showMainMenu();
       requestAnimationFrame((time) => this.loop(time));
+    }
+
+    async syncCloudAccountsAtBoot() {
+      const localAccounts = { ...(this.save.auth?.accounts || {}) };
+      const localKeys = Object.keys(localAccounts);
+      const accounts = await this.cloudAccounts.loadAccounts();
+      if (accounts === null) return;
+      const clean = {};
+      for (const [key, account] of Object.entries(accounts || {})) {
+        if (!account || typeof account !== "object") continue;
+        const username = String(account.username || account.profile?.account?.username || key).trim();
+        if (!username) continue;
+        clean[accountKey(username)] = {
+          username,
+          passwordHash: String(account.passwordHash || ""),
+          createdAt: account.createdAt || account.profile?.account?.createdAt || new Date().toISOString(),
+          profile: account.profile || defaultProfile(username),
+          updatedAt: account.updatedAt || ""
+        };
+      }
+      const cloudKeys = Object.keys(clean);
+      let migrated = false;
+      try {
+        migrated = localStorage.getItem(CLOUD_MIGRATION_KEY) === "1";
+      } catch {
+        migrated = true;
+      }
+      if (!cloudKeys.length && localKeys.length && !migrated) {
+        this.save.auth.accounts = localAccounts;
+        try {
+          localStorage.setItem(CLOUD_MIGRATION_KEY, "1");
+        } catch {
+          // Local storage can be unavailable; the upload still attempts once this run.
+        }
+        for (const [key, account] of Object.entries(localAccounts)) this.cloudAccounts.saveAccount(key, account);
+        return;
+      }
+      try {
+        localStorage.setItem(CLOUD_MIGRATION_KEY, "1");
+      } catch {
+        // Non-fatal; cloud accounts remain usable.
+      }
+      this.save.auth ||= { currentUser: "", accounts: {} };
+      this.save.auth.accounts = clean;
+      if (this.save.auth.currentUser && !this.save.auth.accounts[this.save.auth.currentUser]) {
+        this.save.auth.currentUser = "";
+        this.applyProfile(defaultProfile(""));
+      }
     }
 
     startUpdateWatcher() {
@@ -2387,13 +2539,14 @@
       return true;
     }
 
-    registerAccount() {
+    async registerAccount() {
       const username = (document.getElementById("registerUsername")?.value || "").trim().slice(0, 18);
       const password = document.getElementById("registerPassword")?.value || "";
       const confirm = document.getElementById("registerConfirm")?.value || "";
       if (!this.validateAccountForm(username, password, confirm, true)) return;
       const key = accountKey(username);
-      if (this.save.auth.accounts[key]) {
+      const cloudAccount = await this.cloudAccounts.getAccount(key);
+      if (this.save.auth.accounts[key] || cloudAccount) {
         this.toast("Tài khoản này đã tồn tại");
         return;
       }
@@ -2407,15 +2560,18 @@
       this.save.auth.currentUser = key;
       this.applyProfile(profile);
       this.persist();
+      this.saveCloudAccountNow(key);
       this.toast(`Chào mừng ${username}`);
       this.showMainMenu();
     }
 
-    loginAccount() {
+    async loginAccount() {
       const username = (document.getElementById("loginUsername")?.value || "").trim();
       const password = document.getElementById("loginPassword")?.value || "";
       if (!this.validateAccountForm(username, password, password, false)) return;
       const key = accountKey(username);
+      const cloudAccount = await this.cloudAccounts.getAccount(key);
+      if (cloudAccount) this.save.auth.accounts[key] = cloudAccount;
       const account = this.save.auth.accounts[key];
       if (!account) {
         this.toast("Không tìm thấy tài khoản");
@@ -2426,9 +2582,11 @@
         return;
       }
       if (!account.passwordHash) account.passwordHash = passwordHash(account.username, password);
+      account.profile ||= defaultProfile(account.username || username);
       this.save.auth.currentUser = key;
       this.applyProfile(account.profile);
       this.persist();
+      this.saveCloudAccountNow(key);
       this.toast(`Đã đăng nhập ${account.username}`);
       this.showMainMenu();
     }
@@ -4338,6 +4496,22 @@
         this.save.auth.accounts[active].profile = this.profileSnapshot();
       }
       this.store.save(this.save);
+      this.queueCloudAccountSave(active);
+    }
+
+    queueCloudAccountSave(key = this.save.auth?.currentUser) {
+      if (!key || !this.save.auth?.accounts?.[key]) return;
+      if (this.cloudSaveTimer) clearTimeout(this.cloudSaveTimer);
+      this.cloudSaveTimer = setTimeout(() => {
+        this.cloudSaveTimer = null;
+        this.saveCloudAccountNow(key);
+      }, CLOUD_SAVE_DEBOUNCE);
+    }
+
+    saveCloudAccountNow(key = this.save.auth?.currentUser) {
+      if (!key || !this.save.auth?.accounts?.[key]) return;
+      const account = cloneData(this.save.auth.accounts[key]);
+      this.cloudAccounts.saveAccount(key, account);
     }
 
     toast(message) {

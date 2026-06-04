@@ -7,7 +7,7 @@
   const ROOM_PAD = 86;
   const SAVE_KEY = "soulrift-save-v1";
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
-  const APP_VERSION = "20260604-power-identity-skills-102";
+  const APP_VERSION = "20260604-power-identity-skills-103";
   const VERSION_CHECK_INTERVAL = 15000;
   const UPDATE_ATTEMPT_KEY = "soulrift-update-attempt-v1";
   const CLOUD_MIGRATION_KEY = "soulrift-cloud-migrated-v1";
@@ -7255,6 +7255,65 @@
       return frozen;
     }
 
+    enemiesInLine(x, y, angle, length, width, limit = 99) {
+      const dx = Math.cos(angle);
+      const dy = Math.sin(angle);
+      const hits = [];
+      for (const enemy of this.run?.enemies || []) {
+        if (!enemy || enemy.hp <= 0) continue;
+        const ex = enemy.x - x;
+        const ey = enemy.y - y;
+        const along = ex * dx + ey * dy;
+        const side = Math.abs(ex * -dy + ey * dx);
+        if (along > -enemy.radius && along < length + enemy.radius && side < width + enemy.radius) {
+          hits.push({ enemy, along });
+        }
+      }
+      return hits.sort((a, b) => a.along - b.along).slice(0, limit).map((hit) => hit.enemy);
+    }
+
+    freezeIceInArea(x, y, radius, duration, damage, color, casterId = "") {
+      if (!this.run) return 0;
+      this.addShockwave(x, y, radius * 0.78, color, 0);
+      let frozen = 0;
+      for (const enemy of [...this.run.enemies]) {
+        const d = Math.hypot(enemy.x - x, enemy.y - y);
+        if (d > radius + enemy.radius) continue;
+        enemy.chill = Math.max(enemy.chill || 0, duration + 1.4);
+        if (!this.isMultiplayerClient()) {
+          enemy.stun = Math.max(enemy.stun || 0, enemy.boss ? Math.min(0.16, duration * 0.22) : duration);
+          enemy.vx *= 0.24;
+          enemy.vy *= 0.24;
+          if (damage > 0) {
+            const force = Math.max(0.34, 1 - d / Math.max(1, radius));
+            this.damageEnemy(enemy, damage * force, {
+              x: 0,
+              y: 0,
+              source: "iceFreeze",
+              kind: "ice",
+              noKnockback: true,
+              sourceId: casterId
+            });
+          }
+        }
+        frozen += 1;
+        if (chance(0.9)) this.addParticle(enemy.x, enemy.y - enemy.radius * 0.4, color, rand(8, 16), rand(0.25, 0.58), "snow");
+      }
+      return frozen;
+    }
+
+    applyBloodBleed(enemy, damage, duration = 4.4, sourceId = "") {
+      if (!enemy || enemy.hp <= 0) return;
+      if (!this.isMultiplayerClient()) {
+        enemy.bleed = Math.max(enemy.bleed || 0, enemy.boss ? duration * 0.72 : duration);
+        enemy.bleedTick = Math.min(Number(enemy.bleedTick || 0.44), 0.34);
+        enemy.bleedDamage = Math.max(enemy.bleedDamage || 0, Math.max(1.1, damage * (enemy.boss ? 0.042 : 0.068)));
+      }
+      const a = rand(-Math.PI, Math.PI);
+      this.addParticle(enemy.x, enemy.y - enemy.radius * 0.2, "#b01d45", rand(6, 12), rand(0.22, 0.42), "spark", a, rand(45, 120));
+      if (sourceId && !this.isMultiplayerClient()) enemy.lastBleedSourceId = sourceId;
+    }
+
     applyPowerIdentity(kind, key, caster, angle, impact, damage, owner = "player", casterId = "", remote = false, awakened = false) {
       if (!this.run || !caster || !impact) return;
       const radius = key === "f" ? 360 : key === "r" ? 280 : key === "e" ? 220 : 190;
@@ -7390,16 +7449,26 @@
           });
           this.addTrailDamage(sx, sy, power.color);
         } else if (kind === "ice") {
-          this.addSkillShape(kind, "iceRing", x, y, angle, 175);
-          this.areaDamage(x, y, 168, damage * 1.1, power.color, kind);
-          for (const enemy of this.run.enemies) {
-            if (Math.hypot(enemy.x - x, enemy.y - y) < 190) enemy.chill = Math.max(enemy.chill, 3.4);
+          const length = 390;
+          const impactX = x + Math.cos(angle) * 265;
+          const impactY = y + Math.sin(angle) * 265;
+          this.addSkillShape(kind, "iceLance", x, y, angle, 220, 0.52, { length, width: 38 });
+          this.lineDamage(x, y, angle, length, 30, damage * 1.08, power.color, kind, 3);
+          for (const enemy of this.enemiesInLine(x, y, angle, length, 42, 5)) {
+            enemy.chill = Math.max(enemy.chill || 0, 3.8);
+            if (!this.isMultiplayerClient()) enemy.stun = Math.max(enemy.stun || 0, enemy.boss ? 0.08 : 0.26);
+            this.addParticle(enemy.x, enemy.y - enemy.radius * 0.35, power.accent, rand(8, 16), rand(0.28, 0.55), "snow");
           }
-          this.addShockwave(x, y, 185, power.color, 18);
+          this.freezeIceInArea(impactX, impactY, 76, 0.36, damage * 0.22, power.color, casterId);
         } else if (kind === "lightning") {
           this.addSkillShape(kind, "boltLine", x, y, angle, 520, 0.34, { length: 540, width: 42 });
           this.lineDamage(x, y, angle, 540, 34, damage * 1.35, power.color, kind, 4);
           this.burstLines(x + Math.cos(angle) * 250, y + Math.sin(angle) * 250, power.accent, 4, 120, 0.13);
+          const struck = this.enemiesInLine(x, y, angle, 540, 48, 1)[0];
+          if (struck) {
+            if (!this.isMultiplayerClient()) struck.stun = Math.max(struck.stun || 0, struck.boss ? 0.08 : 0.22);
+            this.chainLightning(struck, damage * 0.46);
+          }
         } else if (kind === "shadow") {
           const sx = x + Math.cos(angle) * 96;
           const sy = y + Math.sin(angle) * 96;
@@ -7410,21 +7479,37 @@
           }
           this.addSkillShape(kind, "shadowBloom", sx, sy, angle, 150);
           this.areaDamage(sx, sy, 145, damage * 1.12, power.color, kind);
-          for (const enemy of this.run.enemies) if (Math.hypot(enemy.x - sx, enemy.y - sy) < 165) enemy.mark += 2;
+          for (const enemy of this.run.enemies) {
+            if (Math.hypot(enemy.x - sx, enemy.y - sy) >= 165) continue;
+            enemy.mark += 2;
+            if (chance(0.8)) this.addShadowShard(enemy, caster, 1);
+          }
         } else if (kind === "blood") {
           this.addSkillShape(kind, "bloodArc", x, y, angle, 205);
           this.coneDamage(x, y, angle, 205, Math.PI * 1.1, damage * 1.28, power.color, kind);
+          for (const enemy of this.enemiesNear(x, y, 230, 7)) {
+            const a = Math.atan2(enemy.y - y, enemy.x - x);
+            if (Math.abs(angleDelta(a, angle)) < Math.PI * 0.58) this.applyBloodBleed(enemy, damage, 4.8, casterId);
+          }
           healFromSkill(6 + damage * 0.1);
         } else if (kind === "gravity") {
           this.addSkillShape(kind, "gravityCrush", forwardX, forwardY, angle, 205);
           this.addEffect({ type: "pull", x: forwardX, y: forwardY, radius: 245, time: 1.05, color: power.color });
           this.areaDamage(forwardX, forwardY, 135, damage * 1.1, power.color, kind);
+          this.lineDamage(x, y, angle, 285, 68, damage * 0.42, power.color, kind, 7);
+          for (const enemy of this.enemiesNear(forwardX, forwardY, 220, 8)) {
+            if (this.enemyDomainBoundActive(enemy)) continue;
+            const d = Math.hypot(forwardX - enemy.x, forwardY - enemy.y) || 1;
+            enemy.vx += ((forwardX - enemy.x) / d) * (enemy.boss ? 120 : 280);
+            enemy.vy += ((forwardY - enemy.y) / d) * (enemy.boss ? 120 : 280);
+          }
         } else if (kind === "crystal") {
           this.addSkillShape(kind, "crystalFan", x, y, angle, 250);
           for (let i = -3; i <= 3; i++) {
             const a = angle + i * 0.13;
             this.spawnProjectile({
               owner,
+              casterId,
               x: x + Math.cos(a) * 26,
               y: y + Math.sin(a) * 26,
               vx: Math.cos(a) * 650,
@@ -7437,15 +7522,24 @@
               kind
             });
           }
+          const core = x + Math.cos(angle) * 170;
+          const coreY = y + Math.sin(angle) * 170;
+          this.addShockwave(core, coreY, 90, power.accent, 0);
         } else if (kind === "nature") {
           this.addSkillShape(kind, "vineTrap", tx, ty, angle, 165);
-          this.addEffect({ type: "zone", x: tx, y: ty, radius: 145, time: 2.8, tick: 0.18, color: power.color, kind });
+          this.addEffect({ type: "zone", x: tx, y: ty, radius: 145, time: 2.8, tick: 0.18, color: power.color, kind, casterId });
+          this.lineDamage(x, y, angle, 340, 24, damage * 0.36, power.color, kind, 5);
           for (const enemy of this.run.enemies) if (Math.hypot(enemy.x - tx, enemy.y - ty) < 155) enemy.stun = Math.max(enemy.stun, enemy.boss ? 0.08 : 0.42);
         } else if (kind === "void") {
           this.addSkillShape(kind, "voidTear", tx, ty, angle, 210);
           this.addEffect({ type: "pull", x: tx, y: ty, radius: 280, time: 1.3, color: power.color });
           this.areaDamage(tx, ty, 130, damage * 1.25, power.color, kind);
-          for (const enemy of this.run.enemies) if (Math.hypot(enemy.x - tx, enemy.y - ty) < 220) enemy.mark += 2;
+          this.lineDamage(x, y, angle, 360, 34, damage * 0.38, power.color, kind, 5);
+          const voidLineTargets = new Set(this.enemiesInLine(x, y, angle, 360, 42, 8).map((enemy) => enemy.id));
+          for (const enemy of this.run.enemies) {
+            if (Math.hypot(enemy.x - tx, enemy.y - ty) < 220) enemy.mark += 2;
+            if (voidLineTargets.has(enemy.id)) enemy.mark += 1;
+          }
         } else if (kind === "time") {
           const stopX = x + Math.cos(angle) * 135;
           const stopY = y + Math.sin(angle) * 135;
@@ -7469,37 +7563,59 @@
         } else if (kind === "ice") {
           caster.shield = Math.max(caster.shield || 0, 62 + this.run.stage * 8);
           this.addEffect({ type: "shield", target: caster, time: 4.2, color: power.color });
+          this.addSkillShape(kind, "mirrorBurst", x, y, angle, 155, 0.52);
+          this.freezeIceInArea(x, y, 118, 0.44, damage * 0.24, power.color, casterId);
         } else if (kind === "lightning") {
-          if (!remote) this.run.drones.push({ angle: rand(0, TAU), cooldown: 0, radius: 86, temporary: 8, color: power.color });
-          this.burstLines(x, y, power.accent, 5, 170, 0.12);
+          if (!remote) {
+            this.run.drones.push({ angle: rand(0, TAU), cooldown: 0, radius: 76, temporary: 7.2, color: power.color });
+            this.run.drones.push({ angle: rand(0, TAU), cooldown: 0.22, radius: 112, temporary: 7.2, color: power.accent });
+          }
+          const targetEnemy = this.nearestEnemy(x, y, 420);
+          if (targetEnemy) this.chainLightning(targetEnemy, damage * 0.32);
+          this.burstLines(x, y, power.accent, 7, 190, 0.12);
         } else if (kind === "shadow") {
           caster.invuln = Math.max(caster.invuln || 0, 0.82);
-          for (const enemy of this.run.enemies) if (Math.hypot(enemy.x - x, enemy.y - y) < 180) enemy.mark += 2;
+          for (const enemy of this.run.enemies) {
+            if (Math.hypot(enemy.x - x, enemy.y - y) >= 205) continue;
+            enemy.mark += 2;
+            this.addShadowShard(enemy, caster, 1);
+          }
+          this.applyShadowWeaponBuff(caster, 1, !remote && caster === this.run.player);
         } else if (kind === "blood") {
           if (!remote) caster.hp = Math.max(1, caster.hp - 8);
           caster.shield = Math.max(caster.shield || 0, 38);
           this.areaDamage(x, y, 125, damage * 0.8, power.color, kind);
+          for (const enemy of this.enemiesNear(x, y, 150, 8)) this.applyBloodBleed(enemy, damage * 0.72, 5.4, casterId);
           healFromSkill(9);
         } else if (kind === "gravity") {
           caster.shield = Math.max(caster.shield || 0, 46);
           this.addEffect({ type: "pull", x, y, radius: 205, time: 0.9, color: power.color });
+          this.addSkillShape(kind, "orbitGuard", x, y, angle, 190, 0.58);
+          this.areaDamage(x, y, 92, damage * 0.34, power.color, kind);
         } else if (kind === "crystal") {
           caster.shield = Math.max(caster.shield || 0, 52);
-          for (let i = 0; i < 6; i++) {
-            const a = (i / 6) * TAU;
-            this.spawnProjectile({ owner, x, y, vx: Math.cos(a) * 430, vy: Math.sin(a) * 430, radius: 6, damage: damage * 0.45, life: 0.55, color: power.color, pierce: 0, kind });
+          this.addSkillShape(kind, "crystalShell", x, y, angle, 175, 0.58);
+          for (let i = 0; i < 8; i++) {
+            const a = (i / 8) * TAU + 0.08;
+            this.spawnProjectile({ owner, casterId, x, y, vx: Math.cos(a) * 460, vy: Math.sin(a) * 460, radius: 6, damage: damage * 0.38, life: 0.58, color: i % 2 ? power.color : power.accent, pierce: 0, kind });
           }
         } else if (kind === "nature") {
           healFromSkill(22);
           this.areaDamage(x, y, 115, damage * 0.55, power.color, kind);
-          for (const enemy of this.run.enemies) if (Math.hypot(enemy.x - x, enemy.y - y) < 135) enemy.stun = Math.max(enemy.stun, 0.25);
+          this.addEffect({ type: "zone", x, y, radius: 132, time: 2.6, tick: 0.22, color: power.color, kind, casterId });
+          for (const enemy of this.run.enemies) if (Math.hypot(enemy.x - x, enemy.y - y) < 145) enemy.stun = Math.max(enemy.stun || 0, enemy.boss ? 0.06 : 0.34);
         } else if (kind === "void") {
           if (!remote) {
             caster.x = clamp(x + Math.cos(angle) * 128, ROOM_PAD + caster.radius, WORLD_W - ROOM_PAD - caster.radius);
             caster.y = clamp(y + Math.sin(angle) * 128, ROOM_PAD + caster.radius, WORLD_H - ROOM_PAD - caster.radius);
             caster.invuln = Math.max(caster.invuln || 0, 0.35);
           }
-          this.addShockwave(x, y, 130, power.color, 18);
+          const endX = caster.x;
+          const endY = caster.y;
+          this.addSkillShape(kind, "phaseSlash", x, y, angle, 170, 0.42, { length: Math.hypot(endX - x, endY - y) + 95, width: 50 });
+          this.lineDamage(x, y, angle, 230, 48, damage * 0.52, power.color, kind, 6);
+          for (const enemy of this.enemiesInLine(x, y, angle, 230, 58, 6)) enemy.mark += 2;
+          this.addShockwave(endX, endY, 130, power.color, 18);
         } else if (kind === "time") {
           if (!remote) {
             healFromSkill(4);
@@ -7544,47 +7660,80 @@
           }
         } else if (kind === "ice") {
           this.addSkillShape(kind, "frozenField", tx, ty, angle, 190, 0.85);
-          this.addEffect({ type: "zone", x: tx, y: ty, radius: 180, time: 4.2, tick: 0.1, color: power.color, kind });
+          this.addEffect({ type: "zone", x: tx, y: ty, radius: 180, time: 4.2, tick: 0.1, color: power.color, kind, casterId });
           for (const enemy of this.run.enemies) if (Math.hypot(enemy.x - tx, enemy.y - ty) < 190) enemy.chill = Math.max(enemy.chill, 4);
+          this.freezeIceInArea(tx, ty, 168, 0.58, damage * 0.34, power.color, casterId);
+          for (let i = 0; i < 8; i++) {
+            const px = tx + rand(-170, 170);
+            const py = ty - 250 - i * 6;
+            this.spawnProjectile({
+              owner,
+              casterId,
+              x: px,
+              y: py,
+              vx: rand(-38, 38),
+              vy: 650 + i * 10,
+              radius: 7,
+              damage: damage * 0.46,
+              life: 0.72,
+              color: i % 2 ? power.color : power.accent,
+              pierce: 0,
+              kind
+            });
+          }
         } else if (kind === "lightning") {
           this.addSkillShape(kind, "stormCage", tx, ty, angle, 210, 0.72);
           this.areaDamage(tx, ty, 175, damage * 1.55, power.color, kind);
+          this.addEffect({ type: "zone", x: tx, y: ty, radius: 205, time: 2.4, tick: 0.08, color: power.color, kind, casterId });
           for (let i = 0; i < 7; i++) {
             const a = (i / 7) * TAU;
             this.run.slashes.push({ x: tx + Math.cos(a) * 170, y: ty + Math.sin(a) * 170, tx, ty, line: true, life: 0.18, maxLife: 0.18, color: power.accent });
           }
+          for (const enemy of this.enemiesNear(tx, ty, 230, 3)) this.chainLightning(enemy, damage * 0.34);
         } else if (kind === "shadow") {
           this.addSkillShape(kind, "twinSouls", x, y, angle, 230, 0.72);
           for (let i = -1; i <= 1; i += 2) {
-            this.spawnProjectile({ owner, x: x - Math.sin(angle) * i * 36, y: y + Math.cos(angle) * i * 36, vx: Math.cos(angle) * 640, vy: Math.sin(angle) * 640, radius: 9, damage: damage * 1.08, life: 0.9, color: power.color, pierce: 2, kind });
+            this.spawnProjectile({ owner, casterId, x: x - Math.sin(angle) * i * 36, y: y + Math.cos(angle) * i * 36, vx: Math.cos(angle) * 640, vy: Math.sin(angle) * 640, radius: 9, damage: damage * 1.08, life: 0.9, color: power.color, pierce: 2, kind });
           }
           this.lineDamage(x, y, angle, 430, 38, damage * 0.8, power.color, kind, 4);
+          for (const enemy of this.enemiesInLine(x, y, angle, 430, 52, 6)) {
+            enemy.mark += 2;
+            this.addShadowShard(enemy, caster, 1);
+          }
         } else if (kind === "blood") {
           this.addSkillShape(kind, "bloodOrbit", x, y, angle, 220, 0.85);
-          this.addEffect({ type: "zone", x, y, radius: 185, time: 4.0, tick: 0.08, color: power.color, kind });
+          this.addEffect({ type: "zone", x, y, radius: 185, time: 4.0, tick: 0.08, color: power.color, kind, casterId });
+          for (const enemy of this.enemiesNear(x, y, 205, 10)) this.applyBloodBleed(enemy, damage, 6.2, casterId);
           healFromSkill(12);
         } else if (kind === "gravity") {
           this.addSkillShape(kind, "blackAnchor", tx, ty, angle, 235, 0.9);
           this.addEffect({ type: "pull", x: tx, y: ty, radius: 340, time: 2.4, color: power.color });
-          this.addEffect({ type: "zone", x: tx, y: ty, radius: 180, time: 3.4, tick: 0.12, color: power.color, kind });
+          this.addEffect({ type: "zone", x: tx, y: ty, radius: 180, time: 3.4, tick: 0.12, color: power.color, kind, casterId });
+          this.areaDamage(tx, ty, 150, damage * 0.72, power.color, kind);
+          this.addShockwave(tx, ty, 245, power.accent, 0);
         } else if (kind === "crystal") {
           this.addSkillShape(kind, "crystalRain", tx, ty, angle, 220, 0.75);
           for (let i = 0; i < 12; i++) {
             const px = tx + rand(-150, 150);
-            this.spawnProjectile({ owner, x: px, y: ty - 210, vx: rand(-60, 60), vy: 620, radius: 8, damage: damage * 0.72, life: 0.75, color: power.color, pierce: 0, kind });
+            this.spawnProjectile({ owner, casterId, x: px, y: ty - 210, vx: rand(-60, 60), vy: 620, radius: 8, damage: damage * 0.72, life: 0.75, color: i % 2 ? power.color : power.accent, pierce: 0, kind });
           }
+          this.addEffect({ type: "zone", x: tx, y: ty, radius: 135, time: 1.8, tick: 0.16, color: power.accent, kind, casterId });
         } else if (kind === "nature") {
           this.addSkillShape(kind, "thornLine", x, y, angle, 260, 0.72, { length: 360 });
           for (let i = 1; i <= 5; i++) {
             const px = x + Math.cos(angle) * i * 70;
             const py = y + Math.sin(angle) * i * 70;
             this.areaDamage(px, py, 58, damage * 0.55, power.color, kind);
+            this.addEffect({ type: "zone", x: px, y: py, radius: 54, time: 1.8, tick: 0.28, color: power.color, kind, casterId });
             this.addParticle(px, py, power.color, 18, 0.38, "leaf");
           }
+          for (const enemy of this.enemiesInLine(x, y, angle, 390, 74, 8)) enemy.stun = Math.max(enemy.stun || 0, enemy.boss ? 0.08 : 0.42);
         } else if (kind === "void") {
           this.addSkillShape(kind, "abyssWell", tx, ty, angle, 240, 0.95);
           this.addEffect({ type: "pull", x: tx, y: ty, radius: 360, time: 2.5, color: power.color });
           this.areaDamage(tx, ty, 190, damage * 1.25, power.color, kind);
+          this.addEffect({ type: "zone", x: tx, y: ty, radius: 215, time: 2.2, tick: 0.18, color: power.color, kind, casterId });
+          for (const enemy of this.enemiesNear(tx, ty, 260, 10)) enemy.mark += enemy.boss ? 2 : 3;
         } else if (kind === "time") {
           this.addSkillShape(kind, "timePrison", tx, ty, angle, 255, 0.95);
           this.stopTimeInArea(tx, ty, 255, 2.25, damage * 1.18, power.color, casterId);
@@ -9979,7 +10128,8 @@
         projectile.x += projectile.vx * dt;
         projectile.y += projectile.vy * dt;
         if (this.inView(projectile.x, projectile.y, 90) && chance((this.isMobileDevice() ? 18 : 30) * dt)) {
-          this.addParticle(projectile.x, projectile.y, projectile.color, projectile.radius * 0.9, 0.25, projectile.kind === "fireball" ? "flame" : "dot");
+          const trailKind = projectile.kind === "fireball" ? "flame" : projectile.kind === "ice" ? "snow" : projectile.kind === "shadow" ? "shade" : "dot";
+          this.addParticle(projectile.x, projectile.y, projectile.color, projectile.radius * 0.9, 0.25, trailKind);
         }
         if (projectile.visualOnly || ((projectile.owner === "player" || projectile.owner === "ally") && this.isMultiplayerClient())) {
           this.stopVisualProjectileAtEnemy(projectile, fromX, fromY);
@@ -11963,6 +12113,53 @@
         ctx.fill();
         ctx.fillStyle = "#ffffff";
         ctx.fillRect(-projectile.radius * 1.7, -1, projectile.radius * 3.9, 2);
+      } else if (projectile.kind === "ice") {
+        const r = projectile.radius;
+        ctx.globalAlpha = 0.92;
+        ctx.fillStyle = projectile.color || "#83e8ff";
+        ctx.beginPath();
+        ctx.moveTo(r * 2.8, 0);
+        ctx.lineTo(-r * 1.1, -r * 0.95);
+        ctx.lineTo(-r * 0.35, 0);
+        ctx.lineTo(-r * 1.1, r * 0.95);
+        ctx.closePath();
+        ctx.fill();
+        ctx.strokeStyle = "#ffffff";
+        ctx.globalAlpha = 0.56;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(-r * 0.65, 0);
+        ctx.lineTo(r * 1.7, 0);
+        ctx.stroke();
+      } else if (projectile.kind === "shadow") {
+        const r = projectile.radius;
+        ctx.globalCompositeOperation = "lighter";
+        ctx.globalAlpha = 0.72;
+        ctx.strokeStyle = "#05030d";
+        ctx.lineWidth = Math.max(7, r * 0.8);
+        ctx.beginPath();
+        ctx.arc(-r * 0.35, 0, r * 2.15, -0.56, 0.56);
+        ctx.stroke();
+        ctx.globalAlpha = 0.66;
+        ctx.strokeStyle = projectile.color || "#8f72ff";
+        ctx.lineWidth = Math.max(2, r * 0.28);
+        ctx.beginPath();
+        ctx.arc(-r * 0.05, 0, r * 1.45, -0.5, 0.5);
+        ctx.stroke();
+        ctx.globalCompositeOperation = "source-over";
+      } else if (projectile.kind === "void") {
+        const r = projectile.radius;
+        ctx.globalAlpha = 0.78;
+        ctx.strokeStyle = projectile.color || "#6a8dff";
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.ellipse(0, 0, r * 1.9, r * 0.92, 0, 0, TAU);
+        ctx.stroke();
+        ctx.globalAlpha = 0.42;
+        ctx.fillStyle = "#020411";
+        ctx.beginPath();
+        ctx.ellipse(0, 0, r * 1.35, r * 0.62, 0, 0, TAU);
+        ctx.fill();
       } else if (projectile.kind === "crystal" || projectile.kind === "enemySniper") {
         ctx.fillRect(-projectile.radius, -projectile.radius * 0.35, projectile.radius * 2.4, projectile.radius * 0.7);
         ctx.beginPath();
@@ -13599,21 +13796,60 @@
         }
       } else if (kind === "ice") {
         ctx.lineWidth = 3;
-        ctx.globalAlpha = alpha * 0.7;
-        ctx.beginPath();
-        ctx.arc(0, 0, r * (0.42 + progress * 0.25), 0, TAU);
-        ctx.stroke();
-        ctx.globalAlpha = alpha;
-        const spikes = lowDetail ? 6 : 8;
-        for (let i = 0; i < spikes; i++) {
-          const a = (i / spikes) * TAU;
-          const sx = Math.cos(a);
-          const sy = Math.sin(a);
+        if (effect.variant === "iceLance") {
+          ctx.globalAlpha = alpha * 0.86;
+          ctx.strokeStyle = effect.color;
+          ctx.lineWidth = 7;
           ctx.beginPath();
-          ctx.moveTo(sx * r * 0.12, sy * r * 0.12);
-          ctx.lineTo(sx * r * 0.72, sy * r * 0.72);
+          ctx.moveTo(8, 0);
+          ctx.lineTo(length * 0.84, 0);
           ctx.stroke();
-          diamond(sx * r * 0.52, sy * r * 0.52, 9, 18, i % 2 === 0);
+          ctx.globalAlpha = alpha;
+          ctx.fillStyle = effect.accent || "#d9fbff";
+          ctx.strokeStyle = effect.accent || "#d9fbff";
+          ctx.beginPath();
+          ctx.moveTo(length * 0.98, 0);
+          ctx.lineTo(length * 0.78, -18);
+          ctx.lineTo(length * 0.84, 0);
+          ctx.lineTo(length * 0.78, 18);
+          ctx.closePath();
+          ctx.fill();
+          ctx.stroke();
+          for (let i = 1; i <= (lowDetail ? 3 : 5); i++) {
+            const px = length * (0.12 + i * 0.12);
+            diamond(px, i % 2 ? -16 : 16, 7, 15, true);
+          }
+        } else if (effect.variant === "mirrorBurst") {
+          ctx.globalAlpha = alpha * 0.76;
+          for (let i = -1; i <= 1; i++) {
+            ctx.save();
+            ctx.translate(i * 34, 0);
+            ctx.rotate(i * 0.16);
+            diamond(0, 0, 18, r * 0.46, true);
+            ctx.globalAlpha = alpha * 0.42;
+            ctx.beginPath();
+            ctx.moveTo(-10, -r * 0.22);
+            ctx.lineTo(10, r * 0.2);
+            ctx.stroke();
+            ctx.restore();
+          }
+        } else {
+          ctx.globalAlpha = alpha * 0.7;
+          ctx.beginPath();
+          ctx.arc(0, 0, r * (0.42 + progress * 0.25), 0, TAU);
+          ctx.stroke();
+          ctx.globalAlpha = alpha;
+          const spikes = lowDetail ? 6 : 8;
+          for (let i = 0; i < spikes; i++) {
+            const a = (i / spikes) * TAU;
+            const sx = Math.cos(a);
+            const sy = Math.sin(a);
+            ctx.beginPath();
+            ctx.moveTo(sx * r * 0.12, sy * r * 0.12);
+            ctx.lineTo(sx * r * 0.72, sy * r * 0.72);
+            ctx.stroke();
+            diamond(sx * r * 0.52, sy * r * 0.52, 9, 18, i % 2 === 0);
+          }
         }
       } else if (kind === "lightning") {
         ctx.lineWidth = 5;
@@ -13766,24 +14002,41 @@
         }
       } else if (kind === "void") {
         ctx.lineWidth = 5;
-        ctx.globalAlpha = alpha * 0.88;
-        ctx.save();
-        ctx.scale(1, 0.62);
-        ctx.beginPath();
-        ctx.arc(0, 0, r * 0.55, 0, TAU);
-        ctx.stroke();
-        ctx.globalAlpha = alpha * 0.34;
-        ctx.fill();
-        ctx.restore();
-        ctx.globalAlpha = alpha;
-        ctx.beginPath();
-        ctx.moveTo(-r * 0.1, -r * 0.42);
-        ctx.lineTo(r * 0.18, -r * 0.06);
-        ctx.lineTo(r * 0.02, r * 0.1);
-        ctx.lineTo(r * 0.3, r * 0.46);
-        ctx.lineTo(-r * 0.12, r * 0.1);
-        ctx.closePath();
-        ctx.stroke();
+        if (effect.variant === "phaseSlash") {
+          ctx.globalAlpha = alpha * 0.78;
+          ctx.strokeStyle = effect.color;
+          ctx.lineWidth = 10;
+          ctx.beginPath();
+          ctx.moveTo(0, 0);
+          ctx.bezierCurveTo(length * 0.18, -38, length * 0.58, 38, length, 0);
+          ctx.stroke();
+          ctx.globalAlpha = alpha * 0.5;
+          ctx.strokeStyle = effect.accent || "#f2f6ff";
+          ctx.lineWidth = 3;
+          ctx.beginPath();
+          ctx.moveTo(length * 0.12, -16);
+          ctx.lineTo(length * 0.88, 16);
+          ctx.stroke();
+        } else {
+          ctx.globalAlpha = alpha * 0.88;
+          ctx.save();
+          ctx.scale(1, 0.62);
+          ctx.beginPath();
+          ctx.arc(0, 0, r * 0.55, 0, TAU);
+          ctx.stroke();
+          ctx.globalAlpha = alpha * 0.34;
+          ctx.fill();
+          ctx.restore();
+          ctx.globalAlpha = alpha;
+          ctx.beginPath();
+          ctx.moveTo(-r * 0.1, -r * 0.42);
+          ctx.lineTo(r * 0.18, -r * 0.06);
+          ctx.lineTo(r * 0.02, r * 0.1);
+          ctx.lineTo(r * 0.3, r * 0.46);
+          ctx.lineTo(-r * 0.12, r * 0.1);
+          ctx.closePath();
+          ctx.stroke();
+        }
       } else if (kind === "time") {
         ctx.lineWidth = 3;
         ctx.beginPath();

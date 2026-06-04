@@ -1358,6 +1358,94 @@ button {
   line-height: 1.35;
 }
 
+.friend-layout {
+  display: grid;
+  grid-template-columns: minmax(240px, 320px) minmax(0, 1fr);
+  gap: 12px;
+  align-items: start;
+}
+
+.friend-side,
+.friend-main,
+.friend-section,
+.friend-list,
+.friend-chip-list {
+  display: grid;
+  gap: 10px;
+}
+
+.friend-section {
+  padding-top: 2px;
+}
+
+.friend-section h3 {
+  margin: 0;
+  color: var(--gold);
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0;
+}
+
+.friend-card,
+.lobby-friends {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+  min-height: 82px;
+  padding: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.13);
+  background: rgba(255, 255, 255, 0.055);
+}
+
+.friend-card h3,
+.lobby-friends b {
+  display: block;
+  margin: 0 0 5px;
+  font-size: 15px;
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+
+.friend-card p,
+.lobby-friends span {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.friend-actions,
+.lobby-friend-buttons {
+  display: flex;
+  gap: 7px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.friend-card .btn,
+.lobby-friends .btn {
+  min-height: 36px;
+  padding: 7px 9px;
+  font-size: 12px;
+  text-align: center;
+}
+
+.friend-chip {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 9px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.lobby-friends {
+  margin: 2px 0;
+  grid-template-columns: minmax(150px, 1fr) minmax(0, 2fr) auto;
+}
+
 .tab-strip {
   display: flex;
   flex-wrap: wrap;
@@ -2767,6 +2855,10 @@ button {
     gap: 7px;
   }
 
+  .menu-only .nav-buttons {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .btn,
   .icon-btn {
     min-height: 44px;
@@ -2777,6 +2869,7 @@ button {
 
   .grid.cols-2,
   .grid.cols-3,
+  .friend-layout,
   .slot-grid,
   .character-layout,
   .home-grid,
@@ -2784,6 +2877,22 @@ button {
   .account-shell,
   .account-choice-grid {
     grid-template-columns: 1fr;
+  }
+
+  .friend-card,
+  .lobby-friends {
+    grid-template-columns: 1fr;
+  }
+
+  .friend-actions,
+  .lobby-friend-buttons {
+    justify-content: stretch;
+  }
+
+  .friend-actions .btn,
+  .lobby-friend-buttons .btn,
+  .lobby-friends > .btn {
+    flex: 1 1 110px;
   }
 
   .account-choice-grid {
@@ -3045,6 +3154,10 @@ body.is-mobile-ui .nav-buttons {
   gap: 7px;
 }
 
+body.is-mobile-ui .menu-only .nav-buttons {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
 body.is-mobile-ui .btn,
 body.is-mobile-ui .icon-btn {
   min-height: 44px;
@@ -3055,6 +3168,7 @@ body.is-mobile-ui .icon-btn {
 
 body.is-mobile-ui .grid.cols-2,
 body.is-mobile-ui .grid.cols-3,
+body.is-mobile-ui .friend-layout,
 body.is-mobile-ui .slot-grid,
 body.is-mobile-ui .character-layout,
 body.is-mobile-ui .home-grid,
@@ -3062,6 +3176,22 @@ body.is-mobile-ui .account-grid,
 body.is-mobile-ui .account-shell,
 body.is-mobile-ui .account-choice-grid {
   grid-template-columns: 1fr;
+}
+
+body.is-mobile-ui .friend-card,
+body.is-mobile-ui .lobby-friends {
+  grid-template-columns: 1fr;
+}
+
+body.is-mobile-ui .friend-actions,
+body.is-mobile-ui .lobby-friend-buttons {
+  justify-content: stretch;
+}
+
+body.is-mobile-ui .friend-actions .btn,
+body.is-mobile-ui .lobby-friend-buttons .btn,
+body.is-mobile-ui .lobby-friends > .btn {
+  flex: 1 1 110px;
 }
 
 body.is-mobile-ui .hud {

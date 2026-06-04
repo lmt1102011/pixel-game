@@ -7,7 +7,7 @@
   const ROOM_PAD = 86;
   const SAVE_KEY = "soulrift-save-v1";
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
-  const APP_VERSION = "20260604-logout-settings-132";
+  const APP_VERSION = "20260604-friends-invites-133";
   const VERSION_CHECK_INTERVAL = 15000;
   const UPDATE_ATTEMPT_KEY = "soulrift-update-attempt-v1";
   const CLOUD_MIGRATION_KEY = "soulrift-cloud-migrated-v1";
@@ -33,6 +33,8 @@
   const DIRECTORY_TOPIC = "soulrift-directory-v2";
   const ROOM_CODE_RE = /^[A-Z0-9]{4,12}$/;
   const ROOM_TTL_MS = 45000;
+  const FRIEND_INVITE_TTL_MS = 15 * 60 * 1000;
+  const FRIEND_REQUEST_TTL_MS = 7 * 24 * 60 * 60 * 1000;
   const SIGNAL_HISTORY = "2m";
   const DIRECTORY_HISTORY = "75s";
   const RUN_ITEM_LIMIT = 10;
@@ -711,6 +713,16 @@
 
   function accountKey(username) {
     return (username || "").trim().toLowerCase();
+  }
+
+  function escapeHtml(value = "") {
+    return String(value).replace(/[&<>"']/g, (char) => ({
+      "&": "&amp;",
+      "<": "&lt;",
+      ">": "&gt;",
+      "\"": "&quot;",
+      "'": "&#39;"
+    }[char]));
   }
 
   function hashText(value) {
@@ -2452,6 +2464,8 @@
       };
       this.remotePlayers = new Map();
       this.publicRooms = [];
+      this.seenRoomInvites = new Set();
+      this.seenFriendRequests = new Set();
       this.roomFinderOpen = false;
       this.roomDirectoryTimer = 0;
       this.roomDirectoryBusy = false;
@@ -2529,13 +2543,7 @@
         if (!account || typeof account !== "object") continue;
         const username = String(account.username || account.profile?.account?.username || key).trim();
         if (!username) continue;
-        clean[accountKey(username)] = {
-          username,
-          passwordHash: String(account.passwordHash || ""),
-          createdAt: account.createdAt || account.profile?.account?.createdAt || new Date().toISOString(),
-          profile: account.profile || defaultProfile(username),
-          updatedAt: account.updatedAt || ""
-        };
+        clean[accountKey(username)] = this.normalizeAccountRecord(account, username);
       }
       const cloudKeys = Object.keys(clean);
       let migrated = false;
@@ -2714,8 +2722,10 @@
       }
       const active = this.save.auth.currentUser;
       if (active && this.save.auth.accounts[active]?.profile) {
+        this.ensureAccountSocial(active);
         this.applyProfile(this.save.auth.accounts[active].profile);
       }
+      for (const key of Object.keys(this.save.auth.accounts || {})) this.ensureAccountSocial(key);
     }
 
     hasAccount() {
@@ -2734,6 +2744,83 @@
         achievements: this.save.achievements,
         progression: this.save.progression
       });
+    }
+
+    emptySocial() {
+      return {
+        friends: {},
+        friendRequests: { incoming: {}, outgoing: {} },
+        roomInvites: {}
+      };
+    }
+
+    cleanSocialEntryMap(raw = {}, ttl = Infinity) {
+      const now = Date.now();
+      const clean = {};
+      const expiring = Number.isFinite(ttl);
+      for (const [key, value] of Object.entries(raw || {})) {
+        const friendKey = accountKey(key);
+        if (!friendKey) continue;
+        const sentAt = Number(value?.sentAt || value?.since || 0);
+        if (expiring && sentAt && now - sentAt > ttl) continue;
+        const entry = {
+          username: String(value?.username || key).trim() || key
+        };
+        if (expiring) entry.sentAt = sentAt || now;
+        else entry.since = Number(value?.since || sentAt || now);
+        clean[friendKey] = entry;
+      }
+      return clean;
+    }
+
+    cleanRoomInvites(raw = {}) {
+      const now = Date.now();
+      const clean = {};
+      for (const [id, invite] of Object.entries(raw || {})) {
+        const code = String(invite?.code || "").trim().toUpperCase();
+        if (!ROOM_CODE_RE.test(code)) continue;
+        const sentAt = Number(invite?.sentAt || 0);
+        if (sentAt && now - sentAt > FRIEND_INVITE_TTL_MS) continue;
+        clean[String(id)] = {
+          id: String(id),
+          fromKey: accountKey(invite?.fromKey || ""),
+          fromName: String(invite?.fromName || "Bạn bè").trim() || "Bạn bè",
+          code,
+          roomSession: String(invite?.roomSession || ""),
+          sentAt: sentAt || now
+        };
+      }
+      return clean;
+    }
+
+    normalizeAccountRecord(account = {}, key = "") {
+      const username = String(account.username || account.profile?.account?.username || key || "").trim();
+      const requests = account.friendRequests || {};
+      return {
+        username,
+        passwordHash: String(account.passwordHash || ""),
+        createdAt: account.createdAt || account.profile?.account?.createdAt || new Date().toISOString(),
+        updatedAt: account.updatedAt || "",
+        profile: account.profile || defaultProfile(username),
+        friends: this.cleanSocialEntryMap(account.friends),
+        friendRequests: {
+          incoming: this.cleanSocialEntryMap(requests.incoming, FRIEND_REQUEST_TTL_MS),
+          outgoing: this.cleanSocialEntryMap(requests.outgoing, FRIEND_REQUEST_TTL_MS)
+        },
+        roomInvites: this.cleanRoomInvites(account.roomInvites)
+      };
+    }
+
+    ensureAccountSocial(key = this.save.auth?.currentUser || "") {
+      const account = key ? this.save.auth?.accounts?.[key] : null;
+      if (!account) return null;
+      const normalized = this.normalizeAccountRecord(account, key);
+      Object.assign(account, {
+        friends: normalized.friends,
+        friendRequests: normalized.friendRequests,
+        roomInvites: normalized.roomInvites
+      });
+      return account;
     }
 
     applyProfile(profile) {
@@ -2757,7 +2844,10 @@
         return JSON.stringify({
           passwordHash: account.passwordHash || "",
           updatedAt: account.updatedAt || "",
-          profile: account.profile || null
+          profile: account.profile || null,
+          friends: account.friends || {},
+          friendRequests: account.friendRequests || {},
+          roomInvites: account.roomInvites || {}
         });
       } catch {
         return `${account.updatedAt || ""}:${account.passwordHash || ""}`;
@@ -2766,15 +2856,19 @@
 
     applyCloudAccountUpdate(key, account) {
       if (!key || !account?.profile) return;
+      const normalized = this.normalizeAccountRecord(account, key);
+      const previous = this.save.auth.accounts?.[key] || {};
       const previousPower = this.save.account?.selectedPower || "";
       const previousCharacter = this.save.account?.selectedCharacter || "";
-      this.save.auth.accounts[key] = account;
-      this.applyProfile(account.profile);
+      this.save.auth.accounts[key] = normalized;
+      this.applyProfile(normalized.profile);
       this.store.save(this.save);
-      this.lastCloudAccountSignature = this.accountCloudSignature(account);
+      this.lastCloudAccountSignature = this.accountCloudSignature(normalized);
       this.applyCloudProfileToCurrentRun(previousPower, previousCharacter);
+      const socialNotice = this.notifyNewSocialActivity(previous, normalized);
       if (this.lobby?.syncOwnSlot) this.lobby.syncOwnSlot();
       if (this.mode === "lobby") this.renderLobby();
+      if (this.mode === "friends") this.showFriends();
       if (this.mode === "powers") this.showPowers();
       else if (this.mode === "awakening") this.showAwakening();
       else if (this.mode === "stats") this.showStatPoints(true);
@@ -2782,7 +2876,25 @@
       else if (this.mode === "character") this.showCharacter();
       else if (this.mode === "custom") this.showCustomization(true);
       else if (this.mode === "menu") this.showMainMenu();
-      this.toast("Tài khoản đã được cập nhật");
+      if (!socialNotice) this.toast("Tài khoản đã được cập nhật");
+    }
+
+    notifyNewSocialActivity(previous = {}, current = {}) {
+      const oldRequests = previous.friendRequests?.incoming || {};
+      for (const [key, request] of Object.entries(current.friendRequests?.incoming || {})) {
+        if (oldRequests[key] || this.seenFriendRequests.has(key)) continue;
+        this.seenFriendRequests.add(key);
+        this.toast(`${request.username || "Bạn bè"} muốn kết bạn`);
+        return true;
+      }
+      const oldInvites = previous.roomInvites || {};
+      for (const [id, invite] of Object.entries(current.roomInvites || {})) {
+        if (oldInvites[id] || this.seenRoomInvites.has(id)) continue;
+        this.seenRoomInvites.add(id);
+        this.toast(`${invite.fromName || "Bạn bè"} mời vào phòng ${invite.code}`);
+        return true;
+      }
+      return false;
     }
 
     applyCloudProfileToCurrentRun(previousPower = "", previousCharacter = "") {
@@ -2926,7 +3038,8 @@
         username,
         passwordHash: passwordHash(username, password),
         createdAt: profile.account.createdAt,
-        profile
+        profile,
+        ...this.emptySocial()
       };
       this.save.auth.currentUser = key;
       this.applyProfile(profile);
@@ -2942,7 +3055,7 @@
       if (!this.validateAccountForm(username, password, password, false)) return;
       const key = accountKey(username);
       const cloudAccount = await this.cloudAccounts.getAccount(key);
-      if (cloudAccount) this.save.auth.accounts[key] = cloudAccount;
+      if (cloudAccount) this.save.auth.accounts[key] = this.normalizeAccountRecord(cloudAccount, key);
       if (!cloudAccount && this.save.auth.accounts[key] && !this.cloudAccounts.failed) {
         delete this.save.auth.accounts[key];
         this.store.save(this.save);
@@ -2958,6 +3071,7 @@
       }
       if (!account.passwordHash) account.passwordHash = passwordHash(account.username, password);
       account.profile ||= defaultProfile(account.username || username);
+      this.ensureAccountSocial(key);
       this.save.auth.currentUser = key;
       this.applyProfile(account.profile);
       this.persist();
@@ -3995,10 +4109,11 @@
             return;
           }
           if (account) {
-            const remoteSignature = this.accountCloudSignature(account);
+            const normalizedAccount = this.normalizeAccountRecord(account, key);
+            const remoteSignature = this.accountCloudSignature(normalizedAccount);
             const localSignature = this.accountCloudSignature(this.save.auth.accounts?.[key]);
             if (remoteSignature && remoteSignature !== localSignature && remoteSignature !== this.lastCloudAccountSignature) {
-              this.applyCloudAccountUpdate(key, account);
+              this.applyCloudAccountUpdate(key, normalizedAccount);
             }
           }
         })
@@ -4140,6 +4255,7 @@
           <div class="nav-buttons">
             ${item("play", "CHƠI", true)}
             ${item("character", "NHÂN VẬT")}
+            ${item("friends", "BẠN BÈ")}
             ${item("settings", "CÀI ĐẶT")}
           </div>
         </nav>
@@ -4196,6 +4312,18 @@
       if (action === "start-training") this.startTrainingRun();
       if (action === "character-tab") this.showCharacterTab(target.dataset.tab || "character");
       if (action === "character") this.showCharacter();
+      if (action === "friends") this.showFriends();
+      if (action === "add-friend") this.addFriendFromInput();
+      if (action === "accept-friend") this.acceptFriendRequest(target.dataset.friend);
+      if (action === "decline-friend") this.declineFriendRequest(target.dataset.friend);
+      if (action === "remove-friend") this.removeFriend(target.dataset.friend);
+      if (action === "invite-friend") this.inviteFriendToRoom(target.dataset.friend);
+      if (action === "join-friend-invite") this.joinFriendRoomInvite(target.dataset.invite);
+      if (action === "dismiss-room-invite") this.dismissRoomInvite(target.dataset.invite);
+      if (action === "create-room-for-friends") {
+        this.lobby.create();
+        this.showFriends();
+      }
       if (action === "inventory") {
         if (this.run && ["game", "pause", "merchant", "runInventory"].includes(this.mode)) this.showRunInventory();
         else this.showInventory();
@@ -4626,6 +4754,332 @@
       `);
       this.restoreScreenScroll(scroll);
       if (fetchDirectory) this.refreshRoomDirectory();
+    }
+
+    currentAccountRecord() {
+      const key = this.save.auth?.currentUser || "";
+      return this.ensureAccountSocial(key);
+    }
+
+    socialEntries(map = {}) {
+      return Object.entries(map || {}).sort((a, b) => String(a[1]?.username || a[0]).localeCompare(String(b[1]?.username || b[0]), "vi"));
+    }
+
+    freshRoomInviteEntries(map = {}) {
+      const now = Date.now();
+      return Object.entries(map || {})
+        .filter(([, invite]) => invite?.code && now - Number(invite.sentAt || 0) <= FRIEND_INVITE_TTL_MS)
+        .sort((a, b) => Number(b[1]?.sentAt || 0) - Number(a[1]?.sentAt || 0));
+    }
+
+    friendCard(key, friend, compact = false) {
+      const username = escapeHtml(friend?.username || key);
+      const canInvite = Boolean(this.lobby?.code && !this.lobby.joinPending && this.lobby.host);
+      return `
+        <div class="friend-card">
+          <div>
+            <h3>${username}</h3>
+            <p>${canInvite ? `Mời vào phòng ${escapeHtml(this.lobby.code)}` : "Bạn bè"}</p>
+          </div>
+          <div class="friend-actions">
+            ${canInvite ? `<button class="btn primary" data-action="invite-friend" data-friend="${escapeHtml(key)}">MỜI</button>` : ""}
+            ${compact ? "" : `<button class="btn danger" data-action="remove-friend" data-friend="${escapeHtml(key)}">XÓA</button>`}
+          </div>
+        </div>
+      `;
+    }
+
+    lobbyFriendInviteStrip() {
+      if (!this.lobby?.code || !this.lobby.host) return "";
+      const account = this.currentAccountRecord();
+      const friends = this.socialEntries(account?.friends).slice(0, 4);
+      if (!friends.length) {
+        return `
+          <div class="lobby-friends">
+            <div><b>Mời bạn bè</b><span>Chưa có bạn bè trong danh sách.</span></div>
+            <button class="btn" data-action="friends">BẠN BÈ</button>
+          </div>
+        `;
+      }
+      return `
+        <div class="lobby-friends">
+          <div><b>Mời bạn bè</b><span>Gửi ID phòng ${escapeHtml(this.lobby.code)}.</span></div>
+          <div class="lobby-friend-buttons">
+            ${friends.map(([key, friend]) => `<button class="btn" data-action="invite-friend" data-friend="${escapeHtml(key)}">${escapeHtml(friend.username || key)}</button>`).join("")}
+          </div>
+          <button class="btn" data-action="friends">TẤT CẢ</button>
+        </div>
+      `;
+    }
+
+    showFriends() {
+      if (!this.hasAccount()) {
+        this.showAccountGate();
+        return;
+      }
+      const account = this.currentAccountRecord();
+      const friends = this.socialEntries(account?.friends);
+      const incoming = this.socialEntries(account?.friendRequests?.incoming);
+      const outgoing = this.socialEntries(account?.friendRequests?.outgoing);
+      const roomInvites = this.freshRoomInviteEntries(account?.roomInvites);
+      const friendRows = friends.length
+        ? friends.map(([key, friend]) => this.friendCard(key, friend)).join("")
+        : `<div class="empty-state">Chưa có bạn bè. Nhập tên tài khoản để gửi lời mời kết bạn.</div>`;
+      const incomingRows = incoming.length ? incoming.map(([key, request]) => `
+        <div class="friend-card request-card">
+          <div>
+            <h3>${escapeHtml(request.username || key)}</h3>
+            <p>Muốn kết bạn với bạn.</p>
+          </div>
+          <div class="friend-actions">
+            <button class="btn primary" data-action="accept-friend" data-friend="${escapeHtml(key)}">ĐỒNG Ý</button>
+            <button class="btn" data-action="decline-friend" data-friend="${escapeHtml(key)}">TỪ CHỐI</button>
+          </div>
+        </div>
+      `).join("") : `<div class="empty-state">Không có lời mời kết bạn.</div>`;
+      const outgoingRows = outgoing.length ? outgoing.map(([key, request]) => `
+        <div class="friend-chip">
+          <b>${escapeHtml(request.username || key)}</b>
+          <span>Đang chờ</span>
+        </div>
+      `).join("") : "";
+      const inviteRows = roomInvites.length ? roomInvites.map(([id, invite]) => `
+        <div class="friend-card invite-card">
+          <div>
+            <h3>${escapeHtml(invite.fromName || "Bạn bè")}</h3>
+            <p>Mời bạn vào phòng ${escapeHtml(invite.code)}</p>
+          </div>
+          <div class="friend-actions">
+            <button class="btn primary" data-action="join-friend-invite" data-invite="${escapeHtml(id)}">VÀO</button>
+            <button class="btn" data-action="dismiss-room-invite" data-invite="${escapeHtml(id)}">BỎ</button>
+          </div>
+        </div>
+      `).join("") : `<div class="empty-state">Chưa có lời mời phòng.</div>`;
+      const roomHint = this.lobby?.code && this.lobby.host
+        ? `<div class="join-pending"><b>Phòng ${escapeHtml(this.lobby.code)} đang mở</b><span>Bấm Mời ở từng bạn để gửi ID phòng.</span></div>`
+        : `<button class="btn primary" data-action="create-room-for-friends">TẠO PHÒNG ĐỂ MỜI</button>`;
+      this.mode = "friends";
+      this.roomFinderOpen = false;
+      this.setScreen(`
+        <section class="shell">
+          ${this.navHtml("friends")}
+          <div class="panel friends-panel">
+            <div class="panel-header">
+              <div>
+                <h2 class="panel-title">Bạn bè</h2>
+                <p class="panel-subtitle">Kết bạn bằng tên tài khoản, nhận lời mời và mời bạn vào phòng.</p>
+              </div>
+            </div>
+            <div class="friend-layout">
+              <div class="friend-side">
+                <div class="account-form friend-add-form">
+                  <input id="friendNameInput" class="field" maxlength="18" placeholder="Tên tài khoản bạn bè" />
+                  <button class="btn primary" data-action="add-friend">KẾT BẠN</button>
+                </div>
+                ${roomHint}
+                <div class="friend-section">
+                  <h3>Lời mời phòng</h3>
+                  <div class="friend-list">${inviteRows}</div>
+                </div>
+              </div>
+              <div class="friend-main">
+                <div class="friend-section">
+                  <h3>Danh sách bạn bè</h3>
+                  <div class="friend-list">${friendRows}</div>
+                </div>
+                <div class="friend-section">
+                  <h3>Lời mời kết bạn</h3>
+                  <div class="friend-list">${incomingRows}</div>
+                </div>
+                ${outgoingRows ? `<div class="friend-section"><h3>Đã gửi</h3><div class="friend-chip-list">${outgoingRows}</div></div>` : ""}
+              </div>
+            </div>
+          </div>
+        </section>
+      `);
+    }
+
+    async addFriendFromInput() {
+      const rawName = (document.getElementById("friendNameInput")?.value || "").trim().slice(0, 18);
+      const targetKey = accountKey(rawName);
+      const myKey = this.save.auth?.currentUser || "";
+      const local = this.currentAccountRecord();
+      if (!rawName || !targetKey) {
+        this.toast("Nhập tên tài khoản bạn bè");
+        return;
+      }
+      if (targetKey === myKey) {
+        this.toast("Không thể tự kết bạn với chính mình");
+        return;
+      }
+      if (local.friends?.[targetKey]) {
+        this.toast("Hai tài khoản đã là bạn bè");
+        return;
+      }
+      if (local.friendRequests?.incoming?.[targetKey]) {
+        this.acceptFriendRequest(targetKey);
+        return;
+      }
+      if (local.friendRequests?.outgoing?.[targetKey]) {
+        this.toast("Đã gửi lời mời, đang chờ phản hồi");
+        return;
+      }
+      const remoteRaw = await this.cloudAccounts.getAccount(targetKey);
+      if (!remoteRaw) {
+        this.toast(this.cloudAccounts.failed ? "Chưa kết nối được database" : "Không tìm thấy tài khoản này");
+        return;
+      }
+      const remote = this.normalizeAccountRecord(remoteRaw, targetKey);
+      const now = Date.now();
+      const previousLocal = cloneData(local);
+      local.friendRequests ||= { incoming: {}, outgoing: {} };
+      remote.friendRequests ||= { incoming: {}, outgoing: {} };
+      local.friendRequests.outgoing[targetKey] = { username: remote.username || rawName, sentAt: now };
+      remote.friendRequests.incoming[myKey] = { username: local.username || this.save.account.username || "Bạn", sentAt: now };
+      const savedRemote = await this.cloudAccounts.saveAccount(targetKey, remote);
+      if (!savedRemote) {
+        Object.assign(local, previousLocal);
+        this.toast("Chưa gửi được lời mời");
+        return;
+      }
+      this.save.auth.accounts[myKey] = local;
+      await this.saveCloudAccountNow(myKey);
+      this.toast(`Đã gửi lời mời tới ${remote.username || rawName}`);
+      this.showFriends();
+    }
+
+    async acceptFriendRequest(friendKey = "") {
+      const targetKey = accountKey(friendKey);
+      const myKey = this.save.auth?.currentUser || "";
+      const local = this.currentAccountRecord();
+      if (!targetKey || !local?.friendRequests?.incoming?.[targetKey]) return;
+      const request = local.friendRequests.incoming[targetKey];
+      const remoteRaw = await this.cloudAccounts.getAccount(targetKey);
+      if (!remoteRaw) {
+        delete local.friendRequests.incoming[targetKey];
+        await this.saveCloudAccountNow(myKey);
+        this.showFriends();
+        this.toast("Tài khoản kia không còn tồn tại");
+        return;
+      }
+      const remote = this.normalizeAccountRecord(remoteRaw, targetKey);
+      const now = Date.now();
+      const previousLocal = cloneData(local);
+      local.friends[targetKey] = { username: remote.username || request.username || targetKey, since: now };
+      remote.friends[myKey] = { username: local.username || this.save.account.username || "Bạn", since: now };
+      delete local.friendRequests.incoming[targetKey];
+      delete local.friendRequests.outgoing[targetKey];
+      delete remote.friendRequests.outgoing[myKey];
+      delete remote.friendRequests.incoming[myKey];
+      const savedRemote = await this.cloudAccounts.saveAccount(targetKey, remote);
+      if (!savedRemote) {
+        Object.assign(local, previousLocal);
+        this.toast("Chưa chấp nhận được lời mời");
+        return;
+      }
+      this.save.auth.accounts[myKey] = local;
+      await this.saveCloudAccountNow(myKey);
+      this.toast(`Đã kết bạn với ${remote.username || request.username || targetKey}`);
+      this.showFriends();
+    }
+
+    async declineFriendRequest(friendKey = "") {
+      const targetKey = accountKey(friendKey);
+      const myKey = this.save.auth?.currentUser || "";
+      const local = this.currentAccountRecord();
+      if (!targetKey || !local?.friendRequests?.incoming?.[targetKey]) return;
+      delete local.friendRequests.incoming[targetKey];
+      const remoteRaw = await this.cloudAccounts.getAccount(targetKey);
+      if (remoteRaw) {
+        const remote = this.normalizeAccountRecord(remoteRaw, targetKey);
+        delete remote.friendRequests.outgoing[myKey];
+        await this.cloudAccounts.saveAccount(targetKey, remote);
+      }
+      this.save.auth.accounts[myKey] = local;
+      await this.saveCloudAccountNow(myKey);
+      this.toast("Đã từ chối lời mời");
+      this.showFriends();
+    }
+
+    async removeFriend(friendKey = "") {
+      const targetKey = accountKey(friendKey);
+      const myKey = this.save.auth?.currentUser || "";
+      const local = this.currentAccountRecord();
+      if (!targetKey || !local?.friends?.[targetKey]) return;
+      const friendName = local.friends[targetKey]?.username || targetKey;
+      delete local.friends[targetKey];
+      delete local.friendRequests.incoming[targetKey];
+      delete local.friendRequests.outgoing[targetKey];
+      const remoteRaw = await this.cloudAccounts.getAccount(targetKey);
+      if (remoteRaw) {
+        const remote = this.normalizeAccountRecord(remoteRaw, targetKey);
+        delete remote.friends[myKey];
+        delete remote.friendRequests.incoming[myKey];
+        delete remote.friendRequests.outgoing[myKey];
+        await this.cloudAccounts.saveAccount(targetKey, remote);
+      }
+      this.save.auth.accounts[myKey] = local;
+      await this.saveCloudAccountNow(myKey);
+      this.toast(`Đã xóa ${friendName} khỏi bạn bè`);
+      this.showFriends();
+    }
+
+    async inviteFriendToRoom(friendKey = "") {
+      const targetKey = accountKey(friendKey);
+      const myKey = this.save.auth?.currentUser || "";
+      const local = this.currentAccountRecord();
+      if (!targetKey || !local?.friends?.[targetKey]) return;
+      if (!this.lobby?.code || !this.lobby.host) {
+        this.toast("Bạn cần tạo phòng trước khi mời");
+        return;
+      }
+      const remoteRaw = await this.cloudAccounts.getAccount(targetKey);
+      if (!remoteRaw) {
+        this.toast("Tài khoản bạn bè không còn tồn tại");
+        return;
+      }
+      const remote = this.normalizeAccountRecord(remoteRaw, targetKey);
+      const now = Date.now();
+      const inviteId = `${this.lobby.code}-${myKey}-${now}`;
+      remote.roomInvites[inviteId] = {
+        id: inviteId,
+        fromKey: myKey,
+        fromName: local.username || this.save.account.username || "Bạn",
+        code: this.lobby.code,
+        roomSession: this.lobby.roomSession || "",
+        sentAt: now
+      };
+      const saved = await this.cloudAccounts.saveAccount(targetKey, remote);
+      if (!saved) {
+        this.toast("Chưa gửi được lời mời phòng");
+        return;
+      }
+      this.toast(`Đã mời ${local.friends[targetKey]?.username || remote.username || targetKey} vào phòng ${this.lobby.code}`);
+      if (this.mode === "friends") this.showFriends();
+      if (this.mode === "lobby") this.renderLobby();
+    }
+
+    async joinFriendRoomInvite(inviteId = "") {
+      const myKey = this.save.auth?.currentUser || "";
+      const local = this.currentAccountRecord();
+      const invite = local?.roomInvites?.[inviteId];
+      if (!invite?.code) return;
+      delete local.roomInvites[inviteId];
+      this.save.auth.accounts[myKey] = local;
+      await this.saveCloudAccountNow(myKey);
+      this.lobby.join(invite.code);
+      this.renderLobby();
+    }
+
+    async dismissRoomInvite(inviteId = "") {
+      const myKey = this.save.auth?.currentUser || "";
+      const local = this.currentAccountRecord();
+      if (!local?.roomInvites?.[inviteId]) return;
+      delete local.roomInvites[inviteId];
+      this.save.auth.accounts[myKey] = local;
+      await this.saveCloudAccountNow(myKey);
+      this.toast("Đã bỏ lời mời phòng");
+      this.showFriends();
     }
 
     showStatusEffects(selectedIndex = 0) {
@@ -5368,6 +5822,7 @@
           <button class="btn" data-action="ready-room">${this.lobby.ready ? "BỎ SẴN SÀNG" : "SẴN SÀNG"}</button>
           <button class="btn primary" data-action="start-room" disabled>CHỜ CHỦ PHÒNG</button>
         `;
+      const friendInvites = this.lobbyFriendInviteStrip();
       this.setScreen(`
         <section class="shell">
           ${this.navHtml("play")}
@@ -5387,6 +5842,7 @@
             </div>
             <p class="code-box">${this.lobby.code || "CHƯA CÓ PHÒNG"}</p>
             <div class="grid cols-2">${slots}</div>
+            ${friendInvites}
             <p class="small">Chủ phòng chọn khu</p>
             <div class="tabs">${votes}</div>
             <p class="small">Chủ phòng chọn độ khó ải</p>
@@ -5480,6 +5936,7 @@
     persist(syncCloud = true) {
       const active = this.save.auth?.currentUser;
       if (active && this.save.auth.accounts?.[active] && this.save.account?.created) {
+        this.ensureAccountSocial(active);
         this.save.auth.accounts[active].username = this.save.account.username;
         this.save.auth.accounts[active].profile = this.profileSnapshot();
       }

@@ -525,7 +525,13 @@
           passwordHash: String(account.passwordHash || ""),
           createdAt: account.createdAt || profile.account.createdAt,
           updatedAt: account.updatedAt || "",
-          profile
+          profile,
+          friends: account.friends || {},
+          friendRequests: {
+            incoming: account.friendRequests?.incoming || {},
+            outgoing: account.friendRequests?.outgoing || {}
+          },
+          roomInvites: account.roomInvites || {}
         };
       }
 
@@ -756,7 +762,10 @@
           username,
           passwordHash: passwordHash(username, password),
           createdAt: profile.account.createdAt,
-          profile
+          profile,
+          friends: {},
+          friendRequests: { incoming: {}, outgoing: {} },
+          roomInvites: {}
         };
         await saveAccount(key, account);
         state.selectedKey = key;

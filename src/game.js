@@ -7,7 +7,7 @@
   const ROOM_PAD = 86;
   const SAVE_KEY = "soulrift-save-v1";
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
-  const APP_VERSION = "20260604-power-identity-87";
+  const APP_VERSION = "20260604-shadow-polish-88";
   const VERSION_CHECK_INTERVAL = 15000;
   const UPDATE_ATTEMPT_KEY = "soulrift-update-attempt-v1";
   const DOOR_ENTER_TIME = 1.0;
@@ -6686,7 +6686,7 @@
 
     addShadowShard(enemy, caster, stacks = 1) {
       if (!enemy || !caster) return;
-      const time = 0.5 + Math.min(0.18, stacks * 0.025);
+      const time = 0.54 + Math.min(0.16, stacks * 0.02);
       this.addEffect({
         type: "shadowShard",
         fromX: enemy.x,
@@ -6699,8 +6699,9 @@
         stacks,
         time,
         maxTime: time,
-        color: "#a169ff",
-        accent: "#101521"
+        color: "#7b5cff",
+        accent: "#05030d",
+        edge: "#d7c4ff"
       });
     }
 
@@ -6723,8 +6724,9 @@
           damageMult
         });
       }
-      for (let i = 0; i < Math.min(18, 5 + stacks * 2) * this.save.settings.particles; i++) {
-        this.addParticle(caster.x + rand(-16, 16), caster.y + rand(-24, 12), i % 3 === 0 ? "#101521" : "#a169ff", rand(7, 16), rand(0.24, 0.58), "shade", rand(-Math.PI, Math.PI), rand(30, 110));
+      const count = Math.round(Math.min(12, 4 + stacks * 1.15) * this.save.settings.particles);
+      for (let i = 0; i < count; i++) {
+        this.addParticle(caster.x + rand(-15, 15), caster.y + rand(-24, 10), i % 3 === 0 ? "#05030d" : "#7b5cff", rand(5, 12), rand(0.34, 0.72), "shade", rand(-Math.PI, Math.PI), rand(24, 92));
       }
     }
 
@@ -11935,59 +11937,86 @@
       if (shadowWeaponActive) {
         ctx.save();
         ctx.globalCompositeOperation = "lighter";
-        ctx.fillStyle = "#101521";
-        ctx.strokeStyle = "#a169ff";
-        ctx.lineWidth = 2;
-        const drawShadowCube = (ox, oy, size, spin) => {
+        ctx.lineCap = "round";
+        ctx.lineJoin = "round";
+        const ribbon = (sx, sy, cx, cy, ex, ey, width = 5, alphaValue = 0.42) => {
+          ctx.globalCompositeOperation = "source-over";
+          ctx.globalAlpha = alphaValue;
+          ctx.strokeStyle = "#05030d";
+          ctx.lineWidth = width + 4;
+          ctx.beginPath();
+          ctx.moveTo(sx, sy);
+          ctx.quadraticCurveTo(cx, cy, ex, ey);
+          ctx.stroke();
+          ctx.globalCompositeOperation = "lighter";
+          ctx.globalAlpha = alphaValue * 0.92;
+          ctx.strokeStyle = "#8f72ff";
+          ctx.lineWidth = Math.max(1.5, width * 0.42);
+          ctx.beginPath();
+          ctx.moveTo(sx, sy);
+          ctx.quadraticCurveTo(cx, cy, ex, ey);
+          ctx.stroke();
+        };
+        const ember = (x0, y0, r, phaseOffset = 0) => {
           ctx.save();
-          ctx.translate(ox, oy);
-          ctx.rotate(t * 3 + spin);
-          ctx.fillRect(-size / 2, -size / 2, size, size);
-          ctx.strokeRect(-size / 2, -size / 2, size, size);
+          ctx.translate(x0, y0);
+          ctx.rotate(Math.sin(t * 5 + phaseOffset) * 0.35);
+          ctx.globalCompositeOperation = "source-over";
+          ctx.globalAlpha = 0.42;
+          ctx.fillStyle = "#05030d";
+          ctx.beginPath();
+          ctx.ellipse(0, 0, r * 0.72, r * 0.34, 0, 0, TAU);
+          ctx.fill();
+          ctx.globalCompositeOperation = "lighter";
+          ctx.globalAlpha = 0.34;
+          ctx.strokeStyle = "#c7b6ff";
+          ctx.lineWidth = 1.4;
+          ctx.beginPath();
+          ctx.arc(0, 0, r * 0.62, -0.8, 0.95);
+          ctx.stroke();
           ctx.restore();
         };
-        ctx.globalAlpha = 0.54 + Math.sin(t * 10) * 0.1;
         if (character.id === "mage") {
-          for (let i = 0; i < 4; i++) drawShadowCube(Math.sin(t * 5 + i) * 8, -26 + i * 15, 6 + i % 2, i);
-          ctx.globalAlpha = 0.72;
-          ctx.strokeStyle = "#d8b7ff";
-          ctx.beginPath();
-          ctx.moveTo(0, -34);
-          ctx.quadraticCurveTo(8 + Math.sin(t * 9) * 3, -5, 0, 29);
-          ctx.stroke();
+          ribbon(-3, -33, 8 + Math.sin(t * 7) * 2, -5, -2, 30, 4.6, 0.46);
+          ribbon(4, -28, -7, -8 + Math.sin(t * 8) * 2, 4, 24, 3.2, 0.34);
+          ember(0, -21, 8, 1);
         } else if (character.id === "guardian") {
-          for (let i = 0; i < 4; i++) drawShadowCube(13 + i * 8, -15 + i * 10, 7, i);
-          ctx.globalAlpha = 0.68;
-          ctx.strokeStyle = "#d8b7ff";
+          ribbon(8, -15, 33 + Math.sin(t * 6) * 2, -24, 40, 3, 6.5, 0.4);
+          ribbon(9, 16, 33 + Math.cos(t * 6) * 2, 25, 40, -1, 6.5, 0.34);
+          ctx.globalAlpha = 0.48;
+          ctx.strokeStyle = "#b69dff";
+          ctx.lineWidth = 2.2;
           ctx.beginPath();
-          ctx.ellipse(24, 1, 24, 28, 0, 0, TAU);
+          ctx.ellipse(24, 1, 25, 29, 0, -0.35, TAU - 0.12);
           ctx.stroke();
+          ember(38, 0, 7, 2);
         } else if (character.id === "ranger") {
-          for (let i = 0; i < 4; i++) drawShadowCube(-8 + i * 18, Math.sin(t * 6 + i) * 8, 6, i);
-          ctx.globalAlpha = 0.72;
-          ctx.strokeStyle = "#d8b7ff";
+          ribbon(-24, -2, 10, -12 + Math.sin(t * 8) * 2, 45, -3, 4.4, 0.42);
+          ribbon(-18, 4, 14, 13 + Math.cos(t * 8) * 2, 43, 4, 3.4, 0.32);
+          ctx.globalAlpha = 0.5;
+          ctx.strokeStyle = "#d7c4ff";
+          ctx.lineWidth = 1.8;
           ctx.beginPath();
-          ctx.moveTo(-20, 0);
-          ctx.lineTo(48, 0);
+          ctx.moveTo(24, -18);
+          ctx.lineTo(10 + Math.sin(t * 12) * 2, 0);
+          ctx.lineTo(24, 18);
           ctx.stroke();
         } else if (character.id === "assassin") {
-          for (let i = 0; i < 4; i++) drawShadowCube(6 + i * 9, (i % 2 ? 11 : -11) + Math.sin(t * 7 + i) * 3, 6, i);
-          ctx.globalAlpha = 0.7;
-          ctx.strokeStyle = "#d8b7ff";
+          ribbon(-1, -16, 20 + Math.sin(t * 7) * 2, -28, 44, -9, 4.2, 0.46);
+          ribbon(-1, 16, 20 + Math.cos(t * 7) * 2, 28, 44, 9, 4.2, 0.46);
+          ctx.globalAlpha = 0.5;
+          ctx.strokeStyle = "#d7c4ff";
+          ctx.lineWidth = 2;
           ctx.beginPath();
-          ctx.moveTo(-2, -18);
-          ctx.lineTo(43, 18);
-          ctx.moveTo(-2, 18);
-          ctx.lineTo(43, -18);
+          ctx.moveTo(4, -13);
+          ctx.lineTo(39, 12);
+          ctx.moveTo(4, 13);
+          ctx.lineTo(39, -12);
           ctx.stroke();
         } else {
-          for (let i = 0; i < 3; i++) drawShadowCube(10 + i * 13 + Math.sin(t * 8 + i) * 3, Math.sin(t * 5 + i * 1.7) * 7, 8, i);
-          ctx.globalAlpha = 0.72;
-          ctx.strokeStyle = "#d8b7ff";
-          ctx.beginPath();
-          ctx.moveTo(4, -10);
-          ctx.quadraticCurveTo(26, -18 + Math.sin(t * 9) * 3, 55, -5);
-          ctx.stroke();
+          ribbon(7, -8, 30, -19 + Math.sin(t * 9) * 2, 57, -4, 5.2, 0.46);
+          ribbon(10, 5, 31, 12 + Math.cos(t * 8) * 2, 53, 3, 3.4, 0.3);
+          ember(48, -3, 6, 3);
         }
         ctx.restore();
       }
@@ -12374,28 +12403,50 @@
           const midY = (sy + ty) / 2 - 54 - Math.min(34, (effect.stacks || 1) * 4);
           const px = (1 - eased) * (1 - eased) * sx + 2 * (1 - eased) * eased * midX + eased * eased * tx;
           const py = (1 - eased) * (1 - eased) * sy + 2 * (1 - eased) * eased * midY + eased * eased * ty;
-          ctx.globalAlpha = (1 - progress) * 0.82;
-          ctx.strokeStyle = effect.color || "#a169ff";
-          ctx.lineWidth = 3;
+          const angle = Math.atan2(ty - sy, tx - sx);
+          const fade = 1 - progress;
+          ctx.globalCompositeOperation = "source-over";
+          ctx.globalAlpha = fade * 0.5;
+          ctx.strokeStyle = effect.accent || "#05030d";
+          ctx.lineCap = "round";
+          ctx.lineWidth = 9 + Math.min(4, effect.stacks || 1);
           ctx.beginPath();
           ctx.moveTo(sx, sy);
           ctx.quadraticCurveTo(midX, midY, px, py);
           ctx.stroke();
-          ctx.translate(px, py);
-          ctx.rotate(this.menuTime * 7 + (effect.stacks || 1));
-          const size = 9 + Math.min(15, (effect.stacks || 1) * 2);
-          ctx.fillStyle = effect.accent || "#101521";
-          ctx.strokeStyle = effect.color || "#a169ff";
-          ctx.fillRect(-size / 2, -size / 2, size, size);
-          ctx.strokeRect(-size / 2, -size / 2, size, size);
-          ctx.globalAlpha = (1 - progress) * 0.42;
-          ctx.strokeStyle = "#d8b7ff";
-          ctx.lineWidth = 1.5;
+          ctx.globalCompositeOperation = "lighter";
+          ctx.globalAlpha = fade * 0.58;
+          ctx.strokeStyle = effect.color || "#7b5cff";
+          ctx.lineWidth = 2.4;
           ctx.beginPath();
-          ctx.moveTo(-size * 0.7, 0);
-          ctx.lineTo(size * 0.7, 0);
-          ctx.moveTo(0, -size * 0.7);
-          ctx.lineTo(0, size * 0.7);
+          ctx.moveTo(sx, sy);
+          ctx.quadraticCurveTo(midX, midY, px, py);
+          ctx.stroke();
+          ctx.globalAlpha = fade * 0.26;
+          ctx.strokeStyle = effect.edge || "#d7c4ff";
+          ctx.lineWidth = 1.2;
+          ctx.beginPath();
+          ctx.moveTo(sx + Math.sin(progress * 10) * 5, sy - 4);
+          ctx.quadraticCurveTo(midX - 16, midY + 12, px - Math.cos(angle) * 12, py);
+          ctx.stroke();
+          ctx.translate(px, py);
+          ctx.rotate(angle + Math.sin(this.menuTime * 7 + (effect.stacks || 1)) * 0.28);
+          const size = 12 + Math.min(10, (effect.stacks || 1) * 1.6);
+          ctx.globalCompositeOperation = "source-over";
+          ctx.globalAlpha = fade * 0.82;
+          ctx.fillStyle = effect.accent || "#101521";
+          ctx.beginPath();
+          ctx.moveTo(size * 0.9, 0);
+          ctx.bezierCurveTo(size * 0.24, -size * 0.56, -size * 0.76, -size * 0.34, -size * 0.46, 0);
+          ctx.bezierCurveTo(-size * 0.76, size * 0.34, size * 0.24, size * 0.56, size * 0.9, 0);
+          ctx.fill();
+          ctx.globalCompositeOperation = "lighter";
+          ctx.globalAlpha = fade * 0.68;
+          ctx.strokeStyle = effect.edge || "#d7c4ff";
+          ctx.lineWidth = 1.7;
+          ctx.beginPath();
+          ctx.moveTo(-size * 0.36, 0);
+          ctx.quadraticCurveTo(size * 0.18, -size * 0.46, size * 0.78, 0);
           ctx.stroke();
         }
         if (effect.type === "skillShape") this.drawSkillShape(ctx, effect);
@@ -12938,26 +12989,49 @@
           }
         }
       } else if (kind === "shadow") {
-        ctx.lineWidth = 4;
-        ctx.strokeStyle = accent;
-        ctx.fillStyle = effect.color;
-        for (let i = 0; i < (lowDetail ? 2 : 3); i++) {
-          ctx.globalAlpha = alpha * (0.52 + i * 0.13);
+        ctx.lineCap = "round";
+        const bands = lowDetail ? 3 : 5;
+        for (let i = 0; i < bands; i++) {
+          const spread = (i - (bands - 1) / 2) * 19;
+          const sway = Math.sin(progress * 5 + i) * 12;
+          ctx.globalAlpha = alpha * (0.26 + i * 0.035);
+          ctx.strokeStyle = "#05030d";
+          ctx.lineWidth = 14 - Math.min(5, i);
           ctx.beginPath();
-          ctx.moveTo(-r * 0.18 + i * 16, -r * 0.42 + i * 22);
-          ctx.quadraticCurveTo(r * 0.34, -r * 0.2 + i * 14, r * 0.64, r * 0.18 - i * 16);
-          ctx.quadraticCurveTo(r * 0.18, r * 0.08 + i * 12, -r * 0.24, r * 0.36 - i * 8);
-          ctx.closePath();
-          ctx.fill();
+          ctx.moveTo(-r * 0.34, spread * 0.45);
+          ctx.bezierCurveTo(r * 0.02, -r * 0.36 + spread + sway, r * 0.38, r * 0.28 - spread * 0.25, r * 0.72, spread * 0.28);
+          ctx.stroke();
+          ctx.globalAlpha = alpha * (0.42 - i * 0.025);
+          ctx.strokeStyle = i % 2 ? "#7b5cff" : "#b9a5ff";
+          ctx.lineWidth = 2.2;
+          ctx.beginPath();
+          ctx.moveTo(-r * 0.28, spread * 0.38);
+          ctx.bezierCurveTo(r * 0.06, -r * 0.28 + spread + sway, r * 0.4, r * 0.2 - spread * 0.2, r * 0.66, spread * 0.18);
           ctx.stroke();
         }
+        ctx.globalCompositeOperation = "lighter";
+        ctx.globalAlpha = alpha * 0.34;
+        ctx.strokeStyle = "#d7c4ff";
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.arc(r * 0.2, 0, r * 0.35, -0.8 + progress * 0.2, 0.9 + progress * 0.2);
+        ctx.stroke();
         if (effect.variant === "twinSouls") {
           for (let side = -1; side <= 1; side += 2) {
-            ctx.globalAlpha = alpha * 0.75;
+            ctx.globalAlpha = alpha * 0.62;
+            ctx.strokeStyle = side < 0 ? "#b9a5ff" : "#7b5cff";
+            ctx.lineWidth = 5;
             ctx.beginPath();
-            ctx.ellipse(r * 0.18, side * 42, 18, 34, 0, 0, TAU);
+            ctx.moveTo(-r * 0.08, side * 54);
+            ctx.quadraticCurveTo(r * 0.3, side * 92, r * 0.72, side * 24);
             ctx.stroke();
-            ctx.fillRect(r * 0.2, side * 42 - 4, r * 0.34, 8);
+            ctx.globalAlpha = alpha * 0.26;
+            ctx.globalCompositeOperation = "source-over";
+            ctx.fillStyle = "#05030d";
+            ctx.beginPath();
+            ctx.ellipse(r * 0.28, side * 42, 16, 30, 0.4 * side, 0, TAU);
+            ctx.fill();
+            ctx.globalCompositeOperation = "lighter";
           }
         }
       } else if (kind === "blood") {
@@ -13243,12 +13317,30 @@
         } else if (particle.shape === "plus") {
           ctx.fillRect(particle.x - size / 4, particle.y - size / 2, size / 2, size);
           ctx.fillRect(particle.x - size / 2, particle.y - size / 4, size, size / 2);
-        } else if (["spark", "crit", "shade"].includes(particle.shape)) {
+        } else if (["spark", "crit"].includes(particle.shape)) {
           ctx.save();
           ctx.translate(particle.x, particle.y);
           ctx.rotate((particle.vx + particle.vy) * 0.02);
           ctx.fillRect(-size / 2, -size / 6, size, Math.max(1, size / 3));
           ctx.fillRect(-size / 6, -size / 2, Math.max(1, size / 3), size);
+          ctx.restore();
+        } else if (particle.shape === "shade") {
+          ctx.save();
+          ctx.translate(particle.x, particle.y);
+          ctx.rotate(Math.atan2(particle.vy || 0, particle.vx || 1) + Math.sin(this.menuTime * 4 + particle.x) * 0.25);
+          ctx.globalCompositeOperation = "source-over";
+          ctx.globalAlpha = alpha * 0.5;
+          ctx.fillStyle = "#05030d";
+          ctx.beginPath();
+          ctx.ellipse(0, 0, size * 0.82, size * 0.34, 0, 0, TAU);
+          ctx.fill();
+          ctx.globalCompositeOperation = "lighter";
+          ctx.globalAlpha = alpha * 0.34;
+          ctx.strokeStyle = particle.color === "#05030d" ? "#7b5cff" : particle.color;
+          ctx.lineWidth = Math.max(1, size * 0.12);
+          ctx.beginPath();
+          ctx.arc(0, 0, size * 0.58, -0.9, 0.9);
+          ctx.stroke();
           ctx.restore();
         } else if (["leaf", "shard", "drop", "flame", "snow", "void", "clock"].includes(particle.shape)) {
           ctx.save();

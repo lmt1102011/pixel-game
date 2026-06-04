@@ -7,7 +7,7 @@
   const ROOM_PAD = 86;
   const SAVE_KEY = "soulrift-save-v1";
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
-  const APP_VERSION = "20260604-domain-identity-104";
+  const APP_VERSION = "20260604-domain-shrink-105";
   const VERSION_CHECK_INTERVAL = 15000;
   const UPDATE_ATTEMPT_KEY = "soulrift-update-attempt-v1";
   const CLOUD_MIGRATION_KEY = "soulrift-cloud-migrated-v1";
@@ -6915,6 +6915,7 @@
         && effect.domain
         && effect.time > 0
         && !(effect.castDelay > 0)
+        && !(effect.shrinkTotal > 0 && effect.time <= effect.shrinkTotal)
       ));
     }
 
@@ -10724,6 +10725,21 @@
       const shrinkTotal = Math.max(0, Number(effect.shrinkTotal) || 0);
       const shrinking = shrinkTotal > 0 && effect.time <= shrinkTotal;
       const radius = this.powerDomainRadius(effect);
+      if (shrinking) {
+        if (!this.isMultiplayerClient()) {
+          const domainId = this.domainContainmentId(effect);
+          for (const enemy of this.run.enemies) {
+            if (enemy.domainBound === domainId) enemy.domainBound = "";
+          }
+          const caster = this.domainCaster(effect);
+          if (caster?.domainBound === domainId) caster.domainBound = "";
+        }
+        if (chance(0.35 * clamp(this.perf?.quality ?? 1, 0.35, 1))) {
+          const a = rand(0, TAU);
+          this.addParticle(effect.x + Math.cos(a) * radius, effect.y + Math.sin(a) * radius, color, rand(7, 15), rand(0.22, 0.45), this.powerDomainParticleKind(kind), a + Math.PI, rand(50, 135));
+        }
+        return;
+      }
       if (!this.isMultiplayerClient()) {
         const domainId = this.domainContainmentId(effect);
         for (const enemy of this.run.enemies) {
@@ -10733,13 +10749,6 @@
             this.applyEnemyDomainContainment(enemy);
           }
         }
-      }
-      if (shrinking) {
-        if (chance(0.35 * clamp(this.perf?.quality ?? 1, 0.35, 1))) {
-          const a = rand(0, TAU);
-          this.addParticle(effect.x + Math.cos(a) * radius, effect.y + Math.sin(a) * radius, color, rand(7, 15), rand(0.22, 0.45), this.powerDomainParticleKind(kind), a + Math.PI, rand(50, 135));
-        }
-        return;
       }
       if (!this.isMultiplayerClient() && (kind === "gravity" || kind === "void" || kind === "time")) {
         for (const enemy of this.run.enemies) {

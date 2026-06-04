@@ -7,7 +7,7 @@
   const ROOM_PAD = 86;
   const SAVE_KEY = "soulrift-save-v1";
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
-  const APP_VERSION = "20260604-emergency-visual-budget-111";
+  const APP_VERSION = "20260604-auto-panic-performance-112";
   const VERSION_CHECK_INTERVAL = 15000;
   const UPDATE_ATTEMPT_KEY = "soulrift-update-attempt-v1";
   const CLOUD_MIGRATION_KEY = "soulrift-cloud-migrated-v1";
@@ -2999,20 +2999,21 @@
         || this.perf.avgDt > targetDt + (this.isMobileDevice() ? 0.009 : 0.0075);
       const realLag = heavyFrame || sustainedSlow;
       this.perf.lagTime = realLag
-        ? Math.min(2.5, (this.perf.lagTime || 0) + frame)
-        : Math.max(0, (this.perf.lagTime || 0) - frame * 1.35);
-      const forcedLag = this.perf.lagTime > 0.22;
-      const emergencyLag = frame > 0.07 || this.perf.lagTime > 0.72;
+        ? Math.min(4.5, (this.perf.lagTime || 0) + frame)
+        : Math.max(0, (this.perf.lagTime || 0) - frame * 1.1);
+      const forcedLag = this.perf.lagTime > 0.14;
+      const emergencyLag = frame > 0.055 || this.perf.lagTime > 0.45;
+      const panicLag = frame > 0.09 || this.perf.lagTime > 0.95 || (this.perf.fastDt || frame) > targetDt + (this.isMobileDevice() ? 0.023 : 0.019);
       const overloaded = pressure > (inCombat ? 0.0048 : 0.0095) || spike || forcedLag;
       if (overloaded && (inCombat || spike || forcedLag)) {
         this.perf.overloadTime = Math.min(2.2, (this.perf.overloadTime || 0) + frame);
-        const severe = emergencyLag || spike || pressure > targetDt * 0.55;
+        const severe = panicLag || emergencyLag || spike || pressure > targetDt * 0.55;
         const readyToDrop = severe || forcedLag || this.perf.overloadTime > (inCombat ? 0.42 : 0.9);
         if (readyToDrop) {
-          const severity = clamp(pressure / targetDt, 0, 1.7);
-          const loadBoost = clamp(load + (forcedLag ? 0.65 : 0), 0.5, 2.4);
-          const lagBoost = forcedLag ? clamp(this.perf.lagTime * 1.15, 0.35, 1.65) : 0;
-          const dropRate = ((severe ? 1.35 : 0.56) * (0.45 + severity * 0.78) * loadBoost) + lagBoost;
+          const severity = clamp(pressure / targetDt, 0, 2.4);
+          const loadBoost = clamp(load + (forcedLag ? 0.9 : 0), 0.65, 2.8);
+          const lagBoost = forcedLag ? clamp(this.perf.lagTime * (panicLag ? 2.2 : 1.45), 0.55, 3.4) : 0;
+          const dropRate = ((severe ? 2.15 : 0.95) * (0.58 + severity * 1.05) * loadBoost) + lagBoost;
           nextLevel -= dropRate * frame;
         }
         this.perf.stableTime = 0;
@@ -3026,7 +3027,7 @@
           nextLevel += (0.18 + headroom * 0.34) * frame;
         }
       }
-      const lagFloor = emergencyLag ? (this.isMobileDevice() ? 2.45 : 2.65) : forcedLag ? (this.isMobileDevice() ? 2.9 : 3.05) : softFloor;
+      const lagFloor = panicLag ? 1 : emergencyLag ? (this.isMobileDevice() ? 1.45 : 1.65) : forcedLag ? (this.isMobileDevice() ? 2.05 : 2.25) : softFloor;
       const floor = Math.min(lagFloor, spike && inCombat && this.perf.overloadTime > 1 ? hardFloor : softFloor);
       this.perf.autoLevel = clamp(Math.max(nextLevel, floor), 1, 5);
       this.perf.displayedAutoLevel = Math.round(this.perf.autoLevel * 100) / 100;
@@ -3064,15 +3065,19 @@
     }
 
     performancePressure() {
-      return clamp(((this.perf?.lagTime || 0) - 0.2) / 1.15, 0, 1);
+      return clamp(((this.perf?.lagTime || 0) - 0.08) / 0.72, 0, 1);
     }
 
     performanceEmergency() {
-      return this.performancePressure() > 0.32 || (this.perf?.autoLevel || 5) < 3.1;
+      return this.performancePressure() > 0.18 || (this.perf?.autoLevel || 5) < 3.6;
+    }
+
+    performancePanic() {
+      return this.performancePressure() > 0.68 || (this.perf?.autoLevel || 5) < 2.05;
     }
 
     visualBudgetScale() {
-      return clamp(1 - this.performancePressure() * 0.72, 0.22, 1);
+      return clamp(1 - this.performancePressure() * 0.9, 0.06, 1);
     }
 
     optionalVisualEffect(type) {
@@ -3089,8 +3094,8 @@
 
     projectileLimit() {
       const quality = this.perf?.quality ?? 1;
-      const base = this.isMobileDevice() ? 34 : 62;
-      return Math.round(base * (0.46 + quality * 0.54) * this.visualBudgetScale());
+      const base = this.isMobileDevice() ? 22 : 42;
+      return Math.max(this.performancePanic() ? 8 : 14, Math.round(base * (0.34 + quality * 0.66) * this.visualBudgetScale()));
     }
 
     graphicsQualityFromLevel(level = 5) {
@@ -3105,10 +3110,12 @@
 
     graphicsRenderScale() {
       const quality = this.perf?.quality ?? 1;
-      const lag = clamp(((this.perf?.lagTime || 0) - 0.18) / 0.9, 0, 1);
-      const base = this.isMobileDevice() ? 0.68 - lag * 0.12 : 0.72 - lag * 0.1;
-      const range = this.isMobileDevice() ? 0.32 : 0.28;
-      const floor = this.isMobileDevice() ? 0.68 : 0.74;
+      const lag = this.performancePressure();
+      const base = this.isMobileDevice() ? 0.66 - lag * 0.24 : 0.7 - lag * 0.2;
+      const range = this.isMobileDevice() ? 0.34 : 0.3;
+      const floor = this.performancePanic()
+        ? (this.isMobileDevice() ? 0.42 : 0.52)
+        : (this.isMobileDevice() ? 0.58 : 0.66);
       return clamp(base + quality * range, floor, 1);
     }
 
@@ -3149,25 +3156,27 @@
 
     particleSpawnChance(shape = "spark") {
       const pressure = this.performancePressure();
-      if (["crit", "plus"].includes(shape)) return pressure > 0.62 ? 0.45 : 1;
+      if (this.performancePanic() && !["ring"].includes(shape)) return 0.02;
+      if (["crit", "plus"].includes(shape)) return pressure > 0.48 ? 0.25 : 1;
       const quality = this.perf?.quality ?? 1;
       const mobileBias = this.isMobileDevice() ? 0.58 : 0.82;
-      return clamp(mobileBias * (0.26 + quality * 0.74) * this.visualBudgetScale(), 0.03, 0.92);
+      return clamp(mobileBias * (0.26 + quality * 0.74) * this.visualBudgetScale(), 0.01, 0.92);
     }
 
     particleLimit() {
       const quality = this.perf?.quality ?? 1;
-      const base = this.isMobileDevice() ? 82 : 155;
-      return Math.round(base * (0.28 + quality * 0.72) * this.visualBudgetScale());
+      const base = this.isMobileDevice() ? 58 : 115;
+      return Math.max(this.performancePanic() ? 4 : 14, Math.round(base * (0.22 + quality * 0.78) * this.visualBudgetScale()));
     }
 
     effectLimit() {
       const quality = this.perf?.quality ?? 1;
-      const base = this.isMobileDevice() ? 40 : 72;
-      return Math.round(base * (0.42 + quality * 0.58) * this.visualBudgetScale());
+      const base = this.isMobileDevice() ? 28 : 52;
+      return Math.max(this.performancePanic() ? 5 : 12, Math.round(base * (0.32 + quality * 0.68) * this.visualBudgetScale()));
     }
 
     glow(value) {
+      if (this.performancePanic()) return 0;
       const quality = this.perf?.quality ?? 1;
       if (quality < 0.56) return 0;
       return value * clamp(quality * (this.isMobileDevice() ? 0.38 : 0.62), 0.12, 0.72);
@@ -3209,20 +3218,31 @@
       if (force && remove > 0 && this.performancePressure() > 0.78) list.splice(0, remove);
     }
 
+    trimProjectilesForBudget(limit = this.projectileLimit()) {
+      if (!this.run?.projectiles || this.run.projectiles.length <= limit) return;
+      const panic = this.performancePanic();
+      const pressure = this.performancePressure();
+      this.trimOptionalList(this.run.projectiles, limit, (projectile) => (
+        projectile.visualOnly ||
+        (!this.inView(projectile.x, projectile.y, panic ? 120 : 220) && (projectile.age || 0) > (panic ? 0.06 : 0.18) && projectile.owner !== "enemy")
+      ));
+      if (this.run.projectiles.length <= limit || !panic) return;
+      this.trimOptionalList(this.run.projectiles, limit, (projectile) => (
+        projectile.owner !== "enemy" && (projectile.age || 0) > 0.08
+      ), pressure > 0.9);
+    }
+
     applyEmergencyVisualBudget() {
       if (!this.run) return;
       const pressure = this.performancePressure();
       if (pressure <= 0.08) return;
       this.trimEffectList();
       this.trimVisualList(this.run.particles, this.particleLimit());
-      this.trimVisualList(this.run.damageTexts, Math.round((this.isMobileDevice() ? 14 : 24) * this.visualBudgetScale()));
-      this.trimVisualList(this.run.slashes, Math.round((this.isMobileDevice() ? 14 : 22) * this.visualBudgetScale()));
-      this.trimOptionalList(this.run.shockwaves, Math.round((this.isMobileDevice() ? 8 : 13) * this.visualBudgetScale()), (wave) => !wave.damage);
-      this.trimOptionalList(this.run.trails, Math.round((this.isMobileDevice() ? 12 : 20) * this.visualBudgetScale()), (trail) => trail.damageTick === undefined);
-      this.trimOptionalList(this.run.projectiles, this.projectileLimit(), (projectile) => (
-        projectile.visualOnly ||
-        (!this.inView(projectile.x, projectile.y, 220) && (projectile.age || 0) > 0.18 && projectile.owner !== "enemy")
-      ));
+      this.trimVisualList(this.run.damageTexts, this.performancePanic() ? 0 : Math.round((this.isMobileDevice() ? 10 : 18) * this.visualBudgetScale()));
+      this.trimVisualList(this.run.slashes, Math.round((this.isMobileDevice() ? 9 : 16) * this.visualBudgetScale()));
+      this.trimOptionalList(this.run.shockwaves, Math.round((this.isMobileDevice() ? 5 : 9) * this.visualBudgetScale()), (wave) => !wave.damage, this.performancePanic());
+      this.trimOptionalList(this.run.trails, Math.round((this.isMobileDevice() ? 6 : 12) * this.visualBudgetScale()), (trail) => trail.damageTick === undefined, this.performancePanic());
+      this.trimProjectilesForBudget();
     }
 
     viewBounds(pad = 0) {
@@ -8441,12 +8461,7 @@
         next.radius *= scale;
       }
       this.run.projectiles.push({ id: uid("proj"), ...next, age: 0 });
-      if (this.run.projectiles.length > this.projectileLimit()) {
-        this.trimOptionalList(this.run.projectiles, this.projectileLimit(), (entry) => (
-          entry.visualOnly ||
-          (!this.inView(entry.x, entry.y, 220) && (entry.age || 0) > 0.18 && entry.owner !== "enemy")
-        ));
-      }
+      if (this.run.projectiles.length > this.projectileLimit()) this.trimProjectilesForBudget();
     }
 
     areaDamage(x, y, radius, damage, color, kind, ultimate = false, sourceId = this.currentDamageSourceId || "") {
@@ -10663,7 +10678,7 @@
         const fromY = projectile.y;
         projectile.x += projectile.vx * dt;
         projectile.y += projectile.vy * dt;
-        const trailRate = this.performanceEmergency() ? (this.isMobileDevice() ? 4 : 7) : (this.isMobileDevice() ? 18 : 30);
+        const trailRate = this.performancePanic() ? 0.35 : this.performanceEmergency() ? (this.isMobileDevice() ? 2 : 4) : (this.isMobileDevice() ? 18 : 30);
         if (this.inView(projectile.x, projectile.y, 90) && chance(trailRate * dt)) {
           const trailKind = projectile.kind === "fireball" ? "flame" : projectile.kind === "ice" ? "snow" : projectile.kind === "shadow" ? "shade" : "dot";
           this.addParticle(projectile.x, projectile.y, projectile.color, projectile.radius * 0.9, 0.25, trailKind);
@@ -11975,10 +11990,11 @@
       this.renderViewW = this.width / scale;
       this.renderViewH = this.height / scale;
       const emergency = this.performanceEmergency();
+      const panic = this.performancePanic();
       ctx.save();
       ctx.scale(scale, scale);
       ctx.translate(-camX, -camY);
-      this.drawRoom(ctx);
+      this.drawRoom(ctx, panic);
       if (!emergency) this.drawTrails(ctx);
       this.drawHazards(ctx);
       this.drawPickups(ctx);
@@ -12030,13 +12046,15 @@
         const pos = this.displayActorPosition(this.aliveActor(target) ? target : this.run.player);
         if (this.inView(pos.x, pos.y, 170)) this.drawSoulGhost(ctx, pos.x, pos.y, this.save.account.username || "Bạn", true, this.save.customization.color || "#d9fbff");
       }
-      this.drawSlashes(ctx);
-      this.drawShockwaves(ctx);
+      if (!panic) {
+        this.drawSlashes(ctx);
+        this.drawShockwaves(ctx);
+      }
       if (!emergency) {
         this.drawParticles(ctx);
         this.drawEffects(ctx, true);
         this.drawDamageTexts(ctx);
-      } else if (this.performancePressure() < 0.72) {
+      } else if (!panic && this.performancePressure() < 0.62) {
         this.drawParticles(ctx);
       }
       this.drawBossBars(ctx);
@@ -12048,13 +12066,21 @@
       this.drawDomainCutinOverlay(ctx);
     }
 
-    drawRoom(ctx) {
+    drawRoom(ctx, lowDetail = false) {
       const biome = this.run.biome;
       const bounds = this.viewBounds(120);
       ctx.fillStyle = "#05070b";
       ctx.fillRect(0, 0, WORLD_W, WORLD_H);
       ctx.fillStyle = biome.floor;
       ctx.fillRect(ROOM_PAD, ROOM_PAD, WORLD_W - ROOM_PAD * 2, WORLD_H - ROOM_PAD * 2);
+      if (lowDetail) {
+        ctx.fillStyle = biome.wall;
+        ctx.fillRect(0, 0, WORLD_W, ROOM_PAD);
+        ctx.fillRect(0, WORLD_H - ROOM_PAD, WORLD_W, ROOM_PAD);
+        ctx.fillRect(0, 0, ROOM_PAD, WORLD_H);
+        ctx.fillRect(WORLD_W - ROOM_PAD, 0, ROOM_PAD, WORLD_H);
+        return;
+      }
       const startX = Math.max(ROOM_PAD, ROOM_PAD + Math.floor((bounds.left - ROOM_PAD) / 64) * 64);
       const endX = Math.min(WORLD_W - ROOM_PAD, bounds.right + 64);
       const startY = Math.max(ROOM_PAD, ROOM_PAD + Math.floor((bounds.top - ROOM_PAD) / 64) * 64);

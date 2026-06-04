@@ -7,7 +7,7 @@
   const ROOM_PAD = 86;
   const SAVE_KEY = "soulrift-save-v1";
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
-  const APP_VERSION = "20260604-heal-balance-80";
+  const APP_VERSION = "20260604-time-e-heal-nerf-81";
   const VERSION_CHECK_INTERVAL = 15000;
   const UPDATE_ATTEMPT_KEY = "soulrift-update-attempt-v1";
   const DOOR_ENTER_TIME = 1.0;
@@ -6627,7 +6627,7 @@
           this.addShockwave(x, y, 130, power.color, 18);
         } else if (kind === "time") {
           if (!remote) {
-            this.healPlayer(16);
+            this.healPlayer(4);
             caster.cooldowns.q = Math.max(0, caster.cooldowns.q - 1.6);
             caster.cooldowns.r = Math.max(0, caster.cooldowns.r - 2.2);
           }

@@ -1,11 +1,11 @@
-const SOULRIFT_CACHE = "soulrift-pwa-20260605-power-signature-178";
+const SOULRIFT_CACHE = "soulrift-pwa-20260605-gemini-render-179";
 const SOULRIFT_ASSETS = [
   "./",
   "./index.html",
-  "./styles.css?v=20260605-power-signature-178",
-  "./src/pwa.js?v=20260605-power-signature-178",
-  "./src/game.js?v=20260605-power-signature-178",
-  "./manifest.webmanifest?v=20260605-power-signature-178",
+  "./styles.css?v=20260605-gemini-render-179",
+  "./src/pwa.js?v=20260605-gemini-render-179",
+  "./src/game.js?v=20260605-gemini-render-179",
+  "./manifest.webmanifest?v=20260605-gemini-render-179",
   "./version.json",
   "./assets/icons/app-icon-20260605-logo-xl-149.svg",
   "./assets/icons/app-icon-20260605-logo-xl-149-192.png",

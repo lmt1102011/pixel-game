@@ -9,7 +9,7 @@
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
   const SIGNAL_REALTIME_RELAY_LIMIT = 2;
   const SIGNAL_REALTIME_TYPES = new Set(["state", "snapshot", "attack", "skill", "collect", "openChest", "dropItem", "damage", "chooseDoor"]);
-  const APP_VERSION = "20260605-power-signature-178";
+  const APP_VERSION = "20260605-gemini-render-179";
   const CHANGELOG_ENTRIES = [
     {
       version: APP_VERSION,
@@ -17469,46 +17469,91 @@
       const pulse = lowDetail ? 0 : 0.5 + Math.sin(t * 3.2) * 0.5;
 
       ctx.save();
-      ctx.globalCompositeOperation = "source-over";
-      ctx.globalAlpha = 1;
+      ctx.globalCompositeOperation = lowDetail ? "source-over" : "screen";
+      ctx.globalAlpha = lowDetail ? 0.72 : 0.92;
       ctx.shadowBlur = 0;
       ctx.lineCap = "round";
       ctx.lineJoin = "round";
 
-      ctx.strokeStyle = hexToRgba(color, lowDetail ? 0.26 : 0.36);
-      ctx.lineWidth = lowDetail ? 1.15 : 1.55;
+      ctx.strokeStyle = hexToRgba(color, lowDetail ? 0.42 : 0.64);
+      ctx.lineWidth = lowDetail ? 2.1 : 3.2 + pulse * 1.4;
       ctx.beginPath();
-      ctx.ellipse(0, -3, 18 + pulse * 1.3, 23 + pulse * 1.1, 0, -0.2, Math.PI * 1.15);
+      ctx.ellipse(0, -3, 21 + pulse * 1.8, 27 + pulse * 1.8, 0, 0, TAU);
       ctx.stroke();
 
-      ctx.strokeStyle = hexToRgba(accent, lowDetail ? 0.38 : 0.58);
-      ctx.lineWidth = lowDetail ? 1.25 : 1.65;
+      ctx.globalAlpha = lowDetail ? 0.52 : 0.72;
+      ctx.strokeStyle = hexToRgba(accent, lowDetail ? 0.5 : 0.78);
+      ctx.lineWidth = lowDetail ? 1.8 : 2.4;
       ctx.beginPath();
-      ctx.moveTo(-12, -22);
-      ctx.lineTo(-8, -10);
-      ctx.moveTo(12, -22);
-      ctx.lineTo(8, -10);
+      ctx.ellipse(0, -3, 15 + pulse, 21 + pulse, 0, -0.25, Math.PI * 1.25);
       ctx.stroke();
+
+      if (!lowDetail) {
+        ctx.fillStyle = accent;
+        ctx.globalAlpha = 0.78;
+        const motes = kind === "lightning" || kind === "crystal" ? 4 : 3;
+        for (let i = 0; i < motes; i++) {
+          const moteAngle = t * (kind === "time" ? -1.8 : 2.1) + (i * TAU) / motes;
+          const orbitR = 22 + Math.sin(t * 3.5 + i) * 3.5;
+          const px = Math.cos(moteAngle) * orbitR;
+          const py = Math.sin(moteAngle) * orbitR - 3;
+          ctx.save();
+          ctx.translate(px, py);
+          ctx.rotate(moteAngle);
+          if (kind === "fire") {
+            ctx.fillRect(-2.4, -2.4, 4.8, 4.8);
+          } else if (kind === "lightning") {
+            ctx.strokeStyle = accent;
+            ctx.lineWidth = 1.6;
+            ctx.beginPath();
+            ctx.moveTo(-4, -2);
+            ctx.lineTo(0, 2);
+            ctx.lineTo(-1, 5);
+            ctx.lineTo(5, -1);
+            ctx.stroke();
+          } else if (kind === "ice") {
+            ctx.strokeStyle = accent;
+            ctx.lineWidth = 1.4;
+            ctx.beginPath();
+            ctx.moveTo(-4, 0);
+            ctx.lineTo(4, 0);
+            ctx.moveTo(0, -4);
+            ctx.lineTo(0, 4);
+            ctx.stroke();
+          } else if (kind === "void" || kind === "shadow") {
+            ctx.strokeStyle = accent;
+            ctx.lineWidth = 1.4;
+            ctx.strokeRect(-3, -3, 6, 6);
+          } else {
+            ctx.beginPath();
+            ctx.arc(0, 0, 2.4, 0, TAU);
+            ctx.fill();
+          }
+          ctx.restore();
+        }
+      }
 
       const badgeY = -34 + (lowDetail ? 0 : Math.sin(t * 2.4) * 0.8);
+      ctx.globalCompositeOperation = "source-over";
       ctx.translate(0, badgeY);
-      ctx.fillStyle = "rgba(7, 10, 18, 0.78)";
+      ctx.globalAlpha = 1;
+      ctx.fillStyle = "rgba(7, 10, 18, 0.86)";
       ctx.beginPath();
-      ctx.arc(0, 0, lowDetail ? 7.6 : 8.8, 0, TAU);
+      ctx.arc(0, 0, lowDetail ? 8.4 : 10.2, 0, TAU);
       ctx.fill();
       ctx.strokeStyle = hexToRgba(color, lowDetail ? 0.72 : 0.95);
-      ctx.lineWidth = lowDetail ? 1.4 : 1.7;
+      ctx.lineWidth = lowDetail ? 1.6 : 2;
       ctx.beginPath();
-      ctx.arc(0, 0, lowDetail ? 7.6 : 8.8, -Math.PI * 0.12, Math.PI * 1.72);
+      ctx.arc(0, 0, lowDetail ? 8.4 : 10.2, -Math.PI * 0.12, Math.PI * 1.72);
       ctx.stroke();
       if (!lowDetail) {
-        ctx.strokeStyle = hexToRgba(accent, 0.42);
-        ctx.lineWidth = 0.9;
+        ctx.strokeStyle = hexToRgba(accent, 0.5);
+        ctx.lineWidth = 1.1;
         ctx.beginPath();
-        ctx.arc(0, 0, 5.3 + pulse * 0.5, Math.PI * 0.12, Math.PI * 1.28);
+        ctx.arc(0, 0, 6.2 + pulse * 0.5, Math.PI * 0.12, Math.PI * 1.28);
         ctx.stroke();
       }
-      this.drawAwakenedAuraGlyph(ctx, kind, lowDetail ? 4.3 : 5.1, color, accent);
+      this.drawAwakenedAuraGlyph(ctx, kind, lowDetail ? 4.8 : 5.8, color, accent);
       ctx.restore();
     }
 
@@ -19562,6 +19607,138 @@
           ctx.stroke();
         }
       };
+      const opticalStroke = (pathFn, widthScale = 1, color = effect.color, core = accent) => {
+        ctx.save();
+        ctx.shadowBlur = 0;
+        ctx.lineCap = "round";
+        ctx.lineJoin = "round";
+        if (!lowDetail) {
+          ctx.globalCompositeOperation = "screen";
+          ctx.globalAlpha = alpha * 0.38;
+          ctx.strokeStyle = color;
+          ctx.lineWidth = 13 * widthScale;
+          ctx.beginPath();
+          pathFn();
+          ctx.stroke();
+        }
+        ctx.globalCompositeOperation = "source-over";
+        ctx.globalAlpha = alpha * (lowDetail ? 0.76 : 0.92);
+        ctx.strokeStyle = core;
+        ctx.lineWidth = (lowDetail ? 3.4 : 4.4) * widthScale;
+        ctx.beginPath();
+        pathFn();
+        ctx.stroke();
+        ctx.restore();
+      };
+      const opticalPolygon = (points, widthScale = 1, fillAlpha = 0.2) => {
+        if (!points.length) return;
+        ctx.save();
+        ctx.shadowBlur = 0;
+        ctx.globalCompositeOperation = lowDetail ? "source-over" : "screen";
+        ctx.globalAlpha = alpha * fillAlpha;
+        ctx.fillStyle = effect.color;
+        ctx.beginPath();
+        ctx.moveTo(points[0][0], points[0][1]);
+        for (let i = 1; i < points.length; i++) ctx.lineTo(points[i][0], points[i][1]);
+        ctx.closePath();
+        ctx.fill();
+        ctx.globalCompositeOperation = "source-over";
+        ctx.globalAlpha = alpha * 0.9;
+        ctx.strokeStyle = accent;
+        ctx.lineWidth = lowDetail ? 2.4 * widthScale : 3.2 * widthScale;
+        ctx.stroke();
+        ctx.restore();
+      };
+      const drawGeminiOpticalSignature = () => {
+        if (!effect.signature && !variant.startsWith("awakened-")) return;
+        const mainLen = Math.max(length || r, r * 1.2);
+        if (kind === "fire") {
+          opticalPolygon([[0, 0], [mainLen * 0.32, -28], [mainLen * 0.92, -10], [mainLen * 0.72, 18], [mainLen * 0.2, 30]], 1.15, 0.3);
+          opticalStroke(() => {
+            ctx.moveTo(0, 0);
+            ctx.quadraticCurveTo(mainLen * 0.32, -32, mainLen * 0.8, 0);
+          }, 1.05);
+        } else if (kind === "ice") {
+          opticalStroke(() => {
+            for (let i = 0; i < 6; i++) {
+              const a = (i / 6) * TAU + Math.PI / 6;
+              const px = Math.cos(a) * r * 0.6;
+              const py = Math.sin(a) * r * 0.6;
+              if (i === 0) ctx.moveTo(px, py);
+              else ctx.lineTo(px, py);
+            }
+            ctx.closePath();
+          }, 0.95);
+          opticalStroke(() => {
+            ctx.moveTo(0, 0);
+            ctx.lineTo(Math.max(mainLen * 0.62, r), 0);
+          }, 0.8);
+        } else if (kind === "lightning") {
+          opticalStroke(() => {
+            ctx.moveTo(0, 0);
+            const segments = lowDetail ? 5 : 7;
+            for (let i = 1; i <= segments; i++) {
+              ctx.lineTo((mainLen / segments) * i, (i % 2 ? 24 : -24) * (1 - progress * 0.35));
+            }
+          }, 1.28);
+        } else if (kind === "shadow") {
+          opticalStroke(() => {
+            ctx.moveTo(-r * 0.18, r * 0.22);
+            ctx.lineTo(mainLen * 0.3, -r * 0.28);
+            ctx.lineTo(mainLen * 0.88, r * 0.08);
+          }, 1.18, "#05030d", accent);
+          opticalStroke(() => {
+            ctx.moveTo(-r * 0.12, -r * 0.18);
+            ctx.lineTo(mainLen * 0.36, r * 0.24);
+            ctx.lineTo(mainLen * 0.72, -r * 0.04);
+          }, 0.9, "#05030d", effect.color);
+        } else if (kind === "blood") {
+          opticalStroke(() => {
+            ctx.arc(0, 0, r * 0.58, -0.95, 0.95);
+          }, 1.2);
+          opticalStroke(() => {
+            ctx.arc(0, 0, r * 0.36, -0.8, 0.72);
+          }, 0.72, effect.color, "#ffc0c8");
+        } else if (kind === "gravity") {
+          for (let i = 0; i < 3; i++) {
+            ctx.save();
+            ctx.rotate(progress * 0.6 + i * 0.32);
+            opticalStroke(() => ctx.rect(-r * (0.2 + i * 0.12), -r * (0.2 + i * 0.12), r * (0.4 + i * 0.24), r * (0.4 + i * 0.24)), 0.8);
+            ctx.restore();
+          }
+        } else if (kind === "crystal") {
+          const shards = lowDetail ? 3 : 5;
+          for (let i = -shards; i <= shards; i++) {
+            ctx.save();
+            ctx.rotate(i * 0.12);
+            opticalPolygon([[r * 0.18, 0], [r * 0.48, -10], [r * 0.84, 0], [r * 0.48, 10]], 0.75, 0.22);
+            ctx.restore();
+          }
+        } else if (kind === "nature") {
+          opticalStroke(() => {
+            ctx.moveTo(0, 0);
+            ctx.bezierCurveTo(mainLen * 0.22, -34, mainLen * 0.5, 28, mainLen * 0.82, 0);
+          }, 1.1);
+          opticalStroke(() => {
+            ctx.moveTo(r * 0.22, 18);
+            ctx.bezierCurveTo(r * 0.38, -20, r * 0.58, 18, r * 0.74, -12);
+          }, 0.7, effect.color, "#ffe082");
+        } else if (kind === "void") {
+          opticalPolygon([[0, -r * 0.52], [r * 0.24, -r * 0.08], [r * 0.08, r * 0.1], [r * 0.28, r * 0.48], [-r * 0.08, r * 0.16], [-r * 0.26, r * 0.42], [-r * 0.1, 0]], 1, 0.18);
+        } else if (kind === "time") {
+          opticalStroke(() => ctx.arc(0, 0, r * 0.52, 0, TAU), 0.95);
+          opticalStroke(() => {
+            ctx.moveTo(0, 0);
+            ctx.lineTo(Math.cos(-0.8 - progress) * r * 0.38, Math.sin(-0.8 - progress) * r * 0.38);
+            ctx.moveTo(0, 0);
+            ctx.lineTo(Math.cos(1.3 + progress * 1.8) * r * 0.26, Math.sin(1.3 + progress * 1.8) * r * 0.26);
+          }, 0.72);
+        }
+        ctx.globalCompositeOperation = "source-over";
+        ctx.globalAlpha = alpha;
+        ctx.strokeStyle = accent;
+        ctx.fillStyle = effect.color;
+      };
       const drawDomainSeal = () => {
         ctx.globalCompositeOperation = "lighter";
         ctx.globalAlpha = alpha * (effect.awakened ? 0.78 : 0.62);
@@ -19584,6 +19761,8 @@
         }
         ctx.globalCompositeOperation = "source-over";
       };
+
+      drawGeminiOpticalSignature();
 
       if (variant.startsWith("domain")) {
         drawDomainSeal();

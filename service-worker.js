@@ -1,17 +1,17 @@
-const SOULRIFT_CACHE = "soulrift-pwa-20260605-pwa-fullscreen-147";
+const SOULRIFT_CACHE = "soulrift-pwa-20260605-logo-large-148";
 const SOULRIFT_ASSETS = [
   "./",
   "./index.html",
-  "./styles.css?v=20260605-pwa-fullscreen-147",
-  "./src/pwa.js?v=20260605-pwa-fullscreen-147",
-  "./src/game.js?v=20260605-pwa-fullscreen-147",
-  "./manifest.webmanifest?v=20260605-pwa-fullscreen-147",
+  "./styles.css?v=20260605-logo-large-148",
+  "./src/pwa.js?v=20260605-logo-large-148",
+  "./src/game.js?v=20260605-logo-large-148",
+  "./manifest.webmanifest?v=20260605-logo-large-148",
   "./version.json",
-  "./assets/icons/app-icon-20260605-logo-refresh-146.svg",
-  "./assets/icons/app-icon-20260605-logo-refresh-146-192.png",
-  "./assets/icons/app-icon-20260605-logo-refresh-146-512.png",
-  "./assets/icons/app-icon-20260605-logo-refresh-146-maskable-512.png",
-  "./assets/icons/apple-touch-icon-20260605-logo-refresh-146.png"
+  "./assets/icons/app-icon-20260605-logo-large-148.svg",
+  "./assets/icons/app-icon-20260605-logo-large-148-192.png",
+  "./assets/icons/app-icon-20260605-logo-large-148-512.png",
+  "./assets/icons/app-icon-20260605-logo-large-148-maskable-512.png",
+  "./assets/icons/apple-touch-icon-20260605-logo-large-148.png"
 ];
 
 self.addEventListener("install", (event) => {

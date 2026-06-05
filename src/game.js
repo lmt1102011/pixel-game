@@ -9,7 +9,7 @@
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
   const SIGNAL_REALTIME_RELAY_LIMIT = 2;
   const SIGNAL_REALTIME_TYPES = new Set(["state", "snapshot", "attack", "skill", "collect", "openChest", "dropItem", "damage", "chooseDoor"]);
-  const APP_VERSION = "20260606-scifi-skill-vfx-187";
+  const APP_VERSION = "20260606-domain-cutin-fix-188";
   const CHANGELOG_ENTRIES = [
     {
       version: APP_VERSION,
@@ -11820,7 +11820,7 @@
         }
       }[kind]?.[key] || {};
       this.markDesignedCast(caster, power, key, angle, target, { owner, casterId });
-      this.addDesignedSkillVisual(kind, key, caster, angle, { x: tx, y: ty }, awakened, visualExtra);
+      if (key !== "f") this.addDesignedSkillVisual(kind, key, caster, angle, { x: tx, y: ty }, awakened, visualExtra);
 
       if (key === "q") {
         if (kind === "fire") {
@@ -21990,6 +21990,10 @@
           const docLen = Number(effect.length || length || r);
           const docWidth = Number(effect.width || 56);
           const pulse = Math.sin(this.menuTime * 12 + (effect.seed || 0)) * 0.5 + 0.5;
+          if (designKey === "f") {
+            drawDomainSeal();
+            return true;
+          }
           const drawSciFiCinematicShape = () => {
             const spec = this.powerVfxSpec(designKind);
             const main = effect.color || spec.color || "#ffffff";

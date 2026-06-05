@@ -7,7 +7,9 @@
   const ROOM_PAD = 86;
   const SAVE_KEY = "soulrift-save-v1";
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
-  const APP_VERSION = "20260605-multiplayer-rewards-171";
+  const SIGNAL_REALTIME_RELAY_LIMIT = 2;
+  const SIGNAL_REALTIME_TYPES = new Set(["state", "snapshot", "attack", "skill", "collect", "openChest", "dropItem", "damage", "chooseDoor"]);
+  const APP_VERSION = "20260605-network-ice-172";
   const CHANGELOG_ENTRIES = [
     {
       version: APP_VERSION,
@@ -19,6 +21,7 @@
         "Trùm có thêm nhiều pattern bullet-hell đọc được, mỗi khu và mỗi skill Hóa Trùm khác nhau rõ hơn.",
         "Sửa lỗi phòng đã vượt ải nhưng đôi lúc không mọc cửa tiếp theo.",
         "Sửa lỗi người chơi không phải chủ phòng đôi lúc không nhận được rương/vật phẩm sau khi vượt ải.",
+        "Cải thiện kết nối khác mạng bằng nhiều STUN server hơn và cảnh báo rõ khi rơi về Relay chậm.",
         "Thêm trạng thái mạng gọn trong trận và tự xin đồng bộ nhanh hơn khi client bị lệch.",
         "Thêm bảng cập nhật để biết bản mới vừa thay đổi gì."
       ]
@@ -63,6 +66,35 @@
   const NET_SNAPSHOT_RELAY_INTERVAL = 0.22;
   const NET_REALTIME_BUFFER_LIMIT = 128 * 1024;
   const NET_SNAPSHOT_STALE_MS = 1100;
+  const DEFAULT_ICE_SERVERS = [
+    { urls: "stun:stun.l.google.com:19302" },
+    { urls: "stun:stun1.l.google.com:19302" },
+    { urls: "stun:stun2.l.google.com:19302" },
+    { urls: "stun:stun3.l.google.com:19302" },
+    { urls: "stun:stun4.l.google.com:19302" },
+    { urls: "stun:stun.relay.metered.ca:80" }
+  ];
+  function validIceServer(server) {
+    if (!server || typeof server !== "object") return false;
+    return typeof server.urls === "string" || Array.isArray(server.urls);
+  }
+  function configuredIceServers() {
+    const custom = [];
+    if (Array.isArray(window.SOULRIFT_ICE_SERVERS)) custom.push(...window.SOULRIFT_ICE_SERVERS);
+    try {
+      const stored = JSON.parse(localStorage.getItem("soulrift-ice-servers") || "[]");
+      if (Array.isArray(stored)) custom.push(...stored);
+    } catch {
+      // Invalid custom ICE config falls back to the bundled STUN pool.
+    }
+    return [...DEFAULT_ICE_SERVERS, ...custom.filter(validIceServer)];
+  }
+  function rtcIceConfig() {
+    return {
+      iceServers: configuredIceServers(),
+      iceCandidatePoolSize: 8
+    };
+  }
   const SAVE_OPEN_TIMEOUT_MS = 1200;
   const SAVE_READ_TIMEOUT_MS = 900;
   const BOOT_SAVE_TIMEOUT_MS = 1800;
@@ -1424,6 +1456,7 @@
       this.joinedAt = Date.now();
       this.hostTransferStamp = 0;
       this.lastHostTransferId = "";
+      this.relayTransportWarned = false;
       this.slots = [{ ...this.playerProfile(), ready: false, vote: this.mapVote, host: true, joinedAt: this.joinedAt, seenAt: this.joinedAt }];
     }
 
@@ -1467,6 +1500,13 @@
 
     roomPeerId(code = this.code) {
       return `soulrift-${String(code || "").trim().toLowerCase()}`;
+    }
+
+    peerJsOptions() {
+      return {
+        debug: 0,
+        config: rtcIceConfig()
+      };
     }
 
     create() {
@@ -1526,7 +1566,7 @@
       if (!window.Peer || !this.host || !this.code) return;
       this.peerJsRoomId = this.roomPeerId();
       try {
-        this.peerJs = new Peer(this.peerJsRoomId, { debug: 0 });
+        this.peerJs = new Peer(this.peerJsRoomId, this.peerJsOptions());
         this.peerJs.on("open", () => {
           this.game.toast(`Phòng ${this.code} đã sẵn sàng`);
           this.publishDirectoryPresence(this.game.mode === "lobby");
@@ -1556,7 +1596,7 @@
     openPeerJsClient() {
       if (!window.Peer || this.host || !this.code) return;
       try {
-        this.peerJs = new Peer(undefined, { debug: 0 });
+        this.peerJs = new Peer(undefined, this.peerJsOptions());
         this.peerJs.on("open", () => {
           this.connectPeerJsRoom();
           for (const delay of [350, 800, 1600, 2800, 4600, 7000]) {
@@ -1842,7 +1882,8 @@
         const body = JSON.stringify(payload);
         const options = { method: "POST", body };
         if (body.length < 60000) options.keepalive = true;
-        for (const relay of SIGNAL_RELAY_URLS) {
+        const relays = SIGNAL_REALTIME_TYPES.has(message.type) ? SIGNAL_RELAY_URLS.slice(0, SIGNAL_REALTIME_RELAY_LIMIT) : SIGNAL_RELAY_URLS;
+        for (const relay of relays) {
           fetch(`${relay}/${encodeURIComponent(this.signalTopic)}`, options).catch(() => {});
         }
       }
@@ -1955,7 +1996,7 @@
 
     ensurePeer(remoteId, initiator) {
       if (this.peers.has(remoteId)) return this.peers.get(remoteId);
-      const pc = new RTCPeerConnection({ iceServers: [{ urls: "stun:stun.l.google.com:19302" }] });
+      const pc = new RTCPeerConnection(rtcIceConfig());
       const peer = { pc, channel: null, remoteId };
       pc.onicecandidate = (event) => {
         if (event.candidate) this.sendSignal({ type: "ice", candidate: event.candidate }, remoteId);
@@ -14845,6 +14886,7 @@
       this.snapshotTimer -= dt;
       this.resyncTimer -= dt;
       if (!this.run || !this.isMultiplayerRun()) return;
+      this.warnIfUsingSlowRelay();
       if (this.networkTimer <= 0) {
         this.networkTimer = this.lobby.hasOpenPeers() ? NET_STATE_PEER_INTERVAL : NET_STATE_RELAY_INTERVAL;
         const p = this.run.player;
@@ -14872,6 +14914,18 @@
         if (!stillInRoom && performance.now() - remote.t > 4000) this.remotePlayers.delete(id);
       }
       this.ensureRemotePlayersFromLobby();
+    }
+
+    warnIfUsingSlowRelay() {
+      if (!this.isMultiplayerRun()) return;
+      if (this.lobby.hasOpenPeers()) {
+        this.lobby.relayTransportWarned = false;
+        return;
+      }
+      const hasOtherPlayer = this.lobby.host ? this.lobby.guestCount() > 0 : Boolean(this.lobby.hostId());
+      if (!hasOtherPlayer || this.lobby.relayTransportWarned) return;
+      this.lobby.relayTransportWarned = true;
+      this.toast("Đang dùng Relay chậm. Khác mạng cần P2P/TURN hoặc server riêng để mượt.");
     }
 
     shouldSendNetworkState(state) {
@@ -15034,8 +15088,8 @@
       if (this.isMultiplayerHost()) {
         const guests = this.lobby.guestCount();
         return {
-          quality: peerCount > 0 ? "good" : "warn",
-          text: `${transport} ${guests}/3`
+          quality: peerCount > 0 ? "good" : "bad",
+          text: peerCount > 0 ? `${transport} ${guests}/3` : `Relay chậm ${guests}/3`
         };
       }
       const now = performance.now();
@@ -15044,8 +15098,14 @@
       if (age > 2400) return { quality: "bad", text: `Lệch ${(age / 1000).toFixed(1)}s` };
       if (age > 1100) return { quality: "warn", text: "Đang đồng bộ" };
       const avg = this.netStats.snapshotGapAvg ? Math.round(this.netStats.snapshotGapAvg) : 0;
+      if (peerCount === 0) {
+        return {
+          quality: avg > 0 && avg < 420 ? "warn" : "bad",
+          text: avg ? `Relay chậm ${avg}ms` : "Relay chậm"
+        };
+      }
       return {
-        quality: avg > 260 || peerCount === 0 ? "warn" : "good",
+        quality: avg > 260 ? "warn" : "good",
         text: avg ? `${transport} ${avg}ms` : `${transport} OK`
       };
     }

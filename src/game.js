@@ -7,7 +7,7 @@
   const ROOM_PAD = 86;
   const SAVE_KEY = "soulrift-save-v1";
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
-  const APP_VERSION = "20260605-door-recovery-170";
+  const APP_VERSION = "20260605-multiplayer-rewards-171";
   const CHANGELOG_ENTRIES = [
     {
       version: APP_VERSION,
@@ -18,6 +18,7 @@
         "Hóa Trùm dùng nhịp cân bằng riêng và không còn nút chỉnh độ khó trong phòng.",
         "Trùm có thêm nhiều pattern bullet-hell đọc được, mỗi khu và mỗi skill Hóa Trùm khác nhau rõ hơn.",
         "Sửa lỗi phòng đã vượt ải nhưng đôi lúc không mọc cửa tiếp theo.",
+        "Sửa lỗi người chơi không phải chủ phòng đôi lúc không nhận được rương/vật phẩm sau khi vượt ải.",
         "Thêm trạng thái mạng gọn trong trận và tự xin đồng bộ nhanh hơn khi client bị lệch.",
         "Thêm bảng cập nhật để biết bản mới vừa thay đổi gì."
       ]
@@ -11307,10 +11308,19 @@
       if (this.isMultiplayerHost()) {
         return this.lobby.slots.filter(Boolean).filter((slot) => {
           if (slot.id === this.lobby.id) return this.aliveActor(this.run.player);
-          return this.aliveActor(this.remotePlayers.get(slot.id));
+          const remote = this.remotePlayers.get(slot.id);
+          return !remote || this.aliveActor(remote);
         }).map((slot) => ({ id: slot.id, name: slot.name || "Người chơi" }));
       }
       return this.aliveActor(this.run?.player) ? [{ id: this.lobby.id, name: this.save.account.username || "Bạn" }] : [];
+    }
+
+    remoteSlotAlive(remoteId) {
+      if (!remoteId || remoteId === this.lobby.id) return this.aliveActor(this.run?.player);
+      const slot = this.lobby.slots.find((entry) => entry?.id === remoteId);
+      if (!slot) return false;
+      const remote = this.remotePlayers.get(remoteId);
+      return !remote || this.aliveActor(remote);
     }
 
     allRewardOwnersClaimed(room = this.run?.currentRoom) {
@@ -11450,6 +11460,7 @@
 
     handleRemoteOpenChest(remoteId, pickupId, x, y) {
       if (!this.isMultiplayerHost() || !pickupId || !this.run) return;
+      if (!this.remoteSlotAlive(remoteId)) return;
       const chest = this.run.pickups.find((entry) => (
         entry.id === pickupId
         && (entry.container === "woodChest" || entry.container === "goldChest")
@@ -11458,7 +11469,6 @@
       ));
       if (!chest) return;
       let target = this.remotePlayers.get(remoteId);
-      if (!this.aliveActor(target)) return;
       const requestX = Number(x);
       const requestY = Number(y);
       if (target && Number.isFinite(requestX) && Number.isFinite(requestY)) {
@@ -11466,12 +11476,27 @@
         target.y = requestY;
         target.t = performance.now();
       }
-      if (![target.x, target.y].every(Number.isFinite)) return;
+      if (!target && Number.isFinite(requestX) && Number.isFinite(requestY)) {
+        const slot = this.lobby.slots.find((entry) => entry?.id === remoteId);
+        const character = characterById(slot?.characterId || "swordsman");
+        target = {
+          id: remoteId,
+          name: slot?.name || "Người chơi",
+          x: requestX,
+          y: requestY,
+          radius: 22,
+          hp: character.stats.hp,
+          maxHp: character.stats.hp
+        };
+        this.remotePlayers.set(remoteId, target);
+      }
+      if (![target?.x, target?.y].every(Number.isFinite)) return;
       const d = Math.hypot(target.x - chest.x, target.y - chest.y);
-      if (d > (target.radius || 22) + chest.radius + 96) return;
+      if (d > (target.radius || 22) + chest.radius + 132) return;
       if (chest.opening) return;
       chest.opening = true;
       chest.openTimer = chest.container === "goldChest" ? 0.62 : 0.42;
+      this.broadcastFastSnapshot(0.04);
     }
 
     spawnLootFromChest(chest, target = this.run.player) {
@@ -11558,6 +11583,7 @@
         );
       }
       this.audio.sfx(420, "triangle", 0.1, 0.13);
+      if (this.isMultiplayerHost()) this.broadcastFastSnapshot(0.04);
     }
 
     rewardColor(reward) {
@@ -11934,12 +11960,15 @@
 
     handleRemoteCollect(remoteId, pickupId) {
       if (!this.isMultiplayerHost() || !pickupId || !this.run?.currentRoom) return;
-      if (!this.aliveActor(this.remotePlayers.get(remoteId))) return;
+      if (!this.remoteSlotAlive(remoteId)) return;
       const pickup = this.run.pickups.find((entry) => entry.id === pickupId && (!entry.ownerId || entry.ownerId === remoteId));
       if (!pickup) return;
       pickup.collected = true;
       pickup.life = 0;
-      if (pickup?.countsForClaim === false) return;
+      if (pickup?.countsForClaim === false) {
+        this.broadcastFastSnapshot(0.04);
+        return;
+      }
       this.run.currentRoom.rewardClaims ||= {};
       this.run.currentRoom.rewardClaims[remoteId] = true;
       this.run.currentRoom.rewardClaimed = this.allRewardOwnersClaimed();
@@ -11947,6 +11976,7 @@
         if (this.run.currentRoom.type === "boss" && this.run.currentRoom.bossExitOpened) this.advanceToNextStageAfterBoss();
         else this.openNextRoomsAfterReward();
       }
+      this.broadcastFastSnapshot(0.04);
     }
 
     handleRemoteDropItem(remoteId, itemId, x = null, y = null, facing = 0) {

@@ -9,7 +9,7 @@
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
   const SIGNAL_REALTIME_RELAY_LIMIT = 2;
   const SIGNAL_REALTIME_TYPES = new Set(["state", "snapshot", "attack", "skill", "collect", "openChest", "dropItem", "damage", "chooseDoor"]);
-  const APP_VERSION = "20260606-power-design-v2-183";
+  const APP_VERSION = "20260606-power-vfx-doc-184";
   const CHANGELOG_ENTRIES = [
     {
       version: APP_VERSION,
@@ -363,6 +363,15 @@
     r: { fire: 0.55, ice: 0.62, lightning: 0.42, shadow: 0.5, blood: 0.58, gravity: 0.62, crystal: 0.58, nature: 0.58, void: 0.52, time: 0.62 },
     f: { fire: 0.95, ice: 1.02, lightning: 0.9, shadow: 0.95, blood: 0.98, gravity: 1.02, crystal: 0.98, nature: 1.02, void: 1.0, time: 1.04 }
   };
+
+  const SIGNATURE_PARTICLE_SHAPES = new Set([
+    "ring", "leaf", "flame", "snow", "void", "clock",
+    "ember", "flameCore", "smokeDiamond", "fireTrail",
+    "iceShard", "frostHex", "sparkLine", "shadowPixel", "shadowSlash",
+    "bloodDrop", "bloodPool", "bloodRibbon", "gravityPixel", "gravityRing",
+    "crystalFacet", "leafShard", "thornChip", "vineSegment",
+    "voidFragment", "glitchPixel", "timeTick", "timeRing"
+  ]);
 
   const BIOMES = [
     {
@@ -4324,7 +4333,7 @@
       const weakBias = this.devicePerformanceBias();
       const stress = this.visualStress();
       const mobileBias = this.isMobileDevice() ? 0.58 : 0.82;
-      const shapeKeep = ["ring", "leaf", "flame", "snow", "void", "clock"].includes(shape) ? 0.14 : 0;
+      const shapeKeep = SIGNATURE_PARTICLE_SHAPES.has(shape) ? 0.14 : 0;
       return clamp((mobileBias + shapeKeep) * (1 - weakBias * 0.42) * (0.26 + quality * 0.74) * this.visualBudgetScale() * (1 - stress * 0.34), 0.01, 0.92);
     }
 
@@ -4394,7 +4403,8 @@
           effect.type === "hitSpark" ||
           effect.type === "castBurst" ||
           effect.type === "castCone" ||
-          effect.type === "shadowShard"
+          effect.type === "shadowShard" ||
+          effect.type === "powerBolt"
         ));
         const fallbackIndex = index >= 0 ? index : this.performancePanic()
           ? this.run.effects.findIndex((effect) => effect.type === "skillShape" || effect.type === "powerGlyph")
@@ -7547,7 +7557,7 @@
     networkEffects(compact = false) {
       const visibleTypes = new Set([
         "pull", "zone", "fireWall", "danger", "ultimate", "domainCutin", "skillShape", "castBurst", "castCone",
-        "powerGlyph", "attackBurst", "hitSpark", "lineTell", "crystalPrism", "skillBurst", "playerBossReveal"
+        "powerGlyph", "attackBurst", "hitSpark", "lineTell", "crystalPrism", "skillBurst", "playerBossReveal", "powerBolt"
       ]);
       const effects = this.run.effects.filter((effect) => visibleTypes.has(effect.type));
       if (compact) {
@@ -11295,6 +11305,263 @@
       this.trimVisualList(this.run.slashes, this.isMobileDevice() ? 24 : 38);
     }
 
+    powerVfxSpec(kind) {
+      const palette = this.powerDesignPalette(kind, false);
+      const map = {
+        fire: {
+          color: "#ff6600", accent: "#ffdd44", dark: "#cc2200",
+          hit: "ember", cast: "flameCore", status: "ember", zone: "fireTrail",
+          drag: 0.18, gravity: 18
+        },
+        ice: {
+          color: "#a0e6ff", accent: "#ffffff", dark: "#245c84",
+          hit: "iceShard", cast: "frostHex", status: "frostHex", zone: "iceShard",
+          drag: 0.12, gravity: 0
+        },
+        lightning: {
+          color: "#ffff55", accent: "#ffffff", dark: "#8a2be2",
+          hit: "sparkLine", cast: "sparkLine", status: "sparkLine", zone: "sparkLine",
+          drag: 0.08, gravity: 0
+        },
+        shadow: {
+          color: "#5b35d5", accent: "#d7c4ff", dark: "#05030d",
+          hit: "shadowPixel", cast: "shadowSlash", status: "shadowPixel", zone: "shadowPixel",
+          drag: 0.24, gravity: 0
+        },
+        blood: {
+          color: "#b00028", accent: "#ffc0c8", dark: "#3a0010",
+          hit: "bloodDrop", cast: "bloodRibbon", status: "bloodDrop", zone: "bloodPool",
+          drag: 0.2, gravity: 90
+        },
+        gravity: {
+          color: "#b28dff", accent: "#59ffd4", dark: "#050510",
+          hit: "gravityPixel", cast: "gravityRing", status: "gravityPixel", zone: "gravityRing",
+          drag: 0.16, gravity: 0
+        },
+        crystal: {
+          color: "#76ffd8", accent: "#ffc4f5", dark: "#1d4f59",
+          hit: "crystalFacet", cast: "crystalFacet", status: "crystalFacet", zone: "crystalFacet",
+          drag: 0.1, gravity: 22
+        },
+        nature: {
+          color: "#75e66e", accent: "#ffe082", dark: "#1f4f22",
+          hit: "thornChip", cast: "leafShard", status: "leafShard", zone: "vineSegment",
+          drag: 0.28, gravity: 12
+        },
+        void: {
+          color: "#020411", accent: "#f2f6ff", dark: "#000000",
+          hit: "voidFragment", cast: "glitchPixel", status: "voidFragment", zone: "voidFragment",
+          drag: 0.2, gravity: 0
+        },
+        time: {
+          color: "#b38f00", accent: "#f5f5dc", dark: "#008080",
+          hit: "timeTick", cast: "timeRing", status: "timeTick", zone: "timeRing",
+          drag: 0.18, gravity: 0
+        }
+      };
+      return { ...palette, ...(map[kind] || map.fire) };
+    }
+
+    addPowerBolt(x, y, tx, ty, color = "#ffffff", life = 0.14, options = {}) {
+      if (!this.run) return;
+      if (this.performancePanic() && !options.important) return;
+      this.addEffect({
+        type: "powerBolt",
+        kind: options.kind || "lightning",
+        x,
+        y,
+        tx,
+        ty,
+        amp: Number(options.amp || 18),
+        segments: Math.max(3, Math.round(Number(options.segments || 7))),
+        time: life,
+        maxTime: life,
+        color,
+        accent: options.accent || "#ffffff",
+        seed: rand(0, TAU),
+        width: Number(options.width || 2.4)
+      });
+      this.trimEffectList();
+    }
+
+    addPowerVfxParticle(kind, role, x, y, options = {}) {
+      if (!this.run || this.save.settings.particles <= 0) return;
+      const spec = this.powerVfxSpec(kind);
+      const shape = options.shape || spec[role] || spec.cast || "spark";
+      const color = options.color || (options.alt ? spec.accent : spec.color);
+      const angle = Number.isFinite(options.angle) ? options.angle : rand(0, TAU);
+      const speed = Number.isFinite(options.speed) ? options.speed : rand(30, 150);
+      this.addParticle(
+        x,
+        y,
+        color,
+        Number.isFinite(options.size) ? options.size : rand(5, 12),
+        Number.isFinite(options.life) ? options.life : rand(0.18, 0.46),
+        shape,
+        angle,
+        speed,
+        {
+          kind,
+          fx: role,
+          angle,
+          drag: Number.isFinite(options.drag) ? options.drag : spec.drag,
+          gravity: Number.isFinite(options.gravity) ? options.gravity : spec.gravity,
+          spin: Number.isFinite(options.spin) ? options.spin : rand(-2.8, 2.8),
+          alpha: Number.isFinite(options.alpha) ? options.alpha : 1
+        }
+      );
+    }
+
+    emitPowerVfx(kind, role, x, y, count = 6, options = {}) {
+      if (!this.run) return;
+      const quality = this.perf?.quality ?? 1;
+      const mobileScale = this.isMobileDevice() ? 0.68 : 1;
+      const amount = this.particleCount(count * mobileScale * clamp(quality + 0.14, 0.38, 1), {
+        min: options.min ?? (options.important ? 3 : 1),
+        important: Boolean(options.important)
+      });
+      const spread = Number(options.spread || 0);
+      for (let i = 0; i < amount; i++) {
+        const baseAngle = Number.isFinite(options.angle) ? options.angle : rand(0, TAU);
+        const arc = Number.isFinite(options.arc) ? options.arc : TAU;
+        const a = baseAngle + rand(-arc * 0.5, arc * 0.5);
+        const dist = spread ? rand(0, spread) : 0;
+        this.addPowerVfxParticle(
+          kind,
+          role,
+          x + Math.cos(a) * dist + rand(-(options.jitter || 0), options.jitter || 0),
+          y + Math.sin(a) * dist + rand(-(options.jitterY || options.jitter || 0), options.jitterY || options.jitter || 0),
+          {
+            ...options,
+            alt: options.altEvery ? i % options.altEvery === 0 : i % 3 === 0,
+            angle: Number.isFinite(options.moveAngle) ? options.moveAngle + rand(-(options.moveArc || 0), options.moveArc || 0) : a,
+            speed: Number.isFinite(options.speed) ? rand(options.speed * 0.72, options.speed * 1.15) : options.speed
+          }
+        );
+      }
+    }
+
+    emitPowerCastVfx(kind, key, caster, angle, impact, awakened = false) {
+      if (!this.run || !caster) return;
+      const spec = this.powerVfxSpec(kind);
+      const x = caster.x;
+      const y = caster.y;
+      const ix = impact?.x ?? x + Math.cos(angle) * 140;
+      const iy = impact?.y ?? y + Math.sin(angle) * 140;
+      const scale = (awakened ? 1.18 : 1) * ({ q: 0.9, e: 1.05, r: 1.25, f: 1.5 }[key] || 1);
+      const linePoint = (dist, side = 0) => ({
+        x: x + Math.cos(angle) * dist - Math.sin(angle) * side,
+        y: y + Math.sin(angle) * dist + Math.cos(angle) * side
+      });
+      if (kind === "fire") {
+        const count = (key === "e" ? 16 : key === "r" ? 18 : key === "f" ? 22 : 10) * scale;
+        for (let i = 0; i < count; i++) {
+          const p = key === "e" ? { x: x + Math.cos(i * TAU / count) * rand(18, 90), y: y + Math.sin(i * TAU / count) * rand(18, 90) } : linePoint(rand(28, key === "r" ? 180 : 150), rand(-42, 42));
+          this.addPowerVfxParticle("fire", i % 4 === 0 ? "cast" : "hit", p.x, p.y, {
+            size: rand(5, 13), life: rand(0.18, 0.5), moveAngle: -Math.PI / 2, angle: -Math.PI / 2 + rand(-0.8, 0.8), speed: rand(38, 92), gravity: 24
+          });
+          if (i % 5 === 0) this.addPowerVfxParticle("fire", "zone", p.x, p.y + 10, { size: rand(8, 16), life: rand(0.6, 1.1), speed: 0, gravity: 0, drag: 1 });
+        }
+      } else if (kind === "ice") {
+        const ring = key === "q" || key === "r";
+        this.emitPowerVfx("ice", ring ? "hit" : "cast", ring ? x : ix, ring ? y : iy, (ring ? 13 : 10) * scale, {
+          spread: ring ? (key === "r" ? 190 : 130) : 46,
+          size: rand(7, 15),
+          life: rand(0.24, 0.58),
+          speed: ring ? 80 : 42,
+          important: key === "r"
+        });
+      } else if (kind === "lightning") {
+        const target = key === "q" || key === "e" ? linePoint(key === "e" ? 210 : 170, 0) : { x: ix, y: iy };
+        this.addPowerBolt(x, y, target.x, target.y, spec.accent, 0.12 + scale * 0.03, { kind, amp: key === "q" ? 14 : 24, segments: key === "r" ? 9 : 6, width: key === "r" ? 3.2 : 2.5, important: true });
+        for (let i = 0; i < (key === "r" ? 4 : 2); i++) {
+          const a = angle + rand(-0.62, 0.62);
+          this.addPowerBolt(x + rand(-16, 16), y + rand(-16, 16), x + Math.cos(a) * rand(100, 230), y + Math.sin(a) * rand(100, 230), spec.color, 0.09, { kind, amp: 12, segments: 5, width: 1.6 });
+        }
+        this.emitPowerVfx("lightning", "cast", target.x, target.y, 8 * scale, { spread: 46, speed: 160, life: 0.16, size: 8, important: true });
+      } else if (kind === "shadow") {
+        this.emitPowerVfx("shadow", key === "e" ? "cast" : "hit", ix, iy, 11 * scale, { spread: key === "r" ? 120 : 70, size: rand(7, 14), life: rand(0.26, 0.6), speed: 65, color: spec.dark });
+        this.addPowerBolt(x, y - 4, ix, iy, spec.accent, 0.18, { kind, amp: 30, segments: 5, width: 3 });
+      } else if (kind === "blood") {
+        this.emitPowerVfx("blood", key === "e" ? "cast" : "hit", ix, iy, 14 * scale, { spread: key === "q" ? 80 : 115, size: rand(6, 14), life: rand(0.28, 0.72), speed: 110, gravity: 120 });
+      } else if (kind === "gravity") {
+        this.emitPowerVfx("gravity", "cast", ix, iy, 10 * scale, { spread: key === "r" ? 150 : 90, size: rand(6, 13), life: rand(0.3, 0.72), speed: 45, drag: 0.35 });
+        this.addPowerBolt(ix - 70, iy, ix + 70, iy, spec.accent, 0.18, { kind, amp: 10, segments: 4, width: 2.2 });
+      } else if (kind === "crystal") {
+        this.emitPowerVfx("crystal", "cast", ix, iy, 12 * scale, { spread: key === "r" ? 150 : 70, size: rand(8, 18), life: rand(0.28, 0.62), speed: 95, important: key === "r" });
+      } else if (kind === "nature") {
+        this.emitPowerVfx("nature", key === "e" ? "zone" : "cast", ix, iy, 14 * scale, { spread: key === "r" ? 135 : 90, size: rand(6, 14), life: rand(0.35, 0.85), speed: 62, gravity: 16 });
+      } else if (kind === "void") {
+        this.emitPowerVfx("void", "cast", ix, iy, 12 * scale, { spread: key === "e" ? 120 : 90, size: rand(6, 15), life: rand(0.2, 0.52), speed: 88, color: spec.dark });
+        this.addPowerBolt(x, y, ix, iy, spec.accent, 0.15, { kind, amp: 34, segments: 6, width: 2.8 });
+      } else if (kind === "time") {
+        this.emitPowerVfx("time", "cast", key === "e" ? x : ix, key === "e" ? y : iy, 12 * scale, { spread: key === "r" ? 150 : 86, size: rand(6, 14), life: rand(0.32, 0.82), speed: 38, drag: 0.45 });
+      }
+    }
+
+    emitPowerHitVfx(kind, enemy, options = {}) {
+      if (!this.run || !enemy || enemy.hp <= 0) return;
+      const spec = this.powerVfxSpec(kind);
+      const x = enemy.x;
+      const y = enemy.y - enemy.radius * 0.2;
+      const hitCount = options.crit ? 10 : 6;
+      if (kind === "fire") {
+        this.emitPowerVfx("fire", "hit", x, y, hitCount, { jitter: enemy.radius * 0.35, jitterY: enemy.radius * 0.5, moveAngle: -Math.PI / 2, moveArc: 1.2, speed: 70, size: 6, life: 0.32, gravity: 42, important: options.crit });
+        if (options.crit) this.emitPowerVfx("fire", "cast", x, y - 8, 3, { spread: 12, moveAngle: -Math.PI / 2, speed: 55, size: 9, life: 0.2 });
+      } else if (kind === "ice") {
+        this.emitPowerVfx("ice", "hit", x, y, hitCount + 2, { spread: enemy.radius * 0.7, speed: 120, size: 9, life: 0.34, important: options.crit });
+      } else if (kind === "lightning") {
+        this.emitPowerVfx("lightning", "hit", x, y, hitCount, { spread: enemy.radius * 0.55, speed: 190, size: 8, life: 0.14, important: true });
+        this.addPowerBolt(x - enemy.radius * 0.8, y - 10, x + enemy.radius * 0.8, y + 8, spec.accent, 0.08, { kind, amp: 10, segments: 4, width: 2 });
+      } else if (kind === "shadow") {
+        this.emitPowerVfx("shadow", "hit", x, y, hitCount, { spread: enemy.radius * 0.72, speed: 72, size: 9, life: 0.42, color: spec.dark });
+      } else if (kind === "blood") {
+        this.emitPowerVfx("blood", "hit", x, y, hitCount + 1, { jitter: enemy.radius * 0.38, moveAngle: -Math.PI / 2, moveArc: 1.8, speed: 85, size: 7, life: 0.45, gravity: 150 });
+      } else if (kind === "gravity") {
+        this.emitPowerVfx("gravity", "hit", x, y, hitCount, { spread: enemy.radius * 0.8, speed: 58, size: 8, life: 0.45 });
+      } else if (kind === "crystal") {
+        this.emitPowerVfx("crystal", "hit", x, y, hitCount + 2, { spread: enemy.radius * 0.7, speed: 145, size: 9, life: 0.38 });
+      } else if (kind === "nature") {
+        this.emitPowerVfx("nature", "hit", x, y, hitCount, { spread: enemy.radius * 0.66, speed: 78, size: 8, life: 0.48 });
+      } else if (kind === "void") {
+        this.emitPowerVfx("void", "hit", x, y, hitCount, { spread: enemy.radius * 0.74, speed: 96, size: 8, life: 0.34, color: spec.dark });
+      } else if (kind === "time") {
+        this.emitPowerVfx("time", "hit", x, y, hitCount, { spread: enemy.radius * 0.72, speed: 42, size: 8, life: 0.52 });
+      }
+    }
+
+    emitEnemyStatusVfx(enemy, dt) {
+      if (!enemy || enemy.hp <= 0 || !this.inView(enemy.x, enemy.y, enemy.radius + 100)) return;
+      const statusScale = this.isMobileDevice() ? 0.55 : 0.9;
+      if ((enemy.fireStacks || 0) > 0 && chance(dt * statusScale * (1.6 + enemy.fireStacks * 0.8))) {
+        this.addPowerVfxParticle("fire", "status", enemy.x + rand(-enemy.radius * 0.45, enemy.radius * 0.45), enemy.y - enemy.radius * rand(0.25, 0.95), { size: rand(4, 8), life: rand(0.16, 0.34), angle: -Math.PI / 2 + rand(-0.7, 0.7), speed: rand(34, 76), gravity: 38 });
+      }
+      if ((enemy.chill || 0) > 0 && chance(dt * statusScale * 1.8)) {
+        this.addPowerVfxParticle("ice", "status", enemy.x + rand(-enemy.radius * 0.55, enemy.radius * 0.55), enemy.y + rand(-enemy.radius * 0.8, enemy.radius * 0.35), { size: rand(5, 10), life: rand(0.2, 0.46), speed: 30 });
+      }
+      if (((enemy.shockStacks || 0) > 0 || (enemy.shockedArmor || 0) > 0) && chance(dt * statusScale * 2.6)) {
+        this.addPowerVfxParticle("lightning", "status", enemy.x + rand(-enemy.radius * 0.55, enemy.radius * 0.55), enemy.y + rand(-enemy.radius * 0.8, enemy.radius * 0.45), { size: rand(6, 11), life: rand(0.08, 0.18), speed: 120 });
+      }
+      if ((enemy.bleed || 0) > 0 && chance(dt * statusScale * 1.7)) {
+        this.addPowerVfxParticle("blood", "status", enemy.x + rand(-enemy.radius * 0.45, enemy.radius * 0.45), enemy.y + rand(-enemy.radius * 0.2, enemy.radius * 0.6), { size: rand(5, 9), life: rand(0.22, 0.45), angle: Math.PI / 2 + rand(-0.4, 0.4), speed: rand(28, 72), gravity: 120 });
+      }
+      if ((enemy.poison || 0) > 0 && chance(dt * statusScale * 1.7)) {
+        this.addPowerVfxParticle("nature", "status", enemy.x + rand(-enemy.radius * 0.55, enemy.radius * 0.55), enemy.y - enemy.radius * 0.35, { size: rand(5, 10), life: rand(0.26, 0.55), angle: -Math.PI / 2 + rand(-0.9, 0.9), speed: rand(24, 58) });
+      }
+      if ((enemy.mark || 0) > 0 && chance(dt * statusScale * 1.5)) {
+        this.addPowerVfxParticle(enemy.voidDecay > 0 ? "void" : "shadow", "status", enemy.x + rand(-enemy.radius * 0.52, enemy.radius * 0.52), enemy.y + rand(-enemy.radius * 0.75, enemy.radius * 0.45), { size: rand(5, 10), life: rand(0.2, 0.48), speed: rand(28, 70) });
+      }
+      if ((enemy.weighted || enemy.suspend || 0) > 0 && chance(dt * statusScale * 1.4)) {
+        this.addPowerVfxParticle("gravity", "status", enemy.x + rand(-enemy.radius * 0.52, enemy.radius * 0.52), enemy.y + rand(-enemy.radius * 0.7, enemy.radius * 0.35), { size: rand(5, 10), life: rand(0.22, 0.5), speed: rand(20, 48) });
+      }
+      if ((enemy.crystalShards || 0) > 0 && chance(dt * statusScale * 1.2)) {
+        this.addPowerVfxParticle("crystal", "status", enemy.x + rand(-enemy.radius * 0.48, enemy.radius * 0.48), enemy.y - enemy.radius * rand(0.35, 0.95), { size: rand(5, 9), life: rand(0.22, 0.5), speed: rand(28, 68) });
+      }
+      if ((enemy.timeStoredDamage || 0) > 0 && chance(dt * statusScale * 1.7)) {
+        this.addPowerVfxParticle("time", "status", enemy.x + rand(-enemy.radius * 0.5, enemy.radius * 0.5), enemy.y + rand(-enemy.radius * 0.65, enemy.radius * 0.35), { size: rand(5, 10), life: rand(0.22, 0.52), speed: rand(16, 44) });
+      }
+    }
+
     applyPowerIdentity(kind, key, caster, angle, impact, damage, owner = "player", casterId = "", remote = false, awakened = false) {
       if (!this.run || !caster || !impact) return;
       if (!this.skipPowerSignatureVisual) this.addPowerSignatureShape(kind, key, caster, angle, impact, awakened);
@@ -11428,6 +11695,7 @@
     }
 
     finishDesignedPowerSkill(kind, key, caster, angle, impact, damage, owner, casterId, remote, awakened) {
+      this.emitPowerCastVfx(kind, key, caster, angle, impact, awakened);
       if (awakened && key !== "f") this.applyDesignedAwakenedBonus(kind, key, caster, angle, impact, damage, owner, casterId, remote);
       const previousSkip = this.skipPowerSignatureVisual;
       this.skipPowerSignatureVisual = true;
@@ -12552,6 +12820,7 @@
     damageEnemy(enemy, amount, options = {}) {
       if (this.isMultiplayerClient()) {
         enemy.flash = Math.max(enemy.flash || 0, 0.08);
+        if (POWERS.some((entry) => entry.id === options.kind)) this.emitPowerHitVfx(options.kind, enemy, options);
         return;
       }
       const p = this.run.player;
@@ -12620,6 +12889,7 @@
       const basicKind = this.basicHitKind(options);
       const basicHit = Boolean(basicKind);
       const impactColor = basicHit ? (crit ? "#fff1b8" : "#f3ead7") : crit ? power.accent : power.color;
+      if (hitKind) this.emitPowerHitVfx(hitKind, enemy, { ...options, crit });
       this.addImpact(enemy.x, enemy.y, impactColor, damage, crit);
       if (basicHit) {
         const hitAngle = Math.atan2(options.y || 0, options.x || 1);
@@ -14479,6 +14749,7 @@
             if (enemy.hp <= 0) continue;
           }
         }
+        this.emitEnemyStatusVfx(enemy, dt);
         if (enemy.mark > 0 && enemy.mark >= 4) {
           enemy.mark = 0;
           this.damageEnemy(enemy, 38, { x: 0, y: 0, source: "mark", kind: "void" });
@@ -16680,16 +16951,16 @@
 
     powerDomainParticleKind(kind) {
       return {
-        fire: "flame",
-        ice: "snow",
-        lightning: "spark",
-        shadow: "shade",
-        blood: "drop",
-        gravity: "square",
-        crystal: "shard",
-        nature: "leaf",
-        void: "void",
-        time: "clock"
+        fire: "ember",
+        ice: "iceShard",
+        lightning: "sparkLine",
+        shadow: "shadowPixel",
+        blood: "bloodDrop",
+        gravity: "gravityPixel",
+        crystal: "crystalFacet",
+        nature: "leafShard",
+        void: "voidFragment",
+        time: "timeTick"
       }[kind] || "spark";
     }
 
@@ -17407,7 +17678,34 @@
       }
     }
 
-    addParticle(x, y, color, size, life, shape = "spark", angle = rand(0, TAU), speed = rand(20, 220)) {
+    particleShapePowerKind(shape = "") {
+      return {
+        ember: "fire",
+        flameCore: "fire",
+        smokeDiamond: "fire",
+        fireTrail: "fire",
+        iceShard: "ice",
+        frostHex: "ice",
+        sparkLine: "lightning",
+        shadowPixel: "shadow",
+        shadowSlash: "shadow",
+        bloodDrop: "blood",
+        bloodPool: "blood",
+        bloodRibbon: "blood",
+        gravityPixel: "gravity",
+        gravityRing: "gravity",
+        crystalFacet: "crystal",
+        leafShard: "nature",
+        thornChip: "nature",
+        vineSegment: "nature",
+        voidFragment: "void",
+        glitchPixel: "void",
+        timeTick: "time",
+        timeRing: "time"
+      }[shape] || "";
+    }
+
+    addParticle(x, y, color, size, life, shape = "spark", angle = rand(0, TAU), speed = rand(20, 220), options = {}) {
       if (!this.run || this.save.settings.particles <= 0) return;
       if (Math.random() > this.particleSpawnChance(shape)) return;
       const limit = this.particleLimit();
@@ -17430,7 +17728,15 @@
         life: life * lifeScale,
         maxLife: life * lifeScale,
         color,
-        shape
+        shape,
+        kind: options.kind || this.particleShapePowerKind(shape),
+        fx: options.fx || "",
+        angle: Number.isFinite(options.angle) ? options.angle : angle,
+        seed: Number.isFinite(options.seed) ? options.seed : rand(0, TAU),
+        drag: Number.isFinite(options.drag) ? options.drag : 0.05,
+        gravity: Number.isFinite(options.gravity) ? options.gravity : 0,
+        spin: Number.isFinite(options.spin) ? options.spin : 0,
+        alpha: Number.isFinite(options.alpha) ? options.alpha : 1
       });
     }
 
@@ -17442,8 +17748,11 @@
         particle.life -= dt;
         particle.x += particle.vx * dt;
         particle.y += particle.vy * dt;
-        particle.vx *= Math.pow(0.05, dt);
-        particle.vy *= Math.pow(0.05, dt);
+        if (particle.gravity) particle.vy += particle.gravity * dt;
+        const drag = Number.isFinite(particle.drag) ? particle.drag : 0.05;
+        particle.vx *= Math.pow(drag, dt);
+        particle.vy *= Math.pow(drag, dt);
+        if (particle.spin) particle.angle = (particle.angle || 0) + particle.spin * dt;
         if (particle.life > 0) this.run.particles[write++] = particle;
       }
       this.run.particles.length = write;
@@ -20345,7 +20654,42 @@
         ctx.shadowColor = effect.color;
         ctx.shadowBlur = this.glow(18);
         if (foreground) ctx.globalCompositeOperation = "lighter";
-        if (effect.type === "ultimate" && effect.domain) {
+        if (effect.type === "powerBolt") {
+          const maxTime = Math.max(0.01, effect.maxTime || effect.time || 0.12);
+          const progress = clamp(1 - effect.time / maxTime, 0, 1);
+          const fade = clamp(effect.time / maxTime, 0, 1);
+          const x1 = effect.x;
+          const y1 = effect.y;
+          const x2 = effect.tx ?? effect.x;
+          const y2 = effect.ty ?? effect.y;
+          const dx = x2 - x1;
+          const dy = y2 - y1;
+          const len = Math.hypot(dx, dy) || 1;
+          const nx = -dy / len;
+          const ny = dx / len;
+          const segments = Math.max(3, effect.segments || 7);
+          ctx.globalCompositeOperation = "source-over";
+          ctx.shadowBlur = 0;
+          ctx.lineCap = "butt";
+          ctx.lineJoin = "miter";
+          const drawBoltPass = (width, color, alphaMult, ampScale) => {
+            ctx.globalAlpha = fade * alphaMult;
+            ctx.strokeStyle = color;
+            ctx.lineWidth = width;
+            ctx.beginPath();
+            ctx.moveTo(x1, y1);
+            for (let i = 1; i < segments; i++) {
+              const t = i / segments;
+              const jitter = Math.sin(effect.seed + i * 2.17 + progress * 1.4) * (effect.amp || 16) * ampScale * (1 - t * 0.12);
+              ctx.lineTo(x1 + dx * t + nx * jitter, y1 + dy * t + ny * jitter);
+            }
+            ctx.lineTo(x2, y2);
+            ctx.stroke();
+          };
+          if (!emergency && !this.isMobileDevice()) drawBoltPass((effect.width || 2.4) * 3.2, effect.color || "#ffff55", 0.22, 1.2);
+          drawBoltPass((effect.width || 2.4) * 1.35, effect.color || "#ffff55", 0.74, 1);
+          drawBoltPass(Math.max(1, (effect.width || 2.4) * 0.52), effect.accent || "#ffffff", 0.95, 0.72);
+        } else if (effect.type === "ultimate" && effect.domain) {
           if (effect.castDelay > 0) {
             ctx.restore();
             continue;
@@ -23247,7 +23591,7 @@
       for (let index = startIndex; index < this.run.particles.length; index++) {
         const particle = this.run.particles[index];
         if (!this.inView(particle.x, particle.y, particle.size + 80)) continue;
-        const alpha = particle.life / particle.maxLife;
+        const alpha = (particle.life / particle.maxLife) * (Number.isFinite(particle.alpha) ? particle.alpha : 1);
         ctx.globalAlpha = alpha;
         ctx.fillStyle = particle.color;
         const size = Math.max(1, particle.size * alpha);
@@ -23296,6 +23640,296 @@
             ctx.stroke();
             ctx.restore();
           }
+        } else if ([
+          "ember", "flameCore", "smokeDiamond", "fireTrail",
+          "iceShard", "frostHex", "sparkLine", "shadowPixel", "shadowSlash",
+          "bloodDrop", "bloodPool", "bloodRibbon", "gravityPixel", "gravityRing",
+          "crystalFacet", "leafShard", "thornChip", "vineSegment",
+          "voidFragment", "glitchPixel", "timeTick", "timeRing"
+        ].includes(particle.shape)) {
+          ctx.save();
+          ctx.translate(particle.x, particle.y);
+          ctx.rotate(Number(particle.angle || 0));
+          const progress = clamp(1 - particle.life / Math.max(0.001, particle.maxLife || 1), 0, 1);
+          const px = Math.max(1.2, Math.round(size * 0.22));
+          const core = particle.color;
+          const kind = particle.kind || "";
+          const accent = this.powerVfxSpec(kind).accent || "#ffffff";
+          const dark = this.powerVfxSpec(kind).dark || "#05030d";
+          ctx.shadowBlur = 0;
+          ctx.lineCap = "butt";
+          ctx.lineJoin = "miter";
+          if (particle.shape === "ember") {
+            const emberColor = progress < 0.3 ? "#ffdd44" : progress < 0.72 ? "#ff6600" : "#cc2200";
+            ctx.fillStyle = emberColor;
+            const s = Math.max(1.5, px);
+            if (progress < 0.42) {
+              ctx.fillRect(-s, -s, s, s);
+              ctx.fillRect(0, -s, s, s);
+              ctx.fillRect(-s, 0, s, s);
+              ctx.fillRect(0, 0, s, s);
+            } else if (progress < 0.76) {
+              ctx.fillRect(-s, -s, s, s);
+              ctx.fillRect(0, -s, s, s);
+              ctx.fillRect(-s, 0, s, s);
+            } else {
+              ctx.fillRect(-s * 0.5, -s * 0.5, s, s);
+            }
+          } else if (particle.shape === "flameCore") {
+            const w = Math.max(2, size * (0.24 + Math.sin((progress * 4 + particle.seed) * Math.PI) * 0.04));
+            const h = Math.max(4, size * (0.78 + Math.sin(progress * 9 + particle.seed) * 0.12));
+            ctx.fillStyle = "#ff4500";
+            ctx.fillRect(-w * 0.85, -h * 0.45, w * 1.7, h);
+            ctx.fillStyle = "#ffdd44";
+            ctx.fillRect(-w * 0.5, -h * 0.55, w, h * 0.78);
+            ctx.fillStyle = "#ffffff";
+            ctx.fillRect(-Math.max(1, w * 0.18), -h * 0.34, Math.max(1, w * 0.36), h * 0.38);
+          } else if (particle.shape === "smokeDiamond") {
+            ctx.globalCompositeOperation = "source-over";
+            ctx.globalAlpha = alpha * 0.55;
+            ctx.fillStyle = progress < 0.5 ? "#444444" : "#222222";
+            const s = Math.max(1.5, px * (1 + progress * 0.6));
+            ctx.fillRect(-s * 0.5, -s * 1.8, s, s);
+            ctx.fillRect(-s * 1.8, -s * 0.5, s, s);
+            ctx.fillRect(-s * 0.5, s * 0.8, s, s);
+            ctx.fillRect(s * 0.8, -s * 0.5, s, s);
+          } else if (particle.shape === "fireTrail") {
+            ctx.globalCompositeOperation = "source-over";
+            ctx.fillStyle = "rgba(68,0,0,0.72)";
+            ctx.fillRect(-size * 0.5, -size * 0.18, size, size * 0.36);
+            ctx.fillStyle = "rgba(204,34,0,0.58)";
+            ctx.fillRect(-size * 0.38, -size * 0.27, size * 0.76, size * 0.28);
+            ctx.fillStyle = "rgba(255,69,0,0.42)";
+            ctx.fillRect(-size * 0.24, -size * 0.34, size * 0.48, size * 0.22);
+          } else if (particle.shape === "iceShard") {
+            ctx.globalCompositeOperation = "source-over";
+            ctx.fillStyle = hexToRgba(core, 0.55);
+            ctx.strokeStyle = accent;
+            ctx.lineWidth = Math.max(1, size * 0.08);
+            ctx.beginPath();
+            ctx.moveTo(0, -size * 0.72);
+            ctx.lineTo(size * 0.34, -size * 0.1);
+            ctx.lineTo(size * 0.18, size * 0.7);
+            ctx.lineTo(-size * 0.34, size * 0.1);
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+            ctx.globalAlpha = alpha * 0.65;
+            ctx.strokeStyle = "#ffffff";
+            ctx.beginPath();
+            ctx.moveTo(0, -size * 0.48);
+            ctx.lineTo(size * 0.08, size * 0.32);
+            ctx.stroke();
+          } else if (particle.shape === "frostHex") {
+            ctx.globalCompositeOperation = "source-over";
+            ctx.strokeStyle = accent;
+            ctx.lineWidth = Math.max(1, size * 0.09);
+            ctx.beginPath();
+            for (let i = 0; i < 6; i++) {
+              const a = Math.PI / 6 + i * TAU / 6;
+              const x = Math.cos(a) * size * 0.42;
+              const y = Math.sin(a) * size * 0.42;
+              if (i === 0) ctx.moveTo(x, y);
+              else ctx.lineTo(x, y);
+            }
+            ctx.closePath();
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(-size * 0.48, 0);
+            ctx.lineTo(size * 0.48, 0);
+            ctx.moveTo(0, -size * 0.48);
+            ctx.lineTo(0, size * 0.48);
+            ctx.stroke();
+          } else if (particle.shape === "sparkLine") {
+            ctx.strokeStyle = accent;
+            ctx.lineWidth = Math.max(1.2, size * 0.16);
+            ctx.beginPath();
+            ctx.moveTo(-size * 0.55, 0);
+            ctx.lineTo(-size * 0.18, -size * 0.24);
+            ctx.lineTo(size * 0.06, size * 0.18);
+            ctx.lineTo(size * 0.5, -size * 0.08);
+            ctx.stroke();
+            ctx.strokeStyle = core;
+            ctx.lineWidth = Math.max(1, size * 0.08);
+            ctx.stroke();
+          } else if (particle.shape === "shadowPixel") {
+            ctx.globalCompositeOperation = "source-over";
+            ctx.fillStyle = dark;
+            const s = Math.max(2, px);
+            ctx.fillRect(-s * 0.5, -s * 1.5, s, s);
+            ctx.fillRect(-s * 1.5, -s * 0.5, s, s);
+            ctx.fillRect(-s * 0.5, -s * 0.5, s, s);
+            ctx.fillRect(s * 0.5, -s * 0.5, s, s);
+            ctx.fillRect(-s * 0.5, s * 0.5, s, s);
+            ctx.globalAlpha = alpha * 0.48;
+            ctx.fillStyle = accent;
+            ctx.fillRect(-s * 0.5, -s * 0.5, s, s);
+          } else if (particle.shape === "shadowSlash") {
+            ctx.globalCompositeOperation = "source-over";
+            ctx.fillStyle = dark;
+            ctx.beginPath();
+            ctx.moveTo(-size * 0.55, -size * 0.12);
+            ctx.lineTo(size * 0.6, -size * 0.28);
+            ctx.lineTo(size * 0.42, size * 0.14);
+            ctx.lineTo(-size * 0.68, size * 0.22);
+            ctx.closePath();
+            ctx.fill();
+            ctx.strokeStyle = accent;
+            ctx.lineWidth = Math.max(1, size * 0.08);
+            ctx.stroke();
+          } else if (particle.shape === "bloodDrop") {
+            ctx.globalCompositeOperation = "source-over";
+            ctx.fillStyle = core;
+            ctx.beginPath();
+            ctx.moveTo(0, -size * 0.6);
+            ctx.bezierCurveTo(size * 0.42, -size * 0.08, size * 0.36, size * 0.56, 0, size * 0.62);
+            ctx.bezierCurveTo(-size * 0.36, size * 0.56, -size * 0.42, -size * 0.08, 0, -size * 0.6);
+            ctx.fill();
+          } else if (particle.shape === "bloodPool") {
+            ctx.globalCompositeOperation = "source-over";
+            ctx.fillStyle = hexToRgba(dark, 0.72 * alpha);
+            ctx.beginPath();
+            ctx.ellipse(0, 0, size * 0.68, size * 0.22, 0, 0, TAU);
+            ctx.fill();
+            ctx.fillStyle = hexToRgba(core, 0.45 * alpha);
+            ctx.beginPath();
+            ctx.ellipse(size * 0.12, -size * 0.02, size * 0.36, size * 0.12, 0, 0, TAU);
+            ctx.fill();
+          } else if (particle.shape === "bloodRibbon") {
+            ctx.strokeStyle = accent;
+            ctx.lineWidth = Math.max(1.4, size * 0.18);
+            ctx.beginPath();
+            ctx.moveTo(-size * 0.65, 0);
+            ctx.quadraticCurveTo(-size * 0.18, -size * 0.42, size * 0.62, size * 0.12);
+            ctx.stroke();
+            ctx.strokeStyle = core;
+            ctx.lineWidth = Math.max(1, size * 0.08);
+            ctx.stroke();
+          } else if (particle.shape === "gravityPixel") {
+            ctx.globalCompositeOperation = "source-over";
+            ctx.fillStyle = dark;
+            ctx.fillRect(-size * 0.28, -size * 0.28, size * 0.56, size * 0.56);
+            ctx.strokeStyle = accent;
+            ctx.lineWidth = Math.max(1, size * 0.08);
+            ctx.strokeRect(-size * 0.34, -size * 0.34, size * 0.68, size * 0.68);
+          } else if (particle.shape === "gravityRing") {
+            ctx.globalCompositeOperation = "source-over";
+            ctx.strokeStyle = accent;
+            ctx.lineWidth = Math.max(1, size * 0.1);
+            for (let i = 0; i < 2; i++) {
+              ctx.save();
+              ctx.rotate(i * Math.PI / 4 + progress * 0.8);
+              ctx.strokeRect(-size * (0.25 + i * 0.16), -size * (0.25 + i * 0.16), size * (0.5 + i * 0.32), size * (0.5 + i * 0.32));
+              ctx.restore();
+            }
+          } else if (particle.shape === "crystalFacet") {
+            ctx.globalCompositeOperation = "source-over";
+            ctx.fillStyle = hexToRgba(core, 0.5);
+            ctx.strokeStyle = accent;
+            ctx.lineWidth = Math.max(1, size * 0.09);
+            ctx.beginPath();
+            ctx.moveTo(0, -size * 0.72);
+            ctx.lineTo(size * 0.5, 0);
+            ctx.lineTo(0, size * 0.72);
+            ctx.lineTo(-size * 0.5, 0);
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(0, -size * 0.72);
+            ctx.lineTo(0, size * 0.72);
+            ctx.moveTo(-size * 0.5, 0);
+            ctx.lineTo(size * 0.5, 0);
+            ctx.stroke();
+          } else if (particle.shape === "leafShard") {
+            ctx.globalCompositeOperation = "source-over";
+            ctx.fillStyle = core;
+            ctx.strokeStyle = accent;
+            ctx.lineWidth = Math.max(1, size * 0.06);
+            ctx.beginPath();
+            ctx.moveTo(0, -size * 0.62);
+            ctx.quadraticCurveTo(size * 0.58, -size * 0.1, 0, size * 0.65);
+            ctx.quadraticCurveTo(-size * 0.52, -size * 0.12, 0, -size * 0.62);
+            ctx.fill();
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(0, -size * 0.42);
+            ctx.lineTo(0, size * 0.42);
+            ctx.stroke();
+          } else if (particle.shape === "thornChip") {
+            ctx.globalCompositeOperation = "source-over";
+            ctx.fillStyle = accent;
+            ctx.beginPath();
+            ctx.moveTo(size * 0.64, 0);
+            ctx.lineTo(-size * 0.36, -size * 0.22);
+            ctx.lineTo(-size * 0.08, 0);
+            ctx.lineTo(-size * 0.36, size * 0.22);
+            ctx.closePath();
+            ctx.fill();
+            ctx.strokeStyle = core;
+            ctx.lineWidth = Math.max(1, size * 0.08);
+            ctx.stroke();
+          } else if (particle.shape === "vineSegment") {
+            ctx.globalCompositeOperation = "source-over";
+            ctx.strokeStyle = core;
+            ctx.lineWidth = Math.max(1.6, size * 0.16);
+            ctx.beginPath();
+            ctx.moveTo(-size * 0.62, size * 0.18);
+            ctx.bezierCurveTo(-size * 0.28, -size * 0.48, size * 0.22, size * 0.44, size * 0.62, -size * 0.16);
+            ctx.stroke();
+            ctx.fillStyle = accent;
+            ctx.fillRect(size * 0.12, -size * 0.24, Math.max(2, px), Math.max(2, px));
+          } else if (particle.shape === "voidFragment") {
+            ctx.globalCompositeOperation = "source-over";
+            ctx.fillStyle = dark;
+            ctx.strokeStyle = accent;
+            ctx.lineWidth = Math.max(1, size * 0.08);
+            ctx.beginPath();
+            ctx.moveTo(-size * 0.38, -size * 0.52);
+            ctx.lineTo(size * 0.18, -size * 0.24);
+            ctx.lineTo(size * 0.02, size * 0.02);
+            ctx.lineTo(size * 0.42, size * 0.44);
+            ctx.lineTo(-size * 0.06, size * 0.2);
+            ctx.lineTo(-size * 0.34, size * 0.54);
+            ctx.lineTo(-size * 0.18, 0);
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+          } else if (particle.shape === "glitchPixel") {
+            ctx.globalCompositeOperation = "source-over";
+            ctx.fillStyle = dark;
+            ctx.fillRect(-size * 0.38, -size * 0.18, size * 0.76, size * 0.36);
+            ctx.fillStyle = accent;
+            ctx.globalAlpha = alpha * 0.58;
+            ctx.fillRect(-size * 0.2 + Math.sin(particle.seed + progress * 8) * 3, -size * 0.46, size * 0.48, size * 0.16);
+            ctx.fillRect(-size * 0.52, size * 0.34, size * 0.42, size * 0.16);
+          } else if (particle.shape === "timeTick") {
+            ctx.globalCompositeOperation = "source-over";
+            ctx.strokeStyle = accent;
+            ctx.lineWidth = Math.max(1, size * 0.09);
+            ctx.beginPath();
+            ctx.arc(0, 0, size * 0.42, 0, TAU);
+            ctx.moveTo(0, 0);
+            ctx.lineTo(Math.cos(particle.seed + progress * 3) * size * 0.36, Math.sin(particle.seed + progress * 3) * size * 0.36);
+            ctx.moveTo(0, 0);
+            ctx.lineTo(Math.cos(-particle.seed - progress * 5) * size * 0.24, Math.sin(-particle.seed - progress * 5) * size * 0.24);
+            ctx.stroke();
+          } else if (particle.shape === "timeRing") {
+            ctx.globalCompositeOperation = "source-over";
+            ctx.strokeStyle = accent;
+            ctx.lineWidth = Math.max(1, size * 0.08);
+            ctx.beginPath();
+            ctx.arc(0, 0, size * (0.28 + progress * 0.34), 0, TAU);
+            ctx.stroke();
+            for (let i = 0; i < 8; i++) {
+              const a = i * TAU / 8;
+              ctx.beginPath();
+              ctx.moveTo(Math.cos(a) * size * 0.48, Math.sin(a) * size * 0.48);
+              ctx.lineTo(Math.cos(a) * size * 0.58, Math.sin(a) * size * 0.58);
+              ctx.stroke();
+            }
+          }
+          ctx.restore();
         } else if (["leaf", "shard", "drop", "flame", "snow", "void", "clock"].includes(particle.shape)) {
           if (simple) {
             if (particle.shape === "snow") {

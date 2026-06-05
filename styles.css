@@ -3466,6 +3466,11 @@ body.pwa-landing-active .screen {
   font-size: 12px;
 }
 
+.reward-hint {
+  color: #ffe1a0;
+  font-weight: 850;
+}
+
 @media (hover: none), (pointer: coarse) {
   .touch-layer {
     display: block;

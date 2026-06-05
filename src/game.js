@@ -9,7 +9,7 @@
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
   const SIGNAL_REALTIME_RELAY_LIMIT = 2;
   const SIGNAL_REALTIME_TYPES = new Set(["state", "snapshot", "attack", "skill", "collect", "openChest", "dropItem", "damage", "chooseDoor"]);
-  const APP_VERSION = "20260605-secret-riddle-173";
+  const APP_VERSION = "20260605-door-rewards-174";
   const CHANGELOG_ENTRIES = [
     {
       version: APP_VERSION,
@@ -23,6 +23,7 @@
         "Sửa lỗi người chơi không phải chủ phòng đôi lúc không nhận được rương/vật phẩm sau khi vượt ải.",
         "Cải thiện kết nối khác mạng bằng nhiều STUN server hơn và cảnh báo rõ khi rơi về Relay chậm.",
         "Làm lại cổng Bí Mật thành phòng giải đố có bia riêng và phần thưởng nguyên liệu tương ứng.",
+        "Tách phần thưởng từng loại cửa rõ rệt hơn và giảm tần suất xuất hiện cửa Kho Báu.",
         "Thêm trạng thái mạng gọn trong trận và tự xin đồng bộ nhanh hơn khi client bị lệch.",
         "Thêm bảng cập nhật để biết bản mới vừa thay đổi gì."
       ]
@@ -339,7 +340,7 @@
   const ROOM_TYPES = [
     { id: "normal", label: "Phòng Thường", icon: "X", weight: 35, color: "#c9d0db" },
     { id: "elite", label: "Phòng Tinh Anh", icon: "!!", weight: 12, color: "#ffbd5e" },
-    { id: "treasure", label: "Kho Báu", icon: "$", weight: 9, color: "#f2bf63" },
+    { id: "treasure", label: "Kho Báu", icon: "$", weight: 4, color: "#f2bf63" },
     { id: "healing", label: "Hồi Phục", icon: "+", weight: 8, color: "#70e083" },
     { id: "merchant", label: "Thương Nhân", icon: "M", weight: 7, color: "#35d6c9" },
     { id: "challenge", label: "Thử Thách", icon: "*", weight: 9, color: "#ff8d3d" },
@@ -6943,6 +6944,7 @@
         stage: BIOMES.indexOf(startBiome),
         roomNumber: 0,
         roomsCleared: 0,
+        lastTreasureAt: -99,
         miniGame: options.miniGame || "",
         playerBossId: options.bossPlayerId || "",
         playerBossStartedAt: 0,
@@ -7342,6 +7344,7 @@
         roomNumber: this.run.roomNumber,
         roomsCleared: this.run.roomsCleared,
         roomClearTimer: this.run.roomClearTimer,
+        lastTreasureAt: Number.isFinite(this.run.lastTreasureAt) ? this.run.lastTreasureAt : -99,
         miniGame: this.run.miniGame || "",
         playerBossId: this.run.playerBossId || "",
         playerBossStartedAt: this.run.playerBossStartedAt || 0,
@@ -7420,6 +7423,7 @@
       this.run.roomNumber = Number.isFinite(snapshot.roomNumber) ? snapshot.roomNumber : this.run.roomNumber;
       this.run.roomsCleared = Number.isFinite(snapshot.roomsCleared) ? snapshot.roomsCleared : this.run.roomsCleared;
       this.run.roomClearTimer = Number.isFinite(snapshot.roomClearTimer) ? snapshot.roomClearTimer : this.run.roomClearTimer;
+      if (Number.isFinite(snapshot.lastTreasureAt)) this.run.lastTreasureAt = snapshot.lastTreasureAt;
       if (snapshot.miniGame != null) this.run.miniGame = snapshot.miniGame || "";
       if (snapshot.playerBossId != null) this.run.playerBossId = snapshot.playerBossId || "";
       if (snapshot.playerBossStartedAt != null) this.run.playerBossStartedAt = Number(snapshot.playerBossStartedAt) || 0;
@@ -7828,6 +7832,7 @@
         rewardOwners: []
       };
       this.run.roomNumber += 1;
+      if (type === "treasure") this.run.lastTreasureAt = this.run.roomsCleared;
       this.syncStatusEffects();
       this.clearRoomSkillEffects();
       this.run.roomClearTimer = 0;
@@ -11550,7 +11555,7 @@
     }
 
     roomDropsReward(room) {
-      return room && !["healing", "merchant", "curse", "training"].includes(room.type);
+      return room && !["healing", "merchant", "training"].includes(room.type);
     }
 
     xpToNextLevel(level = this.save.progression?.level || 1) {
@@ -11593,27 +11598,68 @@
       const luck = this.run.player.stats.rewardLuck || 0;
       const room = this.run.currentRoom.type;
       const difficulty = this.roomDifficulty(room) + (this.run.difficulty?.rewardBonus || 0);
-      const itemChance = room === "boss"
-        ? clamp(0.82 + luck * 0.25, 0.82, 0.98)
-        : room === "treasure"
-          ? clamp(0.7 + luck * 0.35, 0.66, 0.94)
-          : clamp(0.34 + difficulty * 0.4 + luck * 0.45, 0.28, 0.86);
-      if (chance(itemChance)) return { type: "item", item: this.rollItemForRoom(difficulty, luck), difficulty };
-      return {
-        type: "material",
-        material: pick(["emberGlass", "frostCore", "stormThread", "bloodAmber"]),
-        amount: randi(2, 5) + Math.round(difficulty * 4) + (room === "boss" ? 3 : 0),
-        rarity: this.rollRarityForDifficulty(difficulty * 0.62, luck * 0.4)
-      };
+      if (room === "challenge") {
+        if (chance(0.82)) return this.rollUpgradeReward(difficulty + 0.14, luck, ["damage", "hp", "energy", "crit", "skill"]);
+        return this.rollMaterialReward(["stormThread", "bloodAmber"], difficulty + 0.08, luck, 4, 7);
+      }
+      if (room === "elite") {
+        if (chance(clamp(0.84 + luck * 0.22, 0.84, 0.98))) return { type: "item", item: this.rollItemForRoom(difficulty + 0.28, luck + 0.08), difficulty };
+        return this.rollMaterialReward(["emberGlass", "frostCore", "stormThread", "bloodAmber"], difficulty + 0.16, luck, 5, 8);
+      }
+      if (room === "treasure") {
+        if (chance(clamp(0.88 + luck * 0.16, 0.88, 0.98))) return { type: "item", item: this.rollItemForRoom(difficulty + 0.36, luck + 0.12), difficulty };
+        return this.rollMaterialReward(["emberGlass", "frostCore", "stormThread", "bloodAmber"], difficulty + 0.28, luck, 8, 12);
+      }
+      if (room === "curse") {
+        if (chance(0.72)) return this.rollUpgradeReward(difficulty + 0.34, luck + 0.08, ["damage", "crit", "skill"]);
+        return { type: "item", item: this.rollItemForRoom(difficulty + 0.22, luck), difficulty };
+      }
+      if (room === "boss") {
+        if (chance(clamp(0.9 + luck * 0.14, 0.9, 0.99))) return { type: "item", item: this.rollItemForRoom(difficulty + 0.42, luck + 0.08), difficulty };
+        return this.rollMaterialReward(["bossCore", "divineSpark"], difficulty + 0.25, luck, 1, 2);
+      }
+      return chance(clamp(0.16 + difficulty * 0.2 + luck * 0.28, 0.14, 0.42))
+        ? { type: "item", item: this.rollItemForRoom(difficulty * 0.72, luck * 0.5), difficulty }
+        : this.rollMaterialReward(["emberGlass", "frostCore", "stormThread", "bloodAmber"], difficulty, luck, 2, 5);
     }
 
     rollCoinReward() {
       const room = this.run.currentRoom.type;
       const difficulty = this.roomDifficulty(room) + (this.run.difficulty?.rewardBonus || 0);
-      const roomMult = room === "boss" ? 2.35 : room === "treasure" ? 1.55 : room === "challenge" || room === "elite" ? 1.28 : 1;
+      const roomMult = {
+        normal: 0.82,
+        elite: 1.35,
+        challenge: 1.05,
+        treasure: 2.45,
+        curse: 0.7,
+        secret: 1.3,
+        boss: 2.65
+      }[room] || 1;
       const bonus = 1 + (this.run.player.stats.coinBonus || 0);
       const amount = Math.max(2, Math.round((randi(5, 10) + this.run.stage * 4 + difficulty * 13) * roomMult * bonus));
       return { type: "coin", amount, rarity: this.rollRarityForDifficulty(difficulty * 0.42, 0) };
+    }
+
+    rollMaterialReward(materials, difficulty = 0, luck = 0, minAmount = 2, maxAmount = 5) {
+      const material = pick(materials);
+      const bossMaterial = material === "bossCore" || material === "divineSpark";
+      return {
+        type: "material",
+        material,
+        amount: bossMaterial
+          ? Math.max(1, randi(minAmount, maxAmount))
+          : randi(minAmount, maxAmount) + Math.round(difficulty * 5),
+        rarity: bossMaterial ? "epic" : this.rollRarityForDifficulty(difficulty * 0.66, luck * 0.4)
+      };
+    }
+
+    rollUpgradeReward(difficulty = 0, luck = 0, stats = ["damage", "hp", "energy", "crit", "skill"]) {
+      const rarity = this.rollRarityForDifficulty(difficulty + 0.18, luck * 0.55);
+      return {
+        type: "upgrade",
+        stat: pick(stats),
+        rarity: rarity === "common" ? "rare" : rarity
+      };
     }
 
     rewardOwners() {
@@ -12391,6 +12437,11 @@
       this.toast(`Đã nâng ${upgradeLabel(reward.stat)}`);
     }
 
+    treasureDoorOnCooldown() {
+      const last = Number(this.run?.lastTreasureAt);
+      return Number.isFinite(last) && this.run.roomsCleared - last < 4;
+    }
+
     prepareNextRooms() {
       if (this.run.currentRoom.type === "boss") {
         this.run.stage += 1;
@@ -12408,11 +12459,17 @@
         return true;
       }
       const rooms = [];
-      while (rooms.length < 3) {
+      let guard = 0;
+      while (rooms.length < 3 && guard++ < 80) {
         const type = weighted(ROOM_TYPES);
+        if (type.id === "treasure" && this.treasureDoorOnCooldown()) continue;
         if (!rooms.some((room) => room.type === type.id)) {
           rooms.push({ type: type.id, label: type.label, icon: type.icon, color: type.color });
         }
+      }
+      for (const type of ROOM_TYPES.filter((entry) => entry.id !== "treasure")) {
+        if (rooms.length >= 3) break;
+        if (!rooms.some((room) => room.type === type.id)) rooms.push({ type: type.id, label: type.label, icon: type.icon, color: type.color });
       }
       this.run.nextRooms = rooms;
       return true;
@@ -12430,6 +12487,7 @@
             ${this.roomIllustration(room)}
             <h3>${room.label}</h3>
             <p class="small">Độ khó ${Math.round(this.roomDifficulty(room.type) * 100)}%</p>
+            <p class="small reward-hint">Thưởng: ${this.roomRewardHint(room.type)}</p>
             <p>${this.roomFlavor(room.type)}</p>
           </button>
         `;
@@ -12450,16 +12508,30 @@
 
     roomFlavor(type) {
       return {
-        normal: "Giao tranh tiêu chuẩn với quái và bẫy của khu vực.",
-        elite: "Đội hình khó hơn, rương gỗ có độ hiếm cao hơn.",
-        treasure: "Rương được canh giữ, tỉ lệ rơi phụ trợ cao.",
-        healing: "Hồi phục trước tuyến đường tiếp theo.",
-        merchant: "Thương nhân ẩn giữa các khe nứt.",
-        challenge: "Nhiều áp lực hơn, phần thưởng tốt hơn.",
-        curse: "Nhận hỗn loạn để đổi lấy cơ hội thưởng mạnh.",
+        normal: "Giao tranh tiêu chuẩn, ổn định để farm nguyên liệu.",
+        elite: "Đội hình khó hơn, ưu tiên rơi phụ trợ hiếm.",
+        treasure: "Cửa hiếm hơn, rương vàng nhiều tiền và đồ phụ trợ.",
+        healing: "Hồi phục và hồi sinh đồng đội trước tuyến đường tiếp theo.",
+        merchant: "Mua bán phụ trợ đặc biệt chỉ có ở thương nhân.",
+        challenge: "Nhiều áp lực hơn, đổi lại nâng chỉ số ngay trong lượt.",
+        curse: "Nhận nguyền rủa để mở rương nâng chỉ số mạnh hơn.",
         secret: "Giải một câu đố ngắn để mở rương nguyên liệu tương ứng.",
         boss: "Đấu trường boss có chuyển pha và tuyệt kỹ."
       }[type] || "Khe nứt chưa rõ";
+    }
+
+    roomRewardHint(type) {
+      return {
+        normal: "Nguyên liệu cơ bản, ít tiền",
+        elite: "Phụ trợ hiếm hoặc nguyên liệu nhiều hơn",
+        treasure: "Rương vàng, nhiều tiền, tỉ lệ phụ trợ cao",
+        healing: "Hồi máu, hồi sinh, không rơi rương",
+        merchant: "Mua/bán phụ trợ độc quyền bằng tiền trong ải",
+        challenge: "Nâng chỉ số tạm thời: ST, máu, NL, crit hoặc skill",
+        curse: "Rương nâng chỉ số mạnh nhưng kèm lời nguyền",
+        secret: "Nguyên liệu đúng theo câu đố",
+        boss: "Phụ trợ cao cấp, lõi trùm và nhiều tiền"
+      }[type] || "Không rõ";
     }
 
     resumeGame() {
@@ -14382,8 +14454,7 @@
         object.opened = true;
         this.applyCurse(pick(CURSES));
         const room = this.run.currentRoom;
-        room.rewardDropped = true;
-        room.rewardClaimed = true;
+        this.spawnRoomReward(object.x, object.y, { container: "goldChest" });
         this.clearRoom();
         this.addShockwave(object.x, object.y, 190, object.color || "#a169ff", 0);
       }

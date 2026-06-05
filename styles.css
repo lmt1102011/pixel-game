@@ -3051,10 +3051,11 @@ body.pwa-landing-active .screen {
 .quick-actions button {
   width: 54px;
   height: 54px;
+  border-radius: 16px;
   border: 1px solid rgba(242, 191, 99, 0.38);
-  background: linear-gradient(180deg, rgba(23, 27, 38, 0.88), rgba(8, 10, 16, 0.76));
+  background: linear-gradient(180deg, rgba(28, 34, 46, 0.78), rgba(8, 10, 16, 0.62));
   color: var(--gold);
-  box-shadow: 0 12px 26px rgba(0, 0, 0, 0.34), inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+  box-shadow: 0 10px 22px rgba(0, 0, 0, 0.28), inset 0 0 0 1px rgba(255, 255, 255, 0.06);
 }
 
 .quick-actions button:active {
@@ -3142,9 +3143,9 @@ body.pwa-landing-active .screen {
   width: 138px;
   height: 138px;
   border: 2px solid rgba(255, 255, 255, 0.2);
-  background: rgba(8, 10, 16, 0.24);
+  background: rgba(8, 10, 16, 0.2);
   border-radius: 50%;
-  box-shadow: inset 0 0 0 18px rgba(255, 255, 255, 0.035), 0 10px 28px rgba(0, 0, 0, 0.28);
+  box-shadow: inset 0 0 0 18px rgba(255, 255, 255, 0.03), 0 8px 22px rgba(0, 0, 0, 0.22);
   pointer-events: auto;
   transition: opacity 0.12s ease, background 0.12s ease, border-color 0.12s ease;
 }
@@ -3156,8 +3157,8 @@ body.pwa-landing-active .screen {
   width: 44px;
   height: 44px;
   border-radius: 50%;
-  background: rgba(242, 191, 99, 0.8);
-  box-shadow: 0 0 22px rgba(242, 191, 99, 0.35);
+  background: rgba(242, 191, 99, 0.76);
+  box-shadow: 0 0 18px rgba(242, 191, 99, 0.28);
 }
 
 .stick.active {
@@ -3181,12 +3182,13 @@ body.pwa-landing-active .screen {
   width: 62px;
   height: 54px;
   overflow: hidden;
-  border: 1px solid rgba(242, 191, 99, 0.3);
-  background: linear-gradient(180deg, rgba(23, 27, 38, 0.86), rgba(8, 10, 16, 0.72));
+  border: 1px solid rgba(242, 191, 99, 0.26);
+  border-radius: 16px;
+  background: linear-gradient(180deg, rgba(28, 34, 46, 0.78), rgba(8, 10, 16, 0.58));
   color: var(--ink);
   font-size: 11px;
   font-weight: 900;
-  box-shadow: 0 12px 26px rgba(0, 0, 0, 0.34), inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+  box-shadow: 0 9px 20px rgba(0, 0, 0, 0.26), inset 0 0 0 1px rgba(255, 255, 255, 0.055);
 }
 
 .touch-actions button::after {
@@ -3197,6 +3199,7 @@ body.pwa-landing-active .screen {
   bottom: 0;
   height: var(--cool);
   background: rgba(255, 255, 255, 0.24);
+  border-radius: inherit;
   pointer-events: none;
   transition: height 90ms linear;
 }
@@ -3207,9 +3210,9 @@ body.pwa-landing-active .screen {
 }
 
 .touch-actions button:active {
-  transform: translateY(1px) scale(0.98);
+  transform: translateY(1px) scale(0.985);
   border-color: rgba(99, 255, 203, 0.58);
-  background: linear-gradient(180deg, rgba(42, 53, 62, 0.92), rgba(11, 15, 22, 0.8));
+  background: linear-gradient(180deg, rgba(44, 54, 66, 0.82), rgba(11, 15, 22, 0.66));
 }
 
 .touch-actions [data-touch="attack"],
@@ -3217,6 +3220,7 @@ body.pwa-landing-active .screen {
   grid-column: span 2;
   width: auto;
   height: 62px;
+  border-radius: 18px;
   font-size: 13px;
 }
 
@@ -3868,7 +3872,8 @@ body.is-mobile-ui .quick-actions {
 body.is-mobile-ui .quick-actions button {
   width: 42px;
   height: 42px;
-  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.32), inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+  border-radius: 14px;
+  box-shadow: 0 7px 15px rgba(0, 0, 0, 0.24), inset 0 0 0 1px rgba(255, 255, 255, 0.055);
 }
 
 body.is-mobile-ui .quick-actions.spectating button {
@@ -3886,13 +3891,13 @@ body.is-mobile-ui .bag-icon {
 }
 
 body.is-mobile-ui .stick {
-  left: calc(12px + env(safe-area-inset-left));
-  bottom: calc(12px + env(safe-area-inset-bottom));
+  left: calc(-8px + env(safe-area-inset-left));
+  bottom: calc(2px + env(safe-area-inset-bottom));
   width: 112px;
   height: 112px;
   border-width: 2px;
-  background: rgba(8, 10, 16, 0.26);
-  box-shadow: inset 0 0 0 13px rgba(255, 255, 255, 0.03), 0 8px 20px rgba(0, 0, 0, 0.24);
+  background: rgba(8, 10, 16, 0.19);
+  box-shadow: inset 0 0 0 12px rgba(255, 255, 255, 0.026), 0 6px 16px rgba(0, 0, 0, 0.2);
 }
 
 body.is-mobile-ui .stick span {
@@ -3903,23 +3908,26 @@ body.is-mobile-ui .stick span {
 }
 
 body.is-mobile-ui .touch-actions {
-  right: calc(8px + env(safe-area-inset-right));
-  bottom: calc(12px + env(safe-area-inset-bottom));
+  right: calc(4px + env(safe-area-inset-right));
+  bottom: calc(6px + env(safe-area-inset-bottom));
   grid-template-columns: repeat(4, 52px);
-  gap: 6px;
+  gap: 7px;
 }
 
 body.is-mobile-ui .touch-actions button {
   width: 52px;
   height: 44px;
+  border-radius: 15px;
   font-size: 10px;
-  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.28), inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+  background: linear-gradient(180deg, rgba(30, 36, 48, 0.72), rgba(8, 10, 16, 0.52));
+  box-shadow: 0 7px 15px rgba(0, 0, 0, 0.22), inset 0 0 0 1px rgba(255, 255, 255, 0.055);
 }
 
 body.is-mobile-ui .touch-actions [data-touch="attack"],
 body.is-mobile-ui .touch-actions [data-touch="dash"] {
   width: auto;
   height: 50px;
+  border-radius: 17px;
   font-size: 11px;
 }
 
@@ -3948,6 +3956,8 @@ body.is-mobile-ui .touch-actions [data-touch="dash"] {
   }
 
   body.is-mobile-ui .stick {
+    left: calc(-10px + env(safe-area-inset-left));
+    bottom: calc(0px + env(safe-area-inset-bottom));
     width: 104px;
     height: 104px;
   }
@@ -3960,8 +3970,10 @@ body.is-mobile-ui .touch-actions [data-touch="dash"] {
   }
 
   body.is-mobile-ui .touch-actions {
+    right: calc(3px + env(safe-area-inset-right));
+    bottom: calc(4px + env(safe-area-inset-bottom));
     grid-template-columns: repeat(4, 49px);
-    gap: 5px;
+    gap: 6px;
   }
 
   body.is-mobile-ui .touch-actions button {

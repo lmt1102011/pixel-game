@@ -1,11 +1,11 @@
-const SOULRIFT_CACHE = "soulrift-pwa-20260605-player-boss-normal-168";
+const SOULRIFT_CACHE = "soulrift-pwa-20260605-boss-patterns-169";
 const SOULRIFT_ASSETS = [
   "./",
   "./index.html",
-  "./styles.css?v=20260605-player-boss-normal-168",
-  "./src/pwa.js?v=20260605-player-boss-normal-168",
-  "./src/game.js?v=20260605-player-boss-normal-168",
-  "./manifest.webmanifest?v=20260605-player-boss-normal-168",
+  "./styles.css?v=20260605-boss-patterns-169",
+  "./src/pwa.js?v=20260605-boss-patterns-169",
+  "./src/game.js?v=20260605-boss-patterns-169",
+  "./manifest.webmanifest?v=20260605-boss-patterns-169",
   "./version.json",
   "./assets/icons/app-icon-20260605-logo-xl-149.svg",
   "./assets/icons/app-icon-20260605-logo-xl-149-192.png",

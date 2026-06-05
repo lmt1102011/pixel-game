@@ -7,7 +7,7 @@
   const ROOM_PAD = 86;
   const SAVE_KEY = "soulrift-save-v1";
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
-  const APP_VERSION = "20260605-player-boss-normal-168";
+  const APP_VERSION = "20260605-boss-patterns-169";
   const CHANGELOG_ENTRIES = [
     {
       version: APP_VERSION,
@@ -16,6 +16,7 @@
         "Cân lại sát thương, nhịp đánh, điểm nâng và độ khó để đỡ phá game hơn.",
         "Hóa Trùm có thông báo chọn boss, skill boss theo khu và màn kết quả rõ hơn.",
         "Hóa Trùm dùng nhịp cân bằng riêng và không còn nút chỉnh độ khó trong phòng.",
+        "Trùm có thêm nhiều pattern bullet-hell đọc được, mỗi khu và mỗi skill Hóa Trùm khác nhau rõ hơn.",
         "Thêm trạng thái mạng gọn trong trận và tự xin đồng bộ nhanh hơn khi client bị lệch.",
         "Thêm bảng cập nhật để biết bản mới vừa thay đổi gì."
       ]
@@ -8845,24 +8846,29 @@
     playerBossKit(biomeId = this.run?.biome?.id || "forest") {
       const kits = {
         forest: {
-          labels: { basic: "Gai Vương", q: "Rễ Giam", e: "Mầm Độc", r: "Lồng Rễ", f: "Vương Miện Rừng" },
-          color: "#78d36f"
+          labels: { basic: "Gai Lượn", q: "Mê Cung Rễ", e: "Vòng Lá Độc", r: "Hộp Rừng", f: "Rừng Khóa Lối" },
+          color: "#78d36f",
+          patterns: { basic: "splitFan", q: "snakeLane", e: "petalTrap", r: "soulBox", f: ["needleMaze", "petalTrap", "safeRing"] }
         },
         frozen: {
-          labels: { basic: "Lưỡi Băng", q: "Quạt Băng", e: "Mưa Giá", r: "Lồng Tuyết", f: "Bão Trắng" },
-          color: "#8feaff"
+          labels: { basic: "Dao Tuyết", q: "Gương Băng", e: "Tường Giá", r: "Ngục Băng", f: "Bão Lạnh" },
+          color: "#8feaff",
+          patterns: { basic: "frostFan", q: "mirrorShots", e: "waveCurtain", r: "frostPrison", f: ["shardBloom", "needleMaze", "frostPrison"] }
         },
         lava: {
-          labels: { basic: "Vệt Nung", q: "Thiên Thạch", e: "Nứt Dung Nham", r: "Mưa Tro", f: "Lò Lửa Nổ" },
-          color: "#ff944d"
+          labels: { basic: "Tro Bậc", q: "Sao Lửa", e: "Kẹp Dung Nham", r: "Song Chổi", f: "Lò Nổ Tầng" },
+          color: "#ff944d",
+          patterns: { basic: "emberStairs", q: "meteors", e: "pincer", r: "cometTwin", f: ["emberStairs", "cornerBloom", "sawGate"] }
         },
         neon: {
-          labels: { basic: "Tia Săn", q: "Làn Neon", e: "Mưa Đạn", r: "Lưới Săn", f: "Ma Trận Săn Mồi" },
-          color: "#fd57ff"
+          labels: { basic: "Tia Lệch", q: "Máy Quét", e: "Màn Đạn", r: "Lăng Kính", f: "Ma Trận Neon" },
+          color: "#fd57ff",
+          patterns: { basic: "prismSplit", q: "neonScanner", e: "bulletCurtain", r: "diceRows", f: ["neonScanner", "prismSplit", "checkers"] }
         },
         temple: {
-          labels: { basic: "Ấn Tượng", q: "Cọc Đền", e: "Thập Tự", r: "Nhà Giam Tượng", f: "Phán Quyết Cổ" },
-          color: "#f4d26f"
+          labels: { basic: "Ấn Kim", q: "Cọc Phán", e: "Thập Tự Cổ", r: "Hộp Linh", f: "Phán Quyết Đền" },
+          color: "#f4d26f",
+          patterns: { basic: "orbitKnives", q: "templeJudgment", e: "crossRain", r: "soulBox", f: ["templeJudgment", "clockHands", "soulPulse"] }
         }
       };
       return kits[biomeId] || kits.forest;
@@ -8922,58 +8928,13 @@
 
     castPlayerBossPattern(boss, key, angle, target) {
       const biomeId = this.run?.biome?.id || "forest";
+      const kit = this.playerBossKit(biomeId);
       const targetPoint = target || this.nearestCombatTarget(boss.x, boss.y) || this.run.player;
-      if (key === "basic") {
-        this.bossLine(boss, angle);
-        if (biomeId === "frozen" && chance(0.45)) this.bossFrostFan(boss, angle + rand(-0.14, 0.14));
-        if (biomeId === "forest" && chance(0.32)) this.bossRootBloom(boss, targetPoint);
-        if (biomeId === "lava" && chance(0.3)) this.bossMeteors(boss, targetPoint);
-        if (biomeId === "neon" && chance(0.28)) this.bossNeonGrid(boss, targetPoint);
-        if (biomeId === "temple" && chance(0.3)) this.bossTemplePillars(boss, targetPoint);
-        return;
-      }
-      if (biomeId === "forest") {
-        if (key === "q") this.bossRootBloom(boss, targetPoint);
-        else if (key === "e") this.bossRain(boss, targetPoint);
-        else if (key === "r") this.bossSoulCage(boss, targetPoint);
-        else if (key === "f") {
-          this.bossRootBloom(boss, targetPoint);
-          this.bossLaneWalls(boss, targetPoint);
-        }
-      } else if (biomeId === "frozen") {
-        if (key === "q") this.bossFrostFan(boss, angle);
-        else if (key === "e") this.bossRain(boss, targetPoint);
-        else if (key === "r") this.bossSoulCage(boss, targetPoint);
-        else if (key === "f") {
-          this.bossBulletCurtain(boss);
-          this.bossCheckerBoard(boss, targetPoint);
-        }
-      } else if (biomeId === "lava") {
-        if (key === "q") this.bossMeteors(boss, targetPoint);
-        else if (key === "e") this.bossCross(boss, angle);
-        else if (key === "r") this.bossRain(boss, targetPoint);
-        else if (key === "f") {
-          this.bossMeteors(boss, targetPoint);
-          this.bossSlam(boss);
-        }
-      } else if (biomeId === "neon") {
-        if (key === "q") this.bossLaneWalls(boss, targetPoint);
-        else if (key === "e") this.bossBulletCurtain(boss);
-        else if (key === "r") this.bossNeonGrid(boss, targetPoint);
-        else if (key === "f") {
-          this.bossPinwheel(boss);
-          this.bossCheckerBoard(boss, targetPoint);
-        }
-      } else {
-        if (key === "q") this.bossTemplePillars(boss, targetPoint);
-        else if (key === "e") this.bossCross(boss, angle);
-        else if (key === "r") this.bossSoulCage(boss, targetPoint);
-        else if (key === "f") {
-          this.bossTemplePillars(boss, targetPoint);
-          this.bossCheckerBoard(boss, targetPoint);
-        }
-      }
-      if (key === "f") this.addShockwave(boss.x, boss.y, 300, this.playerBossKit(biomeId).color || this.run.biome.accent, 0, { owner: "enemy" });
+      const selected = kit.patterns?.[key] || "line";
+      const patterns = Array.isArray(selected) ? selected : [selected];
+      for (const pattern of patterns) this.castBossPattern(boss, pattern, angle, targetPoint);
+      if (key === "basic" && chance(0.35)) this.bossLine(boss, angle);
+      if (key === "f") this.addShockwave(boss.x, boss.y, 300, kit.color || this.run.biome.accent, 0, { owner: "enemy" });
     }
 
     basicSwordAttack(p, angle) {
@@ -12783,22 +12744,46 @@
     }
 
     pickBossPattern(enemy) {
-      const patterns = ["ring", "slam", "line"];
-      if (enemy.phase >= 2) patterns.push("spiral", "rain");
-      if (enemy.phase >= 3) patterns.push("cross", "rain");
+      const phase = enemy.phase || 1;
+      const patterns = [
+        "ring", "slam", "line", "splitFan", "needleMaze", "pincer", "stairShots",
+        "safeRing", "clockHands", "orbitKnives", "soulPulse"
+      ];
+      if (phase >= 2) {
+        patterns.push(
+          "spiral", "rain", "mirrorShots", "snakeLane", "prismSplit", "cornerBloom",
+          "cometTwin", "crossRain", "diceRows"
+        );
+      }
+      if (phase >= 3) {
+        patterns.push(
+          "cross", "rain", "soulBox", "sawGate", "waveCurtain", "petalTrap",
+          "shardBloom", "lanternChase", "spiralRain"
+        );
+      }
       if (this.isBossRushRun()) {
-        patterns.push("laneWalls", "bulletCurtain");
-        if (enemy.phase >= 2) patterns.push("soulCage", "pinwheel");
-        if (enemy.phase >= 3) patterns.push("laneWalls", "bulletCurtain", "checkers");
+        patterns.push("laneWalls", "bulletCurtain", "needleMaze", "soulBox", "clockHands");
+        if (phase >= 2) patterns.push("soulCage", "pinwheel", "neonScanner", "waveCurtain", "frostPrison");
+        if (phase >= 3) patterns.push("laneWalls", "bulletCurtain", "checkers", "templeJudgment", "emberStairs");
       }
       const biomePatterns = {
-        forest: ["roots", "rain"],
-        frozen: ["frostFan", "cross"],
-        lava: ["meteors", "spiral"],
-        neon: ["grid", "spiral"],
-        temple: ["pillars", "cross"]
+        forest: ["roots", "rain", "snakeLane", "petalTrap", "lanternChase", "safeRing"],
+        frozen: ["frostFan", "cross", "frostPrison", "shardBloom", "mirrorShots", "waveCurtain"],
+        lava: ["meteors", "spiral", "emberStairs", "cometTwin", "cornerBloom", "sawGate"],
+        neon: ["grid", "spiral", "neonScanner", "prismSplit", "diceRows", "clockHands"],
+        temple: ["pillars", "cross", "templeJudgment", "soulBox", "crossRain", "orbitKnives"]
       }[this.run.biome.id] || [];
-      return pick(patterns.concat(biomePatterns));
+      return this.pickUniqueBossPattern(enemy, patterns.concat(biomePatterns));
+    }
+
+    pickUniqueBossPattern(enemy, patterns) {
+      const unique = [...new Set(patterns.filter(Boolean))];
+      if (!unique.length) return "line";
+      const recent = Array.isArray(enemy.bossPatternHistory) ? enemy.bossPatternHistory : [];
+      const available = unique.filter((pattern) => !recent.includes(pattern));
+      const chosen = pick(available.length ? available : unique);
+      enemy.bossPatternHistory = [chosen, ...recent.filter((pattern) => pattern !== chosen)].slice(0, 4);
+      return chosen;
     }
 
     bossDanger(enemy, x, y, radius, time, damageMult = 1, color = this.run.biome.accent) {
@@ -12920,8 +12905,464 @@
         this.bossCheckerBoard(enemy, target);
         return 2.2;
       }
+      if (pattern === "needleMaze") {
+        this.bossNeedleMaze(enemy, target);
+        return 2.05;
+      }
+      if (pattern === "pincer") {
+        this.bossPincer(enemy, target);
+        return 1.82;
+      }
+      if (pattern === "stairShots") {
+        this.bossStairShots(enemy, target);
+        return 1.78;
+      }
+      if (pattern === "safeRing") {
+        this.bossSafeRing(enemy, target);
+        return 1.95;
+      }
+      if (pattern === "clockHands") {
+        this.bossClockHands(enemy, angle);
+        return 2.05;
+      }
+      if (pattern === "splitFan") {
+        this.bossSplitFan(enemy, angle);
+        return 1.55;
+      }
+      if (pattern === "prismSplit") {
+        this.bossPrismSplit(enemy, target);
+        return 1.9;
+      }
+      if (pattern === "orbitKnives") {
+        this.bossOrbitKnives(enemy);
+        return 1.82;
+      }
+      if (pattern === "soulBox") {
+        this.bossSoulBox(enemy, target);
+        return 2.18;
+      }
+      if (pattern === "soulPulse") {
+        this.bossSoulPulse(enemy, target);
+        return 1.78;
+      }
+      if (pattern === "snakeLane") {
+        this.bossSnakeLane(enemy, target);
+        return 2.02;
+      }
+      if (pattern === "mirrorShots") {
+        this.bossMirrorShots(enemy, target);
+        return 1.72;
+      }
+      if (pattern === "crossRain") {
+        this.bossCrossRain(enemy, target);
+        return 2.02;
+      }
+      if (pattern === "cornerBloom") {
+        this.bossCornerBloom(enemy, target);
+        return 2.05;
+      }
+      if (pattern === "cometTwin") {
+        this.bossCometTwin(enemy, target);
+        return 1.95;
+      }
+      if (pattern === "diceRows") {
+        this.bossDiceRows(enemy);
+        return 2.0;
+      }
+      if (pattern === "shardBloom") {
+        this.bossShardBloom(enemy, target);
+        return 1.82;
+      }
+      if (pattern === "lanternChase") {
+        this.bossLanternChase(enemy, target);
+        return 2.12;
+      }
+      if (pattern === "sawGate") {
+        this.bossSawGate(enemy, angle);
+        return 2.02;
+      }
+      if (pattern === "spiralRain") {
+        this.bossSpiralRain(enemy, target);
+        return 2.15;
+      }
+      if (pattern === "petalTrap") {
+        this.bossPetalTrap(enemy, target);
+        return 2.0;
+      }
+      if (pattern === "frostPrison") {
+        this.bossFrostPrison(enemy, target);
+        return 2.12;
+      }
+      if (pattern === "emberStairs") {
+        this.bossEmberStairs(enemy, target);
+        return 2.05;
+      }
+      if (pattern === "neonScanner") {
+        this.bossNeonScanner(enemy, target);
+        return 2.0;
+      }
+      if (pattern === "templeJudgment") {
+        this.bossTempleJudgment(enemy, target);
+        return 2.18;
+      }
+      if (pattern === "waveCurtain") {
+        this.bossWaveCurtain(enemy);
+        return 1.95;
+      }
       this.bossLine(enemy, angle);
       return 1.55;
+    }
+
+    bossProjectileAt(enemy, x, y, angle, speed, damageMult = 0.5, radius = 9, life = 3.2, color = this.run.biome.accent, kind = "boss") {
+      this.spawnProjectile({
+        owner: "enemy",
+        x,
+        y,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed,
+        radius,
+        damage: enemy.damage * damageMult,
+        life,
+        color,
+        pierce: 0,
+        kind,
+        bossDebuff: enemy.bossDebuff
+      });
+    }
+
+    bossNeedleMaze(enemy, target) {
+      const vertical = chance(0.5);
+      const lanes = 7 + Math.min(2, enemy.phase || 1);
+      const safeA = randi(1, lanes - 2);
+      const safeB = clamp(safeA + (chance(0.5) ? 1 : -1), 0, lanes - 1);
+      const color = vertical ? "#8ff7ff" : "#ff4b8f";
+      for (let i = 0; i < lanes; i++) {
+        if (i === safeA || i === safeB) continue;
+        const ratio = i / Math.max(1, lanes - 1);
+        if (vertical) {
+          const x = ROOM_PAD + 100 + ratio * (WORLD_W - ROOM_PAD * 2 - 200);
+          this.bossLineDanger(enemy, x, ROOM_PAD + 70, Math.PI / 2, WORLD_H - ROOM_PAD * 2 - 140, 18 + enemy.phase * 2, 0.95 + i * 0.03, 0.48, color);
+        } else {
+          const y = ROOM_PAD + 105 + ratio * (WORLD_H - ROOM_PAD * 2 - 210);
+          this.bossLineDanger(enemy, ROOM_PAD + 70, y, 0, WORLD_W - ROOM_PAD * 2 - 140, 18 + enemy.phase * 2, 0.95 + i * 0.03, 0.48, color);
+        }
+      }
+      if (target) this.bossDanger(enemy, target.x, target.y, 46 + enemy.phase * 5, 1.12, 0.42, "#ffd166");
+    }
+
+    bossPincer(enemy, target) {
+      const p = target || this.run.player;
+      const y = clamp(p.y, ROOM_PAD + 120, WORLD_H - ROOM_PAD - 120);
+      const color = "#ff7aa8";
+      this.bossLineDanger(enemy, ROOM_PAD + 50, y - 54, 0, WORLD_W - ROOM_PAD * 2 - 100, 30, 0.82, 0.58, color);
+      this.bossLineDanger(enemy, WORLD_W - ROOM_PAD - 50, y + 54, Math.PI, WORLD_W - ROOM_PAD * 2 - 100, 30, 0.94, 0.58, color);
+      const speed = 275 + enemy.phase * 28;
+      for (const side of [-1, 1]) {
+        const x = side < 0 ? ROOM_PAD - 30 : WORLD_W - ROOM_PAD + 30;
+        const angle = side < 0 ? 0 : Math.PI;
+        for (let i = -1; i <= 1; i++) this.bossProjectileAt(enemy, x, y + i * 58, angle, speed, 0.42, 8, 4.2, color, "bossPincer");
+      }
+    }
+
+    bossStairShots(enemy, target) {
+      const fromLeft = chance(0.5);
+      const steps = 6 + enemy.phase;
+      const color = "#ffd166";
+      for (let i = 0; i < steps; i++) {
+        const x = fromLeft ? ROOM_PAD - 38 : WORLD_W - ROOM_PAD + 38;
+        const y = ROOM_PAD + 120 + i * ((WORLD_H - ROOM_PAD * 2 - 240) / Math.max(1, steps - 1));
+        const angle = fromLeft ? rand(-0.14, 0.28) : Math.PI + rand(-0.28, 0.14);
+        this.bossProjectileAt(enemy, x, y, angle, 245 + i * 12 + enemy.phase * 22, 0.42, 9, 4.6, color, "bossStair");
+      }
+      if (target) this.bossLineDanger(enemy, enemy.x, enemy.y, Math.atan2(target.y - enemy.y, target.x - enemy.x), 520, 24, 0.85, 0.55, color);
+    }
+
+    bossSafeRing(enemy, target) {
+      const center = target || this.run.player;
+      const count = 9 + enemy.phase * 2;
+      const gap = randi(0, count - 1);
+      const radius = 128 + enemy.phase * 18;
+      for (let i = 0; i < count; i++) {
+        if (Math.abs(i - gap) <= 1 || Math.abs(i - gap) >= count - 1) continue;
+        const a = (i / count) * TAU + this.menuTime * 0.25;
+        const x = clamp(center.x + Math.cos(a) * radius, ROOM_PAD + 78, WORLD_W - ROOM_PAD - 78);
+        const y = clamp(center.y + Math.sin(a) * radius, ROOM_PAD + 78, WORLD_H - ROOM_PAD - 78);
+        this.bossDanger(enemy, x, y, 44 + enemy.phase * 6, 0.78 + i * 0.025, 0.46, "#a169ff");
+      }
+      this.bossDanger(enemy, center.x, center.y, 38 + enemy.phase * 5, 1.02, 0.38, "#ff4b8f");
+    }
+
+    bossClockHands(enemy, angle) {
+      const hands = 4 + enemy.phase;
+      const color = "#f4d26f";
+      for (let i = 0; i < hands; i++) {
+        const a = angle + (i / hands) * TAU + this.menuTime * 0.16;
+        this.bossLineDanger(enemy, enemy.x - Math.cos(a) * 78, enemy.y - Math.sin(a) * 78, a, 620, 22 + enemy.phase * 3, 0.78 + i * 0.06, 0.5, i % 2 ? color : "#8ff7ff");
+      }
+      this.addShockwave(enemy.x, enemy.y, 170, color, 0, { owner: "enemy" });
+    }
+
+    bossSplitFan(enemy, angle) {
+      const groups = 3;
+      const color = "#d7c4ff";
+      for (let g = 0; g < groups; g++) {
+        const center = angle + (g - 1) * 0.5;
+        for (let i = -1; i <= 1; i++) {
+          if (g === 1 && i === 0) continue;
+          this.spawnBossProjectile(enemy, center + i * 0.08, 315 + enemy.phase * 24, 0.45, 8, 3.4, i ? color : "#ffffff");
+        }
+      }
+    }
+
+    bossPrismSplit(enemy, target) {
+      const p = target || this.run.player;
+      const points = [
+        { x: enemy.x, y: enemy.y },
+        { x: clamp(enemy.x - 155, ROOM_PAD + 70, WORLD_W - ROOM_PAD - 70), y: clamp(enemy.y + 72, ROOM_PAD + 70, WORLD_H - ROOM_PAD - 70) },
+        { x: clamp(enemy.x + 155, ROOM_PAD + 70, WORLD_W - ROOM_PAD - 70), y: clamp(enemy.y + 72, ROOM_PAD + 70, WORLD_H - ROOM_PAD - 70) }
+      ];
+      points.forEach((point, index) => {
+        const a = Math.atan2(p.y - point.y, p.x - point.x);
+        for (let i = -1; i <= 1; i++) this.bossProjectileAt(enemy, point.x, point.y, a + i * 0.14, 265 + index * 22 + enemy.phase * 20, 0.43, 8, 3.8, index % 2 ? "#fd57ff" : "#8ff7ff", "bossPrism");
+      });
+      this.addShockwave(p.x, p.y, 90, "#fd57ff", 0, { owner: "enemy" });
+    }
+
+    bossOrbitKnives(enemy) {
+      const count = 8 + enemy.phase * 3;
+      const color = "#f3ead7";
+      for (let i = 0; i < count; i++) {
+        const a = (i / count) * TAU + this.menuTime * 0.5;
+        const x = enemy.x + Math.cos(a) * (enemy.radius + 34);
+        const y = enemy.y + Math.sin(a) * (enemy.radius + 34);
+        this.bossProjectileAt(enemy, x, y, a + Math.PI / 2 + (i % 2 ? 0.16 : -0.16), 210 + enemy.phase * 22, 0.38, 7, 3.7, color, "bossKnife");
+      }
+    }
+
+    bossSoulBox(enemy, target) {
+      const center = target || this.run.player;
+      const size = 250 + enemy.phase * 22;
+      const x = clamp(center.x - size / 2, ROOM_PAD + 65, WORLD_W - ROOM_PAD - 65 - size);
+      const y = clamp(center.y - size / 2, ROOM_PAD + 65, WORLD_H - ROOM_PAD - 65 - size);
+      const color = "#b69dff";
+      this.bossLineDanger(enemy, x, y, 0, size, 24, 0.88, 0.46, color);
+      this.bossLineDanger(enemy, x, y + size, 0, size, 24, 1.0, 0.46, color);
+      this.bossLineDanger(enemy, x, y, Math.PI / 2, size, 24, 1.12, 0.46, color);
+      this.bossLineDanger(enemy, x + size, y, Math.PI / 2, size, 24, 1.24, 0.46, color);
+      const midX = x + size / 2;
+      const midY = y + size / 2;
+      for (let i = 0; i < 4 + enemy.phase; i++) {
+        const a = (i / (4 + enemy.phase)) * TAU;
+        this.bossProjectileAt(enemy, midX + Math.cos(a) * size * 0.34, midY + Math.sin(a) * size * 0.34, a + Math.PI, 175 + enemy.phase * 16, 0.36, 8, 2.8, "#ff4b8f", "bossSoul");
+      }
+    }
+
+    bossSoulPulse(enemy, target) {
+      const center = target || this.run.player;
+      const color = "#ff4b8f";
+      this.bossDanger(enemy, center.x, center.y, 86 + enemy.phase * 12, 0.82, 0.5, color);
+      for (let i = 0; i < 6 + enemy.phase * 2; i++) {
+        const a = (i / (6 + enemy.phase * 2)) * TAU;
+        const x = center.x + Math.cos(a) * 148;
+        const y = center.y + Math.sin(a) * 148;
+        this.bossProjectileAt(enemy, x, y, a + Math.PI, 185 + enemy.phase * 18, 0.32, 8, 2.7, color, "bossSoul");
+      }
+    }
+
+    bossSnakeLane(enemy, target) {
+      const center = target || this.run.player;
+      const horizontal = chance(0.5);
+      const count = 8 + enemy.phase * 2;
+      const color = "#78d36f";
+      for (let i = 0; i < count; i++) {
+        const t = i / Math.max(1, count - 1);
+        const wave = Math.sin(t * Math.PI * 2 + this.menuTime * 0.7) * 80;
+        const x = horizontal ? ROOM_PAD + 110 + t * (WORLD_W - ROOM_PAD * 2 - 220) : center.x + wave;
+        const y = horizontal ? center.y + wave : ROOM_PAD + 110 + t * (WORLD_H - ROOM_PAD * 2 - 220);
+        this.bossDanger(enemy, clamp(x, ROOM_PAD + 70, WORLD_W - ROOM_PAD - 70), clamp(y, ROOM_PAD + 70, WORLD_H - ROOM_PAD - 70), 38 + enemy.phase * 5, 0.62 + i * 0.055, 0.38, color);
+      }
+    }
+
+    bossMirrorShots(enemy, target) {
+      const p = target || this.run.player;
+      const color = "#8feaff";
+      const mirrorX = clamp(WORLD_W - enemy.x, ROOM_PAD + 70, WORLD_W - ROOM_PAD - 70);
+      const origins = [{ x: enemy.x, y: enemy.y }, { x: mirrorX, y: enemy.y }];
+      origins.forEach((origin, index) => {
+        const a = Math.atan2(p.y - origin.y, p.x - origin.x);
+        for (let i = -2; i <= 2; i++) this.bossProjectileAt(enemy, origin.x, origin.y, a + i * 0.1, 255 + enemy.phase * 26, 0.38, 8, 3.4, index ? "#d7c4ff" : color, "bossMirror");
+      });
+    }
+
+    bossCrossRain(enemy, target) {
+      const p = target || this.run.player;
+      const color = "#f4d26f";
+      for (let i = -2; i <= 2; i++) {
+        const x = clamp(p.x + i * 78, ROOM_PAD + 70, WORLD_W - ROOM_PAD - 70);
+        this.bossLineDanger(enemy, x, ROOM_PAD + 72, Math.PI / 2, WORLD_H - ROOM_PAD * 2 - 144, 20, 0.72 + Math.abs(i) * 0.06, 0.45, color);
+      }
+      for (let i = -1; i <= 1; i++) {
+        const y = clamp(p.y + i * 88, ROOM_PAD + 90, WORLD_H - ROOM_PAD - 90);
+        this.bossLineDanger(enemy, ROOM_PAD + 72, y, 0, WORLD_W - ROOM_PAD * 2 - 144, 18, 0.98 + Math.abs(i) * 0.08, 0.38, "#ff4b8f");
+      }
+    }
+
+    bossCornerBloom(enemy, target) {
+      const p = target || this.run.player;
+      const corners = [
+        { x: ROOM_PAD + 115, y: ROOM_PAD + 115 },
+        { x: WORLD_W - ROOM_PAD - 115, y: ROOM_PAD + 115 },
+        { x: ROOM_PAD + 115, y: WORLD_H - ROOM_PAD - 115 },
+        { x: WORLD_W - ROOM_PAD - 115, y: WORLD_H - ROOM_PAD - 115 }
+      ];
+      corners.forEach((corner, index) => {
+        this.bossDanger(enemy, corner.x, corner.y, 70 + enemy.phase * 9, 0.72 + index * 0.06, 0.46, "#ff8d3d");
+        const a = Math.atan2(p.y - corner.y, p.x - corner.x);
+        this.bossProjectileAt(enemy, corner.x, corner.y, a, 220 + enemy.phase * 24, 0.34, 9, 4.0, "#ff8d3d", "bossCorner");
+      });
+    }
+
+    bossCometTwin(enemy, target) {
+      const p = target || this.run.player;
+      const color = "#ff8d3d";
+      const angles = [Math.PI / 4, -Math.PI / 4];
+      for (const a of angles) {
+        this.bossLineDanger(enemy, p.x - Math.cos(a) * 430, p.y - Math.sin(a) * 430, a, 860, 34 + enemy.phase * 3, 0.82, 0.58, color);
+        this.bossProjectileAt(enemy, p.x - Math.cos(a) * 390, p.y - Math.sin(a) * 390, a, 360 + enemy.phase * 28, 0.42, 10, 2.7, color, "bossComet");
+      }
+    }
+
+    bossDiceRows(enemy) {
+      const color = "#fd57ff";
+      const rows = 5;
+      const cols = 6;
+      const safeRow = randi(0, rows - 1);
+      const safeCol = randi(0, cols - 1);
+      for (let row = 0; row < rows; row++) {
+        if (row === safeRow) continue;
+        const y = ROOM_PAD + 120 + row * ((WORLD_H - ROOM_PAD * 2 - 240) / Math.max(1, rows - 1));
+        this.bossLineDanger(enemy, ROOM_PAD + 82, y, 0, WORLD_W - ROOM_PAD * 2 - 164, 20, 0.75 + row * 0.04, 0.42, color);
+      }
+      for (let col = 0; col < cols; col++) {
+        if (col === safeCol) continue;
+        const x = ROOM_PAD + 120 + col * ((WORLD_W - ROOM_PAD * 2 - 240) / Math.max(1, cols - 1));
+        this.bossLineDanger(enemy, x, ROOM_PAD + 90, Math.PI / 2, WORLD_H - ROOM_PAD * 2 - 180, 18, 1.04 + col * 0.03, 0.34, "#8ff7ff");
+      }
+    }
+
+    bossShardBloom(enemy, target) {
+      const p = target || this.run.player;
+      const count = 12 + enemy.phase * 4;
+      const color = "#8feaff";
+      for (let i = 0; i < count; i++) {
+        const a = (i / count) * TAU;
+        const x = clamp(p.x + Math.cos(a) * 95, ROOM_PAD + 70, WORLD_W - ROOM_PAD - 70);
+        const y = clamp(p.y + Math.sin(a) * 95, ROOM_PAD + 70, WORLD_H - ROOM_PAD - 70);
+        this.bossProjectileAt(enemy, x, y, a, 230 + enemy.phase * 24, 0.34, 7, 3.1, color, "bossShard");
+      }
+      this.bossDanger(enemy, p.x, p.y, 54, 0.74, 0.36, color);
+    }
+
+    bossLanternChase(enemy, target) {
+      const p = target || this.run.player;
+      const color = "#78d36f";
+      const steps = 5 + enemy.phase;
+      const baseAngle = Math.atan2(p.y - enemy.y, p.x - enemy.x);
+      for (let i = 0; i < steps; i++) {
+        const distance = 58 + i * 54;
+        const x = clamp(p.x - Math.cos(baseAngle) * distance + Math.sin(i) * 22, ROOM_PAD + 70, WORLD_W - ROOM_PAD - 70);
+        const y = clamp(p.y - Math.sin(baseAngle) * distance + Math.cos(i) * 22, ROOM_PAD + 70, WORLD_H - ROOM_PAD - 70);
+        this.bossDanger(enemy, x, y, 48 + enemy.phase * 5, 0.58 + i * 0.11, 0.42, color);
+      }
+    }
+
+    bossSawGate(enemy, angle) {
+      const color = "#ff4b55";
+      for (let i = 0; i < 3 + enemy.phase; i++) {
+        const a = angle + i * (Math.PI / (3 + enemy.phase)) + this.menuTime * 0.2;
+        this.bossLineDanger(enemy, enemy.x - Math.cos(a) * 300, enemy.y - Math.sin(a) * 300, a, 600, 26, 0.74 + i * 0.08, 0.46, i % 2 ? color : "#ffd166");
+      }
+      for (let i = 0; i < 5 + enemy.phase; i++) {
+        const a = angle + (i / (5 + enemy.phase)) * TAU;
+        this.spawnBossProjectile(enemy, a, 210 + enemy.phase * 18, 0.36, 8, 3.2, color);
+      }
+    }
+
+    bossSpiralRain(enemy, target) {
+      this.bossSpiral(enemy);
+      if (target) {
+        for (let i = 0; i < 3; i++) {
+          const a = this.menuTime + i * TAU / 3;
+          const x = clamp(target.x + Math.cos(a) * (95 + i * 30), ROOM_PAD + 70, WORLD_W - ROOM_PAD - 70);
+          const y = clamp(target.y + Math.sin(a) * (95 + i * 30), ROOM_PAD + 70, WORLD_H - ROOM_PAD - 70);
+          this.bossDanger(enemy, x, y, 56 + enemy.phase * 6, 0.76 + i * 0.1, 0.36, "#a169ff");
+        }
+      }
+    }
+
+    bossPetalTrap(enemy, target) {
+      const center = target || this.run.player;
+      const petals = 8 + enemy.phase * 2;
+      const color = "#78d36f";
+      for (let i = 0; i < petals; i++) {
+        const a = (i / petals) * TAU;
+        const radius = i % 2 ? 122 : 74;
+        const x = clamp(center.x + Math.cos(a) * radius, ROOM_PAD + 70, WORLD_W - ROOM_PAD - 70);
+        const y = clamp(center.y + Math.sin(a) * radius, ROOM_PAD + 70, WORLD_H - ROOM_PAD - 70);
+        this.bossDanger(enemy, x, y, 42 + enemy.phase * 5, 0.7 + (i % 4) * 0.06, 0.38, color);
+      }
+    }
+
+    bossFrostPrison(enemy, target) {
+      const center = target || this.run.player;
+      this.bossSoulCage(enemy, center);
+      for (let i = -2; i <= 2; i++) {
+        const a = Math.atan2(center.y - enemy.y, center.x - enemy.x) + i * 0.18;
+        this.spawnBossProjectile(enemy, a, 285 + enemy.phase * 20, 0.34, 8, 3.2, "#8feaff");
+      }
+    }
+
+    bossEmberStairs(enemy, target) {
+      this.bossStairShots(enemy, target);
+      if (!target) return;
+      for (let i = 0; i < 4 + enemy.phase; i++) {
+        const x = clamp(target.x + (i - 2) * 72, ROOM_PAD + 70, WORLD_W - ROOM_PAD - 70);
+        const y = clamp(target.y - 150 + i * 54, ROOM_PAD + 70, WORLD_H - ROOM_PAD - 70);
+        this.bossDanger(enemy, x, y, 50 + enemy.phase * 6, 0.65 + i * 0.07, 0.42, "#ff8d3d");
+      }
+    }
+
+    bossNeonScanner(enemy, target) {
+      const p = target || this.run.player;
+      const color = "#8ff7ff";
+      for (let i = -2; i <= 2; i++) {
+        const x = clamp(p.x + i * 92, ROOM_PAD + 80, WORLD_W - ROOM_PAD - 80);
+        this.bossLineDanger(enemy, x, ROOM_PAD + 70, Math.PI / 2, WORLD_H - ROOM_PAD * 2 - 140, 24, 0.68 + Math.abs(i) * 0.08, 0.42, i % 2 ? "#fd57ff" : color);
+      }
+      this.bossLineDanger(enemy, ROOM_PAD + 70, p.y, 0, WORLD_W - ROOM_PAD * 2 - 140, 30, 1.08, 0.5, "#fd57ff");
+    }
+
+    bossTempleJudgment(enemy, target) {
+      const p = target || this.run.player;
+      this.bossTemplePillars(enemy, p);
+      const color = "#f4d26f";
+      for (let i = 0; i < 4; i++) {
+        const a = i * Math.PI / 2 + Math.PI / 4;
+        this.bossLineDanger(enemy, p.x - Math.cos(a) * 260, p.y - Math.sin(a) * 260, a, 520, 24, 0.98 + i * 0.08, 0.45, color);
+      }
+    }
+
+    bossWaveCurtain(enemy) {
+      const fromTop = chance(0.5);
+      const count = 8 + enemy.phase * 2;
+      const color = fromTop ? "#8ff7ff" : "#ff4b8f";
+      for (let i = 0; i < count; i++) {
+        const ratio = i / Math.max(1, count - 1);
+        const x = ROOM_PAD + 95 + ratio * (WORLD_W - ROOM_PAD * 2 - 190);
+        const y = fromTop ? ROOM_PAD - 35 : WORLD_H - ROOM_PAD + 35;
+        const angle = fromTop ? Math.PI / 2 + Math.sin(i * 0.9) * 0.28 : -Math.PI / 2 + Math.sin(i * 0.9) * 0.28;
+        this.bossProjectileAt(enemy, x, y, angle, 230 + enemy.phase * 26, 0.38, 8, 4.6, color, "bossWave");
+      }
     }
 
     bossSpiral(enemy) {

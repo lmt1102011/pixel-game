@@ -3870,9 +3870,9 @@ body.is-mobile-ui .quick-actions {
 }
 
 body.is-mobile-ui .quick-actions button {
-  width: 42px;
-  height: 42px;
-  border-radius: 14px;
+  width: 46px;
+  height: 46px;
+  border-radius: 15px;
   box-shadow: 0 7px 15px rgba(0, 0, 0, 0.24), inset 0 0 0 1px rgba(255, 255, 255, 0.055);
 }
 
@@ -3891,34 +3891,34 @@ body.is-mobile-ui .bag-icon {
 }
 
 body.is-mobile-ui .stick {
-  left: calc(-8px + env(safe-area-inset-left));
-  bottom: calc(2px + env(safe-area-inset-bottom));
-  width: 112px;
-  height: 112px;
+  left: calc(8px + env(safe-area-inset-left));
+  bottom: calc(8px + env(safe-area-inset-bottom));
+  width: 116px;
+  height: 116px;
   border-width: 2px;
   background: rgba(8, 10, 16, 0.19);
   box-shadow: inset 0 0 0 12px rgba(255, 255, 255, 0.026), 0 6px 16px rgba(0, 0, 0, 0.2);
 }
 
 body.is-mobile-ui .stick span {
-  left: 37px;
-  top: 37px;
-  width: 38px;
-  height: 38px;
+  left: 38px;
+  top: 38px;
+  width: 40px;
+  height: 40px;
 }
 
 body.is-mobile-ui .touch-actions {
-  right: calc(4px + env(safe-area-inset-right));
+  right: calc(6px + env(safe-area-inset-right));
   bottom: calc(6px + env(safe-area-inset-bottom));
-  grid-template-columns: repeat(4, 52px);
+  grid-template-columns: repeat(4, 56px);
   gap: 7px;
 }
 
 body.is-mobile-ui .touch-actions button {
-  width: 52px;
-  height: 44px;
-  border-radius: 15px;
-  font-size: 10px;
+  width: 56px;
+  height: 48px;
+  border-radius: 16px;
+  font-size: 10.5px;
   background: linear-gradient(180deg, rgba(30, 36, 48, 0.72), rgba(8, 10, 16, 0.52));
   box-shadow: 0 7px 15px rgba(0, 0, 0, 0.22), inset 0 0 0 1px rgba(255, 255, 255, 0.055);
 }
@@ -3926,9 +3926,9 @@ body.is-mobile-ui .touch-actions button {
 body.is-mobile-ui .touch-actions [data-touch="attack"],
 body.is-mobile-ui .touch-actions [data-touch="dash"] {
   width: auto;
-  height: 50px;
-  border-radius: 17px;
-  font-size: 11px;
+  height: 54px;
+  border-radius: 18px;
+  font-size: 12px;
 }
 
 @media (max-height: 420px) {
@@ -3951,39 +3951,39 @@ body.is-mobile-ui .touch-actions [data-touch="dash"] {
   }
 
   body.is-mobile-ui .quick-actions button {
-    width: 39px;
-    height: 39px;
+    width: 42px;
+    height: 42px;
   }
 
   body.is-mobile-ui .stick {
-    left: calc(-10px + env(safe-area-inset-left));
-    bottom: calc(0px + env(safe-area-inset-bottom));
-    width: 104px;
-    height: 104px;
+    left: calc(6px + env(safe-area-inset-left));
+    bottom: calc(5px + env(safe-area-inset-bottom));
+    width: 108px;
+    height: 108px;
   }
 
   body.is-mobile-ui .stick span {
-    left: 35px;
-    top: 35px;
-    width: 34px;
-    height: 34px;
+    left: 36px;
+    top: 36px;
+    width: 36px;
+    height: 36px;
   }
 
   body.is-mobile-ui .touch-actions {
-    right: calc(3px + env(safe-area-inset-right));
+    right: calc(5px + env(safe-area-inset-right));
     bottom: calc(4px + env(safe-area-inset-bottom));
-    grid-template-columns: repeat(4, 49px);
+    grid-template-columns: repeat(4, 52px);
     gap: 6px;
   }
 
   body.is-mobile-ui .touch-actions button {
-    width: 49px;
-    height: 41px;
-    font-size: 9.5px;
+    width: 52px;
+    height: 44px;
+    font-size: 10px;
   }
 
   body.is-mobile-ui .touch-actions [data-touch="attack"],
   body.is-mobile-ui .touch-actions [data-touch="dash"] {
-    height: 47px;
+    height: 50px;
   }
 }

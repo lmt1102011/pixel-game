@@ -7,7 +7,19 @@
   const ROOM_PAD = 86;
   const SAVE_KEY = "soulrift-save-v1";
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
-  const APP_VERSION = "20260605-player-boss-minigame-166";
+  const APP_VERSION = "20260605-balance-network-167";
+  const CHANGELOG_ENTRIES = [
+    {
+      version: APP_VERSION,
+      title: "Cân bằng, Hóa Trùm và mạng",
+      items: [
+        "Cân lại sát thương, nhịp đánh, điểm nâng và độ khó để đỡ phá game hơn.",
+        "Hóa Trùm có thông báo chọn boss, skill boss theo khu và màn kết quả rõ hơn.",
+        "Thêm trạng thái mạng gọn trong trận và tự xin đồng bộ nhanh hơn khi client bị lệch.",
+        "Thêm bảng cập nhật để biết bản mới vừa thay đổi gì."
+      ]
+    }
+  ];
   const VERSION_CHECK_INTERVAL = 15000;
   const UPDATE_ATTEMPT_KEY = "soulrift-update-attempt-v1";
   const CLOUD_MIGRATION_KEY = "soulrift-cloud-migrated-v1";
@@ -46,7 +58,7 @@
   const NET_SNAPSHOT_PEER_INTERVAL = 0.12;
   const NET_SNAPSHOT_RELAY_INTERVAL = 0.22;
   const NET_REALTIME_BUFFER_LIMIT = 128 * 1024;
-  const NET_SNAPSHOT_STALE_MS = 1400;
+  const NET_SNAPSHOT_STALE_MS = 1100;
   const SAVE_OPEN_TIMEOUT_MS = 1200;
   const SAVE_READ_TIMEOUT_MS = 900;
   const BOOT_SAVE_TIMEOUT_MS = 1800;
@@ -299,9 +311,9 @@
   ];
 
   const DIFFICULTIES = [
-    { id: "easy", label: "Dễ", text: "Quái yếu hơn, phù hợp để thử nhân vật và power.", enemyHp: 0.82, enemyDamage: 0.84, countBonus: -1, rewardBonus: -0.06 },
+    { id: "easy", label: "Dễ", text: "Quái yếu hơn, phù hợp để thử nhân vật và power.", enemyHp: 0.78, enemyDamage: 0.78, countBonus: -1, rewardBonus: -0.06 },
     { id: "normal", label: "Thường", text: "Nhịp chuẩn của Soulrift.", enemyHp: 1, enemyDamage: 1, countBonus: 0, rewardBonus: 0 },
-    { id: "hard", label: "Khó", text: "Quái dai và đau hơn, đổi lại rương, tiền và nguyên liệu tốt hơn.", enemyHp: 1.22, enemyDamage: 1.16, countBonus: 1, rewardBonus: 0.12 }
+    { id: "hard", label: "Khó", text: "Quái dai và đau hơn, đổi lại rương, tiền và nguyên liệu tốt hơn.", enemyHp: 1.18, enemyDamage: 1.12, countBonus: 1, rewardBonus: 0.14 }
   ];
 
   const CURSES = [
@@ -512,7 +524,7 @@
       color: "#f2bf63",
       attackName: "Chém kiếm",
       attackText: "Chém hình quạt rộng trước mặt.",
-      stats: { hp: 145, energy: 95, speed: 235, damage: 14, crit: 0.12, attackCd: 0.78 }
+      stats: { hp: 148, energy: 95, speed: 235, damage: 13.2, crit: 0.12, attackCd: 0.82 }
     },
     {
       id: "martial",
@@ -521,7 +533,7 @@
       color: "#ffcf6b",
       attackName: "Liên quyền",
       attackText: "Đấm áp sát rất nhanh, mỗi đòn thứ ba đá hất lùi và hồi nhẹ năng lượng khi đánh trúng.",
-      stats: { hp: 128, energy: 125, speed: 275, damage: 9.5, crit: 0.16, attackCd: 0.58 }
+      stats: { hp: 132, energy: 125, speed: 272, damage: 8.8, crit: 0.16, attackCd: 0.64 }
     },
     {
       id: "guardian",
@@ -530,7 +542,7 @@
       color: "#70e083",
       attackName: "Lao khiên",
       attackText: "Lao ngắn về phía trước, hất lùi và làm choáng kẻ địch.",
-      stats: { hp: 195, energy: 75, speed: 195, damage: 11, crit: 0.06, attackCd: 1.1 }
+      stats: { hp: 205, energy: 78, speed: 198, damage: 10.4, crit: 0.06, attackCd: 1.12 }
     },
     {
       id: "spearman",
@@ -539,7 +551,7 @@
       color: "#9fd27a",
       attackName: "Đâm thương",
       attackText: "Đâm thẳng tầm dài, trúng bằng đầu thương gây sát thương cao hơn.",
-      stats: { hp: 132, energy: 100, speed: 240, damage: 13, crit: 0.11, attackCd: 0.95 }
+      stats: { hp: 136, energy: 102, speed: 240, damage: 12.4, crit: 0.11, attackCd: 0.98 }
     },
     {
       id: "mage",
@@ -548,7 +560,7 @@
       color: "#83e8ff",
       attackName: "Cầu năng lượng",
       attackText: "Ném cầu năng lượng tầm xa.",
-      stats: { hp: 105, energy: 145, speed: 215, damage: 14, crit: 0.14, attackCd: 0.9 }
+      stats: { hp: 108, energy: 150, speed: 215, damage: 13.4, crit: 0.14, attackCd: 0.96 }
     },
     {
       id: "ranger",
@@ -557,7 +569,7 @@
       color: "#ff9f43",
       attackName: "Mũi tên xuyên",
       attackText: "Bắn một mũi tên nhanh có thể xuyên mục tiêu.",
-      stats: { hp: 120, energy: 115, speed: 260, damage: 12, crit: 0.18, attackCd: 1.05 }
+      stats: { hp: 124, energy: 116, speed: 258, damage: 12.4, crit: 0.2, attackCd: 1.12 }
     },
     {
       id: "assassin",
@@ -566,7 +578,7 @@
       color: "#b8b7ff",
       attackName: "Song dao chữ X",
       attackText: "Chém hai dao ngắn tạo dấu X, đánh nhanh nhưng máu và sát thương thấp.",
-      stats: { hp: 88, energy: 105, speed: 285, damage: 8, crit: 0.2, attackCd: 0.62 }
+      stats: { hp: 94, energy: 108, speed: 282, damage: 7.4, crit: 0.22, attackCd: 0.68 }
     }
   ];
 
@@ -600,9 +612,9 @@
   const STAT_POINT_UPGRADES = [
     { id: "hp", label: "Máu", text: "+6 máu tối đa mỗi điểm", amount: 6 },
     { id: "energy", label: "Năng lượng", text: "+4 năng lượng tối đa mỗi điểm", amount: 4 },
-    { id: "damage", label: "Sát thương", text: "Tăng sát thương nhẹ, càng cao càng tăng chậm", amount: 0.38 },
+    { id: "damage", label: "Sát thương", text: "Tăng sát thương nhẹ, càng cao càng tăng chậm", amount: 0.32 },
     { id: "speed", label: "Tốc độ", text: "Tăng tốc độ nhẹ, càng cao càng tăng chậm", amount: 1.35 },
-    { id: "crit", label: "Chí mạng", text: "Tăng chí mạng nhẹ, càng cao càng tăng chậm", amount: 0.0035 }
+    { id: "crit", label: "Chí mạng", text: "Tăng chí mạng nhẹ, càng cao càng tăng chậm", amount: 0.0032 }
   ];
 
   const CUSTOM_LABELS = {
@@ -2702,6 +2714,16 @@
       this.lastSnapshotReceivedAt = 0;
       this.lastSnapshotRequestAt = 0;
       this.lastLocalStateSent = null;
+      this.lastFastSnapshotAt = 0;
+      this.netStats = {
+        stateSent: 0,
+        snapshotsSent: 0,
+        snapshotsReceived: 0,
+        snapshotGapAvg: 0,
+        lastSnapshotGap: 0,
+        resyncCount: 0,
+        lastResyncAt: 0
+      };
       this.chestOpenRequests = new Map();
       this.pauseOverlay = false;
       this.toastTimer = 0;
@@ -4711,10 +4733,48 @@
             ${item("play", "CHƠI", true)}
             ${item("character", "NHÂN VẬT")}
             ${item("friends", "BẠN BÈ")}
+            ${item("updates", "CẬP NHẬT")}
             ${item("settings", "CÀI ĐẶT")}
           </div>
         </nav>
       `;
+    }
+
+    showChangelog() {
+      if (!this.hasAccount()) return;
+      this.mode = "changelog";
+      const entries = CHANGELOG_ENTRIES.map((entry) => `
+        <div class="update-card">
+          <div class="update-version">${entry.version}</div>
+          <h3>${entry.title}</h3>
+          <ul>
+            ${entry.items.map((item) => `<li>${item}</li>`).join("")}
+          </ul>
+        </div>
+      `).join("");
+      this.setScreen(`
+        <section class="wide-panel update-panel">
+          <div class="panel-header">
+            <div>
+              <h2 class="panel-title">Bản Cập Nhật</h2>
+              <p class="panel-subtitle">Những thay đổi mới nhất của Soulrift.</p>
+            </div>
+          </div>
+          <div class="grid">${entries}</div>
+          <div class="grid cols-2">
+            <button class="btn primary" data-action="close-changelog">ĐÃ HIỂU</button>
+            <button class="btn" data-action="close-changelog-play">CHƠI</button>
+          </div>
+        </section>
+      `);
+    }
+
+    closeChangelog() {
+      this.showMainMenu();
+    }
+
+    closeChangelogAndPlay() {
+      this.showPlayMenu();
     }
 
     handleAction(action, target) {
@@ -4779,6 +4839,9 @@
       if (action === "character-tab") this.showCharacterTab(target.dataset.tab || "character");
       if (action === "character") this.showCharacter();
       if (action === "friends") this.showFriends();
+      if (action === "updates") this.showChangelog();
+      if (action === "close-changelog") this.closeChangelog();
+      if (action === "close-changelog-play") this.closeChangelogAndPlay();
       if (action === "open-lobby-invites") {
         this.lobbyFriendInviteOpen = true;
         this.renderLobby();
@@ -6756,6 +6819,8 @@
         roomsCleared: 0,
         miniGame: options.miniGame || "",
         playerBossId: options.bossPlayerId || "",
+        playerBossStartedAt: 0,
+        playerBossName: "",
         multiplayer: Boolean(options.multiplayer),
         netHost: options.multiplayer ? Boolean(options.host) : true,
         training,
@@ -6867,8 +6932,8 @@
       const base = p.baseStats || this.effectiveCharacterStats(characterById(p.characterId || "swordsman"));
       p.radius = 34;
       p.speed = Math.max(150, Math.min(205, (base.speed || p.speed || 190) * 0.82));
-      p.basicAttackCd = 0.92;
-      p.maxHp = Math.max(p.maxHp || 0, 1450 + (this.run?.stage || 0) * 420);
+      p.basicAttackCd = 1.0;
+      p.maxHp = Math.max(p.maxHp || 0, 1240 + (this.run?.stage || 0) * 330);
       p.energy = p.maxEnergy;
       p.ult = 100;
     }
@@ -7097,7 +7162,7 @@
     networkEffects(compact = false) {
       const visibleTypes = new Set([
         "pull", "zone", "danger", "ultimate", "domainCutin", "skillShape", "castBurst", "castCone",
-        "powerGlyph", "attackBurst", "hitSpark", "lineTell"
+        "powerGlyph", "attackBurst", "hitSpark", "lineTell", "playerBossReveal"
       ]);
       const effects = this.run.effects.filter((effect) => visibleTypes.has(effect.type));
       if (compact) {
@@ -7153,6 +7218,8 @@
         roomClearTimer: this.run.roomClearTimer,
         miniGame: this.run.miniGame || "",
         playerBossId: this.run.playerBossId || "",
+        playerBossStartedAt: this.run.playerBossStartedAt || 0,
+        playerBossName: this.run.playerBossName || "",
         biomeId: this.run.biome.id,
         seed: this.run.seed,
         leaderId: this.run.leaderId || this.lobby.id,
@@ -7175,6 +7242,9 @@
           bossExitOpened: this.run.currentRoom.bossExitOpened,
           advancing: this.run.currentRoom.advancing,
           playerBossResult: this.run.currentRoom.playerBossResult || "",
+          playerBossName: this.run.currentRoom.playerBossName || "",
+          playerBossElapsed: this.run.currentRoom.playerBossElapsed || 0,
+          playerBossAliveHunters: this.run.currentRoom.playerBossAliveHunters || 0,
           rewardClaims: this.run.currentRoom.rewardClaims || {},
           rewardOwners: this.run.currentRoom.rewardOwners || []
         } : null,
@@ -7195,7 +7265,16 @@
 
     applyNetworkSnapshot(snapshot) {
       if (!snapshot || !this.run || this.isMultiplayerHost()) return;
+      const previousSnapshotAt = this.lastSnapshotReceivedAt;
       this.lastSnapshotReceivedAt = performance.now();
+      if (previousSnapshotAt > 0) {
+        const gap = this.lastSnapshotReceivedAt - previousSnapshotAt;
+        this.netStats.lastSnapshotGap = gap;
+        this.netStats.snapshotGapAvg = this.netStats.snapshotGapAvg
+          ? this.netStats.snapshotGapAvg * 0.82 + gap * 0.18
+          : gap;
+      }
+      this.netStats.snapshotsReceived += 1;
       const incomingSeq = Number(snapshot.snapshotSeq);
       const incomingRoom = Number(snapshot.roomNumber);
       if (
@@ -7214,6 +7293,8 @@
       this.run.roomClearTimer = Number.isFinite(snapshot.roomClearTimer) ? snapshot.roomClearTimer : this.run.roomClearTimer;
       if (snapshot.miniGame != null) this.run.miniGame = snapshot.miniGame || "";
       if (snapshot.playerBossId != null) this.run.playerBossId = snapshot.playerBossId || "";
+      if (snapshot.playerBossStartedAt != null) this.run.playerBossStartedAt = Number(snapshot.playerBossStartedAt) || 0;
+      if (snapshot.playerBossName != null) this.run.playerBossName = snapshot.playerBossName || "";
       if (Number.isFinite(snapshot.seed)) this.run.seed = snapshot.seed;
       if (snapshot.leaderId != null) this.run.leaderId = snapshot.leaderId || "";
       this.run.curse = snapshot.curse ? { ...snapshot.curse } : null;
@@ -7294,9 +7375,9 @@
       return {
         hp: Math.round(character.stats.hp + hp * 6),
         energy: Math.round(character.stats.energy + energy * 4),
-        speed: Math.round(character.stats.speed + Math.sqrt(speed) * 5 + speed * 0.45),
-        damage: Number((character.stats.damage + Math.sqrt(damage) * 1.15 + damage * 0.08).toFixed(1)),
-        crit: Math.min(0.55, character.stats.crit + Math.sqrt(crit) * 0.006 + crit * 0.0008),
+        speed: Math.round(character.stats.speed + Math.sqrt(speed) * 4.2 + speed * 0.32),
+        damage: Number((character.stats.damage + Math.sqrt(damage) * 0.92 + damage * 0.045).toFixed(1)),
+        crit: Math.min(0.5, character.stats.crit + Math.sqrt(crit) * 0.005 + crit * 0.00055),
         attackCd: character.stats.attackCd
       };
     }
@@ -8119,7 +8200,7 @@
       const slot = this.lobby.slots.find((entry) => entry.id === bossId);
       const actor = this.playerByNetworkId(bossId) || this.run.player;
       const hunters = Math.max(1, (this.lobby.slots || []).filter((entry) => entry?.id && entry.id !== bossId).length);
-      const hp = (1450 + this.run.stage * 420) * (this.run.difficulty?.enemyHp || 1) * (1 + (hunters - 1) * 0.28);
+      const hp = (1240 + this.run.stage * 330) * (this.run.difficulty?.enemyHp || 1) * (1 + (hunters - 1) * 0.24);
       const bossDebuff = pick(BOSS_DEBUFFS);
       this.run.enemies.push({
         id: "player-boss",
@@ -8132,7 +8213,7 @@
         hp,
         maxHp: hp,
         speed: 0,
-        damage: (28 + this.run.stage * 6.2) * (this.run.difficulty?.enemyDamage || 1),
+        damage: (23 + this.run.stage * 4.8) * (this.run.difficulty?.enemyDamage || 1),
         ranged: true,
         bulky: true,
         elite: true,
@@ -8160,10 +8241,33 @@
         bossDebuff: bossDebuff.id,
         aiTimer: 0
       });
+      this.run.playerBossStartedAt = Date.now();
+      this.run.playerBossName = slot?.name || "Boss";
+      if (this.run.currentRoom) {
+        this.run.currentRoom.playerBossName = this.run.playerBossName;
+        this.run.currentRoom.playerBossBiome = biome.id;
+      }
       if (this.isLocalPlayerBoss()) this.applyLocalPlayerBossStats();
       this.camera.shake = Math.max(this.camera.shake, 20);
       this.addShockwave(actor.x || WORLD_W / 2, actor.y || ROOM_PAD + 220, 260, biome.accent, 0, { owner: "enemy" });
+      this.addPlayerBossRevealEffect(actor.x || WORLD_W / 2, actor.y || ROOM_PAD + 220, this.run.playerBossName, biome.accent);
       this.toast(`${slot?.name || "Một người chơi"} đã hóa thành boss`);
+    }
+
+    addPlayerBossRevealEffect(x, y, name = "Boss", color = "#ff4b8f") {
+      this.addEffect({
+        type: "playerBossReveal",
+        x,
+        y,
+        name: String(name || "Boss").slice(0, 18),
+        color,
+        time: 2.4,
+        maxTime: 2.4
+      });
+      for (let i = 0; i < this.particleCount(22, { important: true }); i++) {
+        const a = (i / 22) * TAU;
+        this.addParticle(x + Math.cos(a) * 28, y + Math.sin(a) * 28, i % 2 ? color : "#ffffff", rand(8, 22), rand(0.42, 0.95), i % 3 === 0 ? "ring" : "spark", a, rand(120, 260));
+      }
     }
 
     update(dt) {
@@ -8701,10 +8805,10 @@
       if (!p || !this.isLocalPlayerBoss() || this.run.currentRoom?.intro > 0) return;
       const angle = this.basicAimAngle(p);
       const target = this.skillTargetPoint(p, angle, 320);
-      const skillCd = { q: 2.4, e: 4.4, r: 6.2, f: 8.5 }[key] || 0;
+      const skillCd = { q: 2.8, e: 5.0, r: 7.2, f: 10.2 }[key] || 0;
       if (key === "basic") {
         if (p.attackCd > 0) return;
-        p.attackCd = 0.92;
+        p.attackCd = 1.0;
       } else {
         if ((p.cooldowns[key] || 0) > 0) return;
         p.cooldowns[key] = skillCd;
@@ -8732,6 +8836,36 @@
       } else {
         this.executePlayerBossAction(this.lobby.id, key, p.x, p.y, angle, target);
       }
+    }
+
+    playerBossKit(biomeId = this.run?.biome?.id || "forest") {
+      const kits = {
+        forest: {
+          labels: { basic: "Gai Vương", q: "Rễ Giam", e: "Mầm Độc", r: "Lồng Rễ", f: "Vương Miện Rừng" },
+          color: "#78d36f"
+        },
+        frozen: {
+          labels: { basic: "Lưỡi Băng", q: "Quạt Băng", e: "Mưa Giá", r: "Lồng Tuyết", f: "Bão Trắng" },
+          color: "#8feaff"
+        },
+        lava: {
+          labels: { basic: "Vệt Nung", q: "Thiên Thạch", e: "Nứt Dung Nham", r: "Mưa Tro", f: "Lò Lửa Nổ" },
+          color: "#ff944d"
+        },
+        neon: {
+          labels: { basic: "Tia Săn", q: "Làn Neon", e: "Mưa Đạn", r: "Lưới Săn", f: "Ma Trận Săn Mồi" },
+          color: "#fd57ff"
+        },
+        temple: {
+          labels: { basic: "Ấn Tượng", q: "Cọc Đền", e: "Thập Tự", r: "Nhà Giam Tượng", f: "Phán Quyết Cổ" },
+          color: "#f4d26f"
+        }
+      };
+      return kits[biomeId] || kits.forest;
+    }
+
+    playerBossSkillLabels() {
+      return this.playerBossKit().labels;
     }
 
     noteRemotePlayerBossAction(remoteId, x, y, angle, key = "basic") {
@@ -8767,7 +8901,7 @@
       if (!boss || boss.hp <= 0) return;
       const now = performance.now();
       const normalizedKey = ["q", "e", "r", "f"].includes(key) ? key : "basic";
-      const waitMs = { basic: 780, q: 2200, e: 4000, r: 5600, f: 7800 }[normalizedKey] || 780;
+      const waitMs = { basic: 900, q: 2600, e: 4600, r: 6400, f: 9400 }[normalizedKey] || 900;
       boss.playerBossNextAction ||= {};
       if (now < (boss.playerBossNextAction[normalizedKey] || 0)) return;
       boss.playerBossNextAction[normalizedKey] = now + waitMs;
@@ -8777,21 +8911,65 @@
       boss.attackDir = angle;
       boss.facingDir = Math.cos(angle) >= 0 ? 1 : -1;
       const aimTarget = target || this.nearestCombatTarget(boss.x, boss.y) || this.run.player;
-      if (normalizedKey === "basic") {
-        this.bossLine(boss, angle);
-        if (chance(0.55)) this.bossFrostFan(boss, angle + rand(-0.18, 0.18));
-      } else if (normalizedKey === "q") {
-        this.bossLaneWalls(boss, aimTarget);
-      } else if (normalizedKey === "e") {
-        this.bossBulletCurtain(boss);
-      } else if (normalizedKey === "r") {
-        this.bossSoulCage(boss, aimTarget);
-      } else if (normalizedKey === "f") {
-        this.bossPinwheel(boss);
-        this.bossCheckerBoard(boss, aimTarget);
-        this.addShockwave(boss.x, boss.y, 310, this.run.biome.accent, 0, { owner: "enemy" });
-      }
+      this.castPlayerBossPattern(boss, normalizedKey, angle, aimTarget);
       this.audio.sfx(normalizedKey === "f" ? 82 : 160 + randi(0, 80), normalizedKey === "basic" ? "sawtooth" : "square", normalizedKey === "f" ? 0.14 : 0.08, normalizedKey === "f" ? 0.24 : 0.14);
+      this.broadcastFastSnapshot(0.08);
+    }
+
+    castPlayerBossPattern(boss, key, angle, target) {
+      const biomeId = this.run?.biome?.id || "forest";
+      const targetPoint = target || this.nearestCombatTarget(boss.x, boss.y) || this.run.player;
+      if (key === "basic") {
+        this.bossLine(boss, angle);
+        if (biomeId === "frozen" && chance(0.45)) this.bossFrostFan(boss, angle + rand(-0.14, 0.14));
+        if (biomeId === "forest" && chance(0.32)) this.bossRootBloom(boss, targetPoint);
+        if (biomeId === "lava" && chance(0.3)) this.bossMeteors(boss, targetPoint);
+        if (biomeId === "neon" && chance(0.28)) this.bossNeonGrid(boss, targetPoint);
+        if (biomeId === "temple" && chance(0.3)) this.bossTemplePillars(boss, targetPoint);
+        return;
+      }
+      if (biomeId === "forest") {
+        if (key === "q") this.bossRootBloom(boss, targetPoint);
+        else if (key === "e") this.bossRain(boss, targetPoint);
+        else if (key === "r") this.bossSoulCage(boss, targetPoint);
+        else if (key === "f") {
+          this.bossRootBloom(boss, targetPoint);
+          this.bossLaneWalls(boss, targetPoint);
+        }
+      } else if (biomeId === "frozen") {
+        if (key === "q") this.bossFrostFan(boss, angle);
+        else if (key === "e") this.bossRain(boss, targetPoint);
+        else if (key === "r") this.bossSoulCage(boss, targetPoint);
+        else if (key === "f") {
+          this.bossBulletCurtain(boss);
+          this.bossCheckerBoard(boss, targetPoint);
+        }
+      } else if (biomeId === "lava") {
+        if (key === "q") this.bossMeteors(boss, targetPoint);
+        else if (key === "e") this.bossCross(boss, angle);
+        else if (key === "r") this.bossRain(boss, targetPoint);
+        else if (key === "f") {
+          this.bossMeteors(boss, targetPoint);
+          this.bossSlam(boss);
+        }
+      } else if (biomeId === "neon") {
+        if (key === "q") this.bossLaneWalls(boss, targetPoint);
+        else if (key === "e") this.bossBulletCurtain(boss);
+        else if (key === "r") this.bossNeonGrid(boss, targetPoint);
+        else if (key === "f") {
+          this.bossPinwheel(boss);
+          this.bossCheckerBoard(boss, targetPoint);
+        }
+      } else {
+        if (key === "q") this.bossTemplePillars(boss, targetPoint);
+        else if (key === "e") this.bossCross(boss, angle);
+        else if (key === "r") this.bossSoulCage(boss, targetPoint);
+        else if (key === "f") {
+          this.bossTemplePillars(boss, targetPoint);
+          this.bossCheckerBoard(boss, targetPoint);
+        }
+      }
+      if (key === "f") this.addShockwave(boss.x, boss.y, 300, this.playerBossKit(biomeId).color || this.run.biome.accent, 0, { owner: "enemy" });
     }
 
     basicSwordAttack(p, angle) {
@@ -10919,7 +11097,8 @@
       if (options.source === "power" && !options.allowAfterCombat && !this.powerHealingAvailable()) return false;
       const p = this.run.player;
       if (p.dead) return false;
-      const healed = amount * (this.bossDebuffModifiers().healMult || 1);
+      let healed = amount * (this.bossDebuffModifiers().healMult || 1);
+      if (options.source === "power") healed = Math.min(healed * 0.78, (p.maxHp || 1) * 0.09);
       const before = p.hp;
       p.hp = Math.min(p.maxHp, p.hp + healed);
       const actual = p.hp - before;
@@ -11004,9 +11183,16 @@
       if (!this.isPlayerBossRun() || !this.run) return;
       const normalized = result === "boss" ? "boss" : "hunters";
       const room = this.run.currentRoom;
+      const aliveHunters = (this.lobby.slots || [])
+        .map((slot) => slot?.id || "")
+        .filter((id) => id && id !== this.run.playerBossId)
+        .filter((id) => id === this.lobby.id ? this.aliveActor(this.run.player) : this.aliveActor(this.remotePlayers.get(id))).length;
       if (room) {
         if (room.playerBossResult) return;
         room.playerBossResult = normalized;
+        room.playerBossName = this.run.playerBossName || room.playerBossName || "Boss";
+        room.playerBossElapsed = Math.max(1, Math.round((Date.now() - Number(this.run.playerBossStartedAt || Date.now())) / 1000));
+        room.playerBossAliveHunters = aliveHunters;
         room.cleared = true;
         room.rewardDropped = true;
         room.rewardClaimed = true;
@@ -12008,6 +12194,11 @@
       const subtitle = bossWon
         ? (localBoss ? "Bạn đã quét sạch phe săn boss." : "Boss đã hạ toàn bộ người chơi.")
         : (localBoss ? "Bạn đã bị phe săn boss hạ gục." : "Phe săn boss đã hạ người chơi hóa trùm.");
+      const room = this.run?.currentRoom || {};
+      const elapsed = Number(room.playerBossElapsed || 0);
+      const timeText = elapsed ? `${Math.floor(elapsed / 60)}:${String(elapsed % 60).padStart(2, "0")}` : "--:--";
+      const bossName = room.playerBossName || this.run?.playerBossName || "Boss";
+      const aliveHunters = Number(room.playerBossAliveHunters || 0);
       this.mode = "victory";
       this.setScreen(`
         <section class="wide-panel">
@@ -12016,6 +12207,11 @@
               <h2 class="panel-title">${title}</h2>
               <p class="panel-subtitle">${subtitle}</p>
             </div>
+          </div>
+          <div class="result-grid">
+            <div class="result-stat"><b>${bossName}</b><span>Người hóa boss</span></div>
+            <div class="result-stat"><b>${timeText}</b><span>Thời gian giao tranh</span></div>
+            <div class="result-stat"><b>${aliveHunters}</b><span>Hunter còn sống</span></div>
           </div>
           <div class="grid cols-2">
             <button class="btn primary" data-action="play-player-boss">CHƠI LẠI HÓA TRÙM</button>
@@ -14157,12 +14353,16 @@
           state.sentAt = performance.now();
           this.lobby.sendState(state);
           this.lastLocalStateSent = { ...state };
+          this.netStats.stateSent += 1;
         }
       }
       if (this.isMultiplayerHost() && this.lobby.guestCount() > 0 && this.snapshotTimer <= 0) {
         this.snapshotTimer = this.lobby.hasOpenPeers() ? (this.perf.quality < 0.75 ? 0.18 : NET_SNAPSHOT_PEER_INTERVAL) : NET_SNAPSHOT_RELAY_INTERVAL;
         const snapshot = this.networkSnapshot(true);
-        if (snapshot) this.lobby.broadcastSnapshot(snapshot, snapshot);
+        if (snapshot) {
+          this.lobby.broadcastSnapshot(snapshot, snapshot);
+          this.netStats.snapshotsSent += 1;
+        }
       }
       this.maybeRequestNetworkResync(dt);
       for (const [id, remote] of [...this.remotePlayers]) {
@@ -14207,8 +14407,10 @@
       const missingSnapshot = this.lastSnapshotReceivedAt > 0 && now - this.lastSnapshotReceivedAt > NET_SNAPSHOT_STALE_MS;
       const emptyCombat = this.expectedCombatRoom() && this.run.enemies.length === 0;
       if ((!missingSnapshot && !emptyCombat) || this.resyncTimer > 0) return;
-      this.resyncTimer = missingSnapshot ? 0.9 : 0.75;
+      this.resyncTimer = missingSnapshot ? 0.65 : 0.5;
       this.lastSnapshotRequestAt = now;
+      this.netStats.resyncCount += 1;
+      this.netStats.lastResyncAt = now;
       this.lobby.requestSnapshot();
     }
 
@@ -14258,6 +14460,18 @@
       if (!this.isMultiplayerHost() || !remoteId) return;
       const snapshot = this.networkSnapshot(true);
       if (snapshot) this.lobby.sendSnapshot(remoteId, snapshot);
+    }
+
+    broadcastFastSnapshot(minInterval = 0.12) {
+      if (!this.isMultiplayerHost() || !this.lobby.guestCount()) return;
+      const now = performance.now();
+      if (now - (this.lastFastSnapshotAt || 0) < minInterval * 1000) return;
+      this.lastFastSnapshotAt = now;
+      this.snapshotTimer = Math.min(this.snapshotTimer || 0, 0.08);
+      const snapshot = this.networkSnapshot(true);
+      if (!snapshot) return;
+      this.lobby.broadcastSnapshot(snapshot, snapshot);
+      this.netStats.snapshotsSent += 1;
     }
 
     updateNetworkInterpolation(dt) {
@@ -14311,6 +14525,29 @@
       }
     }
 
+    networkStatusInfo() {
+      if (!this.isMultiplayerRun()) return null;
+      const peerCount = this.lobby.openPeerCount();
+      const transport = peerCount > 0 ? "P2P" : "Relay";
+      if (this.isMultiplayerHost()) {
+        const guests = this.lobby.guestCount();
+        return {
+          quality: peerCount > 0 ? "good" : "warn",
+          text: `${transport} ${guests}/3`
+        };
+      }
+      const now = performance.now();
+      const age = this.lastSnapshotReceivedAt > 0 ? now - this.lastSnapshotReceivedAt : Infinity;
+      if (!Number.isFinite(age)) return { quality: "bad", text: "Đang bắt host" };
+      if (age > 2400) return { quality: "bad", text: `Lệch ${(age / 1000).toFixed(1)}s` };
+      if (age > 1100) return { quality: "warn", text: "Đang đồng bộ" };
+      const avg = this.netStats.snapshotGapAvg ? Math.round(this.netStats.snapshotGapAvg) : 0;
+      return {
+        quality: avg > 260 || peerCount === 0 ? "warn" : "good",
+        text: avg ? `${transport} ${avg}ms` : `${transport} OK`
+      };
+    }
+
     updateHud() {
       if (!this.run) return;
       const p = this.run.player;
@@ -14321,6 +14558,7 @@
       const statusStrip = document.getElementById("statusStrip");
       const roomPill = document.getElementById("roomPill");
       const objectivePill = document.getElementById("objectivePill");
+      const networkPill = document.getElementById("networkPill");
       const hpWidth = `${clamp((p.hp / p.maxHp) * 100, 0, 100).toFixed(1)}%`;
       const energyWidth = `${clamp((p.energy / p.maxEnergy) * 100, 0, 100).toFixed(1)}%`;
       const hpLabel = `${Math.ceil(p.hp)} / ${Math.ceil(p.maxHp)}`;
@@ -14349,16 +14587,25 @@
       }
       if (roomPill.textContent !== roomLabel) roomPill.textContent = roomLabel;
       if (objectivePill.textContent !== objectiveLabel) objectivePill.textContent = objectiveLabel;
+      if (networkPill) {
+        const net = this.networkStatusInfo();
+        networkPill.classList.toggle("hidden", !net);
+        if (net) {
+          networkPill.textContent = net.text;
+          networkPill.dataset.net = net.quality;
+        }
+      }
       const now = performance.now();
       if (now < this.nextHudSkillAt) return;
       this.nextHudSkillAt = now + (this.perf.quality < 0.7 ? 150 : 95);
       const ultimateCost = this.ultimateEnergyCost(p);
+      const bossLabels = this.isLocalPlayerBoss() ? this.playerBossSkillLabels() : null;
       const skills = this.isLocalPlayerBoss() ? [
-        ["ĐÁNH", "Tam Tuyến Áp Sát", this.run.player.attackCd, 0.92],
-        ["Q", "Tường Làn", p.cooldowns.q, 2.4],
-        ["E", "Mưa Đạn Boss", p.cooldowns.e, 4.4],
-        ["R", "Lồng Linh Hồn", p.cooldowns.r, 6.2],
-        ["F", "Áp Chế Toàn Sân", p.cooldowns.f, 8.5]
+        ["ĐÁNH", bossLabels.basic, this.run.player.attackCd, 1.0],
+        ["Q", bossLabels.q, p.cooldowns.q, 2.8],
+        ["E", bossLabels.e, p.cooldowns.e, 5.0],
+        ["R", bossLabels.r, p.cooldowns.r, 7.2],
+        ["F", bossLabels.f, p.cooldowns.f, 10.2]
       ] : [
         ["ĐÁNH", this.run.power.skills.basic, this.run.player.attackCd, this.run.player.basicAttackCd || 0.38],
         ["Q", this.run.power.skills.q, p.cooldowns.q, 3.2],
@@ -16711,6 +16958,35 @@
           ctx.stroke();
           ctx.globalAlpha *= 0.16;
           ctx.fill();
+        }
+        if (effect.type === "playerBossReveal") {
+          const maxTime = Math.max(0.1, effect.maxTime || 2.4);
+          const progress = clamp(1 - effect.time / maxTime, 0, 1);
+          const ring = 60 + progress * 210;
+          ctx.globalCompositeOperation = "lighter";
+          ctx.globalAlpha = (1 - progress) * 0.72;
+          ctx.lineWidth = 6;
+          ctx.strokeStyle = effect.color || "#ff4b8f";
+          ctx.beginPath();
+          ctx.arc(effect.x, effect.y, ring, 0, TAU);
+          ctx.stroke();
+          ctx.globalAlpha = (1 - progress) * 0.28;
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.arc(effect.x, effect.y, ring * 0.62, 0, TAU);
+          ctx.stroke();
+          ctx.globalCompositeOperation = "source-over";
+          ctx.globalAlpha = clamp(Math.sin(progress * Math.PI) * 1.1, 0, 1);
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          ctx.shadowColor = effect.color || "#ff4b8f";
+          ctx.shadowBlur = this.glow(18);
+          ctx.font = "950 30px ui-sans-serif, system-ui";
+          ctx.fillStyle = "#ffffff";
+          ctx.fillText("BOSS", effect.x, effect.y - 82);
+          ctx.font = "900 15px ui-sans-serif, system-ui";
+          ctx.fillStyle = effect.color || "#f2bf63";
+          ctx.fillText(effect.name || "Boss", effect.x, effect.y - 54);
         }
         if (effect.type === "shadowShard") {
           const maxTime = Math.max(0.1, effect.maxTime || 0.5);

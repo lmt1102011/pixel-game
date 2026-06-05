@@ -9,7 +9,7 @@
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
   const SIGNAL_REALTIME_RELAY_LIMIT = 2;
   const SIGNAL_REALTIME_TYPES = new Set(["state", "snapshot", "attack", "skill", "collect", "openChest", "dropItem", "damage", "chooseDoor"]);
-  const APP_VERSION = "20260606-power-vfx-doc-184";
+  const APP_VERSION = "20260606-cinematic-skills-185";
   const CHANGELOG_ENTRIES = [
     {
       version: APP_VERSION,
@@ -358,10 +358,10 @@
   };
 
   const DESIGNED_CAST_SECONDS = {
-    q: { fire: 0.3, ice: 0.42, lightning: 0.16, shadow: 0.24, blood: 0.34, gravity: 0.4, crystal: 0.34, nature: 0.42, void: 0.26, time: 0.26 },
-    e: { fire: 0.44, ice: 0.36, lightning: 0.3, shadow: 0.42, blood: 0.42, gravity: 0.4, crystal: 0.38, nature: 0.42, void: 0.36, time: 0.42 },
-    r: { fire: 0.55, ice: 0.62, lightning: 0.42, shadow: 0.5, blood: 0.58, gravity: 0.62, crystal: 0.58, nature: 0.58, void: 0.52, time: 0.62 },
-    f: { fire: 0.95, ice: 1.02, lightning: 0.9, shadow: 0.95, blood: 0.98, gravity: 1.02, crystal: 0.98, nature: 1.02, void: 1.0, time: 1.04 }
+    q: { fire: 0.46, ice: 0.58, lightning: 0.32, shadow: 0.4, blood: 0.5, gravity: 0.56, crystal: 0.5, nature: 0.58, void: 0.42, time: 0.42 },
+    e: { fire: 0.62, ice: 0.54, lightning: 0.48, shadow: 0.6, blood: 0.6, gravity: 0.58, crystal: 0.56, nature: 0.6, void: 0.54, time: 0.6 },
+    r: { fire: 0.78, ice: 0.86, lightning: 0.66, shadow: 0.74, blood: 0.82, gravity: 0.88, crystal: 0.82, nature: 0.82, void: 0.76, time: 0.88 },
+    f: { fire: 1.18, ice: 1.26, lightning: 1.14, shadow: 1.18, blood: 1.22, gravity: 1.26, crystal: 1.22, nature: 1.26, void: 1.24, time: 1.28 }
   };
 
   const SIGNATURE_PARTICLE_SHAPES = new Set([
@@ -10407,7 +10407,9 @@
 
     addSkillShape(kind, variant, x, y, angle, radius, time = 0.62, extra = {}) {
       const quality = this.perf?.quality ?? 1;
-      const cap = quality < 0.58 ? 2 : this.isMobileDevice() ? 3 : 5;
+      const cap = extra.design || String(variant || "").startsWith("design-")
+        ? (quality < 0.5 ? 3 : this.isMobileDevice() ? 4 : 7)
+        : (quality < 0.58 ? 2 : this.isMobileDevice() ? 3 : 5);
       const current = this.run.effects.filter((effect) => effect.type === "skillShape").length;
       if (current >= cap) {
         const index = this.run.effects.findIndex((effect) => effect.type === "skillShape");
@@ -10417,7 +10419,7 @@
       const scaledExtra = { ...extra };
       if (Number.isFinite(scaledExtra.length)) scaledExtra.length *= scale;
       if (Number.isFinite(scaledExtra.width)) scaledExtra.width *= scale;
-      const visualTime = Math.max(0.18, time * (this.isMobileDevice() ? 0.72 : 0.86) * clamp(quality + 0.18, 0.58, 1));
+      const visualTime = Math.max(0.24, time * (this.isMobileDevice() ? 0.98 : 1.12) * clamp(quality + 0.22, 0.68, 1.08));
       this.addEffect({
         type: "skillShape",
         kind,
@@ -21916,6 +21918,467 @@
           }
           ctx.restore();
         };
+        const drawCinematicDocShape = () => {
+          if (!["basic", "q", "e", "r", "f"].includes(designKey)) return false;
+          const docLen = Number(effect.length || length || r);
+          const docWidth = Number(effect.width || 56);
+          const pulse = Math.sin(this.menuTime * 12 + (effect.seed || 0)) * 0.5 + 0.5;
+          const drawPixel = (x, y, s, color, a = alpha) => {
+            ctx.save();
+            ctx.globalCompositeOperation = "source-over";
+            ctx.globalAlpha = a;
+            ctx.fillStyle = color;
+            ctx.fillRect(Math.round(x), Math.round(y), Math.max(1, Math.round(s)), Math.max(1, Math.round(s)));
+            ctx.restore();
+          };
+          const sharpPoly = (points, fillColor = effect.color, strokeColor = accent, line = 2.5, fillAlpha = 0.42) => {
+            ctx.save();
+            ctx.globalCompositeOperation = "source-over";
+            ctx.globalAlpha = alpha * fillAlpha;
+            ctx.fillStyle = fillColor;
+            ctx.beginPath();
+            ctx.moveTo(points[0][0], points[0][1]);
+            for (let i = 1; i < points.length; i++) ctx.lineTo(points[i][0], points[i][1]);
+            ctx.closePath();
+            ctx.fill();
+            ctx.globalAlpha = alpha * 0.95;
+            ctx.strokeStyle = strokeColor;
+            ctx.lineWidth = line;
+            ctx.lineCap = "butt";
+            ctx.lineJoin = "miter";
+            ctx.stroke();
+            ctx.restore();
+          };
+          const jaggedStroke = (len, amp, steps, strokeColor = accent, width = 3, startX = 0, startY = 0) => {
+            ctx.save();
+            ctx.globalCompositeOperation = "source-over";
+            ctx.globalAlpha = alpha;
+            ctx.strokeStyle = strokeColor;
+            ctx.lineWidth = width;
+            ctx.lineCap = "butt";
+            ctx.lineJoin = "miter";
+            ctx.beginPath();
+            ctx.moveTo(startX, startY);
+            for (let i = 1; i <= steps; i++) {
+              const t = i / steps;
+              const wobble = Math.sin(i * 1.91 + progress * 7 + (effect.seed || 0)) * amp * (1 - t * 0.18);
+              ctx.lineTo(startX + len * t, startY + wobble);
+            }
+            ctx.stroke();
+            ctx.restore();
+          };
+          const shard = (x, y, size, rot = 0, fillColor = effect.color, strokeColor = accent) => {
+            ctx.save();
+            ctx.translate(x, y);
+            ctx.rotate(rot);
+            sharpPoly([[0, -size], [size * 0.42, -size * 0.12], [size * 0.18, size], [-size * 0.42, size * 0.12]], fillColor, strokeColor, Math.max(1.2, size * 0.12), 0.52);
+            ctx.globalAlpha = alpha * 0.7;
+            ctx.strokeStyle = "#ffffff";
+            ctx.lineWidth = Math.max(1, size * 0.08);
+            ctx.beginPath();
+            ctx.moveTo(-size * 0.08, -size * 0.62);
+            ctx.lineTo(size * 0.05, size * 0.36);
+            ctx.stroke();
+            ctx.restore();
+          };
+          const drawIcicle = (x, y, h, w, rot = 0) => {
+            ctx.save();
+            ctx.translate(x, y);
+            ctx.rotate(rot);
+            sharpPoly([[0, -h], [w * 0.55, h * 0.2], [0, h * 0.48], [-w * 0.55, h * 0.2]], "#cceeff", "#ffffff", 2, 0.66);
+            ctx.restore();
+          };
+          const drawClockFace = (radius, thick = 3, ticks = 12) => {
+            ctx.save();
+            ctx.globalAlpha = alpha;
+            ctx.strokeStyle = accent;
+            ctx.lineWidth = thick;
+            ctx.beginPath();
+            ctx.arc(0, 0, radius, 0, TAU);
+            ctx.stroke();
+            ctx.lineWidth = Math.max(1, thick * 0.5);
+            for (let i = 0; i < ticks; i++) {
+              const a = (i / ticks) * TAU;
+              ctx.beginPath();
+              ctx.moveTo(Math.cos(a) * radius * 0.78, Math.sin(a) * radius * 0.78);
+              ctx.lineTo(Math.cos(a) * radius, Math.sin(a) * radius);
+              ctx.stroke();
+            }
+            ctx.beginPath();
+            ctx.moveTo(0, 0);
+            ctx.lineTo(Math.cos(-progress * TAU * 1.2) * radius * 0.55, Math.sin(-progress * TAU * 1.2) * radius * 0.55);
+            ctx.moveTo(0, 0);
+            ctx.lineTo(Math.cos(progress * TAU * 0.72 + 1.1) * radius * 0.36, Math.sin(progress * TAU * 0.72 + 1.1) * radius * 0.36);
+            ctx.stroke();
+            ctx.restore();
+          };
+          const drawPowerSigilCenter = (size = 15) => {
+            ctx.save();
+            ctx.globalCompositeOperation = "source-over";
+            ctx.globalAlpha = alpha * 0.88;
+            this.drawPowerIconShape(ctx, designKind, size, effect.color, accent);
+            ctx.restore();
+          };
+
+          if (designKind === "fire") {
+            if (designKey === "q") {
+              const len = Math.max(190, docLen);
+              const arc = effect.awakened ? Math.PI * 0.38 : Math.PI * 0.25;
+              const grad = ctx.createLinearGradient(0, 0, len, 0);
+              grad.addColorStop(0, "#ffffff");
+              grad.addColorStop(0.16, "#ffdd44");
+              grad.addColorStop(0.56, "#ff6600");
+              grad.addColorStop(1, "#cc2200");
+              ctx.globalCompositeOperation = "source-over";
+              ctx.globalAlpha = alpha * (0.74 + impact * 0.2);
+              ctx.fillStyle = grad;
+              ctx.beginPath();
+              ctx.moveTo(0, 0);
+              const steps = lowDetail ? 5 : 8;
+              for (let i = 0; i <= steps; i++) {
+                const t = i / steps;
+                const edge = -arc + t * arc * 2;
+                const jitter = Math.sin(i * 2.4 + progress * 12) * 5;
+                ctx.lineTo(Math.cos(edge) * (len + jitter), Math.sin(edge) * (len * 0.46 + jitter));
+              }
+              ctx.closePath();
+              ctx.fill();
+              ctx.globalAlpha = alpha * 0.9;
+              ctx.strokeStyle = "#ffdd44";
+              ctx.lineWidth = 4;
+              ctx.stroke();
+              for (let i = 0; i < 16; i++) drawPixel(30 + i * 12, Math.sin(i * 1.7 + progress * 9) * (8 + i), 3 + (i % 2), i % 3 ? "#ff6600" : "#ffdd44", alpha * 0.8);
+              return true;
+            }
+            if (designKey === "e") {
+              for (let arm = 0; arm < 4; arm++) {
+                ctx.save();
+                ctx.rotate(arm * Math.PI / 2);
+                sharpPoly([[12, -24], [124, -20], [138, 0], [124, 20], [12, 24], [30, 0]], "#ff4500", "#ffdd44", 3.5, 0.52);
+                for (let i = 0; i < 7; i++) drawPixel(32 + i * 14, -18 + (i % 3) * 18, 4, i % 2 ? "#cc2200" : "#ffdd44", alpha * 0.75);
+                ctx.restore();
+              }
+              return true;
+            }
+            if (designKey === "r") {
+              const len = Math.max(240, docLen);
+              const w = Math.max(76, docWidth);
+              sharpPoly([[-len * 0.5, w * 0.48], [-len * 0.5, -w * 0.42], [len * 0.5, -w * 0.5], [len * 0.5, w * 0.42]], "#cc2200", "#ffdd44", 4, 0.34);
+              for (let i = 0; i < 13; i++) {
+                const px = -len * 0.46 + i * len / 12;
+                const h = w * (0.45 + ((i + Math.floor(progress * 10)) % 4) * 0.12);
+                sharpPoly([[px - 8, w * 0.42], [px + 4, -h], [px + 14, w * 0.42]], i % 2 ? "#ff4500" : "#ff8c00", "#ffdd44", 1.5, 0.65);
+              }
+              return true;
+            }
+          }
+
+          if (designKind === "ice") {
+            if (designKey === "q") {
+              const ringR = r * (0.28 + progress * 0.55);
+              ctx.globalAlpha = alpha;
+              ctx.strokeStyle = "#88ddff";
+              ctx.lineWidth = 12;
+              ctx.beginPath();
+              ctx.arc(0, 0, ringR, 0, TAU);
+              ctx.stroke();
+              ctx.strokeStyle = "#ffffff";
+              ctx.lineWidth = 3;
+              ctx.stroke();
+              for (let i = 0; i < 12; i++) {
+                const a = i * TAU / 12 + progress * 0.35;
+                shard(Math.cos(a) * ringR, Math.sin(a) * ringR, 9, a + Math.PI / 2);
+              }
+              return true;
+            }
+            if (designKey === "e") {
+              for (let i = 0; i < 6; i++) {
+                const a = i * TAU / 6 + Math.PI / 6;
+                drawIcicle(Math.cos(a) * 34, Math.sin(a) * 34, 42 + impact * 16, 14, a);
+              }
+              ctx.strokeStyle = "#88ddff";
+              ctx.lineWidth = 3;
+              ctx.beginPath();
+              ctx.arc(0, 0, 42, 0, TAU);
+              ctx.stroke();
+              return true;
+            }
+            if (designKey === "r") {
+              jaggedStroke(Math.max(360, docLen), 16, 13, "#ffffff", 5);
+              jaggedStroke(Math.max(360, docLen), 9, 13, "#88ddff", 10);
+              shard(Math.max(360, docLen), 0, 34, Math.PI / 2);
+              return true;
+            }
+          }
+
+          if (designKind === "lightning") {
+            if (designKey === "q") {
+              const ringR = r * 0.62;
+              ctx.strokeStyle = "#ffff00";
+              ctx.lineWidth = 4;
+              ctx.globalAlpha = alpha;
+              ctx.beginPath();
+              ctx.arc(0, 0, ringR, 0, TAU);
+              ctx.stroke();
+              for (let i = 0; i < 8; i++) {
+                ctx.save();
+                ctx.rotate(i * TAU / 8 + pulse * 0.08);
+                jaggedStroke(34, 8, 3, "#ffffff", 3, ringR - 6, 0);
+                ctx.restore();
+              }
+              return true;
+            }
+            if (designKey === "e") {
+              jaggedStroke(Math.max(200, docLen), 18, 10, "#ffffff", 5);
+              jaggedStroke(Math.max(200, docLen), 12, 10, "#ffff00", 9);
+              ctx.save();
+              ctx.translate(Math.max(180, docLen), 0);
+              for (let i = 0; i < 8; i++) {
+                ctx.save();
+                ctx.rotate(i * TAU / 8);
+                jaggedStroke(62, 8, 4, i % 2 ? "#8888ff" : "#ffffff", 2.4);
+                ctx.restore();
+              }
+              ctx.restore();
+              return true;
+            }
+            if (designKey === "r") {
+              ctx.globalAlpha = alpha * 0.55;
+              ctx.fillStyle = "#111118";
+              ctx.fillRect(-110, -r * 0.72, 220, 34);
+              ctx.strokeStyle = "#ffff00";
+              ctx.lineWidth = 3;
+              ctx.strokeRect(-110, -r * 0.72, 220, 34);
+              for (let i = -3; i <= 3; i++) {
+                ctx.save();
+                ctx.translate(i * 32, -r * 0.52);
+                ctx.rotate(Math.PI / 2);
+                jaggedStroke(r * 0.85, 14 + Math.abs(i) * 2, 6, i % 2 ? "#8888ff" : "#ffffff", i === 0 ? 5 : 3);
+                ctx.restore();
+              }
+              return true;
+            }
+          }
+
+          if (designKind === "shadow") {
+            if (designKey === "q") {
+              ctx.save();
+              ctx.rotate(-effect.angle || 0);
+              ctx.globalAlpha = alpha * 0.36;
+              ctx.fillStyle = "#000000";
+              ctx.fillRect(-13, -24, 26, 38);
+              ctx.fillRect(-18, -7, 36, 18);
+              ctx.restore();
+              ctx.strokeStyle = "#cc44ff";
+              ctx.lineWidth = 3;
+              ctx.beginPath();
+              ctx.arc(18, 0, 102, -0.28, 0.28);
+              ctx.stroke();
+              return true;
+            }
+            if (designKey === "e") {
+              ctx.strokeStyle = "#220033";
+              ctx.lineWidth = 10;
+              ctx.beginPath();
+              ctx.moveTo(0, 0);
+              ctx.bezierCurveTo(docLen * 0.25, -44, docLen * 0.58, 38, docLen, 0);
+              ctx.stroke();
+              ctx.strokeStyle = "#cc44ff";
+              ctx.lineWidth = 2.4;
+              ctx.stroke();
+              sharpPoly([[docLen - 12, -18], [docLen + 20, 0], [docLen - 12, 18], [docLen - 2, 0]], "#000000", "#cc44ff", 2.2, 0.72);
+              return true;
+            }
+            if (designKey === "r") {
+              ctx.globalAlpha = alpha * 0.78;
+              ctx.fillStyle = "#000000";
+              ctx.beginPath();
+              ctx.arc(0, 0, r * 0.64, 0, TAU);
+              ctx.fill();
+              ctx.strokeStyle = "#cc44ff";
+              ctx.lineWidth = 3;
+              ctx.stroke();
+              for (let i = 0; i < 9; i++) drawPixel(Math.cos(i * TAU / 9 + progress) * r * 0.42, Math.sin(i * TAU / 9 + progress) * r * 0.42, 5, "#6600aa", alpha * 0.75);
+              return true;
+            }
+          }
+
+          if (designKind === "blood") {
+            if (designKey === "q") {
+              for (let i = -3; i <= 3; i++) {
+                ctx.save();
+                ctx.rotate(i * 0.13);
+                sharpPoly([[0, -10], [docLen * 0.86, -8], [docLen, 0], [docLen * 0.86, 8], [0, 10], [10, 0]], "#b00028", "#ffc0c8", 2.2, 0.48);
+                ctx.restore();
+              }
+              return true;
+            }
+            if (designKey === "e") {
+              ctx.strokeStyle = "#ffc0c8";
+              ctx.lineWidth = 4;
+              jaggedStroke(Math.max(260, docLen), 10, 9, "#ffc0c8", 4);
+              for (let i = 0; i < 5; i++) drawPixel(38 + i * 42, (i % 2 ? -16 : 16), 7, "#b00028", alpha * 0.9);
+              return true;
+            }
+            if (designKey === "r") {
+              for (let i = 0; i < 8; i++) {
+                ctx.save();
+                ctx.rotate(i * TAU / 8 + progress * 1.3);
+                sharpPoly([[36, -7], [118, -5], [132, 0], [118, 5], [36, 7], [48, 0]], "#b00028", "#ffc0c8", 2, 0.5);
+                ctx.restore();
+              }
+              return true;
+            }
+          }
+
+          if (designKind === "gravity") {
+            if (designKey === "q" || designKey === "r") {
+              ctx.globalAlpha = alpha * 0.9;
+              ctx.fillStyle = "#02020a";
+              ctx.beginPath();
+              ctx.arc(0, 0, r * (designKey === "r" ? 0.34 : 0.25), 0, TAU);
+              ctx.fill();
+              ctx.strokeStyle = "#59ffd4";
+              ctx.lineWidth = 2.5;
+              for (let i = 0; i < 4; i++) {
+                ctx.save();
+                ctx.rotate(progress * 0.7 + i * Math.PI / 4);
+                ctx.strokeRect(-r * (0.22 + i * 0.12), -r * (0.22 + i * 0.12), r * (0.44 + i * 0.24), r * (0.44 + i * 0.24));
+                ctx.restore();
+              }
+              if (designKey === "r") {
+                ctx.save();
+                ctx.translate(0, -r * 0.72 + progress * r * 0.45);
+                sharpPoly([[0, -42], [34, -8], [20, 36], [-30, 24], [-38, -10]], "#211430", "#c8a6ff", 3, 0.72);
+                ctx.restore();
+              }
+              return true;
+            }
+            if (designKey === "e") {
+              ctx.globalAlpha = alpha * 0.3;
+              ctx.fillStyle = "#000000";
+              ctx.fillRect(0, -docWidth * 0.55, Math.max(190, docLen), docWidth * 1.1);
+              for (let i = 0; i < 5; i++) jaggedStroke(Math.max(180, docLen), 8 + i * 2, 6, i % 2 ? "#b28dff" : "#59ffd4", 2, 0, -docWidth * 0.4 + i * docWidth * 0.2);
+              return true;
+            }
+          }
+
+          if (designKind === "crystal") {
+            if (designKey === "q") {
+              for (let i = -2; i <= 2; i++) {
+                ctx.save();
+                ctx.rotate(i * 0.12);
+                shard(96 + i * 8, i * 12, 36 - Math.abs(i) * 4, Math.PI / 2, "#76ffd8", "#ffc4f5");
+                ctx.restore();
+              }
+              return true;
+            }
+            if (designKey === "e") {
+              ctx.strokeStyle = "#ffc4f5";
+              ctx.lineWidth = 4;
+              ctx.beginPath();
+              ctx.arc(0, 0, r * 0.5, 0, TAU);
+              ctx.stroke();
+              for (let i = 0; i < 6; i++) {
+                const a = i * TAU / 6 + progress;
+                shard(Math.cos(a) * r * 0.48, Math.sin(a) * r * 0.48, 18, a);
+              }
+              return true;
+            }
+            if (designKey === "r") {
+              for (let i = 0; i < 13; i++) {
+                const x = -r * 0.7 + i * r * 0.12;
+                shard(x, -r * 0.54 + ((i * 37) % 5) * 18, 22 + (i % 3) * 7, Math.PI);
+              }
+              return true;
+            }
+          }
+
+          if (designKind === "nature") {
+            if (designKey === "q") {
+              for (let i = 0; i < 8; i++) {
+                const a = i * TAU / 8;
+                ctx.save();
+                ctx.rotate(a);
+                ctx.strokeStyle = "#1f4f22";
+                ctx.lineWidth = 5;
+                ctx.beginPath();
+                ctx.moveTo(r * 0.55, 0);
+                ctx.bezierCurveTo(r * 0.34, -30, r * 0.1, 18, 0, 0);
+                ctx.stroke();
+                ctx.strokeStyle = "#75e66e";
+                ctx.lineWidth = 2;
+                ctx.stroke();
+                ctx.restore();
+              }
+              return true;
+            }
+            if (designKey === "e" || designKey === "r") {
+              const len = designKey === "r" ? Math.max(320, docLen) : Math.max(260, docLen);
+              for (let i = 0; i < 4; i++) {
+                ctx.save();
+                ctx.translate(0, -30 + i * 20);
+                ctx.strokeStyle = i % 2 ? "#1f4f22" : "#75e66e";
+                ctx.lineWidth = i % 2 ? 5 : 3;
+                ctx.beginPath();
+                ctx.moveTo(0, 0);
+                ctx.bezierCurveTo(len * 0.24, -28, len * 0.58, 24, len, 0);
+                ctx.stroke();
+                ctx.restore();
+              }
+              for (let i = 0; i < 9; i++) sharpPoly([[40 + i * 28, -8], [48 + i * 28, -28], [56 + i * 28, -8]], "#75e66e", "#ffe082", 1.6, 0.65);
+              return true;
+            }
+          }
+
+          if (designKind === "void") {
+            if (designKey === "q" || designKey === "r") {
+              ctx.globalAlpha = alpha * 0.88;
+              ctx.fillStyle = "#000000";
+              ctx.beginPath();
+              ctx.ellipse(0, 0, r * (designKey === "r" ? 0.66 : 0.42), r * (designKey === "r" ? 0.38 : 0.24), progress * 0.6, 0, TAU);
+              ctx.fill();
+              ctx.strokeStyle = "#f2f6ff";
+              ctx.lineWidth = 2.4;
+              ctx.stroke();
+              for (let i = 0; i < 10; i++) drawPixel(Math.cos(i * 2.4 + progress) * r * 0.46, Math.sin(i * 1.7 - progress) * r * 0.28, 7, i % 2 ? "#000000" : "#f2f6ff", alpha * 0.72);
+              return true;
+            }
+            if (designKey === "e") {
+              jaggedStroke(Math.max(420, docLen), 26, 12, "#f2f6ff", 3);
+              jaggedStroke(Math.max(420, docLen), 14, 12, "#000000", 11);
+              return true;
+            }
+          }
+
+          if (designKind === "time") {
+            if (designKey === "q" || designKey === "r") {
+              drawClockFace(r * (designKey === "r" ? 0.7 : 0.54), designKey === "r" ? 4 : 3, designKey === "r" ? 16 : 12);
+              drawPowerSigilCenter(14);
+              return true;
+            }
+            if (designKey === "e") {
+              drawClockFace(r * 0.52, 3, 12);
+              ctx.save();
+              ctx.rotate(Math.PI);
+              jaggedStroke(130, 8, 8, "#f5f5dc", 3);
+              ctx.restore();
+              return true;
+            }
+          }
+
+          if (designKey === "f") {
+            ctx.globalAlpha = alpha * 0.86;
+            ctx.strokeStyle = accent;
+            ctx.lineWidth = 4;
+            ctx.beginPath();
+            ctx.arc(0, 0, r * (0.24 + progress * 0.52), 0, TAU);
+            ctx.stroke();
+            drawPowerSigilCenter(Math.max(18, r * 0.12));
+            return true;
+          }
+          return false;
+        };
         const drawDocShape = () => {
           const docLen = Number(effect.length || length || r);
           const docWidth = Number(effect.width || 48);
@@ -22217,6 +22680,7 @@
         };
 
         ctx.shadowBlur = 0;
+        if (drawCinematicDocShape()) return true;
         if (drawDocShape()) return true;
         if (variant === "design-time-rewind-path") {
           ctx.rotate(-(effect.angle || 0));

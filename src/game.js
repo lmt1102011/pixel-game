@@ -9,7 +9,7 @@
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
   const SIGNAL_REALTIME_RELAY_LIMIT = 2;
   const SIGNAL_REALTIME_TYPES = new Set(["state", "snapshot", "attack", "skill", "collect", "openChest", "dropItem", "damage", "chooseDoor"]);
-  const APP_VERSION = "20260605-network-ice-172";
+  const APP_VERSION = "20260605-secret-riddle-173";
   const CHANGELOG_ENTRIES = [
     {
       version: APP_VERSION,
@@ -22,6 +22,7 @@
         "Sửa lỗi phòng đã vượt ải nhưng đôi lúc không mọc cửa tiếp theo.",
         "Sửa lỗi người chơi không phải chủ phòng đôi lúc không nhận được rương/vật phẩm sau khi vượt ải.",
         "Cải thiện kết nối khác mạng bằng nhiều STUN server hơn và cảnh báo rõ khi rơi về Relay chậm.",
+        "Làm lại cổng Bí Mật thành phòng giải đố có bia riêng và phần thưởng nguyên liệu tương ứng.",
         "Thêm trạng thái mạng gọn trong trận và tự xin đồng bộ nhanh hơn khi client bị lệch.",
         "Thêm bảng cập nhật để biết bản mới vừa thay đổi gì."
       ]
@@ -344,6 +345,59 @@
     { id: "challenge", label: "Thử Thách", icon: "*", weight: 9, color: "#ff8d3d" },
     { id: "curse", label: "Nguyền Rủa", icon: "?", weight: 8, color: "#a169ff" },
     { id: "secret", label: "Bí Mật", icon: "#", weight: 4, color: "#82ffd3" }
+  ];
+
+  const SECRET_RIDDLES = [
+    {
+      id: "emberGlass",
+      title: "Ấn Lửa",
+      question: "Ta sinh ra từ than, nuốt gió để lớn, chạm nước thì tắt. Ta là gì?",
+      hint: "Một power nóng đỏ, thường để đốt cháy.",
+      answers: ["lửa", "lua", "fire"],
+      material: "emberGlass",
+      amount: 6,
+      color: "#ff8d3d"
+    },
+    {
+      id: "frostCore",
+      title: "Ấn Băng",
+      question: "Ta trong như kính, lạnh hơn đêm, càng nứt càng sắc. Ta là gì?",
+      hint: "Thứ làm chậm bước chân và khóa hơi thở.",
+      answers: ["băng", "bang", "ice"],
+      material: "frostCore",
+      amount: 6,
+      color: "#8feaff"
+    },
+    {
+      id: "stormThread",
+      title: "Ấn Sấm",
+      question: "Ta lóe trước mắt, gầm sau mây, đi nhanh hơn mũi tên. Ta là gì?",
+      hint: "Một vệt sáng xé trời khi bão nổi.",
+      answers: ["sấm", "sam", "sét", "set", "tia sét", "tia set", "lightning"],
+      material: "stormThread",
+      amount: 6,
+      color: "#8ff7ff"
+    },
+    {
+      id: "bloodAmber",
+      title: "Ấn Máu",
+      question: "Ta chảy trong người, nóng khi chiến đấu, mất nhiều thì gục. Ta là gì?",
+      hint: "Nguồn sống màu đỏ của chiến binh.",
+      answers: ["máu", "mau", "blood"],
+      material: "bloodAmber",
+      amount: 6,
+      color: "#ff4b55"
+    },
+    {
+      id: "bossCore",
+      title: "Ấn Trùm",
+      question: "Ta nằm trong ngực kẻ khổng lồ, vỡ ra khi boss ngã xuống. Ta là gì?",
+      hint: "Nguyên liệu hiếm dùng cho sức mạnh cấp cao.",
+      answers: ["lõi trùm", "loi trum", "lõi", "loi", "boss core"],
+      material: "bossCore",
+      amount: 1,
+      color: "#f2bf63"
+    }
   ];
 
   const DIFFICULTIES = [
@@ -763,6 +817,20 @@
 
   function bossDebuffById(id) {
     return BOSS_DEBUFFS.find((effect) => effect.id === id) || null;
+  }
+
+  function secretRiddleById(id) {
+    return SECRET_RIDDLES.find((riddle) => riddle.id === id) || SECRET_RIDDLES[0];
+  }
+
+  function normalizeSecretAnswer(value = "") {
+    return String(value)
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase()
+      .replace(/đ/g, "d")
+      .replace(/[^a-z0-9]+/g, " ")
+      .trim();
   }
 
   function accountKey(username) {
@@ -2770,6 +2838,7 @@
         lastResyncAt: 0
       };
       this.chestOpenRequests = new Map();
+      this.activeSecretObjectId = "";
       this.pauseOverlay = false;
       this.toastTimer = 0;
       this.nextHudSkillAt = 0;
@@ -3696,6 +3765,11 @@
         this.handleAction(target.dataset.action, target);
       });
       this.screen.addEventListener("input", (event) => this.handleInput(event));
+      this.screen.addEventListener("keydown", (event) => {
+        if (event.key !== "Enter" || event.target?.id !== "secretRiddleAnswer") return;
+        event.preventDefault();
+        this.answerSecretRiddle(this.activeSecretObjectId);
+      });
       this.bindTouchControls();
       this.updateMobileGate();
     }
@@ -3915,7 +3989,7 @@
       if (!this.run || this.mode !== "game" || this.pauseOverlay) return false;
       const room = this.run.currentRoom;
       if (!room || room.cleared || room.rewardDropped || room.nextOpened) return false;
-      if (["treasure", "merchant", "healing", "curse", "training"].includes(room.type)) return false;
+      if (["treasure", "merchant", "healing", "curse", "secret", "training"].includes(room.type)) return false;
       if (room.type === "boss" && !room.started) return false;
       return true;
     }
@@ -3949,7 +4023,7 @@
     graphicsCombatLoad() {
       if (!this.run || this.mode !== "game" || this.pauseOverlay) return 0;
       const room = this.run.currentRoom || {};
-      if (["treasure", "merchant", "healing", "curse"].includes(room.type)) return 0.08;
+      if (["treasure", "merchant", "healing", "curse", "secret"].includes(room.type)) return 0.08;
       if (room.intro > 0.2) return 0.12;
       const enemies = this.run.enemies?.length || 0;
       const boss = this.run.enemies?.some((enemy) => enemy.boss) ? 0.42 : 0;
@@ -4567,6 +4641,8 @@
     }
 
     onKeyDown(event) {
+      const typing = ["INPUT", "TEXTAREA", "SELECT"].includes(event.target?.tagName || "") || event.target?.isContentEditable;
+      if (typing && event.code !== "Escape") return;
       if (["Space", "Tab"].includes(event.code)) event.preventDefault();
       this.audio.start();
       this.input.keys.add(event.code);
@@ -4927,6 +5003,8 @@
       if (action === "merchant-tab") this.showMerchantShop(target.dataset.tab || "buy");
       if (action === "sell-run-item") this.sellRunItem(target.dataset.uid);
       if (action === "leave-merchant") this.completeMerchantRoom();
+      if (action === "answer-secret-riddle") this.answerSecretRiddle(target.dataset.object);
+      if (action === "skip-secret-riddle") this.skipSecretRiddle(target.dataset.object);
       if (action === "select-character") this.selectCharacter(target.dataset.character);
       if (action === "upgrade-stat") this.upgradeStatPoint(target.dataset.stat);
       if (action === "reset-stat-points") this.resetStatPoints();
@@ -7197,7 +7275,7 @@
     compactRoomObject(object) {
       return this.compactFields(object, [
         "id", "type", "x", "y", "radius", "grow", "opened", "active", "roomType",
-        "label", "icon", "color", "effect", "locked", "claimed", "opening", "openTimer", "enterProgress"
+        "label", "icon", "color", "effect", "locked", "claimed", "opening", "openTimer", "enterProgress", "riddleId"
       ]);
     }
 
@@ -7289,6 +7367,9 @@
           bossDefeated: this.run.currentRoom.bossDefeated,
           bossExitOpened: this.run.currentRoom.bossExitOpened,
           advancing: this.run.currentRoom.advancing,
+          secretRiddle: this.run.currentRoom.secretRiddle || "",
+          secretSolved: Boolean(this.run.currentRoom.secretSolved),
+          secretAttempts: Number(this.run.currentRoom.secretAttempts || 0),
           playerBossResult: this.run.currentRoom.playerBossResult || "",
           playerBossName: this.run.currentRoom.playerBossName || "",
           playerBossElapsed: this.run.currentRoom.playerBossElapsed || 0,
@@ -7740,6 +7821,9 @@
         started: false,
         intro: type === "training" ? 0.75 : type === "boss" ? (this.isBossRushRun() ? 1.65 : 3.0) : 1.25,
         timer: 0,
+        secretRiddle: type === "secret" ? (room.secretRiddle || this.rollSecretRiddle().id) : "",
+        secretSolved: false,
+        secretAttempts: 0,
         rewardClaims: {},
         rewardOwners: []
       };
@@ -7768,6 +7852,7 @@
       if (type === "treasure") this.spawnTreasureChest();
       else if (type === "merchant") this.spawnMerchantStall();
       else if (type === "curse") this.spawnCurseBook();
+      else if (type === "secret") this.spawnSecretAltar();
       else if (type === "training") this.spawnTrainingDummies();
       else if (type === "boss") {
         this.run.currentRoom.started = true;
@@ -7959,7 +8044,7 @@
 
     spawnHazards() {
       const biome = this.run.biome;
-      if (["treasure", "merchant", "curse", "healing", "boss", "training"].includes(this.run.currentRoom.type)) return;
+      if (["treasure", "merchant", "curse", "healing", "secret", "boss", "training"].includes(this.run.currentRoom.type)) return;
       const count = 4 + this.run.stage;
       for (let i = 0; i < count; i++) {
         this.run.hazards.push({
@@ -7983,7 +8068,7 @@
       if (type === "elite") count += 3;
       if (type === "challenge") count += 5;
       count += this.run.difficulty?.countBonus || 0;
-      if (["treasure", "healing", "merchant", "secret"].includes(type)) count = type === "secret" ? 2 : 0;
+      if (["treasure", "healing", "merchant", "secret"].includes(type)) count = 0;
       count = Math.max(0, count);
       for (let i = 0; i < count; i++) {
         const edge = pick(["top", "bottom", "left", "right"]);
@@ -8097,6 +8182,28 @@
         label: "Sách Nguyền",
         effect: "curse"
       });
+    }
+
+    rollSecretRiddle() {
+      return pick(SECRET_RIDDLES);
+    }
+
+    currentSecretRiddle() {
+      return secretRiddleById(this.run?.currentRoom?.secretRiddle);
+    }
+
+    spawnSecretAltar() {
+      const riddle = this.currentSecretRiddle();
+      this.addRoomObject("secretAltar", {
+        y: WORLD_H / 2 - 22,
+        radius: 58,
+        color: riddle.color || "#82ffd3",
+        label: "Bia Bí Mật",
+        icon: "?",
+        effect: "secret",
+        riddleId: riddle.id
+      });
+      this.addShockwave(WORLD_W / 2, WORLD_H / 2 - 22, 170, riddle.color || "#82ffd3", 0);
     }
 
     edgePosition(edge) {
@@ -8401,8 +8508,181 @@
     roomNeedsObjectInteraction(room = this.run?.currentRoom) {
       if (!room) return false;
       if (["treasure", "merchant", "curse"].includes(room.type)) return !room.rewardClaimed && !room.nextOpened;
+      if (room.type === "secret") return !room.secretSolved && !room.rewardClaimed && !room.nextOpened;
       if (room.type === "boss") return !room.rewardClaimed;
       return false;
+    }
+
+    showSecretRiddle(object = null, message = "") {
+      const room = this.run?.currentRoom;
+      if (!room || room.type !== "secret") return;
+      if (this.isMultiplayerClient()) {
+        this.toast("Chờ host giải ấn bí mật");
+        return;
+      }
+      const riddle = this.currentSecretRiddle();
+      this.activeSecretObjectId = object?.id || this.run.roomObjects.find((entry) => entry.type === "secretAltar" && !entry.opened)?.id || "";
+      const attempts = Number(room.secretAttempts || 0);
+      this.pauseOverlay = true;
+      this.mode = "game";
+      this.input.keys.clear();
+      this.input.mouse.left = false;
+      this.input.touch.x = 0;
+      this.input.touch.y = 0;
+      this.input.touch.rawX = 0;
+      this.input.touch.rawY = 0;
+      this.input.touch.active = false;
+      this.setScreen(`
+        <section class="wide-panel secret-riddle-panel" style="--secret:${riddle.color || "#82ffd3"}">
+          <div class="panel-header">
+            <div>
+              <h2 class="panel-title">Cổng Bí Mật</h2>
+              <p class="panel-subtitle">Giải đúng ấn sẽ mở rương chứa ${materialLabel(riddle.material)}. Sai 2 lần thì phần thưởng biến mất.</p>
+            </div>
+            <button class="btn" data-action="skip-secret-riddle" data-object="${escapeHtml(this.activeSecretObjectId)}">BỎ QUA</button>
+          </div>
+          <div class="secret-riddle-card">
+            <div class="secret-riddle-mark">${escapeHtml(riddle.title)}</div>
+            <h3>${escapeHtml(riddle.question)}</h3>
+            <p>${attempts > 0 ? `Gợi ý: ${escapeHtml(riddle.hint)}` : "Nhập lời giải ngắn gọn bằng tiếng Việt hoặc không dấu."}</p>
+            ${message ? `<p class="secret-riddle-warning">${escapeHtml(message)}</p>` : ""}
+            <div class="secret-riddle-answer-row">
+              <input id="secretRiddleAnswer" class="field secret-riddle-input" type="text" maxlength="40" autocomplete="off" placeholder="Lời giải..." />
+              <button class="btn primary" data-action="answer-secret-riddle" data-object="${escapeHtml(this.activeSecretObjectId)}">GIẢI ẤN</button>
+            </div>
+            <p class="small">Số lần sai: ${attempts}/2</p>
+          </div>
+        </section>
+      `);
+      requestAnimationFrame(() => document.getElementById("secretRiddleAnswer")?.focus());
+    }
+
+    answerSecretRiddle(objectId = "") {
+      const room = this.run?.currentRoom;
+      if (!room || room.type !== "secret" || this.isMultiplayerClient()) return;
+      const object = this.run.roomObjects.find((entry) => entry.id === (objectId || this.activeSecretObjectId)) || this.run.roomObjects.find((entry) => entry.type === "secretAltar");
+      const riddle = this.currentSecretRiddle();
+      const raw = document.getElementById("secretRiddleAnswer")?.value || "";
+      const answer = normalizeSecretAnswer(raw);
+      if (!answer) {
+        this.showSecretRiddle(object, "Hãy nhập lời giải trước.");
+        return;
+      }
+      const compact = answer.replace(/\s+/g, "");
+      const correct = riddle.answers.some((entry) => {
+        const normalized = normalizeSecretAnswer(entry);
+        return normalized === answer || normalized.replace(/\s+/g, "") === compact;
+      });
+      if (!correct) {
+        room.secretAttempts = Number(room.secretAttempts || 0) + 1;
+        this.audio.sfx(120, "sawtooth", 0.1, 0.12);
+        if (room.secretAttempts < 2) {
+          this.showSecretRiddle(object, "Sai rồi. Ấn bí mật hé thêm một gợi ý.");
+          return;
+        }
+      }
+      this.completeSecretRiddle(Boolean(correct), riddle, object);
+    }
+
+    skipSecretRiddle(objectId = "") {
+      const room = this.run?.currentRoom;
+      if (!room || room.type !== "secret" || this.isMultiplayerClient()) return;
+      const object = this.run.roomObjects.find((entry) => entry.id === (objectId || this.activeSecretObjectId)) || this.run.roomObjects.find((entry) => entry.type === "secretAltar");
+      this.completeSecretRiddle(false, this.currentSecretRiddle(), object);
+    }
+
+    completeSecretRiddle(success, riddle = this.currentSecretRiddle(), object = null) {
+      const room = this.run?.currentRoom;
+      if (!room || room.type !== "secret") return;
+      room.secretSolved = true;
+      room.secretAttempts = Number(room.secretAttempts || 0);
+      this.activeSecretObjectId = "";
+      this.pauseOverlay = false;
+      this.mode = "game";
+      this.setScreen("");
+      if (object) {
+        object.opened = true;
+        object.active = false;
+      }
+      const x = object?.x || this.run.player.x;
+      const y = object?.y || this.run.player.y;
+      if (success) {
+        this.spawnSecretRiddleReward(x, y, riddle);
+        this.toast(`Giải đúng: rương ${materialLabel(riddle.material)} đã mở`);
+        this.addShockwave(x, y, 230, riddle.color || "#82ffd3", 0);
+        this.audio.sfx(720, "triangle", 0.16, 0.18);
+      } else {
+        room.rewardDropped = true;
+        room.rewardClaimed = true;
+        room.rewardClaims = {};
+        room.rewardOwners = [];
+        this.toast("Ấn bí mật khép lại. Không nhận thưởng lớn.");
+        this.addShockwave(x, y, 150, "#a169ff", 0);
+        this.audio.sfx(88, "sawtooth", 0.18, 0.13);
+      }
+      this.clearRoom();
+      if (this.isMultiplayerHost()) this.broadcastFastSnapshot(0.04);
+    }
+
+    spawnSecretRiddleReward(x, y, riddle = this.currentSecretRiddle()) {
+      const room = this.run?.currentRoom;
+      if (!room || room.rewardDropped) return;
+      const owners = this.aliveRewardOwners();
+      if (!owners.length) {
+        room.rewardDropped = true;
+        room.rewardClaimed = true;
+        room.rewardClaims = {};
+        room.rewardOwners = [];
+        this.run.rewardQueue = [];
+        this.toast("Không còn người sống để nhận rương bí mật");
+        return;
+      }
+      const difficulty = this.roomDifficulty("secret") + (this.run.difficulty?.rewardBonus || 0);
+      const material = riddle.material || "emberGlass";
+      const amount = material === "bossCore"
+        ? Math.max(1, 1 + Math.floor(this.run.stage / 3))
+        : Math.max(3, Math.round((riddle.amount || 5) + difficulty * 5 + this.run.stage));
+      const rarity = material === "bossCore" ? "epic" : this.rollRarityForDifficulty(difficulty * 0.82, this.run.player.stats.rewardLuck || 0);
+      const rewards = owners.map((owner) => ({
+        owner,
+        reward: { type: "material", material, amount, rarity }
+      }));
+      room.rewardDropped = true;
+      room.rewardClaimed = false;
+      room.rewardClaims = {};
+      room.rewardOwners = owners.map((owner) => owner.id);
+      this.run.rewardQueue = rewards.map((entry) => entry.reward);
+      const scatterBase = rand(0, TAU);
+      rewards.forEach(({ owner, reward }, index) => {
+        const angle = rewards.length === 1 ? scatterBase : scatterBase + (index / rewards.length) * TAU + rand(-0.22, 0.22);
+        const burst = 230 + index * 22 + rand(0, 80);
+        const coin = this.rollCoinReward();
+        coin.amount = Math.round((coin.amount || 1) * 1.22);
+        this.run.pickups.push({
+          id: uid("pickup"),
+          x: clamp(x, ROOM_PAD + 42, WORLD_W - ROOM_PAD - 42),
+          y: clamp(y, ROOM_PAD + 42, WORLD_H - ROOM_PAD - 42),
+          vx: Math.cos(angle) * burst,
+          vy: Math.sin(angle) * burst * 0.72,
+          type: "reward",
+          container: "goldChest",
+          ownerId: owner.id,
+          ownerName: owner.name,
+          chestReward: reward,
+          coinReward: coin,
+          radius: 24,
+          life: 90,
+          age: 0,
+          color: riddle.color || this.rewardColor(reward),
+          stationary: false,
+          settleTime: 0.52 + index * 0.05,
+          settleTotal: 0.52 + index * 0.05
+        });
+      });
+      for (let i = 0; i < this.particleCount(22, { important: true }); i++) {
+        const a = rand(0, TAU);
+        this.addParticle(x + rand(-26, 26), y + rand(-16, 16), riddle.color || "#82ffd3", rand(8, 24), rand(0.32, 0.82), i % 4 === 0 ? "ring" : "spark", a, rand(95, 260));
+      }
     }
 
     updatePendingDoor(dt) {
@@ -11681,6 +11961,7 @@
       if (room.type === "curse") return "curse";
       if (room.type === "boss") return "boss";
       if (room.type === "healing") return "leaf";
+      if (room.type === "secret") return "secret";
       if (this.run.biome.id === "forest") return "leaf";
       if (this.run.biome.id === "frozen") return "snow";
       if (this.run.biome.id === "temple") return "sand";
@@ -12176,7 +12457,7 @@
         merchant: "Thương nhân ẩn giữa các khe nứt.",
         challenge: "Nhiều áp lực hơn, phần thưởng tốt hơn.",
         curse: "Nhận hỗn loạn để đổi lấy cơ hội thưởng mạnh.",
-        secret: "Đấu trường lạ với nguyên liệu hiếm.",
+        secret: "Giải một câu đố ngắn để mở rương nguyên liệu tương ứng.",
         boss: "Đấu trường boss có chuyển pha và tuyệt kỹ."
       }[type] || "Khe nứt chưa rõ";
     }
@@ -13985,6 +14266,7 @@
 
     updateRoomObjects(dt) {
       if (!this.run?.roomObjects?.length) return;
+      if (this.pauseOverlay) return;
       for (const object of this.run.roomObjects) {
         object.grow = clamp((object.grow || 0) + dt * 1.9, 0, 1);
         if (object.opening) {
@@ -14057,6 +14339,14 @@
       }
       if (object.type === "merchantStall") {
         this.showMerchantShop();
+        return;
+      }
+      if (object.type === "secretAltar") {
+        if (this.isMultiplayerClient()) {
+          this.toast("Chờ host giải ấn bí mật");
+          return;
+        }
+        this.showSecretRiddle(object);
         return;
       }
       if (this.isMultiplayerClient()) {
@@ -14952,7 +15242,7 @@
       const room = this.run?.currentRoom;
       if (!room || room.cleared || room.rewardDropped || room.nextOpened) return false;
       if (room.intro > 0.15) return false;
-      if (["treasure", "merchant", "healing", "curse"].includes(room.type)) return false;
+      if (["treasure", "merchant", "healing", "curse", "secret"].includes(room.type)) return false;
       if (room.type === "boss" && !room.started) return false;
       return true;
     }
@@ -15240,6 +15530,7 @@
       if (activeObject?.type === "bossExit") return "Chạm cổng thưởng";
       if (activeObject?.type === "merchantStall") return "Chạm quầy thương nhân";
       if (activeObject?.type === "curseBook") return "Chạm sách nguyền";
+      if (activeObject?.type === "secretAltar") return "Chạm bia bí mật để giải đố";
       if (!room?.cleared) return "Đang ổn định khe nứt";
       if (room.rewardDropped && !room.rewardClaimed) return "Nhặt thưởng";
       if (this.run?.roomObjects?.some((object) => object.type === "nextDoor")) return "Đi vào một cánh cửa";
@@ -15754,6 +16045,7 @@
         if (object.type === "treasureChest") this.drawTreasureChest(ctx, object);
         if (object.type === "merchantStall") this.drawMerchantStall(ctx, object);
         if (object.type === "curseBook") this.drawCurseBook(ctx, object);
+        if (object.type === "secretAltar") this.drawSecretAltar(ctx, object);
       }
     }
 
@@ -15798,6 +16090,20 @@
           ctx.beginPath();
           ctx.arc(x, y, 6 + (i % 3), 0, TAU);
           ctx.stroke();
+        } else if (effect === "secret") {
+          ctx.strokeStyle = i % 2 ? "#ffffff" : color;
+          ctx.lineWidth = 2;
+          ctx.save();
+          ctx.translate(x, y);
+          ctx.rotate(angle + this.menuTime * 0.6);
+          ctx.beginPath();
+          ctx.moveTo(0, -7);
+          ctx.lineTo(7, 0);
+          ctx.lineTo(0, 7);
+          ctx.lineTo(-7, 0);
+          ctx.closePath();
+          ctx.stroke();
+          ctx.restore();
         } else {
           ctx.fillStyle = color;
           ctx.fillRect(x - 3, y - 3, 6, 6);
@@ -15865,6 +16171,76 @@
         ctx.font = this.readableFont(900, 12);
         this.drawReadableText(ctx, String(object.label).slice(0, 18), 0, h * 0.68, {
           fill: "#fff4d6",
+          stroke: "rgba(3,5,10,0.96)",
+          strokeWidth: 3.4
+        });
+      }
+      ctx.restore();
+    }
+
+    drawSecretAltar(ctx, object) {
+      const grow = clamp(object.grow || 0, 0, 1);
+      const color = object.color || "#82ffd3";
+      const y = object.y + (1 - grow) * 32;
+      this.drawObjectAmbient(ctx, { ...object, y, effect: "secret" }, 72);
+      ctx.save();
+      ctx.translate(object.x, y);
+      ctx.scale(grow, grow);
+      ctx.shadowColor = color;
+      ctx.shadowBlur = this.glow(22);
+      ctx.fillStyle = "rgba(0,0,0,0.34)";
+      ctx.beginPath();
+      ctx.ellipse(0, 50, 58, 12, 0, 0, TAU);
+      ctx.fill();
+      ctx.fillStyle = "#111824";
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 4;
+      ctx.beginPath();
+      ctx.moveTo(-36, 38);
+      ctx.lineTo(-27, -22);
+      ctx.quadraticCurveTo(0, -54, 27, -22);
+      ctx.lineTo(36, 38);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+      ctx.globalAlpha = object.opened ? 0.22 : 0.62;
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      ctx.moveTo(0, -31);
+      ctx.lineTo(20, -4);
+      ctx.lineTo(0, 25);
+      ctx.lineTo(-20, -4);
+      ctx.closePath();
+      ctx.fill();
+      ctx.globalAlpha = 1;
+      ctx.strokeStyle = "#fff9d7";
+      ctx.lineWidth = 2.4;
+      ctx.beginPath();
+      ctx.moveTo(-17, 39);
+      ctx.lineTo(-11, -6);
+      ctx.quadraticCurveTo(0, -21, 11, -6);
+      ctx.lineTo(17, 39);
+      ctx.stroke();
+      ctx.font = this.readableFont(950, object.opened ? 14 : 22);
+      this.drawReadableText(ctx, object.opened ? "OK" : "?", 0, 4, {
+        fill: "#ffffff",
+        stroke: "rgba(3,5,10,0.96)",
+        strokeWidth: 3.6
+      });
+      if (!object.opened) {
+        ctx.globalCompositeOperation = "lighter";
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(0, -4, 39 + Math.sin(this.menuTime * 3) * 4, this.menuTime, this.menuTime + Math.PI * 1.35);
+        ctx.stroke();
+        ctx.globalCompositeOperation = "source-over";
+      }
+      if (object.label) {
+        ctx.shadowBlur = 0;
+        ctx.font = this.readableFont(900, 12);
+        this.drawReadableText(ctx, String(object.label).slice(0, 18), 0, 66, {
+          fill: "#eafffb",
           stroke: "rgba(3,5,10,0.96)",
           strokeWidth: 3.4
         });

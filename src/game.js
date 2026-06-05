@@ -9,12 +9,13 @@
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
   const SIGNAL_REALTIME_RELAY_LIMIT = 2;
   const SIGNAL_REALTIME_TYPES = new Set(["state", "snapshot", "attack", "skill", "collect", "openChest", "dropItem", "damage", "chooseDoor"]);
-  const APP_VERSION = "20260605-awakening-raid-175";
+  const APP_VERSION = "20260605-secret-puzzle-176";
   const CHANGELOG_ENTRIES = [
     {
       version: APP_VERSION,
       title: "Cân bằng, Hóa Trùm và mạng",
       items: [
+        "Đổi Cổng Bí Mật sang puzzle xoay hình: bấm từng mảnh để ghép đúng ấn, không còn nhập câu trả lời.",
         "Cân lại sát thương, nhịp đánh, điểm nâng và độ khó để đỡ phá game hơn.",
         "Hóa Trùm có thông báo chọn boss, skill boss theo khu và màn kết quả rõ hơn.",
         "Hóa Trùm dùng nhịp cân bằng riêng và không còn nút chỉnh độ khó trong phòng.",
@@ -366,9 +367,6 @@
     {
       id: "emberGlass",
       title: "Ấn Lửa",
-      question: "Ta sinh ra từ than, nuốt gió để lớn, chạm nước thì tắt. Ta là gì?",
-      hint: "Một power nóng đỏ, thường để đốt cháy.",
-      answers: ["lửa", "lua", "fire"],
       material: "emberGlass",
       amount: 6,
       color: "#ff8d3d"
@@ -376,9 +374,6 @@
     {
       id: "frostCore",
       title: "Ấn Băng",
-      question: "Ta trong như kính, lạnh hơn đêm, càng nứt càng sắc. Ta là gì?",
-      hint: "Thứ làm chậm bước chân và khóa hơi thở.",
-      answers: ["băng", "bang", "ice"],
       material: "frostCore",
       amount: 6,
       color: "#8feaff"
@@ -386,9 +381,6 @@
     {
       id: "stormThread",
       title: "Ấn Sấm",
-      question: "Ta lóe trước mắt, gầm sau mây, đi nhanh hơn mũi tên. Ta là gì?",
-      hint: "Một vệt sáng xé trời khi bão nổi.",
-      answers: ["sấm", "sam", "sét", "set", "tia sét", "tia set", "lightning"],
       material: "stormThread",
       amount: 6,
       color: "#8ff7ff"
@@ -396,9 +388,6 @@
     {
       id: "bloodAmber",
       title: "Ấn Máu",
-      question: "Ta chảy trong người, nóng khi chiến đấu, mất nhiều thì gục. Ta là gì?",
-      hint: "Nguồn sống màu đỏ của chiến binh.",
-      answers: ["máu", "mau", "blood"],
       material: "bloodAmber",
       amount: 6,
       color: "#ff4b55"
@@ -406,9 +395,6 @@
     {
       id: "bossCore",
       title: "Ấn Trùm",
-      question: "Ta nằm trong ngực kẻ khổng lồ, vỡ ra khi boss ngã xuống. Ta là gì?",
-      hint: "Nguyên liệu hiếm dùng cho sức mạnh cấp cao.",
-      answers: ["lõi trùm", "loi trum", "lõi", "loi", "boss core"],
       material: "bossCore",
       amount: 1,
       color: "#f2bf63"
@@ -851,14 +837,15 @@
     return SECRET_RIDDLES.find((riddle) => riddle.id === id) || SECRET_RIDDLES[0];
   }
 
-  function normalizeSecretAnswer(value = "") {
-    return String(value)
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "")
-      .toLowerCase()
-      .replace(/đ/g, "d")
-      .replace(/[^a-z0-9]+/g, " ")
-      .trim();
+  function secretPuzzleGlyphs(riddle) {
+    const glyphs = {
+      emberGlass: ["HỎA", "TÀN", "LÒ", "NHIỆT"],
+      frostCore: ["BĂNG", "GƯƠNG", "TUYẾT", "LẠNH"],
+      stormThread: ["SÉT", "MÂY", "CHỚP", "BÃO"],
+      bloodAmber: ["MÁU", "TIM", "MẠCH", "HỒI"],
+      bossCore: ["TRÙM", "LÕI", "ẤN", "VƯƠNG"]
+    };
+    return glyphs[riddle?.material] || ["ẤN", "MẢNH", "KHÓA", "MỞ"];
   }
 
   function accountKey(username) {
@@ -3800,11 +3787,6 @@
         this.handleAction(target.dataset.action, target);
       });
       this.screen.addEventListener("input", (event) => this.handleInput(event));
-      this.screen.addEventListener("keydown", (event) => {
-        if (event.key !== "Enter" || event.target?.id !== "secretRiddleAnswer") return;
-        event.preventDefault();
-        this.answerSecretRiddle(this.activeSecretObjectId);
-      });
       this.bindTouchControls();
       this.updateMobileGate();
     }
@@ -5047,7 +5029,8 @@
       if (action === "merchant-tab") this.showMerchantShop(target.dataset.tab || "buy");
       if (action === "sell-run-item") this.sellRunItem(target.dataset.uid);
       if (action === "leave-merchant") this.completeMerchantRoom();
-      if (action === "answer-secret-riddle") this.answerSecretRiddle(target.dataset.object);
+      if (action === "rotate-secret-puzzle") this.rotateSecretPuzzleTile(target.dataset.index, target.dataset.object);
+      if (action === "shuffle-secret-puzzle") this.shuffleSecretPuzzle(target.dataset.object);
       if (action === "skip-secret-riddle") this.skipSecretRiddle(target.dataset.object);
       if (action === "select-character") this.selectCharacter(target.dataset.character);
       if (action === "upgrade-stat") this.upgradeStatPoint(target.dataset.stat);
@@ -7522,6 +7505,8 @@
           secretRiddle: this.run.currentRoom.secretRiddle || "",
           secretSolved: Boolean(this.run.currentRoom.secretSolved),
           secretAttempts: Number(this.run.currentRoom.secretAttempts || 0),
+          secretMoves: Number(this.run.currentRoom.secretMoves || 0),
+          secretPuzzle: Array.isArray(this.run.currentRoom.secretPuzzle) ? this.run.currentRoom.secretPuzzle.slice(0, 4) : [],
           playerBossResult: this.run.currentRoom.playerBossResult || "",
           playerBossName: this.run.currentRoom.playerBossName || "",
           playerBossElapsed: this.run.currentRoom.playerBossElapsed || 0,
@@ -7978,6 +7963,8 @@
         secretRiddle: type === "secret" ? (room.secretRiddle || this.rollSecretRiddle().id) : "",
         secretSolved: false,
         secretAttempts: 0,
+        secretMoves: 0,
+        secretPuzzle: [],
         rewardClaims: {},
         rewardOwners: []
       };
@@ -8672,12 +8659,25 @@
       const room = this.run?.currentRoom;
       if (!room || room.type !== "secret") return;
       if (this.isMultiplayerClient()) {
-        this.toast("Chờ host giải ấn bí mật");
+        this.toast("Chờ host xoay ấn bí mật");
         return;
       }
       const riddle = this.currentSecretRiddle();
       this.activeSecretObjectId = object?.id || this.run.roomObjects.find((entry) => entry.type === "secretAltar" && !entry.opened)?.id || "";
-      const attempts = Number(room.secretAttempts || 0);
+      const puzzle = this.ensureSecretPuzzleState();
+      const moves = Number(room.secretMoves || 0);
+      const glyphs = secretPuzzleGlyphs(riddle);
+      const tiles = puzzle.map((turn, index) => `
+        <button class="secret-puzzle-tile secret-puzzle-tile-${index}" style="--turn:${turn}; --secret:${riddle.color || "#82ffd3"}" data-action="rotate-secret-puzzle" data-index="${index}" data-object="${escapeHtml(this.activeSecretObjectId)}" aria-label="Xoay mảnh ${index + 1}">
+          <span class="secret-puzzle-shape">
+            <i class="secret-puzzle-stroke stroke-a"></i>
+            <i class="secret-puzzle-stroke stroke-b"></i>
+            <i class="secret-puzzle-node node-a"></i>
+            <i class="secret-puzzle-node node-b"></i>
+            <b>${escapeHtml(glyphs[index] || "ẤN")}</b>
+          </span>
+        </button>
+      `).join("");
       this.pauseOverlay = true;
       this.mode = "game";
       this.input.keys.clear();
@@ -8692,51 +8692,74 @@
           <div class="panel-header">
             <div>
               <h2 class="panel-title">Cổng Bí Mật</h2>
-              <p class="panel-subtitle">Giải đúng ấn sẽ mở rương chứa ${materialLabel(riddle.material)}. Sai 2 lần thì phần thưởng biến mất.</p>
+              <p class="panel-subtitle">Xoay các mảnh để đường sáng khớp về đúng hướng. Khớp đủ 4 mảnh sẽ mở rương ${materialLabel(riddle.material)}.</p>
             </div>
             <button class="btn" data-action="skip-secret-riddle" data-object="${escapeHtml(this.activeSecretObjectId)}">BỎ QUA</button>
           </div>
           <div class="secret-riddle-card">
             <div class="secret-riddle-mark">${escapeHtml(riddle.title)}</div>
-            <h3>${escapeHtml(riddle.question)}</h3>
-            <p>${attempts > 0 ? `Gợi ý: ${escapeHtml(riddle.hint)}` : "Nhập lời giải ngắn gọn bằng tiếng Việt hoặc không dấu."}</p>
+            <h3>Ấn xoay cổ</h3>
+            <p>Bấm từng mảnh để xoay 90 độ. Khi tất cả ký hiệu đứng thẳng, cổng sẽ tự mở.</p>
             ${message ? `<p class="secret-riddle-warning">${escapeHtml(message)}</p>` : ""}
-            <div class="secret-riddle-answer-row">
-              <input id="secretRiddleAnswer" class="field secret-riddle-input" type="text" maxlength="40" autocomplete="off" placeholder="Lời giải..." />
-              <button class="btn primary" data-action="answer-secret-riddle" data-object="${escapeHtml(this.activeSecretObjectId)}">GIẢI ẤN</button>
+            <div class="secret-puzzle-board">
+              ${tiles}
             </div>
-            <p class="small">Số lần sai: ${attempts}/2</p>
+            <div class="secret-puzzle-actions">
+              <button class="btn" data-action="shuffle-secret-puzzle" data-object="${escapeHtml(this.activeSecretObjectId)}">ĐẢO LẠI</button>
+              <span class="small">Số lần xoay: ${moves}</span>
+            </div>
           </div>
         </section>
       `);
-      requestAnimationFrame(() => document.getElementById("secretRiddleAnswer")?.focus());
     }
 
-    answerSecretRiddle(objectId = "") {
+    ensureSecretPuzzleState() {
+      const room = this.run?.currentRoom;
+      if (!room) return [1, 2, 3, 1];
+      const source = Array.isArray(room.secretPuzzle) ? room.secretPuzzle.slice(0, 4) : [];
+      const valid = source.length === 4 && source.every((value) => Number.isFinite(Number(value)));
+      if (!valid || source.every((value) => (Number(value) % 4 + 4) % 4 === 0)) {
+        room.secretPuzzle = Array.from({ length: 4 }, () => randi(1, 3));
+      } else {
+        room.secretPuzzle = source.map((value) => (Math.round(Number(value)) % 4 + 4) % 4);
+      }
+      return room.secretPuzzle;
+    }
+
+    secretPuzzleSolved() {
+      const room = this.run?.currentRoom;
+      return Array.isArray(room?.secretPuzzle) && room.secretPuzzle.length === 4 && room.secretPuzzle.every((value) => (Number(value) % 4 + 4) % 4 === 0);
+    }
+
+    rotateSecretPuzzleTile(index = 0, objectId = "") {
       const room = this.run?.currentRoom;
       if (!room || room.type !== "secret" || this.isMultiplayerClient()) return;
       const object = this.run.roomObjects.find((entry) => entry.id === (objectId || this.activeSecretObjectId)) || this.run.roomObjects.find((entry) => entry.type === "secretAltar");
       const riddle = this.currentSecretRiddle();
-      const raw = document.getElementById("secretRiddleAnswer")?.value || "";
-      const answer = normalizeSecretAnswer(raw);
-      if (!answer) {
-        this.showSecretRiddle(object, "Hãy nhập lời giải trước.");
+      const puzzle = this.ensureSecretPuzzleState();
+      const tileIndex = clamp(Math.round(Number(index) || 0), 0, puzzle.length - 1);
+      puzzle[tileIndex] = (puzzle[tileIndex] + 1) % 4;
+      room.secretMoves = Number(room.secretMoves || 0) + 1;
+      room.secretAttempts = room.secretMoves;
+      this.audio.sfx(this.secretPuzzleSolved() ? 760 : 360 + tileIndex * 70, "triangle", 0.08, 0.08);
+      if (this.secretPuzzleSolved()) {
+        this.completeSecretRiddle(true, riddle, object);
         return;
       }
-      const compact = answer.replace(/\s+/g, "");
-      const correct = riddle.answers.some((entry) => {
-        const normalized = normalizeSecretAnswer(entry);
-        return normalized === answer || normalized.replace(/\s+/g, "") === compact;
-      });
-      if (!correct) {
-        room.secretAttempts = Number(room.secretAttempts || 0) + 1;
-        this.audio.sfx(120, "sawtooth", 0.1, 0.12);
-        if (room.secretAttempts < 2) {
-          this.showSecretRiddle(object, "Sai rồi. Ấn bí mật hé thêm một gợi ý.");
-          return;
-        }
-      }
-      this.completeSecretRiddle(Boolean(correct), riddle, object);
+      this.showSecretRiddle(object);
+      if (this.isMultiplayerHost()) this.broadcastFastSnapshot(0.08);
+    }
+
+    shuffleSecretPuzzle(objectId = "") {
+      const room = this.run?.currentRoom;
+      if (!room || room.type !== "secret" || this.isMultiplayerClient()) return;
+      const object = this.run.roomObjects.find((entry) => entry.id === (objectId || this.activeSecretObjectId)) || this.run.roomObjects.find((entry) => entry.type === "secretAltar");
+      room.secretPuzzle = Array.from({ length: 4 }, () => randi(1, 3));
+      room.secretMoves = Number(room.secretMoves || 0) + 1;
+      room.secretAttempts = room.secretMoves;
+      this.audio.sfx(190, "sawtooth", 0.07, 0.09);
+      this.showSecretRiddle(object, "Ấn đã đảo lại.");
+      if (this.isMultiplayerHost()) this.broadcastFastSnapshot(0.08);
     }
 
     skipSecretRiddle(objectId = "") {
@@ -8763,7 +8786,7 @@
       const y = object?.y || this.run.player.y;
       if (success) {
         this.spawnSecretRiddleReward(x, y, riddle);
-        this.toast(`Giải đúng: rương ${materialLabel(riddle.material)} đã mở`);
+        this.toast(`Ấn đã khớp: rương ${materialLabel(riddle.material)} đã mở`);
         this.addShockwave(x, y, 230, riddle.color || "#82ffd3", 0);
         this.audio.sfx(720, "triangle", 0.16, 0.18);
       } else {
@@ -14632,7 +14655,7 @@
       }
       if (object.type === "secretAltar") {
         if (this.isMultiplayerClient()) {
-          this.toast("Chờ host giải ấn bí mật");
+          this.toast("Chờ host xoay ấn bí mật");
           return;
         }
         this.showSecretRiddle(object);

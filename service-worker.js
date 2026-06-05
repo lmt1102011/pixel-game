@@ -1,11 +1,11 @@
-const SOULRIFT_CACHE = "soulrift-pwa-20260605-boot-guard-157";
+const SOULRIFT_CACHE = "soulrift-pwa-20260605-boot-fix-158";
 const SOULRIFT_ASSETS = [
   "./",
   "./index.html",
-  "./styles.css?v=20260605-boot-guard-157",
-  "./src/pwa.js?v=20260605-boot-guard-157",
-  "./src/game.js?v=20260605-boot-guard-157",
-  "./manifest.webmanifest?v=20260605-boot-guard-157",
+  "./styles.css?v=20260605-boot-fix-158",
+  "./src/pwa.js?v=20260605-boot-fix-158",
+  "./src/game.js?v=20260605-boot-fix-158",
+  "./manifest.webmanifest?v=20260605-boot-fix-158",
   "./version.json",
   "./assets/icons/app-icon-20260605-logo-xl-149.svg",
   "./assets/icons/app-icon-20260605-logo-xl-149-192.png",
@@ -35,8 +35,25 @@ self.addEventListener("fetch", (event) => {
   if (request.method !== "GET") return;
   const url = new URL(request.url);
   if (url.origin !== self.location.origin) return;
-  if (url.pathname.endsWith("/version.json")) {
-    event.respondWith(fetch(request).catch(() => caches.match(request)));
+  const networkFirst = request.mode === "navigate" ||
+    url.pathname.endsWith("/") ||
+    url.pathname.endsWith("/index.html") ||
+    url.pathname.endsWith("/version.json") ||
+    url.pathname.endsWith("/styles.css") ||
+    url.pathname.endsWith("/src/pwa.js") ||
+    url.pathname.endsWith("/src/game.js");
+  if (networkFirst) {
+    event.respondWith(
+      fetch(request)
+        .then((response) => {
+          if (response && response.ok) {
+            const copy = response.clone();
+            caches.open(SOULRIFT_CACHE).then((cache) => cache.put(request, copy));
+          }
+          return response;
+        })
+        .catch(() => caches.match(request))
+    );
     return;
   }
   event.respondWith(

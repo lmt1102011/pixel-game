@@ -7,7 +7,7 @@
   const ROOM_PAD = 86;
   const SAVE_KEY = "soulrift-save-v1";
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
-  const APP_VERSION = "20260605-boot-guard-157";
+  const APP_VERSION = "20260605-boot-fix-158";
   const VERSION_CHECK_INTERVAL = 15000;
   const UPDATE_ATTEMPT_KEY = "soulrift-update-attempt-v1";
   const CLOUD_MIGRATION_KEY = "soulrift-cloud-migrated-v1";
@@ -2643,9 +2643,9 @@
       this.deletedAccountNotice = "";
       this.lastCloudAccountSignature = "";
       this.trainingOptions = { damage: true, freeEnergy: true, noCooldown: true };
+      this.save = defaultSave();
       this.audio = new AudioEngine(this);
       this.lobby = new PeerLobby(this);
-      this.save = defaultSave();
       this.run = null;
       this.mode = "loading";
       this.last = 0;
@@ -3309,7 +3309,7 @@
     }
 
     powerAwakeningActive(powerId) {
-      const meta = this.save.powers?.[powerId];
+      const meta = this.save?.powers?.[powerId];
       return Boolean(meta?.awakened && meta.useAwakened !== false);
     }
 

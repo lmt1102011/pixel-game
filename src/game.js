@@ -9,7 +9,7 @@
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
   const SIGNAL_REALTIME_RELAY_LIMIT = 2;
   const SIGNAL_REALTIME_TYPES = new Set(["state", "snapshot", "attack", "skill", "collect", "openChest", "dropItem", "damage", "chooseDoor"]);
-  const APP_VERSION = "20260606-cinematic-skills-185";
+  const APP_VERSION = "20260606-premium-skill-vfx-186";
   const CHANGELOG_ENTRIES = [
     {
       version: APP_VERSION,
@@ -10433,6 +10433,7 @@
         color: powerById(kind).color,
         accent: powerById(kind).accent,
         casterId: this.currentDamageSourceId || "",
+        seed: Number.isFinite(scaledExtra.seed) ? scaledExtra.seed : rand(0, TAU),
         ...scaledExtra
       });
     }
@@ -20219,6 +20220,39 @@
         ctx.beginPath();
         ctx.arc(0, 0, 27 + castPose.ring * 8, 0, TAU);
         ctx.stroke();
+        const castBeat = Math.sin(clamp(actionProgress, 0, 1) * Math.PI);
+        const castSnap = actionProgress >= 0.34 && actionProgress < 0.62 ? Math.sin(clamp((actionProgress - 0.34) / 0.28, 0, 1) * Math.PI) : 0;
+        ctx.globalAlpha = (anim === "ultimate" ? 0.62 : 0.44) + castSnap * 0.24;
+        ctx.lineWidth = anim === "ultimate" ? 2.8 : 2;
+        ctx.strokeStyle = castPalette.accent;
+        ctx.fillStyle = castPalette.color;
+        ctx.save();
+        ctx.rotate((castKind === "time" ? -1 : 1) * (t * 0.9 + castBeat * 0.4));
+        const orbit = anim === "ultimate" ? 30 : 24;
+        for (let i = 0; i < (anim === "ultimate" ? 5 : 3); i++) {
+          const a = (i / (anim === "ultimate" ? 5 : 3)) * TAU;
+          ctx.save();
+          ctx.translate(Math.cos(a) * orbit, Math.sin(a) * (orbit * 0.62));
+          ctx.rotate(-a + t * 0.5);
+          this.drawPowerIconShape(ctx, castKind, anim === "ultimate" ? 4.8 : 3.6, castPalette.color, castPalette.accent);
+          ctx.restore();
+        }
+        ctx.restore();
+        ctx.globalAlpha = 0.34 + castSnap * 0.3;
+        ctx.lineCap = "butt";
+        for (const side of [-1, 1]) {
+          ctx.save();
+          ctx.translate(side * 14, -5 + castPose.crouch * 0.4);
+          ctx.rotate(side * (0.55 + castBeat * 0.15));
+          for (let i = 0; i < 3; i++) {
+            const len = 15 + i * 7 + castSnap * 8;
+            ctx.beginPath();
+            ctx.moveTo(6 + i * 2, -4 + i * 4);
+            ctx.lineTo(6 + len, -9 + i * 7);
+            ctx.stroke();
+          }
+          ctx.restore();
+        }
         ctx.restore();
       }
       if (awakenedPowerActive && deathProgress <= 0) this.drawAwakenedPowerAura(ctx, power, t, "front");
@@ -22019,6 +22053,67 @@
             this.drawPowerIconShape(ctx, designKind, size, effect.color, accent);
             ctx.restore();
           };
+          const drawPremiumCore = (radius = r * 0.36, rays = 8, options = {}) => {
+            const beat = Math.sin(clamp((localProgress - 0.18) / 0.56, 0, 1) * Math.PI);
+            const snap = impact > 0 ? Math.sin(impact * Math.PI) : 0;
+            const glow = Math.max(beat * 0.55, snap);
+            if (glow <= 0.02 && designKey !== "f") return;
+            const coreRadius = radius * (0.42 + glow * 0.24);
+            ctx.save();
+            ctx.globalCompositeOperation = lowDetail ? "source-over" : "screen";
+            ctx.globalAlpha = alpha * (0.12 + glow * 0.24);
+            ctx.fillStyle = options.darkFill || (designKind === "void" || designKind === "shadow" ? "#000000" : effect.color);
+            ctx.beginPath();
+            ctx.arc(0, 0, radius * (0.9 + glow * 0.28), 0, TAU);
+            ctx.fill();
+            ctx.globalCompositeOperation = "source-over";
+            ctx.globalAlpha = alpha * (0.5 + glow * 0.32);
+            ctx.strokeStyle = accent;
+            ctx.lineWidth = Math.max(1.6, radius * 0.035);
+            ctx.beginPath();
+            ctx.arc(0, 0, coreRadius, 0, TAU);
+            ctx.stroke();
+            ctx.globalAlpha = alpha * (0.36 + glow * 0.42);
+            ctx.lineWidth = Math.max(1.2, radius * 0.022);
+            ctx.strokeStyle = options.rayColor || accent;
+            for (let i = 0; i < rays; i++) {
+              const a = (i / rays) * TAU + (effect.seed || 0) * 0.12 + progress * (designKind === "time" ? -0.7 : 0.7);
+              const inner = radius * (0.34 + (i % 2) * 0.08);
+              const outer = radius * (0.72 + glow * 0.2 + (i % 3) * 0.035);
+              ctx.beginPath();
+              ctx.moveTo(Math.cos(a) * inner, Math.sin(a) * inner);
+              ctx.lineTo(Math.cos(a) * outer, Math.sin(a) * outer);
+              ctx.stroke();
+            }
+            if (!lowDetail) {
+              ctx.globalCompositeOperation = "lighter";
+              ctx.globalAlpha = alpha * (0.42 + glow * 0.34);
+              drawPowerSigilCenter(Math.max(10, radius * (0.12 + glow * 0.035)));
+            }
+            ctx.restore();
+          };
+          const drawCinematicEdgeShine = (len, width, count = 5, color = "#ffffff") => {
+            ctx.save();
+            ctx.globalCompositeOperation = "source-over";
+            ctx.globalAlpha = alpha * 0.68;
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 1.6;
+            for (let i = 0; i < count; i++) {
+              const t = (i + 1) / (count + 1);
+              const wobble = Math.sin((effect.seed || 0) + i * 1.7 + progress * 8) * width * 0.08;
+              ctx.beginPath();
+              ctx.moveTo(len * t - width * 0.2, -width * 0.34 + wobble);
+              ctx.lineTo(len * t + width * 0.36, width * 0.26 - wobble * 0.4);
+              ctx.stroke();
+            }
+            ctx.restore();
+          };
+
+          drawPremiumCore(
+            designKey === "r" ? r * 0.42 : designKey === "f" ? r * 0.58 : r * 0.32,
+            designKind === "lightning" ? 10 : designKind === "crystal" ? 12 : 8,
+            { darkFill: designKind === "gravity" || designKind === "void" || designKind === "shadow" ? "#000000" : undefined }
+          );
 
           if (designKind === "fire") {
             if (designKey === "q") {
@@ -22047,6 +22142,7 @@
               ctx.strokeStyle = "#ffdd44";
               ctx.lineWidth = 4;
               ctx.stroke();
+              drawCinematicEdgeShine(len * 0.72, len * 0.18, lowDetail ? 4 : 7, "#ffffff");
               for (let i = 0; i < 16; i++) drawPixel(30 + i * 12, Math.sin(i * 1.7 + progress * 9) * (8 + i), 3 + (i % 2), i % 3 ? "#ff6600" : "#ffdd44", alpha * 0.8);
               return true;
             }
@@ -22055,6 +22151,7 @@
                 ctx.save();
                 ctx.rotate(arm * Math.PI / 2);
                 sharpPoly([[12, -24], [124, -20], [138, 0], [124, 20], [12, 24], [30, 0]], "#ff4500", "#ffdd44", 3.5, 0.52);
+                drawCinematicEdgeShine(122, 42, 4, "#ffffff");
                 for (let i = 0; i < 7; i++) drawPixel(32 + i * 14, -18 + (i % 3) * 18, 4, i % 2 ? "#cc2200" : "#ffdd44", alpha * 0.75);
                 ctx.restore();
               }
@@ -22069,6 +22166,10 @@
                 const h = w * (0.45 + ((i + Math.floor(progress * 10)) % 4) * 0.12);
                 sharpPoly([[px - 8, w * 0.42], [px + 4, -h], [px + 14, w * 0.42]], i % 2 ? "#ff4500" : "#ff8c00", "#ffdd44", 1.5, 0.65);
               }
+              ctx.save();
+              ctx.translate(-len * 0.46, 0);
+              drawCinematicEdgeShine(len * 0.92, w, 9, "#ffffff");
+              ctx.restore();
               return true;
             }
           }
@@ -22085,6 +22186,10 @@
               ctx.strokeStyle = "#ffffff";
               ctx.lineWidth = 3;
               ctx.stroke();
+              ctx.save();
+              ctx.rotate(progress * 0.7);
+              drawCinematicEdgeShine(ringR * 0.9, 32, 6, "#ffffff");
+              ctx.restore();
               for (let i = 0; i < 12; i++) {
                 const a = i * TAU / 12 + progress * 0.35;
                 shard(Math.cos(a) * ringR, Math.sin(a) * ringR, 9, a + Math.PI / 2);
@@ -22106,6 +22211,7 @@
             if (designKey === "r") {
               jaggedStroke(Math.max(360, docLen), 16, 13, "#ffffff", 5);
               jaggedStroke(Math.max(360, docLen), 9, 13, "#88ddff", 10);
+              drawCinematicEdgeShine(Math.max(330, docLen * 0.82), 34, 7, "#ffffff");
               shard(Math.max(360, docLen), 0, 34, Math.PI / 2);
               return true;
             }
@@ -22131,6 +22237,7 @@
             if (designKey === "e") {
               jaggedStroke(Math.max(200, docLen), 18, 10, "#ffffff", 5);
               jaggedStroke(Math.max(200, docLen), 12, 10, "#ffff00", 9);
+              drawCinematicEdgeShine(Math.max(180, docLen * 0.82), 38, 6, "#ffffff");
               ctx.save();
               ctx.translate(Math.max(180, docLen), 0);
               for (let i = 0; i < 8; i++) {
@@ -22186,6 +22293,7 @@
               ctx.strokeStyle = "#cc44ff";
               ctx.lineWidth = 2.4;
               ctx.stroke();
+              drawCinematicEdgeShine(docLen * 0.76, 34, 4, "#d7c4ff");
               sharpPoly([[docLen - 12, -18], [docLen + 20, 0], [docLen - 12, 18], [docLen - 2, 0]], "#000000", "#cc44ff", 2.2, 0.72);
               return true;
             }
@@ -22209,6 +22317,7 @@
                 ctx.save();
                 ctx.rotate(i * 0.13);
                 sharpPoly([[0, -10], [docLen * 0.86, -8], [docLen, 0], [docLen * 0.86, 8], [0, 10], [10, 0]], "#b00028", "#ffc0c8", 2.2, 0.48);
+                drawCinematicEdgeShine(docLen * 0.72, 24, 4, "#ffffff");
                 ctx.restore();
               }
               return true;
@@ -22269,6 +22378,7 @@
                 ctx.save();
                 ctx.rotate(i * 0.12);
                 shard(96 + i * 8, i * 12, 36 - Math.abs(i) * 4, Math.PI / 2, "#76ffd8", "#ffc4f5");
+                drawCinematicEdgeShine(110, 28, 3, "#ffffff");
                 ctx.restore();
               }
               return true;

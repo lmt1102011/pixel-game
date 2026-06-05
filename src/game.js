@@ -7,7 +7,7 @@
   const ROOM_PAD = 86;
   const SAVE_KEY = "soulrift-save-v1";
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
-  const APP_VERSION = "20260605-lite-awakened-aura-164";
+  const APP_VERSION = "20260605-boss-minigame-165";
   const VERSION_CHECK_INTERVAL = 15000;
   const UPDATE_ATTEMPT_KEY = "soulrift-update-attempt-v1";
   const CLOUD_MIGRATION_KEY = "soulrift-cloud-migrated-v1";
@@ -1382,6 +1382,7 @@
       this.joinStartedAt = 0;
       this.mapVote = "forest";
       this.difficultyVote = "normal";
+      this.runMode = "gauntlet";
       this.signal = null;
       this.remoteSignal = null;
       this.remoteSignals = [];
@@ -1691,6 +1692,7 @@
         hostName: this.playerName(),
         open: Boolean(open),
         running: !open || this.game.mode === "game",
+        runMode: this.runMode || "gauntlet",
         emptySince: this.emptySince || 0,
         emptyFor: this.emptySince ? now - this.emptySince : 0,
         players: this.slots.filter(Boolean).length,
@@ -1860,7 +1862,7 @@
           await peer.pc.setLocalDescription(offer);
           this.sendSignal({ type: "offer", sdp: offer }, message.from);
         }
-        this.sendSignal({ type: "lobby", slots: this.slots, mapVote: this.mapVote, difficultyVote: this.difficultyVote }, message.from);
+        this.sendSignal({ type: "lobby", slots: this.slots, mapVote: this.mapVote, difficultyVote: this.difficultyVote, runMode: this.runMode }, message.from);
         this.broadcastLobby();
       }
 
@@ -1873,6 +1875,7 @@
         this.game.rememberRoomCode(this.code);
         if (message.mapVote) this.mapVote = message.mapVote;
         if (message.difficultyVote) this.difficultyVote = message.difficultyVote;
+        if (message.runMode) this.runMode = message.runMode;
         this.renderLobbyIfVisible();
       }
 
@@ -1959,7 +1962,7 @@
         this.joinPending = false;
         if (!this.host && this.code) this.game.rememberRoomCode(this.code);
         if (this.host) {
-          this.sendPeer(peer, { type: "lobby", slots: this.slots, mapVote: this.mapVote, difficultyVote: this.difficultyVote });
+          this.sendPeer(peer, { type: "lobby", slots: this.slots, mapVote: this.mapVote, difficultyVote: this.difficultyVote, runMode: this.runMode });
           if (this.lastStartMessage && Date.now() - this.lastStartAt < 15000) this.sendPeer(peer, this.lastStartMessage);
         }
         else {
@@ -1990,7 +1993,7 @@
         this.joinPending = false;
         if (!this.host && this.code) this.game.rememberRoomCode(this.code);
         if (this.host) {
-          this.sendPeer(peer, { type: "lobby", slots: this.slots, mapVote: this.mapVote, difficultyVote: this.difficultyVote });
+          this.sendPeer(peer, { type: "lobby", slots: this.slots, mapVote: this.mapVote, difficultyVote: this.difficultyVote, runMode: this.runMode });
           if (this.lastStartMessage && Date.now() - this.lastStartAt < 15000) this.sendPeer(peer, this.lastStartMessage);
         } else {
           this.sendPeer(peer, { type: "hello", ...this.playerProfile(), ready: this.ready, vote: this.mapVote });
@@ -2095,6 +2098,7 @@
         this.game.rememberRoomCode(this.code);
         if (message.mapVote) this.mapVote = message.mapVote;
         if (message.difficultyVote) this.difficultyVote = message.difficultyVote;
+        if (message.runMode) this.runMode = message.runMode;
         this.renderLobbyIfVisible();
       }
       if (message.type === "hostTransfer") {
@@ -2152,8 +2156,15 @@
       const ownPowerId = this.game.save.account.selectedPower || message.powerId;
       const startPower = powerById(ownPowerId || message.powerId);
       if (message.difficultyId) this.difficultyVote = message.difficultyId;
+      if (message.runMode) this.runMode = message.runMode;
       this.game.toast("Chủ phòng đã bắt đầu");
-      this.game.startRun(startPower, message.biomeId, { multiplayer: true, host: false, seed: message.seed, difficulty: message.difficultyId || this.difficultyVote || "normal" });
+      this.game.startRun(startPower, message.biomeId, {
+        multiplayer: true,
+        host: false,
+        seed: message.seed,
+        difficulty: message.difficultyId || this.difficultyVote || "normal",
+        miniGame: message.miniGame || (message.runMode === "bossRush" ? "bossRush" : "")
+      });
     }
 
     renderLobbyIfVisible() {
@@ -2273,16 +2284,16 @@
 
     broadcastLobby() {
       if (!this.host) return;
-      if (this.code) this.sendSignal({ type: "lobby", slots: this.slots, mapVote: this.mapVote, difficultyVote: this.difficultyVote });
+      if (this.code) this.sendSignal({ type: "lobby", slots: this.slots, mapVote: this.mapVote, difficultyVote: this.difficultyVote, runMode: this.runMode });
       for (const peer of this.peers.values()) {
-        this.sendPeer(peer, { type: "lobby", slots: this.slots, mapVote: this.mapVote, difficultyVote: this.difficultyVote });
+        this.sendPeer(peer, { type: "lobby", slots: this.slots, mapVote: this.mapVote, difficultyVote: this.difficultyVote, runMode: this.runMode });
       }
     }
 
-    broadcastStart(powerId, biomeId, seed, slots = this.slots, difficultyId = this.difficultyVote) {
+    broadcastStart(powerId, biomeId, seed, slots = this.slots, difficultyId = this.difficultyVote, runMode = this.runMode) {
       for (const timer of this.startRetryTimers) clearTimeout(timer);
       this.startRetryTimers = [];
-      const message = { type: "start", powerId, biomeId, seed, slots, difficultyId, roomSession: this.roomSession };
+      const message = { type: "start", powerId, biomeId, seed, slots, difficultyId, runMode, miniGame: runMode === "bossRush" ? "bossRush" : "", roomSession: this.roomSession };
       this.lastStartMessage = message;
       this.lastStartAt = Date.now();
       const send = () => {
@@ -4735,6 +4746,10 @@
       if (action === "play") this.showPlayMenu();
       if (action === "play-gauntlet") this.showGauntletMenu();
       if (action === "play-solo") this.showSoloMenu();
+      if (action === "play-minigames") this.showMiniGameMenu();
+      if (action === "play-boss-rush") this.showBossRushMenu();
+      if (action === "play-boss-rush-solo") this.showBossRushSoloMenu();
+      if (action === "play-boss-rush-multiplayer") this.showMultiplayerHub("bossRush");
       if (action === "play-training") this.showTrainingSetup();
       if (action === "play-multiplayer") this.showMultiplayerHub();
       if (action === "find-room") this.showRoomFinder();
@@ -4745,10 +4760,12 @@
         this.showRoomFinder();
       }
       if (action === "create-room-from-play") {
+        this.lobby.runMode = target.dataset.runMode || this.lobby.runMode || "gauntlet";
         this.lobby.create();
         this.renderLobby();
       }
       if (action === "start-solo-difficulty") this.startSelectedRun("", { difficulty: target.dataset.difficulty || "normal" });
+      if (action === "start-boss-rush-solo-difficulty") this.startSelectedRun(pick(BIOMES).id, { difficulty: target.dataset.difficulty || "normal", miniGame: "bossRush" });
       if (action === "start-training") this.startTrainingRun();
       if (action === "character-tab") this.showCharacterTab(target.dataset.tab || "character");
       if (action === "character") this.showCharacter();
@@ -4872,11 +4889,16 @@
                 <p class="panel-subtitle">Chọn nội dung muốn vào. Vượt ải sẽ tách tiếp thành chơi đơn hoặc chơi nhiều người.</p>
               </div>
             </div>
-            <div class="grid cols-3">
+            <div class="grid cols-2">
               <button class="choice-card" data-action="play-gauntlet">
                 <div class="card-icon">ẢI</div>
                 <h3>Vượt ải</h3>
                 <p>Vào ải một mình hoặc cùng bạn trong phòng.</p>
+              </button>
+              <button class="choice-card" data-action="play-minigames">
+                <div class="card-icon">B</div>
+                <h3>Mini game</h3>
+                <p>Các chế độ ngắn, tập trung vào boss fight hoặc luật riêng.</p>
               </button>
               <button class="choice-card" data-action="play-training">
                 <div class="card-icon">T</div>
@@ -4889,6 +4911,98 @@
                 <p>Xem nhanh các phòng vượt ải đang mở hoặc nhập ID.</p>
               </button>
             </div>
+          </div>
+        </section>
+      `);
+    }
+
+    showMiniGameMenu() {
+      this.mode = "play";
+      this.roomFinderOpen = false;
+      this.lobby.runMode = "gauntlet";
+      this.setScreen(`
+        <section class="shell">
+          ${this.navHtml("play")}
+          <div class="panel">
+            <div class="panel-header">
+              <div>
+                <h2 class="panel-title">Mini game</h2>
+                <p class="panel-subtitle">Chọn chế độ ngắn với luật riêng. Hiện có Đại chiến boss.</p>
+              </div>
+              <button class="btn" data-action="play">CHƠI</button>
+            </div>
+            <div class="grid cols-2">
+              <button class="choice-card" data-action="play-boss-rush">
+                <div class="card-icon">BOSS</div>
+                <h3>Đại chiến boss</h3>
+                <p>Vào thẳng đấu trùm, không có phòng quái thường.</p>
+              </button>
+            </div>
+          </div>
+        </section>
+      `);
+    }
+
+    showBossRushMenu() {
+      this.mode = "play";
+      this.roomFinderOpen = false;
+      this.lobby.runMode = "bossRush";
+      const selected = this.save.account.selectedPower ? powerById(this.save.account.selectedPower) : null;
+      this.setScreen(`
+        <section class="shell">
+          ${this.navHtml("play")}
+          <div class="panel">
+            <div class="panel-header">
+              <div>
+                <h2 class="panel-title">Đại chiến boss</h2>
+                <p class="panel-subtitle">${selected ? `Power: ${selected.name}. Chọn solo hoặc vào phòng boss cùng bạn.` : "Hãy quay và chọn power trước khi bắt đầu."}</p>
+              </div>
+              <button class="btn" data-action="play-minigames">MINI GAME</button>
+            </div>
+            <div class="grid cols-2">
+              <button class="choice-card" data-action="play-boss-rush-solo">
+                <div class="card-icon">1</div>
+                <h3>Chơi đơn</h3>
+                <p>Solo với boss ngay từ đầu, không có phòng quái thường.</p>
+              </button>
+              <button class="choice-card" data-action="play-boss-rush-multiplayer">
+                <div class="card-icon">4</div>
+                <h3>Chơi nhiều người</h3>
+                <p>Tạo phòng boss-only, chủ phòng bắt đầu thì cả nhóm vào đại chiến.</p>
+              </button>
+            </div>
+          </div>
+        </section>
+      `);
+    }
+
+    showBossRushSoloMenu() {
+      this.mode = "play";
+      this.roomFinderOpen = false;
+      this.lobby.runMode = "bossRush";
+      const selected = this.save.account.selectedPower ? powerById(this.save.account.selectedPower) : null;
+      const difficultyCards = DIFFICULTIES.map((difficulty) => {
+        return `
+          <button class="choice-card" data-action="start-boss-rush-solo-difficulty" data-difficulty="${difficulty.id}">
+            <div class="card-icon">${difficulty.label.slice(0, 1)}</div>
+            <h3>${difficulty.label}</h3>
+            <p>Boss được chọn ngẫu nhiên mỗi lượt.</p>
+            <p class="small">Boss-only - máu ${Math.round(difficulty.enemyHp * 100)}% - sát thương ${Math.round(difficulty.enemyDamage * 100)}%</p>
+          </button>
+        `;
+      }).join("");
+      this.setScreen(`
+        <section class="shell">
+          ${this.navHtml("play")}
+          <div class="panel">
+            <div class="panel-header">
+              <div>
+                <h2 class="panel-title">Solo Đại chiến boss</h2>
+                <p class="panel-subtitle">${selected ? `Power: ${selected.name}. Chọn độ khó rồi vào boss ngay.` : "Hãy quay và chọn power trước khi bắt đầu."}</p>
+              </div>
+              <button class="btn" data-action="play-boss-rush">ĐẠI CHIẾN BOSS</button>
+            </div>
+            <div class="grid cols-3">${difficultyCards}</div>
           </div>
         </section>
       `);
@@ -5001,25 +5115,28 @@
       `);
     }
 
-    showMultiplayerHub() {
+    showMultiplayerHub(runMode = "gauntlet") {
       this.mode = "play";
       this.roomFinderOpen = false;
+      this.lobby.runMode = runMode;
+      const bossRush = runMode === "bossRush";
       this.setScreen(`
         <section class="shell">
           ${this.navHtml("play")}
           <div class="panel">
             <div class="panel-header">
               <div>
-                <h2 class="panel-title">Vượt ải cùng bạn</h2>
-                <p class="panel-subtitle">Tạo phòng mới hoặc tìm phòng để cùng nhau vượt ải.</p>
+                <h2 class="panel-title">${bossRush ? "Đại chiến boss cùng bạn" : "Vượt ải cùng bạn"}</h2>
+                <p class="panel-subtitle">${bossRush ? "Tạo phòng boss-only hoặc tìm phòng để cùng nhau đánh trùm." : "Tạo phòng mới hoặc tìm phòng để cùng nhau vượt ải."}</p>
               </div>
-              <button class="btn" data-action="play-gauntlet">VƯỢT ẢI</button>
+              <button class="btn" data-action="${bossRush ? "play-boss-rush" : "play-gauntlet"}">${bossRush ? "BOSS" : "VƯỢT ẢI"}</button>
             </div>
+            ${bossRush ? `<p class="small">Chế độ phòng: Đại chiến boss. Khi bắt đầu sẽ vào thẳng boss, không có phòng quái thường.</p>` : ""}
             <div class="grid cols-2">
-              <button class="choice-card" data-action="create-room-from-play">
+              <button class="choice-card" data-action="create-room-from-play" data-run-mode="${runMode}">
                 <div class="card-icon">+</div>
                 <h3>Tạo phòng</h3>
-                <p>Bạn là chủ phòng và là người duy nhất được bắt đầu.</p>
+                <p>${bossRush ? "Bạn là chủ phòng và bắt đầu trận đại chiến boss." : "Bạn là chủ phòng và là người duy nhất được bắt đầu."}</p>
               </button>
               <button class="choice-card" data-action="find-room">
                 <div class="card-icon">ID</div>
@@ -6366,6 +6483,7 @@
       this.roomFinderOpen = false;
       if (this.lobby.code) this.lobby.syncOwnSlot();
       const isHost = this.lobby.host;
+      const bossRush = this.lobby.runMode === "bossRush";
       if (!this.lobby.code || !isHost) this.lobbyFriendInviteOpen = false;
       const slots = Array.from({ length: 4 }, (_, index) => {
         const slot = this.lobby.slots[index];
@@ -6411,8 +6529,8 @@
           <div class="panel">
             <div class="panel-header">
               <div>
-                <h2 class="panel-title">Phòng vượt ải</h2>
-                <p class="panel-subtitle">${isHost ? "Chủ phòng chọn khu, độ khó và bắt đầu khi mọi người sẵn sàng." : "Bạn chỉ cần sẵn sàng, chủ phòng sẽ chọn khu, độ khó và bắt đầu."}</p>
+                <h2 class="panel-title">${bossRush ? "Phòng đại chiến boss" : "Phòng vượt ải"}</h2>
+                <p class="panel-subtitle">${bossRush ? (isHost ? "Chủ phòng chọn boss/khu, độ khó và bắt đầu boss-only khi mọi người sẵn sàng." : "Bạn chỉ cần sẵn sàng, chủ phòng sẽ bắt đầu trận boss-only.") : (isHost ? "Chủ phòng chọn khu, độ khó và bắt đầu khi mọi người sẵn sàng." : "Bạn chỉ cần sẵn sàng, chủ phòng sẽ chọn khu, độ khó và bắt đầu.")}</p>
               </div>
             </div>
             <div class="grid cols-2 ${this.lobby.code ? "hidden" : ""}">
@@ -6466,11 +6584,12 @@
       const selectedPower = powerById(powerId);
       const biomeId = this.lobby.mapVote || "forest";
       const difficultyId = this.lobby.difficultyVote || "normal";
+      const runMode = this.lobby.runMode || "gauntlet";
       const seed = Math.random();
       this.lobby.publishDirectoryPresence(false);
       this.publicRooms = (this.publicRooms || []).filter((room) => room?.code !== this.lobby.code);
-      this.lobby.broadcastStart(selectedPower.id, biomeId, seed, this.lobby.slots, difficultyId);
-      this.startRun(selectedPower, biomeId, { multiplayer: true, host: true, seed, difficulty: difficultyId });
+      this.lobby.broadcastStart(selectedPower.id, biomeId, seed, this.lobby.slots, difficultyId, runMode);
+      this.startRun(selectedPower, biomeId, { multiplayer: true, host: true, seed, difficulty: difficultyId, miniGame: runMode === "bossRush" ? "bossRush" : "" });
     }
 
     equipItem(itemId) {
@@ -6581,6 +6700,7 @@
         stage: BIOMES.indexOf(startBiome),
         roomNumber: 0,
         roomsCleared: 0,
+        miniGame: options.miniGame || "",
         multiplayer: Boolean(options.multiplayer),
         netHost: options.multiplayer ? Boolean(options.host) : true,
         training,
@@ -6636,7 +6756,9 @@
       this.touchLayer.classList.toggle("hidden", !this.isMobileDevice());
       this.startRoom(training
         ? { type: "training", label: "Phòng Huấn Luyện", icon: "T", color: "#82ffd3" }
-        : { type: "normal", label: "Phòng Thường", icon: "X", color: "#c9d0db" });
+        : options.miniGame === "bossRush"
+          ? { type: "boss", label: "Đại Chiến Boss", icon: "B", color: startBiome.accent }
+          : { type: "normal", label: "Phòng Thường", icon: "X", color: "#c9d0db" });
       if (this.isMultiplayerClient()) {
         this.run.enemies = [];
         this.run.projectiles = [];
@@ -6662,6 +6784,10 @@
 
     isTrainingRun() {
       return Boolean(this.run?.training || this.run?.currentRoom?.type === "training");
+    }
+
+    isBossRushRun() {
+      return this.run?.miniGame === "bossRush";
     }
 
     trainingRule(key) {
@@ -7364,7 +7490,7 @@
         type,
         cleared: false,
         started: false,
-        intro: type === "training" ? 0.75 : type === "boss" ? 3.0 : 1.25,
+        intro: type === "training" ? 0.75 : type === "boss" ? (this.isBossRushRun() ? 1.65 : 3.0) : 1.25,
         timer: 0,
         rewardClaims: {},
         rewardOwners: []
@@ -7817,7 +7943,8 @@
       this.run.enemies = this.run.enemies.filter((enemy) => enemy.boss);
       if (this.run.enemies.some((enemy) => enemy.boss)) return;
       const partySize = this.isMultiplayerRun() ? Math.max(1, (this.lobby.slots || []).filter(Boolean).length) : 1;
-      const hp = (1180 + this.run.stage * 360) * (this.run.difficulty?.enemyHp || 1) * (1 + (partySize - 1) * 0.34);
+      const rushMult = this.isBossRushRun() ? 1.22 : 1;
+      const hp = (1180 + this.run.stage * 360) * (this.run.difficulty?.enemyHp || 1) * (1 + (partySize - 1) * 0.34) * rushMult;
       const bossDebuff = pick(BOSS_DEBUFFS);
       this.run.enemies.push({
         id: uid("boss"),
@@ -7829,13 +7956,13 @@
         radius: 58,
         hp,
         maxHp: hp,
-        speed: 62 + this.run.stage * 5,
+        speed: (62 + this.run.stage * 5) * (this.isBossRushRun() ? 1.08 : 1),
         damage: (30 + this.run.stage * 6.8) * (this.run.difficulty?.enemyDamage || 1),
         ranged: true,
         bulky: true,
         elite: true,
         boss: true,
-        attackCd: 1.2,
+        attackCd: this.isBossRushRun() ? 0.85 : 1.2,
         attackAnim: 0,
         attackDir: 0,
         facingDir: 1,
@@ -10527,6 +10654,10 @@
     }
 
     advanceToNextStageAfterBoss() {
+      if (this.isBossRushRun()) {
+        this.showBossRushVictory();
+        return;
+      }
       if (this.run.currentRoom?.advancing) return;
       if (this.run.currentRoom) this.run.currentRoom.advancing = true;
       this.run.stage += 1;
@@ -11494,6 +11625,24 @@
       `);
     }
 
+    showBossRushVictory() {
+      this.mode = "victory";
+      this.setScreen(`
+        <section class="wide-panel">
+          <div class="panel-header">
+            <div>
+              <h2 class="panel-title">Đại Chiến Boss Hoàn Tất</h2>
+              <p class="panel-subtitle">Bạn đã hạ boss trong mini game. Thưởng, kinh nghiệm và nguyên liệu đã được lưu.</p>
+            </div>
+          </div>
+          <div class="grid cols-2">
+            <button class="btn primary" data-action="play-boss-rush">ĐÁNH BOSS TIẾP</button>
+            <button class="btn" data-action="play">CHƠI</button>
+          </div>
+        </section>
+      `);
+    }
+
     playerDeath() {
       if (!this.run || this.run.player.dead) return;
       const p = this.run.player;
@@ -12050,6 +12199,11 @@
       const patterns = ["ring", "slam", "line"];
       if (enemy.phase >= 2) patterns.push("spiral", "rain");
       if (enemy.phase >= 3) patterns.push("cross", "rain");
+      if (this.isBossRushRun()) {
+        patterns.push("laneWalls", "bulletCurtain");
+        if (enemy.phase >= 2) patterns.push("soulCage", "pinwheel");
+        if (enemy.phase >= 3) patterns.push("laneWalls", "bulletCurtain", "checkers");
+      }
       const biomePatterns = {
         forest: ["roots", "rain"],
         frozen: ["frostFan", "cross"],
@@ -12159,6 +12313,26 @@
         this.bossTemplePillars(enemy, target);
         return 2.05;
       }
+      if (pattern === "laneWalls") {
+        this.bossLaneWalls(enemy, target);
+        return 2.05;
+      }
+      if (pattern === "bulletCurtain") {
+        this.bossBulletCurtain(enemy);
+        return 1.9;
+      }
+      if (pattern === "soulCage") {
+        this.bossSoulCage(enemy, target);
+        return 2.15;
+      }
+      if (pattern === "pinwheel") {
+        this.bossPinwheel(enemy);
+        return 1.85;
+      }
+      if (pattern === "checkers") {
+        this.bossCheckerBoard(enemy, target);
+        return 2.2;
+      }
       this.bossLine(enemy, angle);
       return 1.55;
     }
@@ -12237,6 +12411,126 @@
         const x = clamp(center.x + Math.cos(a) * 145, ROOM_PAD + 80, WORLD_W - ROOM_PAD - 80);
         const y = clamp(center.y + Math.sin(a) * 145, ROOM_PAD + 80, WORLD_H - ROOM_PAD - 80);
         this.bossDanger(enemy, x, y, 64 + enemy.phase * 8, 0.58 + i * 0.04, 0.58, "#f4d26f");
+      }
+    }
+
+    bossLaneWalls(enemy, target) {
+      const horizontal = chance(0.5);
+      const lanes = 5 + Math.min(2, enemy.phase || 1);
+      const safeLane = randi(0, lanes - 1);
+      const color = horizontal ? "#ff4b8f" : "#70f6ff";
+      const time = 0.9 + enemy.phase * 0.05;
+      for (let i = 0; i < lanes; i++) {
+        if (Math.abs(i - safeLane) <= (enemy.phase >= 3 ? 0 : 0)) continue;
+        const ratio = lanes <= 1 ? 0.5 : i / (lanes - 1);
+        if (horizontal) {
+          const y = ROOM_PAD + 130 + ratio * (WORLD_H - ROOM_PAD * 2 - 260);
+          this.bossLineDanger(enemy, ROOM_PAD + 60, y, 0, WORLD_W - ROOM_PAD * 2 - 120, 28 + enemy.phase * 4, time, 0.62, color);
+        } else {
+          const x = ROOM_PAD + 100 + ratio * (WORLD_W - ROOM_PAD * 2 - 200);
+          this.bossLineDanger(enemy, x, ROOM_PAD + 75, Math.PI / 2, WORLD_H - ROOM_PAD * 2 - 150, 28 + enemy.phase * 4, time, 0.62, color);
+        }
+      }
+      if (enemy.phase >= 2 && target) {
+        const a = Math.atan2(target.y - enemy.y, target.x - enemy.x);
+        this.bossLineDanger(enemy, enemy.x - Math.cos(a) * 290, enemy.y - Math.sin(a) * 290, a, 580, 24 + enemy.phase * 3, time + 0.18, 0.58, "#ffd166");
+      }
+      this.addShockwave(enemy.x, enemy.y, 160, color, 0, { owner: "enemy" });
+    }
+
+    bossBulletCurtain(enemy) {
+      const rows = 6 + enemy.phase;
+      const gap = randi(1, Math.max(1, rows - 2));
+      const fromLeft = chance(0.5);
+      const speed = 230 + enemy.phase * 34;
+      const color = fromLeft ? "#ff8d3d" : "#8ff7ff";
+      for (let i = 0; i < rows; i++) {
+        if (Math.abs(i - gap) <= 0) continue;
+        const y = ROOM_PAD + 120 + (i / Math.max(1, rows - 1)) * (WORLD_H - ROOM_PAD * 2 - 240);
+        const x = fromLeft ? ROOM_PAD - 42 : WORLD_W - ROOM_PAD + 42;
+        const vx = fromLeft ? speed : -speed;
+        this.spawnProjectile({
+          owner: "enemy",
+          x,
+          y,
+          vx,
+          vy: Math.sin(i * 1.7 + this.menuTime) * 18,
+          radius: 10 + enemy.phase,
+          damage: enemy.damage * 0.52,
+          life: 5.2,
+          color,
+          pierce: 0,
+          kind: "bossCurtain",
+          bossDebuff: enemy.bossDebuff
+        });
+      }
+      if (enemy.phase >= 2) {
+        const columns = 4 + enemy.phase;
+        for (let i = 0; i < columns; i++) {
+          if (i === gap % columns) continue;
+          const x = ROOM_PAD + 150 + (i / Math.max(1, columns - 1)) * (WORLD_W - ROOM_PAD * 2 - 300);
+          this.spawnProjectile({
+            owner: "enemy",
+            x,
+            y: ROOM_PAD - 40,
+            vx: Math.sin(i * 2.1) * 16,
+            vy: speed * 0.8,
+            radius: 8 + enemy.phase,
+            damage: enemy.damage * 0.42,
+            life: 4.6,
+            color: "#f4d26f",
+            pierce: 0,
+            kind: "bossCurtain",
+            bossDebuff: enemy.bossDebuff
+          });
+        }
+      }
+      this.addShockwave(enemy.x, enemy.y, 190, color, 0, { owner: "enemy" });
+    }
+
+    bossSoulCage(enemy, target) {
+      const center = target || this.run.player;
+      const size = 210 + enemy.phase * 22;
+      const x = clamp(center.x - size / 2, ROOM_PAD + 70, WORLD_W - ROOM_PAD - 70 - size);
+      const y = clamp(center.y - size / 2, ROOM_PAD + 70, WORLD_H - ROOM_PAD - 70 - size);
+      const color = "#a169ff";
+      const time = 0.92;
+      this.bossLineDanger(enemy, x, y, 0, size, 26, time, 0.55, color);
+      this.bossLineDanger(enemy, x, y + size, 0, size, 26, time + 0.08, 0.55, color);
+      this.bossLineDanger(enemy, x, y, Math.PI / 2, size, 26, time + 0.16, 0.55, color);
+      this.bossLineDanger(enemy, x + size, y, Math.PI / 2, size, 26, time + 0.24, 0.55, color);
+      if (enemy.phase >= 2) {
+        this.bossDanger(enemy, x + size / 2, y + size / 2, 64 + enemy.phase * 8, 1.04, 0.5, "#ff4b8f");
+      }
+    }
+
+    bossPinwheel(enemy) {
+      const arms = 4 + enemy.phase;
+      const count = 3 + enemy.phase;
+      const color = "#70f6ff";
+      for (let arm = 0; arm < arms; arm++) {
+        for (let i = 0; i < count; i++) {
+          const a = this.menuTime * 0.7 + arm * TAU / arms + i * 0.13;
+          this.spawnBossProjectile(enemy, a, 180 + i * 42 + enemy.phase * 20, 0.42, 7 + i, 3.8, i % 2 ? color : "#ffd166");
+        }
+      }
+      this.addShockwave(enemy.x, enemy.y, 220, color, 0, { owner: "enemy" });
+    }
+
+    bossCheckerBoard(enemy, target) {
+      const center = target || enemy;
+      const cols = 4;
+      const rows = 3;
+      const cellW = 170;
+      const cellH = 130;
+      const startX = clamp(center.x - (cols * cellW) / 2, ROOM_PAD + 70, WORLD_W - ROOM_PAD - 70 - cols * cellW);
+      const startY = clamp(center.y - (rows * cellH) / 2, ROOM_PAD + 70, WORLD_H - ROOM_PAD - 70 - rows * cellH);
+      const parity = randi(0, 1);
+      for (let y = 0; y < rows; y++) {
+        for (let x = 0; x < cols; x++) {
+          if ((x + y) % 2 !== parity) continue;
+          this.bossDanger(enemy, startX + x * cellW + cellW / 2, startY + y * cellH + cellH / 2, 56 + enemy.phase * 8, 0.78 + (x + y) * 0.04, 0.5, (x + y) % 3 ? "#fd57ff" : "#8ff7ff");
+        }
       }
     }
 

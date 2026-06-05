@@ -7,7 +7,7 @@
   const ROOM_PAD = 86;
   const SAVE_KEY = "soulrift-save-v1";
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
-  const APP_VERSION = "20260605-boss-patterns-169";
+  const APP_VERSION = "20260605-door-recovery-170";
   const CHANGELOG_ENTRIES = [
     {
       version: APP_VERSION,
@@ -17,6 +17,7 @@
         "Hóa Trùm có thông báo chọn boss, skill boss theo khu và màn kết quả rõ hơn.",
         "Hóa Trùm dùng nhịp cân bằng riêng và không còn nút chỉnh độ khó trong phòng.",
         "Trùm có thêm nhiều pattern bullet-hell đọc được, mỗi khu và mỗi skill Hóa Trùm khác nhau rõ hơn.",
+        "Sửa lỗi phòng đã vượt ải nhưng đôi lúc không mọc cửa tiếp theo.",
         "Thêm trạng thái mạng gọn trong trận và tự xin đồng bộ nhanh hơn khi client bị lệch.",
         "Thêm bảng cập nhật để biết bản mới vừa thay đổi gì."
       ]
@@ -8313,6 +8314,7 @@
       else player.combo = 0;
       if (!this.isMultiplayerClient()) {
         this.ensureRoomClearState(worldDt);
+        this.ensureNextDoorRecovery();
         this.checkPlayerBossRoundEnd();
       }
     }
@@ -8325,6 +8327,16 @@
       if (!Number.isFinite(this.run.roomClearTimer) || this.run.roomClearTimer <= 0) this.run.roomClearTimer = 0.35;
       this.run.roomClearTimer -= Math.max(0.016, dt || 0);
       if (this.run.roomClearTimer <= 0) this.clearRoom();
+    }
+
+    ensureNextDoorRecovery() {
+      const room = this.run?.currentRoom;
+      if (!room || this.isMultiplayerClient() || this.isTrainingRun()) return;
+      if (!room.cleared || !room.rewardClaimed || room.type === "boss") return;
+      if ((this.run.roomObjects || []).some((object) => object.type === "nextDoor")) return;
+      if (room.nextDoorPending) return;
+      if (room.nextOpened) room.nextOpened = false;
+      this.openNextRoomsAfterReward();
     }
 
     checkPlayerBossRoundEnd() {
@@ -11566,20 +11578,33 @@
 
     openNextRoomsAfterReward() {
       const room = this.run?.currentRoom;
-      if (!room || room.nextOpened) return;
+      if (!room) return;
+      const hasDoor = (this.run.roomObjects || []).some((object) => object.type === "nextDoor");
+      if (room.nextOpened && hasDoor) return;
+      if (room.nextOpened && !hasDoor) room.nextOpened = false;
+      if (room.nextDoorPending) return;
       if (!this.allRewardOwnersClaimed(room)) {
         if (this.isMultiplayerClient()) this.toast("Chờ mọi người nhặt phần thưởng");
         return;
       }
-      room.nextOpened = true;
+      if (this.isMultiplayerClient()) {
+        this.toast("Chờ chủ phòng chọn phòng tiếp theo");
+        return;
+      }
+      room.nextDoorPending = true;
       setTimeout(() => {
-        if (this.mode === "game" && this.run?.currentRoom?.cleared) {
-          if (this.isMultiplayerClient()) {
-            this.toast("Chờ chủ phòng chọn phòng tiếp theo");
-            return;
-          }
-          if (this.prepareNextRooms()) this.spawnNextRoomDoors();
+        const current = this.run?.currentRoom;
+        if (current !== room || !current?.cleared || !current.rewardClaimed) {
+          room.nextDoorPending = false;
+          return;
         }
+        if ((this.run.roomObjects || []).some((object) => object.type === "nextDoor")) {
+          current.nextOpened = true;
+          current.nextDoorPending = false;
+          return;
+        }
+        if (this.prepareNextRooms()) this.spawnNextRoomDoors();
+        current.nextDoorPending = false;
       }, 350);
     }
 
@@ -11598,7 +11623,7 @@
     }
 
     spawnNextRoomDoors() {
-      if (!this.run?.nextRooms?.length) return;
+      if (!this.run?.nextRooms?.length) return false;
       const doors = this.run.nextRooms;
       const spacing = doors.length > 2 ? 170 : 210;
       const baseX = WORLD_W / 2 - ((doors.length - 1) * spacing) / 2;
@@ -11616,8 +11641,10 @@
           effect: this.doorEffectFor(room)
         });
       });
+      if (this.run.currentRoom) this.run.currentRoom.nextOpened = true;
       this.addShockwave(WORLD_W / 2, y, 220, this.run.biome.accent, 0);
       this.toast("Cửa khu tiếp theo đã mọc lên ở phía trên bản đồ");
+      return true;
     }
 
     roomDifficulty(type) {

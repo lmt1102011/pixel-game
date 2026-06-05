@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const APP_VERSION = "20260605-mobile-ui-polish-144";
+  const APP_VERSION = "20260605-logo-gray-145";
   let deferredInstallPrompt = null;
   let startGame = null;
   let iosGuideShown = false;
@@ -90,7 +90,7 @@
         <div class="phone-frame">
           <div class="phone-top"></div>
           <div class="iphone-page-demo">
-            <img src="assets/icons/app-icon.svg" alt="" />
+            <img src="assets/icons/app-icon.svg?v=${APP_VERSION}" alt="" />
             <span>SOULRIFT</span>
           </div>
           <div class="iphone-safari-bar">
@@ -123,7 +123,7 @@
     showDialog("android-guide", waiting ? "Đang chuẩn bị hộp thoại tải" : "Tải Soulrift trên Android", `
       <div class="android-install-art" aria-hidden="true">
         <div class="android-card">
-          <img src="assets/icons/app-icon.svg" alt="" />
+          <img src="assets/icons/app-icon.svg?v=${APP_VERSION}" alt="" />
           <div><b>Soulrift</b><span>Ứng dụng có thể cài đặt</span></div>
         </div>
         <button class="fake-install-button">Cài đặt</button>

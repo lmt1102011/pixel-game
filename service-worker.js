@@ -1,17 +1,17 @@
-const SOULRIFT_CACHE = "soulrift-pwa-20260605-mobile-ui-polish-144";
+const SOULRIFT_CACHE = "soulrift-pwa-20260605-logo-gray-145";
 const SOULRIFT_ASSETS = [
   "./",
   "./index.html",
-  "./styles.css?v=20260605-mobile-ui-polish-144",
-  "./src/pwa.js?v=20260605-mobile-ui-polish-144",
-  "./src/game.js?v=20260605-mobile-ui-polish-144",
+  "./styles.css?v=20260605-logo-gray-145",
+  "./src/pwa.js?v=20260605-logo-gray-145",
+  "./src/game.js?v=20260605-logo-gray-145",
   "./manifest.webmanifest",
   "./version.json",
-  "./assets/icons/app-icon.svg",
-  "./assets/icons/app-icon-192.png",
-  "./assets/icons/app-icon-512.png",
-  "./assets/icons/app-icon-maskable-512.png",
-  "./assets/icons/apple-touch-icon.png"
+  "./assets/icons/app-icon.svg?v=20260605-logo-gray-145",
+  "./assets/icons/app-icon-192.png?v=20260605-logo-gray-145",
+  "./assets/icons/app-icon-512.png?v=20260605-logo-gray-145",
+  "./assets/icons/app-icon-maskable-512.png?v=20260605-logo-gray-145",
+  "./assets/icons/apple-touch-icon.png?v=20260605-logo-gray-145"
 ];
 
 self.addEventListener("install", (event) => {

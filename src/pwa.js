@@ -1,8 +1,8 @@
 (() => {
   "use strict";
 
-  const APP_VERSION = "20260605-logo-refresh-146";
-  const APP_ICON = `assets/icons/app-icon-${APP_VERSION}.svg`;
+  const APP_VERSION = "20260605-pwa-fullscreen-147";
+  const APP_ICON = "assets/icons/app-icon-20260605-logo-refresh-146.svg";
   let deferredInstallPrompt = null;
   let startGame = null;
   let iosGuideShown = false;
@@ -42,7 +42,46 @@
     return isStandalone() || !isMobileLike();
   }
 
+  function isFullscreenDisplayMode() {
+    return Boolean(window.matchMedia?.("(display-mode: fullscreen)")?.matches);
+  }
+
+  function syncViewport() {
+    const viewport = window.visualViewport;
+    const width = Math.round(viewport?.width || window.innerWidth || document.documentElement.clientWidth || 0);
+    const height = Math.round(viewport?.height || window.innerHeight || document.documentElement.clientHeight || 0);
+    if (width > 0) document.documentElement.style.setProperty("--app-width", `${width}px`);
+    if (height > 0) document.documentElement.style.setProperty("--app-height", `${height}px`);
+    document.body.classList.toggle("pwa-standalone", isStandalone());
+    document.body.classList.toggle("pwa-fullscreen-mode", isFullscreenDisplayMode());
+  }
+
+  async function requestInstalledFullscreen() {
+    if (!isMobileLike() || !isStandalone() || isFullscreenDisplayMode() || document.fullscreenElement || document.webkitFullscreenElement) return;
+    const target = document.documentElement;
+    try {
+      if (target.requestFullscreen) {
+        try {
+          await target.requestFullscreen({ navigationUI: "hide" });
+        } catch {
+          await target.requestFullscreen();
+        }
+      } else if (target.webkitRequestFullscreen) {
+        target.webkitRequestFullscreen();
+      }
+    } catch {
+      // Browser may only allow manifest fullscreen, so keep the CSS viewport synced.
+    }
+    try {
+      if (screen.orientation?.lock) await screen.orientation.lock("landscape");
+    } catch {
+      // iOS and some Android browsers reject orientation lock outside install launch.
+    }
+    syncViewport();
+  }
+
   function setLandingVisible(visible) {
+    syncViewport();
     document.body.classList.toggle("pwa-landing-active", visible);
     const landing = qs("#installLanding");
     if (landing) {
@@ -147,6 +186,13 @@
   }
 
   function bindLanding() {
+    syncViewport();
+    window.addEventListener("resize", syncViewport);
+    window.addEventListener("orientationchange", () => window.setTimeout(syncViewport, 120));
+    window.visualViewport?.addEventListener("resize", syncViewport);
+    window.visualViewport?.addEventListener("scroll", syncViewport);
+    window.addEventListener("pointerdown", requestInstalledFullscreen, { capture: true, passive: true });
+    window.addEventListener("touchstart", requestInstalledFullscreen, { capture: true, passive: true });
     qs("#pwaInstallButton")?.addEventListener("click", () => {
       if (isIos()) showIosGuide();
       else installAndroid();
@@ -165,6 +211,7 @@
 
   function boot(start) {
     startGame = start;
+    syncViewport();
     registerServiceWorker();
     bindLanding();
     updateInstallButton();
@@ -190,5 +237,5 @@
     showDialog("installed", "Đã tải Soulrift", "<p>Mở Soulrift từ icon trên màn hình chính để vào game.</p>");
   });
 
-  window.SoulriftPwaGate = { boot, isStandalone, isMobileLike };
+  window.SoulriftPwaGate = { boot, isStandalone, isMobileLike, syncViewport };
 })();

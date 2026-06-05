@@ -7,7 +7,7 @@
   const ROOM_PAD = 86;
   const SAVE_KEY = "soulrift-save-v1";
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
-  const APP_VERSION = "20260605-logo-refresh-146";
+  const APP_VERSION = "20260605-pwa-fullscreen-147";
   const VERSION_CHECK_INTERVAL = 15000;
   const UPDATE_ATTEMPT_KEY = "soulrift-update-attempt-v1";
   const CLOUD_MIGRATION_KEY = "soulrift-cloud-migrated-v1";
@@ -4120,11 +4120,13 @@
 
     resize() {
       this.updateDeviceUiMode();
+      window.SoulriftPwaGate?.syncViewport?.();
       const maxDpr = Math.min(window.devicePixelRatio || 1, this.isMobileDevice() ? 1 : 1.25);
       const renderScale = Number.isFinite(this.perf?.appliedRenderScale) ? this.perf.appliedRenderScale : 1;
       this.dpr = Math.max(this.isMobileDevice() ? 0.62 : 0.72, maxDpr * renderScale);
-      this.width = window.innerWidth;
-      this.height = window.innerHeight;
+      const viewport = window.visualViewport;
+      this.width = Math.round(viewport?.width || window.innerWidth);
+      this.height = Math.round(viewport?.height || window.innerHeight);
       this.canvas.width = Math.floor(this.width * this.dpr);
       this.canvas.height = Math.floor(this.height * this.dpr);
       this.canvas.style.width = `${this.width}px`;

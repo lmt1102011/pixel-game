@@ -7,7 +7,7 @@
   const ROOM_PAD = 86;
   const SAVE_KEY = "soulrift-save-v1";
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
-  const APP_VERSION = "20260605-pretty-performance-156";
+  const APP_VERSION = "20260605-boot-guard-157";
   const VERSION_CHECK_INTERVAL = 15000;
   const UPDATE_ATTEMPT_KEY = "soulrift-update-attempt-v1";
   const CLOUD_MIGRATION_KEY = "soulrift-cloud-migrated-v1";
@@ -46,6 +46,10 @@
   const NET_SNAPSHOT_RELAY_INTERVAL = 0.22;
   const NET_REALTIME_BUFFER_LIMIT = 128 * 1024;
   const NET_SNAPSHOT_STALE_MS = 1400;
+  const SAVE_OPEN_TIMEOUT_MS = 1200;
+  const SAVE_READ_TIMEOUT_MS = 900;
+  const BOOT_SAVE_TIMEOUT_MS = 1800;
+  const CLOUD_REQUEST_TIMEOUT_MS = 1800;
 
   const RARITY = {
     common: { label: "Thường", color: "#d4d7df", rate: 1 },
@@ -743,6 +747,36 @@
     return typeof structuredClone === "function" ? structuredClone(value) : JSON.parse(JSON.stringify(value));
   }
 
+  function withTimeout(promise, timeoutMs, fallback = null) {
+    return Promise.race([
+      Promise.resolve(promise).catch(() => fallback),
+      new Promise((resolve) => setTimeout(() => resolve(fallback), timeoutMs))
+    ]);
+  }
+
+  async function fetchWithTimeout(url, options = {}, timeoutMs = CLOUD_REQUEST_TIMEOUT_MS) {
+    const controller = typeof AbortController !== "undefined" ? new AbortController() : null;
+    const fetchOptions = { ...options };
+    const externalSignal = fetchOptions.signal;
+    let abortExternal = null;
+    if (controller) {
+      fetchOptions.signal = controller.signal;
+      if (externalSignal) {
+        if (externalSignal.aborted) controller.abort();
+        else {
+          abortExternal = () => controller.abort();
+          externalSignal.addEventListener("abort", abortExternal, { once: true });
+        }
+      }
+    }
+    const timer = controller ? setTimeout(() => controller.abort(), timeoutMs) : 0;
+    const response = await withTimeout(fetch(url, fetchOptions), timeoutMs + 120, null);
+    if (timer) clearTimeout(timer);
+    if (externalSignal && abortExternal) externalSignal.removeEventListener("abort", abortExternal);
+    if (!response) throw new Error("Request timed out");
+    return response;
+  }
+
   function defaultProfile(username = "") {
     return {
       account: {
@@ -857,43 +891,100 @@
     }
 
     async open() {
+      if (this.db) return this.db;
       if (!("indexedDB" in window)) {
         this.failed = true;
         return null;
       }
       return new Promise((resolve) => {
-        const request = indexedDB.open("soulrift", 1);
+        let settled = false;
+        const finish = (value) => {
+          if (settled) return;
+          settled = true;
+          clearTimeout(timer);
+          resolve(value);
+        };
+        const timer = setTimeout(() => {
+          this.failed = true;
+          finish(null);
+        }, SAVE_OPEN_TIMEOUT_MS);
+        let request = null;
+        try {
+          request = indexedDB.open("soulrift", 1);
+        } catch {
+          this.failed = true;
+          finish(null);
+          return;
+        }
         request.onupgradeneeded = () => {
           const db = request.result;
           if (!db.objectStoreNames.contains("state")) db.createObjectStore("state");
         };
         request.onsuccess = () => {
+          if (settled) {
+            try {
+              request.result?.close?.();
+            } catch {
+              // Timed out opens can finish later; closing them keeps future opens clean.
+            }
+            return;
+          }
           this.db = request.result;
-          resolve(this.db);
+          finish(this.db);
         };
         request.onerror = () => {
           this.failed = true;
-          resolve(null);
+          finish(null);
+        };
+        request.onblocked = () => {
+          this.failed = true;
+          finish(null);
         };
       });
     }
 
     async load() {
-      await this.open();
-      if (!this.db) return this.loadLocal();
+      const db = await this.open();
+      if (!db) return this.loadLocal();
       return new Promise((resolve) => {
-        const tx = this.db.transaction("state", "readonly");
-        const request = tx.objectStore("state").get("save");
-        request.onsuccess = () => resolve(request.result || this.loadLocal());
-        request.onerror = () => resolve(this.loadLocal());
+        let settled = false;
+        const finish = (value) => {
+          if (settled) return;
+          settled = true;
+          clearTimeout(timer);
+          resolve(value);
+        };
+        const timer = setTimeout(() => {
+          this.failed = true;
+          finish(this.loadLocal());
+        }, SAVE_READ_TIMEOUT_MS);
+        try {
+          const tx = db.transaction("state", "readonly");
+          const request = tx.objectStore("state").get("save");
+          request.onsuccess = () => finish(request.result || this.loadLocal());
+          request.onerror = () => finish(this.loadLocal());
+          tx.onabort = () => finish(this.loadLocal());
+          tx.onerror = () => finish(this.loadLocal());
+        } catch {
+          this.failed = true;
+          finish(this.loadLocal());
+        }
       });
     }
 
     save(data) {
-      localStorage.setItem(SAVE_KEY, JSON.stringify(data));
+      try {
+        localStorage.setItem(SAVE_KEY, JSON.stringify(data));
+      } catch {
+        this.failed = true;
+      }
       if (!this.db) return;
-      const tx = this.db.transaction("state", "readwrite");
-      tx.objectStore("state").put(data, "save");
+      try {
+        const tx = this.db.transaction("state", "readwrite");
+        tx.objectStore("state").put(data, "save");
+      } catch {
+        this.failed = true;
+      }
     }
 
     loadLocal() {
@@ -930,11 +1021,11 @@
       if (!USE_FIREBASE_ANONYMOUS_AUTH || !this.apiKey || typeof fetch !== "function") return "";
       if (this.authToken) return this.authToken;
       if (this.authPromise) return this.authPromise;
-      this.authPromise = fetch(`https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=${encodeURIComponent(this.apiKey)}`, {
+      this.authPromise = fetchWithTimeout(`https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=${encodeURIComponent(this.apiKey)}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ returnSecureToken: true })
-      })
+      }, CLOUD_REQUEST_TIMEOUT_MS)
         .then((response) => response.ok ? response.json() : null)
         .then((data) => {
           this.authToken = String(data?.idToken || "");
@@ -951,12 +1042,13 @@
       if (!this.baseUrl || typeof fetch !== "function") return null;
       const token = await this.getAuthToken();
       const url = token ? `${path}${path.includes("?") ? "&" : "?"}auth=${encodeURIComponent(token)}` : path;
+      const { headers = {}, timeoutMs = CLOUD_REQUEST_TIMEOUT_MS, ...fetchOptions } = options || {};
       try {
-        const response = await fetch(url, {
+        const response = await fetchWithTimeout(url, {
           cache: "no-store",
-          headers: { "Content-Type": "application/json", ...(options.headers || {}) },
-          ...options
-        });
+          ...fetchOptions,
+          headers: { "Content-Type": "application/json", ...headers }
+        }, timeoutMs);
         if (response.status === 401 && token && retry) {
           this.authToken = "";
           return this.request(path, options, false);
@@ -2595,6 +2687,9 @@
       this.hudStatusMarkup = "";
       this.updateTimer = null;
       this.updateInProgress = false;
+      this.bootReady = false;
+      this.loopStarted = false;
+      this.lastLoopErrorAt = 0;
       this.perf = {
         avgDt: 1 / 60,
         fastDt: 1 / 60,
@@ -2619,13 +2714,14 @@
       this.bindEvents();
       this.resize();
       this.updateMobileGate();
-      this.init();
+      this.showBootScreen();
+      this.startLoop();
+      this.init().catch((error) => this.handleBootError(error));
     }
 
     async init() {
-      const loaded = await this.store.load();
+      const loaded = await withTimeout(this.store.load(), BOOT_SAVE_TIMEOUT_MS, null);
       this.save = mergeSave(defaultSave(), loaded);
-      await this.syncCloudAccountsAtBoot();
       this.normalizeSave();
       this.applyGraphicsSettings();
       this.clearResolvedUpdateAttempt();
@@ -2633,18 +2729,110 @@
       this.mode = this.hasAccount() ? "menu" : "account";
       if (this.deletedAccountNotice) {
         this.showAccountGate("login", this.deletedAccountNotice);
-        requestAnimationFrame((time) => this.loop(time));
+        this.bootReady = true;
         return;
       }
       this.showMainMenu();
+      this.bootReady = true;
+      this.syncCloudAccountsAfterBoot();
+    }
+
+    startLoop() {
+      if (this.loopStarted) return;
+      this.loopStarted = true;
       requestAnimationFrame((time) => this.loop(time));
     }
 
-    async syncCloudAccountsAtBoot() {
+    showBootScreen() {
+      this.mode = "loading";
+      this.hud.classList.add("hidden");
+      this.touchLayer.classList.add("hidden");
+      this.setScreen(`
+        <section class="boot-panel account-panel">
+          <div class="boot-mark">S</div>
+          <h2 class="panel-title">Đang vào Soulrift</h2>
+          <p class="panel-subtitle">Đang tải dữ liệu trên máy. Nếu mạng hoặc database chậm, game vẫn sẽ mở menu trước.</p>
+          <div class="boot-loader" aria-hidden="true"><span></span></div>
+        </section>
+      `);
+    }
+
+    handleBootError(error) {
+      console.error("Soulrift boot failed", error);
+      try {
+        this.save = defaultSave();
+        this.normalizeSave();
+        this.applyGraphicsSettings();
+        this.clearResolvedUpdateAttempt();
+        this.startUpdateWatcher();
+        this.bootReady = true;
+        this.showAccountGate("choice", "Không tải được dữ liệu local, game đã mở bằng trạng thái mới để bạn vẫn vào được.");
+      } catch (fallbackError) {
+        this.showBootFailure(fallbackError || error);
+      }
+    }
+
+    showBootFailure(error) {
+      this.mode = "boot-error";
+      this.hud.classList.add("hidden");
+      this.touchLayer.classList.add("hidden");
+      this.setScreen(`
+        <section class="boot-panel account-panel">
+          <div class="boot-mark danger">!</div>
+          <h2 class="panel-title">Không vào được game</h2>
+          <p class="panel-subtitle">Trình duyệt bị lỗi khi khởi động. Bấm tải lại để lấy bản mới và mở menu lại.</p>
+          <button class="btn primary" data-action="reload-game">TẢI LẠI</button>
+          <small>${escapeHtml(error?.message || "Lỗi khởi động")}</small>
+        </section>
+      `);
+    }
+
+    reportLoopError(error) {
+      const now = Date.now();
+      if (now - this.lastLoopErrorAt > 1000) {
+        console.error("Soulrift loop error", error);
+        this.lastLoopErrorAt = now;
+      }
+      if (!this.bootReady && this.mode === "loading") this.showBootFailure(error);
+    }
+
+    authKeysSignature() {
+      return Object.keys(this.save.auth?.accounts || {}).sort().join("|");
+    }
+
+    async syncCloudAccountsAfterBoot() {
+      const expectedCurrent = this.save.auth?.currentUser || "";
+      const expectedKeys = this.authKeysSignature();
+      try {
+        const applied = await this.syncCloudAccountsAtBoot({ expectedCurrent, expectedKeys });
+        if (!applied) return;
+        this.normalizeSave();
+        this.applyGraphicsSettings();
+        this.store.save(this.save);
+        if (this.deletedAccountNotice) {
+          this.run = null;
+          this.remotePlayers.clear();
+          this.pauseOverlay = false;
+          this.showAccountGate("login", this.deletedAccountNotice);
+          return;
+        }
+        if (!this.hasAccount()) {
+          if (this.mode === "menu" || this.mode === "account") this.showAccountGate();
+          return;
+        }
+        if (this.mode === "menu") this.showMainMenu();
+      } catch (error) {
+        console.warn("Soulrift cloud boot sync skipped", error);
+      }
+    }
+
+    async syncCloudAccountsAtBoot(options = {}) {
       const localAccounts = { ...(this.save.auth?.accounts || {}) };
       const localKeys = Object.keys(localAccounts);
       const accounts = await this.cloudAccounts.loadAccounts();
       if (accounts === null) return;
+      if (options.expectedCurrent !== undefined && (this.save.auth?.currentUser || "") !== options.expectedCurrent) return false;
+      if (options.expectedKeys !== undefined && this.authKeysSignature() !== options.expectedKeys) return false;
       const clean = {};
       for (const [key, account] of Object.entries(accounts || {})) {
         if (!account || typeof account !== "object") continue;
@@ -2667,7 +2855,7 @@
           // Local storage can be unavailable; the upload still attempts once this run.
         }
         for (const [key, account] of Object.entries(localAccounts)) this.cloudAccounts.saveAccount(key, account);
-        return;
+        return true;
       }
       try {
         localStorage.setItem(CLOUD_MIGRATION_KEY, "1");
@@ -2685,6 +2873,7 @@
         this.save.auth.currentUser = "";
         this.applyProfile(defaultProfile(""));
       }
+      return true;
     }
 
     startUpdateWatcher() {
@@ -4308,22 +4497,26 @@
     }
 
     loop(time) {
-      const rawDt = this.last ? (time - this.last) / 1000 || 0 : 1 / 60;
-      const dt = Math.min(0.033, rawDt);
-      this.last = time;
-      this.updatePerformanceState(rawDt || dt);
-      this.menuTime += dt;
-      if (this.toastTimer > 0) {
-        this.toastTimer -= dt;
-        if (this.toastTimer <= 0) this.toastEl.classList.add("hidden");
+      try {
+        const rawDt = this.last ? (time - this.last) / 1000 || 0 : 1 / 60;
+        const dt = Math.min(0.033, rawDt);
+        this.last = time;
+        this.updatePerformanceState(rawDt || dt);
+        this.menuTime += dt;
+        if (this.toastTimer > 0) {
+          this.toastTimer -= dt;
+          if (this.toastTimer <= 0) this.toastEl.classList.add("hidden");
+        }
+        this.lobby.updatePresence(dt);
+        this.updateRoomDirectory(dt);
+        this.updateAccountCloudCheck(dt);
+        this.updateQuickActions();
+        if (this.mode === "game" && this.run) this.update(dt);
+        this.audio.update(dt);
+        this.render();
+      } catch (error) {
+        this.reportLoopError(error);
       }
-      this.lobby.updatePresence(dt);
-      this.updateRoomDirectory(dt);
-      this.updateAccountCloudCheck(dt);
-      this.updateQuickActions();
-      if (this.mode === "game" && this.run) this.update(dt);
-      this.audio.update(dt);
-      this.render();
       requestAnimationFrame((next) => this.loop(next));
     }
 
@@ -4502,6 +4695,10 @@
     }
 
     handleAction(action, target) {
+      if (action === "reload-game") {
+        location.reload();
+        return;
+      }
       if (action === "open-login") {
         this.showAccountGate("login");
         return;
@@ -17292,12 +17489,47 @@
     return `rgba(${r},${g},${b},${clamp(alpha, 0, 1)})`;
   }
 
+  function renderBootFailure(error) {
+    console.error("Soulrift failed to start", error);
+    const screen = document.getElementById("screen");
+    const hud = document.getElementById("hud");
+    const touchLayer = document.getElementById("touchLayer");
+    if (hud) hud.classList.add("hidden");
+    if (touchLayer) touchLayer.classList.add("hidden");
+    if (!screen) return;
+    screen.classList.remove("hidden");
+    screen.innerHTML = `
+      <section class="boot-panel account-panel">
+        <div class="boot-mark danger">!</div>
+        <h2 class="panel-title">Không vào được game</h2>
+        <p class="panel-subtitle">Bản game bị lỗi khi mở. Bấm tải lại để lấy bản mới và vào menu.</p>
+        <button class="btn primary" data-boot-reload>TẢI LẠI</button>
+        <small>${escapeHtml(error?.message || String(error || "Lỗi khởi động"))}</small>
+      </section>
+    `;
+    screen.querySelector("[data-boot-reload]")?.addEventListener("click", () => location.reload());
+  }
+
   function startSoulriftGame() {
-    if (!window.soulrift) window.soulrift = new SoulriftGame();
-    return window.soulrift;
+    try {
+      if (!window.soulrift) window.soulrift = new SoulriftGame();
+      return window.soulrift;
+    } catch (error) {
+      renderBootFailure(error);
+      return null;
+    }
   }
 
   window.startSoulriftGame = startSoulriftGame;
+  window.addEventListener("soulriftbooterror", (event) => {
+    if (!window.soulrift || window.soulrift.mode === "loading") renderBootFailure(event.detail);
+  });
+  window.addEventListener("error", (event) => {
+    if (!window.soulrift || window.soulrift.mode === "loading") renderBootFailure(event.error || event.message);
+  });
+  window.addEventListener("unhandledrejection", (event) => {
+    if (!window.soulrift || window.soulrift.mode === "loading") renderBootFailure(event.reason);
+  });
   window.addEventListener("DOMContentLoaded", () => {
     if (window.SoulriftPwaGate?.boot) window.SoulriftPwaGate.boot(startSoulriftGame);
     else startSoulriftGame();

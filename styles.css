@@ -289,6 +289,73 @@ body.pwa-landing-active .screen {
   text-align: center;
 }
 
+.boot-panel {
+  width: min(420px, calc(100vw - 28px));
+  margin: auto;
+  padding: 22px;
+  text-align: center;
+  border: 1px solid var(--line);
+  background: rgba(8, 10, 16, 0.82);
+  box-shadow: 0 16px 42px rgba(0, 0, 0, 0.56);
+  backdrop-filter: blur(10px);
+}
+
+.boot-mark {
+  width: 76px;
+  height: 76px;
+  margin: 0 auto 14px;
+  display: grid;
+  place-items: center;
+  border-radius: 18px;
+  border: 2px solid rgba(242, 191, 99, 0.72);
+  color: #ffe2a4;
+  background: radial-gradient(circle at 50% 38%, rgba(42, 183, 202, 0.62), rgba(12, 19, 28, 0.95));
+  font-size: 42px;
+  font-family: var(--display);
+  line-height: 1;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.38);
+}
+
+.boot-mark.danger {
+  border-color: rgba(255, 93, 93, 0.8);
+  color: #ffd8d8;
+  background: radial-gradient(circle at 50% 38%, rgba(255, 93, 93, 0.42), rgba(16, 10, 12, 0.95));
+}
+
+.boot-loader {
+  position: relative;
+  overflow: hidden;
+  height: 8px;
+  margin: 18px auto 0;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.boot-loader span {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 42%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, rgba(242, 191, 99, 0.2), rgba(242, 191, 99, 0.95), rgba(112, 224, 131, 0.75));
+  animation: bootLoad 1.05s ease-in-out infinite;
+}
+
+.boot-panel small {
+  display: block;
+  margin-top: 12px;
+  color: var(--muted);
+}
+
+@keyframes bootLoad {
+  0% {
+    transform: translateX(-110%);
+  }
+
+  100% {
+    transform: translateX(250%);
+  }
+}
+
 .back-nav {
   align-self: start;
 }

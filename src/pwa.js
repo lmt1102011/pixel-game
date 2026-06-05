@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const APP_VERSION = "20260605-pretty-performance-156";
+  const APP_VERSION = "20260605-boot-guard-157";
   const APP_ICON = "assets/icons/app-icon-20260605-logo-xl-149.svg";
   let deferredInstallPrompt = null;
   let startGame = null;
@@ -209,6 +209,15 @@
     navigator.serviceWorker.register(`service-worker.js?v=${APP_VERSION}`).catch(() => {});
   }
 
+  function startGameSafely() {
+    try {
+      return startGame?.();
+    } catch (error) {
+      window.dispatchEvent(new CustomEvent("soulriftbooterror", { detail: error }));
+      return null;
+    }
+  }
+
   function boot(start) {
     startGame = start;
     syncViewport();
@@ -217,7 +226,7 @@
     updateInstallButton();
     if (allowGameDirectly()) {
       setLandingVisible(false);
-      startGame?.();
+      startGameSafely();
       return;
     }
     setLandingVisible(true);

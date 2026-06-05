@@ -9,7 +9,7 @@
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
   const SIGNAL_REALTIME_RELAY_LIMIT = 2;
   const SIGNAL_REALTIME_TYPES = new Set(["state", "snapshot", "attack", "skill", "collect", "openChest", "dropItem", "damage", "chooseDoor"]);
-  const APP_VERSION = "20260606-premium-skill-vfx-186";
+  const APP_VERSION = "20260606-clean-cast-vfx-190";
   const CHANGELOG_ENTRIES = [
     {
       version: APP_VERSION,
@@ -20221,38 +20221,11 @@
         ctx.arc(0, 0, 27 + castPose.ring * 8, 0, TAU);
         ctx.stroke();
         const castBeat = Math.sin(clamp(actionProgress, 0, 1) * Math.PI);
-        const castSnap = actionProgress >= 0.34 && actionProgress < 0.62 ? Math.sin(clamp((actionProgress - 0.34) / 0.28, 0, 1) * Math.PI) : 0;
-        ctx.globalAlpha = (anim === "ultimate" ? 0.62 : 0.44) + castSnap * 0.24;
-        ctx.lineWidth = anim === "ultimate" ? 2.8 : 2;
-        ctx.strokeStyle = castPalette.accent;
+        ctx.globalAlpha = anim === "ultimate" ? 0.38 : 0.26;
         ctx.fillStyle = castPalette.color;
-        ctx.save();
-        ctx.rotate((castKind === "time" ? -1 : 1) * (t * 0.9 + castBeat * 0.4));
-        const orbit = anim === "ultimate" ? 30 : 24;
-        for (let i = 0; i < (anim === "ultimate" ? 5 : 3); i++) {
-          const a = (i / (anim === "ultimate" ? 5 : 3)) * TAU;
-          ctx.save();
-          ctx.translate(Math.cos(a) * orbit, Math.sin(a) * (orbit * 0.62));
-          ctx.rotate(-a + t * 0.5);
-          this.drawPowerIconShape(ctx, castKind, anim === "ultimate" ? 4.8 : 3.6, castPalette.color, castPalette.accent);
-          ctx.restore();
-        }
-        ctx.restore();
-        ctx.globalAlpha = 0.34 + castSnap * 0.3;
-        ctx.lineCap = "butt";
-        for (const side of [-1, 1]) {
-          ctx.save();
-          ctx.translate(side * 14, -5 + castPose.crouch * 0.4);
-          ctx.rotate(side * (0.55 + castBeat * 0.15));
-          for (let i = 0; i < 3; i++) {
-            const len = 15 + i * 7 + castSnap * 8;
-            ctx.beginPath();
-            ctx.moveTo(6 + i * 2, -4 + i * 4);
-            ctx.lineTo(6 + len, -9 + i * 7);
-            ctx.stroke();
-          }
-          ctx.restore();
-        }
+        ctx.beginPath();
+        ctx.arc(0, -4 + castPose.crouch * 0.25, (anim === "ultimate" ? 8 : 5.5) + castBeat * 2, 0, TAU);
+        ctx.fill();
         ctx.restore();
       }
       if (awakenedPowerActive && deathProgress <= 0) this.drawAwakenedPowerAura(ctx, power, t, "front");

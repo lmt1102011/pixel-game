@@ -7,7 +7,7 @@
   const ROOM_PAD = 86;
   const SAVE_KEY = "soulrift-save-v1";
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
-  const APP_VERSION = "20260605-sharp-render-150";
+  const APP_VERSION = "20260605-readable-text-151";
   const VERSION_CHECK_INTERVAL = 15000;
   const UPDATE_ATTEMPT_KEY = "soulrift-update-attempt-v1";
   const CLOUD_MIGRATION_KEY = "soulrift-cloud-migrated-v1";
@@ -3870,6 +3870,35 @@
       const weakBias = this.devicePerformanceBias();
       if (quality < 0.5 || (weakBias > 0.55 && this.performanceEmergency())) return 0;
       return value * clamp(quality * (this.isMobileDevice() ? 0.24 : 0.46) * (1 - weakBias * 0.38), 0.04, 0.54);
+    }
+
+    readableTextBoost() {
+      const scale = Number(this.perf?.appliedRenderScale || 1);
+      const quality = Number(this.perf?.quality || 1);
+      return clamp((1 - scale) * 1.5 + (0.72 - quality) * 0.42, 0, 0.42);
+    }
+
+    readableFont(weight, size, family = "ui-sans-serif, system-ui") {
+      const boosted = Math.round(size * (1 + this.readableTextBoost()));
+      return `${weight} ${boosted}px ${family}`;
+    }
+
+    drawReadableText(ctx, text, x, y, options = {}) {
+      const content = String(text ?? "");
+      if (!content) return;
+      const ix = Math.round(x);
+      const iy = Math.round(y);
+      const previousLineJoin = ctx.lineJoin;
+      const previousMiter = ctx.miterLimit;
+      ctx.lineJoin = "round";
+      ctx.miterLimit = 2;
+      ctx.strokeStyle = options.stroke || "rgba(5,7,12,0.9)";
+      ctx.lineWidth = options.strokeWidth ?? (2.6 + this.readableTextBoost() * 2.4);
+      if (options.stroke !== false) ctx.strokeText(content, ix, iy);
+      ctx.fillStyle = options.fill || "#f3ead7";
+      ctx.fillText(content, ix, iy);
+      ctx.lineJoin = previousLineJoin;
+      ctx.miterLimit = previousMiter;
     }
 
     trimVisualList(list, limit) {
@@ -14036,9 +14065,13 @@
       ctx.lineTo(w * 0.24, h * 0.38);
       ctx.stroke();
       ctx.fillStyle = color;
-      ctx.font = "900 16px ui-sans-serif, system-ui";
+      ctx.font = this.readableFont(900, 16);
       ctx.textAlign = "center";
-      ctx.fillText(object.icon || (object.type === "bossGate" ? "B" : ">"), 0, -4);
+      this.drawReadableText(ctx, object.icon || (object.type === "bossGate" ? "B" : ">"), 0, -4, {
+        fill: color,
+        stroke: "rgba(5,7,12,0.95)",
+        strokeWidth: 3.2
+      });
       if (object.enterProgress > 0) {
         ctx.strokeStyle = "#fff0ad";
         ctx.lineWidth = 4;
@@ -14048,9 +14081,12 @@
       }
       if (object.label) {
         ctx.shadowBlur = 0;
-        ctx.fillStyle = "#f3ead7";
-        ctx.font = "850 11px ui-sans-serif, system-ui";
-        ctx.fillText(String(object.label).slice(0, 18), 0, h * 0.68);
+        ctx.font = this.readableFont(900, 12);
+        this.drawReadableText(ctx, String(object.label).slice(0, 18), 0, h * 0.68, {
+          fill: "#fff4d6",
+          stroke: "rgba(3,5,10,0.96)",
+          strokeWidth: 3.4
+        });
       }
       ctx.restore();
     }
@@ -14414,16 +14450,19 @@
       const label = String(name).slice(0, 18);
       const showHp = Number.isFinite(Number(hp)) && Number.isFinite(Number(maxHp)) && Number(maxHp) > 0;
       ctx.save();
-      ctx.font = "800 12px ui-sans-serif, system-ui";
+      ctx.font = this.readableFont(850, 12);
       const w = Math.max(48, ctx.measureText(label).width + 16);
       const h = showHp ? 26 : 18;
       ctx.fillStyle = self ? "rgba(242,191,99,0.82)" : "rgba(8,10,16,0.78)";
       ctx.fillRect(x - w / 2, y - 16, w, h);
       ctx.strokeStyle = self ? "#f2bf63" : "rgba(255,255,255,0.22)";
       ctx.strokeRect(x - w / 2, y - 16, w, h);
-      ctx.fillStyle = self ? "#111521" : "#f3ead7";
       ctx.textAlign = "center";
-      ctx.fillText(label, x, y - 3);
+      this.drawReadableText(ctx, label, x, y - 3, {
+        fill: self ? "#111521" : "#f3ead7",
+        stroke: self ? "rgba(255,235,176,0.8)" : "rgba(3,5,10,0.94)",
+        strokeWidth: self ? 1.8 : 2.8
+      });
       if (showHp) {
         const barW = w - 10;
         const barX = x - barW / 2;
@@ -16791,15 +16830,16 @@
 
     drawDamageTexts(ctx) {
       ctx.save();
-      ctx.font = "800 16px ui-sans-serif, system-ui";
+      ctx.font = this.readableFont(850, 16);
       ctx.textAlign = "center";
       for (const text of this.run.damageTexts) {
         if (!this.inView(text.x, text.y, 80)) continue;
         ctx.globalAlpha = clamp(text.life / 0.72, 0, 1);
-        ctx.fillStyle = "#111521";
-        ctx.fillText(text.text, text.x + 1, text.y + 1);
-        ctx.fillStyle = text.color;
-        ctx.fillText(text.text, text.x, text.y);
+        this.drawReadableText(ctx, text.text, text.x, text.y, {
+          fill: text.color,
+          stroke: "rgba(3,5,10,0.92)",
+          strokeWidth: 3
+        });
       }
       ctx.restore();
     }
@@ -16819,11 +16859,14 @@
       ctx.fillRect(x, y, w * clamp(boss.hp / boss.maxHp, 0, 1), 16);
       ctx.strokeStyle = this.run.biome.accent;
       ctx.strokeRect(x, y, w, 16);
-      ctx.fillStyle = "#f3ead7";
-      ctx.font = "800 15px ui-sans-serif, system-ui";
+      ctx.font = this.readableFont(850, 15);
       ctx.textAlign = "center";
       const tired = boss.fatigueTime > 0;
-      ctx.fillText(`${boss.kind} - Pha ${boss.phase}${tired ? " - Đang mệt" : ""}`, x + w / 2, y - 10);
+      this.drawReadableText(ctx, `${boss.kind} - Pha ${boss.phase}${tired ? " - Đang mệt" : ""}`, x + w / 2, y - 10, {
+        fill: "#f3ead7",
+        stroke: "rgba(3,5,10,0.94)",
+        strokeWidth: 3
+      });
       if (tired) {
         const fatigueRatio = clamp(boss.fatigueTime / (boss.fatigueMax || boss.fatigueTime || 1), 0, 1);
         ctx.fillStyle = "rgba(143,234,255,0.22)";
@@ -16842,11 +16885,14 @@
       ctx.globalAlpha = alpha;
       ctx.fillStyle = "rgba(0,0,0,0.45)";
       ctx.fillRect(this.camera.x, this.camera.y + viewH * 0.38, viewW, 96);
-      ctx.fillStyle = this.run.biome.accent;
-      ctx.font = "900 34px ui-sans-serif, system-ui";
+      ctx.font = this.readableFont(950, 34);
       ctx.textAlign = "center";
       const label = this.run.currentRoom.type === "boss" ? this.run.biome.boss : `${this.run.biome.name} - ${this.run.currentRoom.label}`;
-      ctx.fillText(label, this.camera.x + viewW / 2, this.camera.y + viewH * 0.38 + 58);
+      this.drawReadableText(ctx, label, this.camera.x + viewW / 2, this.camera.y + viewH * 0.38 + 58, {
+        fill: this.run.biome.accent,
+        stroke: "rgba(3,5,10,0.96)",
+        strokeWidth: 5
+      });
       ctx.restore();
     }
 

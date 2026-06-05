@@ -1,11 +1,11 @@
-const SOULRIFT_CACHE = "soulrift-pwa-20260605-remote-treasure-chest-161";
+const SOULRIFT_CACHE = "soulrift-pwa-20260605-front-awakened-aura-162";
 const SOULRIFT_ASSETS = [
   "./",
   "./index.html",
-  "./styles.css?v=20260605-remote-treasure-chest-161",
-  "./src/pwa.js?v=20260605-remote-treasure-chest-161",
-  "./src/game.js?v=20260605-remote-treasure-chest-161",
-  "./manifest.webmanifest?v=20260605-remote-treasure-chest-161",
+  "./styles.css?v=20260605-front-awakened-aura-162",
+  "./src/pwa.js?v=20260605-front-awakened-aura-162",
+  "./src/game.js?v=20260605-front-awakened-aura-162",
+  "./manifest.webmanifest?v=20260605-front-awakened-aura-162",
   "./version.json",
   "./assets/icons/app-icon-20260605-logo-xl-149.svg",
   "./assets/icons/app-icon-20260605-logo-xl-149-192.png",

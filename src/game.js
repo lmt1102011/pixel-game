@@ -7,7 +7,7 @@
   const ROOM_PAD = 86;
   const SAVE_KEY = "soulrift-save-v1";
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
-  const APP_VERSION = "20260605-remote-treasure-chest-161";
+  const APP_VERSION = "20260605-front-awakened-aura-162";
   const VERSION_CHECK_INTERVAL = 15000;
   const UPDATE_ATTEMPT_KEY = "soulrift-update-attempt-v1";
   const CLOUD_MIGRATION_KEY = "soulrift-cloud-migrated-v1";
@@ -14775,7 +14775,7 @@
       this.drawNameTag(ctx, x, y - 24, name || "Linh hồn", self);
     }
 
-    drawAwakenedPowerAura(ctx, power, t) {
+    drawAwakenedPowerAura(ctx, power, t, layer = "back") {
       const kind = power?.id || "fire";
       const color = power?.color || "#f2bf63";
       const accent = power?.accent || "#ffffff";
@@ -14786,6 +14786,136 @@
         const value = Math.sin(seed * 12.9898 + 78.233) * 43758.5453;
         return value - Math.floor(value);
       };
+      if (layer === "front") {
+        ctx.save();
+        ctx.globalCompositeOperation = emergency ? "source-over" : "lighter";
+        ctx.shadowColor = accent;
+        ctx.shadowBlur = emergency || lowDetail ? 0 : this.glow(7);
+        ctx.lineCap = "round";
+        ctx.lineJoin = "round";
+        ctx.strokeStyle = hexToRgba(accent, emergency ? 0.28 : 0.52);
+        ctx.lineWidth = lowDetail ? 1.05 : 1.35;
+        ctx.globalAlpha = emergency ? 0.34 : 0.52;
+        ctx.beginPath();
+        ctx.moveTo(-10, -24);
+        ctx.quadraticCurveTo(-3 + Math.sin(t * 3.1) * 2, -12, -9, 7);
+        ctx.moveTo(10, -23);
+        ctx.quadraticCurveTo(3 + Math.cos(t * 3.4) * 2, -10, 8, 8);
+        ctx.stroke();
+        if (!lowDetail) {
+          ctx.save();
+          ctx.translate(0, -15 + Math.sin(t * 4) * 0.8);
+          ctx.rotate(Math.sin(t * 2.6) * 0.12);
+          ctx.globalAlpha = 0.28;
+          this.drawPowerIconShape(ctx, kind, 3.1, color, accent);
+          ctx.restore();
+        }
+        if (kind === "lightning") {
+          const slot = Math.floor(t * 3.4);
+          const age = t * 3.4 - slot;
+          if (age < 0.22 && seedRand(slot) > (lowDetail ? 0.58 : 0.34)) {
+            ctx.strokeStyle = accent;
+            ctx.lineWidth = lowDetail ? 1.5 : 2;
+            ctx.globalAlpha = (1 - age / 0.22) * 0.82;
+            const x0 = seedRand(slot + 2) > 0.5 ? -12 : 12;
+            const x1 = -x0 * (0.55 + seedRand(slot + 3) * 0.45);
+            ctx.beginPath();
+            ctx.moveTo(x0, -24 + seedRand(slot + 4) * 6);
+            ctx.lineTo((x0 + x1) * 0.5 + (seedRand(slot + 5) - 0.5) * 8, -11);
+            ctx.lineTo(x1, 2 + seedRand(slot + 6) * 8);
+            ctx.stroke();
+          }
+        } else if (kind === "fire") {
+          ctx.fillStyle = color;
+          for (let i = 0; i < (lowDetail ? 1 : 3); i++) {
+            const x = -9 + i * 9 + Math.sin(t * 5 + i) * 1.5;
+            const y = -18 + Math.cos(t * 4 + i) * 3;
+            ctx.globalAlpha = 0.24 + i * 0.04;
+            ctx.beginPath();
+            ctx.moveTo(x, y - 5);
+            ctx.quadraticCurveTo(x + 3, y, x, y + 6);
+            ctx.quadraticCurveTo(x - 3, y, x, y - 5);
+            ctx.fill();
+          }
+        } else if (kind === "ice") {
+          ctx.strokeStyle = accent;
+          ctx.globalAlpha = 0.48;
+          for (let i = 0; i < (lowDetail ? 1 : 2); i++) {
+            const x = i ? 10 : -10;
+            const y = -15 + Math.sin(t * 3 + i) * 4;
+            ctx.beginPath();
+            ctx.moveTo(x - 4, y);
+            ctx.lineTo(x + 4, y);
+            ctx.moveTo(x, y - 4);
+            ctx.lineTo(x, y + 4);
+            ctx.stroke();
+          }
+        } else if (kind === "nature") {
+          ctx.strokeStyle = color;
+          ctx.globalAlpha = 0.42;
+          ctx.beginPath();
+          ctx.moveTo(-12, 4);
+          ctx.quadraticCurveTo(-4, -12 + Math.sin(t * 3) * 2, 10, -18);
+          ctx.stroke();
+          if (!lowDetail) {
+            ctx.fillStyle = accent;
+            ctx.globalAlpha = 0.34;
+            ctx.beginPath();
+            ctx.ellipse(9, -18, 2.3, 5, 0.75, 0, TAU);
+            ctx.fill();
+          }
+        } else if (kind === "gravity") {
+          ctx.strokeStyle = accent;
+          ctx.globalAlpha = 0.42;
+          ctx.save();
+          ctx.rotate(Math.sin(t * 2.2) * 0.24);
+          ctx.scale(1, 0.38);
+          ctx.beginPath();
+          ctx.arc(0, -18, 16, 0.2, Math.PI * 1.65);
+          ctx.stroke();
+          ctx.restore();
+        } else if (kind === "shadow" || kind === "void") {
+          ctx.fillStyle = kind === "shadow" ? accent : color;
+          for (let i = 0; i < (lowDetail ? 1 : 3); i++) {
+            const a = t * 1.15 + i * TAU / 3;
+            ctx.save();
+            ctx.translate(Math.cos(a) * 10, -12 + Math.sin(a) * 14);
+            ctx.rotate(a);
+            ctx.globalAlpha = kind === "void" ? 0.28 : 0.34;
+            ctx.fillRect(-2, -2, 4, 4);
+            ctx.restore();
+          }
+        } else if (kind === "blood") {
+          ctx.fillStyle = color;
+          for (let i = 0; i < (lowDetail ? 1 : 2); i++) {
+            const x = i ? 8 : -8;
+            const y = -20 + Math.sin(t * 4 + i) * 4;
+            ctx.globalAlpha = 0.34;
+            ctx.beginPath();
+            ctx.moveTo(x, y - 4);
+            ctx.bezierCurveTo(x + 3, y - 1, x + 2, y + 4, x, y + 4);
+            ctx.bezierCurveTo(x - 2, y + 4, x - 3, y - 1, x, y - 4);
+            ctx.fill();
+          }
+        } else if (kind === "crystal") {
+          ctx.globalAlpha = 0.42;
+          this.drawPowerIconShape(ctx, "crystal", lowDetail ? 3.2 : 4.2, color, accent);
+        } else if (kind === "time") {
+          ctx.strokeStyle = accent;
+          ctx.globalAlpha = 0.46;
+          ctx.beginPath();
+          ctx.arc(0, -15, 13, t * 1.3, t * 1.3 + Math.PI * 1.35);
+          ctx.stroke();
+          if (!lowDetail) {
+            ctx.beginPath();
+            ctx.moveTo(0, -15);
+            ctx.lineTo(Math.cos(t * 2) * 8, -15 + Math.sin(t * 2) * 8);
+            ctx.stroke();
+          }
+        }
+        ctx.restore();
+        return;
+      }
       ctx.save();
       ctx.globalCompositeOperation = "source-over";
       ctx.shadowColor = accent;
@@ -15610,6 +15740,7 @@
         ctx.restore();
       }
       ctx.restore();
+      if (awakenedPowerActive && deathProgress <= 0) this.drawAwakenedPowerAura(ctx, power, t, "front");
       ctx.restore();
     }
 

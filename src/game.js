@@ -7,7 +7,7 @@
   const ROOM_PAD = 86;
   const SAVE_KEY = "soulrift-save-v1";
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
-  const APP_VERSION = "20260605-tight-awakened-aura-160";
+  const APP_VERSION = "20260605-remote-treasure-chest-161";
   const VERSION_CHECK_INTERVAL = 15000;
   const UPDATE_ATTEMPT_KEY = "soulrift-update-attempt-v1";
   const CLOUD_MIGRATION_KEY = "soulrift-cloud-migrated-v1";
@@ -12551,7 +12551,6 @@
 
     updateRoomObjects(dt) {
       if (!this.run?.roomObjects?.length) return;
-      const p = this.run.player;
       for (const object of this.run.roomObjects) {
         object.grow = clamp((object.grow || 0) + dt * 1.9, 0, 1);
         if (object.opening) {
@@ -12567,13 +12566,30 @@
           continue;
         }
         if (object.opened || object.locked) continue;
-        const touchRadius = object.radius * (object.type === "nextDoor" ? 0.82 : 0.72);
-        if (Math.hypot(p.x - object.x, p.y - object.y) > p.radius + touchRadius) continue;
-        this.handleRoomObjectContact(object);
+        const contact = this.roomObjectContactActor(object);
+        if (!contact) continue;
+        this.handleRoomObjectContact(object, contact.id, contact.actor);
       }
     }
 
-    handleRoomObjectContact(object) {
+    remoteRoomObjectActivatable(object) {
+      return ["treasureChest", "bossGate", "bossExit", "curseBook"].includes(object?.type);
+    }
+
+    roomObjectContactActor(object) {
+      const touchRadius = object.radius * (object.type === "nextDoor" ? 0.82 : 0.72);
+      const touches = (actor) => this.aliveActor(actor)
+        && Math.hypot(actor.x - object.x, actor.y - object.y) <= (actor.radius || 22) + touchRadius;
+      if (touches(this.run.player)) return { id: this.lobby.id, actor: this.run.player };
+      if (this.isMultiplayerHost() && this.remoteRoomObjectActivatable(object)) {
+        for (const [id, remote] of this.remotePlayers) {
+          if (touches(remote)) return { id, actor: remote };
+        }
+      }
+      return null;
+    }
+
+    handleRoomObjectContact(object, actorId = this.lobby.id, actor = this.run?.player) {
       if (!object || object.opened) return;
       if (object.type === "nextDoor") {
         if (this.isMultiplayerRun()) {

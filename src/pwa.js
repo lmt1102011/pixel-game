@@ -1,8 +1,8 @@
 (() => {
   "use strict";
 
-  const APP_VERSION = "20260605-logo-large-148";
-  const APP_ICON = "assets/icons/app-icon-20260605-logo-large-148.svg";
+  const APP_VERSION = "20260605-logo-xl-149";
+  const APP_ICON = "assets/icons/app-icon-20260605-logo-xl-149.svg";
   let deferredInstallPrompt = null;
   let startGame = null;
   let iosGuideShown = false;

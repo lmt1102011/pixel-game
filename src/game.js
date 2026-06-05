@@ -9,26 +9,21 @@
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
   const SIGNAL_REALTIME_RELAY_LIMIT = 2;
   const SIGNAL_REALTIME_TYPES = new Set(["state", "snapshot", "attack", "skill", "collect", "openChest", "dropItem", "damage", "chooseDoor"]);
-  const APP_VERSION = "20260605-designed-skills-180";
+  const APP_VERSION = "20260606-power-design-rebuild-182";
   const CHANGELOG_ENTRIES = [
     {
       version: APP_VERSION,
-      title: "Cân bằng, Hóa Trùm và mạng",
+      title: "Làm lại kỹ năng theo hồ sơ thiết kế",
       items: [
-        "Raid A có thể tạo phòng chơi nhiều người; boss raid trâu hơn và dùng bộ chiêu riêng theo power raid.",
-        "Đổi Cổng Bí Mật sang puzzle xoay hình: bấm từng mảnh để ghép đúng ấn, không còn nhập câu trả lời.",
-        "Cân lại sát thương, nhịp đánh, điểm nâng và độ khó để đỡ phá game hơn.",
-        "Hóa Trùm có thông báo chọn boss, skill boss theo khu và màn kết quả rõ hơn.",
-        "Hóa Trùm dùng nhịp cân bằng riêng và không còn nút chỉnh độ khó trong phòng.",
-        "Trùm có thêm nhiều pattern bullet-hell đọc được, mỗi khu và mỗi skill Hóa Trùm khác nhau rõ hơn.",
-        "Sửa lỗi phòng đã vượt ải nhưng đôi lúc không mọc cửa tiếp theo.",
-        "Sửa lỗi người chơi không phải chủ phòng đôi lúc không nhận được rương/vật phẩm sau khi vượt ải.",
-        "Cải thiện kết nối khác mạng bằng nhiều STUN server hơn và cảnh báo rõ khi rơi về Relay chậm.",
-        "Làm lại cổng Bí Mật thành phòng giải đố có bia riêng và phần thưởng nguyên liệu tương ứng.",
-        "Tách phần thưởng từng loại cửa rõ rệt hơn và giảm tần suất xuất hiện cửa Kho Báu.",
-        "Đổi thức tỉnh: cần Ngọc power từ Raid A cùng 3 Lõi Trùm và 1 Tia Thần.",
-        "Thêm trạng thái mạng gọn trong trận và tự xin đồng bộ nhanh hơn khi client bị lệch.",
-        "Thêm bảng cập nhật để biết bản mới vừa thay đổi gì."
+        "Đổi tên toàn bộ kỹ năng power theo đúng hồ sơ thiết kế Soulrift.",
+        "Làm lại Q/E/R của 10 power theo hướng thi triển riêng, không dùng chung một kiểu đạn năng lượng.",
+        "Thêm trạng thái gameplay riêng: Bỏng cộng dồn, Điện Tích, Phân Rã Hư Không, Độc, Mù, Sợ Hãi, Lơ Lửng Trọng Lực, Làm Nặng, Mảnh Pha Lê và Sát Thương Tích Lũy Thời Gian.",
+        "Lửa có dash kích nổ tầng Bỏng, Hỏa Trận giữ chân trong tam giác, Đại Hồng Viêm đẩy bật quanh người.",
+        "Sét có Tốc Biến gây đường sét, Phóng Điện cộng Điện Tích, Lôi Vân kích nổ Điện Tích lan truyền.",
+        "Hư Không có phân rã gây sát thương khi mục tiêu di chuyển; Thời Gian có vùng ngưng đọng bắt đạn và dồn sát thương rồi bung ra.",
+        "Lăng Kính Pha Lê giờ chặn và khúc xạ đạn địch thành 3 tia phản công.",
+        "Huyết Kén giữ bất tử ngắn rồi nổ trễ, đúng nhịp thi triển hơn.",
+        "Đồng bộ effect/trạng thái mới qua snapshot để chơi nhiều người thấy cùng một trận."
       ]
     }
   ];
@@ -124,11 +119,11 @@
       rarity: "rare",
       passive: "Đòn đánh thiêu đốt và cộng dồn sát thương nóng chảy.",
       skills: {
-        basic: "Chém Tro Tàn",
-        q: "Hỏa Cầu",
-        e: "Khiên Dung Nham",
-        r: "Mưa Thiên Thạch",
-        f: "Vương Miện Hỏa Ngục"
+        basic: "Hỏa Tước",
+        q: "Xung Kích Nhiệt",
+        e: "Hỏa Trận Tam Giác",
+        r: "Đại Hồng Viêm",
+        f: "Vô Hỏa Địa Ngục"
       }
     },
     {
@@ -140,11 +135,11 @@
       rarity: "rare",
       passive: "Kẻ địch bị làm lạnh sẽ chậm lại rồi vỡ vụn.",
       skills: {
-        basic: "Lưỡi Băng Hà",
-        q: "Vòng Băng",
-        e: "Hộ Vệ Gương",
-        r: "Trường Vỡ Băng",
-        f: "Không Độ Tuyệt Đối"
+        basic: "Hàn Băng Tiễn",
+        q: "Băng Gai Chông",
+        e: "Thuẫn Lục Giác",
+        r: "Toàn Băng Vũ",
+        f: "Tuyệt Đối Linh Độ"
       }
     },
     {
@@ -156,11 +151,11 @@
       rarity: "epic",
       passive: "Đòn chí mạng phóng sét lan sang mục tiêu gần đó.",
       skills: {
-        basic: "Lưỡi Volt",
-        q: "Bước Bão",
-        e: "Drone Ion",
-        r: "Lồng Sấm",
-        f: "Phá Thiên"
+        basic: "Lôi Kích Nhịp Độ",
+        q: "Tốc Biến Lôi Đinh",
+        e: "Phóng Điện Đa Hướng",
+        r: "Lôi Vân Trừng Phạt",
+        f: "Lôi Thần Tốc Độ"
       }
     },
     {
@@ -172,11 +167,11 @@
       rarity: "epic",
       passive: "Lướt xuyên mục tiêu sẽ đánh dấu chúng để kết liễu.",
       skills: {
-        basic: "Chém U Ảnh",
-        q: "Nở Bóng",
-        e: "Màn Che",
-        r: "Song Hồn",
-        f: "Nhật Thực"
+        basic: "Hắc Ám Trảo",
+        q: "Vũng Lầy Nuốt Chửng",
+        e: "Thuật Tráo Bóng",
+        r: "Xúc Tu Hắc Ám",
+        f: "Đêm Trường Tịch Diệt"
       }
     },
     {
@@ -188,11 +183,11 @@
       rarity: "epic",
       passive: "Một phần sát thương gây ra hồi lại máu.",
       skills: {
-        basic: "Huyết Trảm",
-        q: "Nứt Mạch",
-        e: "Khế Ước Máu",
-        r: "Quỹ Đạo Hút Máu",
-        f: "Lời Thề Đỏ"
+        basic: "Huyết Trảm Vòng Cung",
+        q: "Huyết Tiễn Cuồng Bạo",
+        e: "Huyết Kén Phòng Thủ",
+        r: "Bão Huyết Luân Hồi",
+        f: "Đại Tiệc Bá Tước"
       }
     },
     {
@@ -204,11 +199,11 @@
       rarity: "legendary",
       passive: "Đòn nặng kéo lệch thăng bằng của kẻ địch.",
       skills: {
-        basic: "Vết Cắt Khối Lượng",
-        q: "Sóng Nghiền",
-        e: "Khiên Quỹ Đạo",
-        r: "Mỏ Neo Đen",
-        f: "Chân Trời Sự Kiện"
+        basic: "Áp Lực Tiễn",
+        q: "Hố Hút Cực Hạn",
+        e: "Trọng Lực Đảo Ngược",
+        r: "Khối Nén Trọng Trường",
+        f: "Không Gian Sụp Đổ"
       }
     },
     {
@@ -220,11 +215,11 @@
       rarity: "rare",
       passive: "Mỗi đòn thứ ba tạo mảnh pha lê bay quanh người.",
       skills: {
-        basic: "Kiếm Mảnh Pha Lê",
-        q: "Nón Mảnh Vỡ",
-        e: "Vỏ Pha Lê",
-        r: "Mưa Ngọc",
-        f: "Thánh Đường Lăng Kính"
+        basic: "Pha Lê Trảm",
+        q: "Lăng Kính Phản Chiếu",
+        e: "Pha Lê Gai Mọc",
+        r: "Vụn Vỡ Đồng Loạt",
+        f: "Mê Cung Thạch Anh"
       }
     },
     {
@@ -236,11 +231,11 @@
       rarity: "rare",
       passive: "Cây dại định kỳ hồi máu và trói chân kẻ địch.",
       skills: {
-        basic: "Chém Gai",
-        q: "Bẫy Dây Leo",
-        e: "Nở Hoa",
-        r: "Cọc Gai",
-        f: "Rễ Thế Giới"
+        basic: "Roi Gai Sinh Trưởng",
+        q: "Rễ Cây Xiềng Xích",
+        e: "Bào Tử Bùng Nổ",
+        r: "Khởi Nguyên Hoa Ký Sinh",
+        f: "Khu Rừng Thượng Cổ"
       }
     },
     {
@@ -252,10 +247,10 @@
       rarity: "mythic",
       passive: "Dấu hư không sụp đổ sau nhiều lần trúng đòn.",
       skills: {
-        basic: "Lưỡi Hư Vô",
-        q: "Kéo Khe Nứt",
-        e: "Vỏ Dịch Chuyển",
-        r: "Giếng Hư Không",
+        basic: "Không Gian Sứt Mẻ",
+        q: "Vết Rách Dịch Chuyển",
+        e: "Hố Sụp Hư Không",
+        r: "Luồng Sóng Phân Rã",
         f: "Cổng Không Sao"
       }
     },
@@ -268,11 +263,11 @@
       rarity: "mythic",
       passive: "Né hoàn hảo hoàn trả hồi chiêu.",
       skills: {
-        basic: "Kim Giây",
-        q: "Ngưng Thời",
-        e: "Tua Ngược",
-        r: "Đồng Hồ Ngưng Đọng",
-        f: "Đổ Đồng Hồ Cát"
+        basic: "Lưỡi Hái Tuần Hoàn",
+        q: "Tua Ngược Quá Khứ",
+        e: "Vòng Tròn Ngưng Đọng",
+        r: "Kim Giờ Quét Sạch",
+        f: "Đồng Hồ Định Mệnh"
       }
     }
   ];
@@ -7521,13 +7516,16 @@
         "role", "specialSkill", "ranged", "bulky", "elite", "boss", "playerBoss", "playerBossId", "raidPowerId", "attackCd", "skillCd", "windupType",
         "windupTime", "windupTotal", "windupAngle", "windupX", "windupY", "chargeTime",
         "chargeHit", "chargeDir", "chargeSpeed", "chargeDamage", "attackAnim", "attackDir", "facingDir",
-        "launch", "flash", "stun", "domainFreeze", "domainBound", "burn", "chill", "mark", "bleed", "bleedTick", "bleedDamage", "phase", "phaseLock", "fatigueTime", "fatigueMax", "fatigueCounter", "bossDebuff", "aiTimer", "trainingDummy", "anchorX", "anchorY"
+        "launch", "flash", "stun", "domainFreeze", "domainBound", "burn", "chill", "mark", "bleed", "bleedTick", "bleedDamage",
+        "poison", "poisonTick", "poisonDamage", "blind", "fear", "suspend", "suspendDamage", "crystalShards", "weighted",
+        "fireStacks", "fireStackTime", "shockStacks", "shockTime", "voidDecay", "voidDecayTick", "voidDecayDamage", "timeStoredDamage", "timeStoredTime", "iceHailStay",
+        "phase", "phaseLock", "fatigueTime", "fatigueMax", "fatigueCounter", "bossDebuff", "aiTimer", "trainingDummy", "anchorX", "anchorY"
       ]);
     }
 
     compactProjectile(projectile) {
       return this.compactFields(projectile, [
-        "id", "owner", "casterId", "x", "y", "vx", "vy", "radius", "damage", "explosionRadius", "explosionDamage", "life", "age", "angle", "color", "pierce", "kind", "bossDebuff", "visualOnly", "visualImpact"
+        "id", "owner", "casterId", "x", "y", "vx", "vy", "savedVx", "savedVy", "timeFrozen", "radius", "damage", "explosionRadius", "explosionDamage", "life", "age", "angle", "color", "pierce", "kind", "bossDebuff", "visualOnly", "visualImpact"
       ]);
     }
 
@@ -7553,7 +7551,7 @@
     networkEffects(compact = false) {
       const visibleTypes = new Set([
         "pull", "zone", "danger", "ultimate", "domainCutin", "skillShape", "castBurst", "castCone",
-        "powerGlyph", "attackBurst", "hitSpark", "lineTell", "playerBossReveal"
+        "powerGlyph", "attackBurst", "hitSpark", "lineTell", "crystalPrism", "skillBurst", "playerBossReveal"
       ]);
       const effects = this.run.effects.filter((effect) => visibleTypes.has(effect.type));
       if (compact) {
@@ -8569,6 +8567,25 @@
         bleed: 0,
         bleedTick: 0,
         bleedDamage: 0,
+        poison: 0,
+        poisonTick: 0,
+        poisonDamage: 0,
+        blind: 0,
+        fear: 0,
+        suspend: 0,
+        suspendDamage: 0,
+        crystalShards: 0,
+        weighted: 0,
+        fireStacks: 0,
+        fireStackTime: 0,
+        shockStacks: 0,
+        shockTime: 0,
+        voidDecay: 0,
+        voidDecayTick: 0,
+        voidDecayDamage: 0,
+        timeStoredDamage: 0,
+        timeStoredTime: 0,
+        iceHailStay: 0,
         phase: 1,
         aiTimer: rand(0, 1)
       };
@@ -8616,6 +8633,25 @@
         bleed: 0,
         bleedTick: 0,
         bleedDamage: 0,
+        poison: 0,
+        poisonTick: 0,
+        poisonDamage: 0,
+        blind: 0,
+        fear: 0,
+        suspend: 0,
+        suspendDamage: 0,
+        crystalShards: 0,
+        weighted: 0,
+        fireStacks: 0,
+        fireStackTime: 0,
+        shockStacks: 0,
+        shockTime: 0,
+        voidDecay: 0,
+        voidDecayTick: 0,
+        voidDecayDamage: 0,
+        timeStoredDamage: 0,
+        timeStoredTime: 0,
+        iceHailStay: 0,
         phase: 1,
         phaseLock: 0,
         fatigueTime: 0,
@@ -8673,6 +8709,25 @@
         bleed: 0,
         bleedTick: 0,
         bleedDamage: 0,
+        poison: 0,
+        poisonTick: 0,
+        poisonDamage: 0,
+        blind: 0,
+        fear: 0,
+        suspend: 0,
+        suspendDamage: 0,
+        crystalShards: 0,
+        weighted: 0,
+        fireStacks: 0,
+        fireStackTime: 0,
+        shockStacks: 0,
+        shockTime: 0,
+        voidDecay: 0,
+        voidDecayTick: 0,
+        voidDecayDamage: 0,
+        timeStoredDamage: 0,
+        timeStoredTime: 0,
+        iceHailStay: 0,
         phase: 1,
         phaseLock: 0,
         fatigueTime: 0,
@@ -10385,9 +10440,12 @@
         const side = Math.abs(dx * -dirY + dy * dirX);
         if (along > -enemy.radius && along < length + enemy.radius && side < width + enemy.radius) hits.push({ enemy, along });
       }
+      const damaged = [];
       hits.sort((a, b) => a.along - b.along).slice(0, pierce).forEach(({ enemy }) => {
         this.damageEnemy(enemy, damage, { x: dirX, y: dirY, source: "skill", kind, sourceId: this.currentDamageSourceId || "" });
+        damaged.push(enemy);
       });
+      return damaged;
     }
 
     burstLines(x, y, color, count, radius, life = 0.18) {
@@ -10495,6 +10553,7 @@
         { x: cx + Math.cos(angle - Math.PI * 2 / 3) * h * 0.58, y: cy + Math.sin(angle - Math.PI * 2 / 3) * h * 0.58 }
       ];
       const sign = (p1, p2, p3) => (p1.x - p3.x) * (p2.y - p3.y) - (p2.x - p3.x) * (p1.y - p3.y);
+      const damaged = [];
       for (const enemy of [...this.run.enemies]) {
         const p = { x: enemy.x, y: enemy.y };
         const d1 = sign(p, points[0], points[1]);
@@ -10504,13 +10563,16 @@
         if (!inside) continue;
         enemy.stun = Math.max(enemy.stun || 0, enemy.boss ? 0.12 : 1.2);
         this.damageEnemy(enemy, damage, { x: 0, y: 0, source: "skill", kind, noKnockback: true, sourceId });
+        damaged.push(enemy);
       }
       this.addEffect({ type: "zone", x: cx, y: cy, radius: side * 0.52, time: 1.2, tick: 0.25, color, kind, casterId: sourceId });
+      return damaged;
     }
 
     rectangleSkillDamage(x, y, angle, length, width, damage, color, kind, sourceId = this.currentDamageSourceId || "", options = {}) {
       const dx = Math.cos(angle);
       const dy = Math.sin(angle);
+      const damaged = [];
       for (const enemy of [...this.run.enemies]) {
         const ex = enemy.x - x;
         const ey = enemy.y - y;
@@ -10520,9 +10582,11 @@
           if (options.stun) enemy.stun = Math.max(enemy.stun || 0, enemy.boss ? options.stun * 0.25 : options.stun);
           if (options.mark) enemy.mark = Math.max(enemy.mark || 0, options.mark);
           if (options.burn) enemy.burn = Math.max(enemy.burn || 0, options.burn);
-          this.damageEnemy(enemy, damage, { x: dx, y: dy, source: "skill", kind, sourceId });
+          this.damageEnemy(enemy, damage, { x: dx, y: dy, source: "skill", kind, sourceId, noKnockback: Boolean(options.noKnockback) });
+          damaged.push(enemy);
         }
       }
+      return damaged;
     }
 
     crossSkillDamage(x, y, angle, length, width, damage, color, kind, sourceId = this.currentDamageSourceId || "") {
@@ -10563,6 +10627,129 @@
         length: Math.hypot(target.x - oldX, target.y - oldY),
         design: true
       });
+    }
+
+    applyFireStacks(enemy, count = 1, duration = 5.2, color = "#ff4500") {
+      if (!enemy || enemy.hp <= 0) return 0;
+      enemy.fireStacks = clamp(Math.floor(Number(enemy.fireStacks || 0)) + count, 0, 5);
+      enemy.fireStackTime = Math.max(Number(enemy.fireStackTime || 0), enemy.boss ? duration * 0.72 : duration);
+      enemy.burn = Math.max(enemy.burn || 0, 2.2);
+      const particles = this.particleCount(1 + count);
+      for (let i = 0; i < particles; i++) {
+        const a = rand(-Math.PI, Math.PI);
+        this.addParticle(enemy.x + Math.cos(a) * enemy.radius * 0.35, enemy.y - enemy.radius * 0.25 + Math.sin(a) * 8, color, rand(5, 11), rand(0.2, 0.42), "flame", -Math.PI / 2 + rand(-0.5, 0.5), rand(35, 95));
+      }
+      return enemy.fireStacks;
+    }
+
+    detonateFireStacks(enemy, damage, sourceId = "", color = "#ff4500") {
+      const stacks = Math.floor(Number(enemy?.fireStacks || 0));
+      if (!enemy || enemy.hp <= 0 || stacks <= 0 || this.isMultiplayerClient()) return 0;
+      enemy.fireStacks = 0;
+      enemy.fireStackTime = 0;
+      enemy.burn = Math.max(enemy.burn || 0, 1.2);
+      const blast = 44 + stacks * 13;
+      this.addShockwave(enemy.x, enemy.y, blast + 28, color, 0);
+      this.addSkillShape("fire", "design-fire-e", enemy.x, enemy.y, rand(0, TAU), 74 + stacks * 12, 0.32, {
+        design: true,
+        color,
+        accent: "#ffd700"
+      });
+      this.areaDamage(enemy.x, enemy.y, blast, damage * (0.12 + stacks * 0.065), color, "fire", false, sourceId);
+      return stacks;
+    }
+
+    applyLightningCharge(enemy, count = 1, duration = 4.2, color = "#ffff00") {
+      if (!enemy || enemy.hp <= 0) return 0;
+      enemy.shockStacks = clamp(Math.floor(Number(enemy.shockStacks || 0)) + count, 0, 4);
+      enemy.shockTime = Math.max(Number(enemy.shockTime || 0), enemy.boss ? duration * 0.62 : duration);
+      if (chance(0.85)) this.burstLines(enemy.x, enemy.y, color, 2 + Math.min(2, enemy.shockStacks), 44 + enemy.shockStacks * 10, 0.09);
+      return enemy.shockStacks;
+    }
+
+    detonateLightningCharge(origin, damage, sourceId = "", color = "#ffff00") {
+      if (!origin || origin.hp <= 0 || this.isMultiplayerClient()) return 0;
+      const stacks = Math.floor(Number(origin.shockStacks || 0));
+      if (stacks <= 0) return 0;
+      origin.shockStacks = 0;
+      origin.shockTime = 0;
+      const radius = 96 + stacks * 24;
+      this.addShockwave(origin.x, origin.y, radius, color, 0);
+      this.burstLines(origin.x, origin.y, color, 6 + stacks, radius + 32, 0.14);
+      let hits = 0;
+      for (const enemy of this.enemiesNear(origin.x, origin.y, radius + 38, 8)) {
+        const d = Math.hypot(enemy.x - origin.x, enemy.y - origin.y) || 1;
+        this.damageEnemy(enemy, damage * (enemy === origin ? 0.46 + stacks * 0.08 : 0.18 + stacks * 0.04), {
+          x: (enemy.x - origin.x) / d,
+          y: (enemy.y - origin.y) / d,
+          source: "lightningCharge",
+          kind: "lightning",
+          noKnockback: true,
+          sourceId
+        });
+        enemy.stun = Math.max(enemy.stun || 0, enemy.boss ? 0.05 : 0.18);
+        hits++;
+      }
+      return hits;
+    }
+
+    applyVoidDecay(enemy, damage, duration = 3.0, sourceId = "", color = "#f2f6ff") {
+      if (!enemy || enemy.hp <= 0) return;
+      enemy.voidDecay = Math.max(enemy.voidDecay || 0, enemy.boss ? duration * 0.7 : duration);
+      enemy.voidDecayTick = Math.min(Number(enemy.voidDecayTick || 0.5), 0.5);
+      enemy.voidDecayDamage = Math.max(enemy.voidDecayDamage || 0, Math.max(1, damage * (enemy.boss ? 0.025 : 0.05)));
+      if (sourceId) enemy.lastVoidDecaySourceId = sourceId;
+      this.addParticle(enemy.x, enemy.y - enemy.radius * 0.2, color, rand(6, 13), rand(0.18, 0.36), "void", rand(-Math.PI, Math.PI), rand(35, 110));
+    }
+
+    tickVoidDecay(enemy, dt) {
+      if (!enemy || enemy.voidDecay <= 0) return;
+      const moved = Math.hypot(enemy.vx || 0, enemy.vy || 0) > 22;
+      enemy.voidDecay = Math.max(0, enemy.voidDecay - dt);
+      enemy.voidDecayTick = Math.max(0, Number(enemy.voidDecayTick || 0) - dt);
+      if (!moved || enemy.voidDecayTick > 0) return;
+      enemy.voidDecayTick = 0.5;
+      const damage = Math.max(1, Number(enemy.voidDecayDamage || 1));
+      if (!this.trainingDamageDisabled(enemy)) enemy.hp -= damage;
+      enemy.flash = Math.max(enemy.flash || 0, 0.08);
+      this.addParticle(enemy.x + rand(-enemy.radius * 0.4, enemy.radius * 0.4), enemy.y + rand(-enemy.radius * 0.35, enemy.radius * 0.35), "#f2f6ff", rand(5, 11), rand(0.16, 0.32), "void", rand(-Math.PI, Math.PI), rand(45, 135));
+      if (enemy.trainingDummy && enemy.hp <= 0) {
+        this.resetTrainingDummy(enemy);
+        return;
+      }
+      if (enemy.hp <= 0) this.killEnemy(enemy);
+    }
+
+    storeTimeDamage(enemy, damage, duration = 2.4, sourceId = "") {
+      if (!enemy || enemy.hp <= 0) return 0;
+      enemy.timeStoredDamage = Math.max(0, Number(enemy.timeStoredDamage || 0)) + Math.max(0, damage);
+      enemy.timeStoredTime = Math.max(Number(enemy.timeStoredTime || 0), duration);
+      if (sourceId) enemy.lastTimeSourceId = sourceId;
+      enemy.flash = Math.max(enemy.flash || 0, 0.08);
+      return enemy.timeStoredDamage;
+    }
+
+    releaseTimeStoredDamage(enemy, color = "#b38f00") {
+      const damage = Math.max(0, Number(enemy?.timeStoredDamage || 0));
+      if (!enemy || enemy.hp <= 0 || damage <= 0 || this.isMultiplayerClient()) {
+        if (enemy) {
+          enemy.timeStoredDamage = 0;
+          enemy.timeStoredTime = 0;
+        }
+        return 0;
+      }
+      enemy.timeStoredDamage = 0;
+      enemy.timeStoredTime = 0;
+      this.addShockwave(enemy.x, enemy.y, 82, color, 0);
+      this.damageEnemy(enemy, damage, {
+        x: 0,
+        y: 0,
+        source: "timeRelease",
+        kind: "time",
+        noKnockback: true,
+        sourceId: enemy.lastTimeSourceId || ""
+      });
+      return damage;
     }
 
     applyAwakenedSkillBonus(key, power, caster, angle, target, damage, owner = "player", remote = false, skillHealAllowed = false) {
@@ -10822,18 +11009,19 @@
         enemy.vx = 0;
         enemy.vy = 0;
         enemy.attackAnim = Math.max(enemy.attackAnim || 0, 0.12);
-        if (damage > 0) {
-          this.damageEnemy(enemy, damage * force, {
-            x: 0,
-            y: 0,
-            source: "timeStop",
-            kind: "time",
-            noKnockback: true,
-            sourceId: casterId
-          });
-        }
+        if (damage > 0) this.storeTimeDamage(enemy, damage * force, freeze + 0.12, casterId);
         frozen += 1;
         if (chance(0.8)) this.addParticle(enemy.x, enemy.y - enemy.radius * 0.4, color, rand(7, 15), rand(0.28, 0.58), "clock");
+      }
+      for (const projectile of this.run.projectiles || []) {
+        if (projectile.owner !== "enemy" || projectile.life <= 0) continue;
+        if (Math.hypot(projectile.x - x, projectile.y - y) > radius + (projectile.radius || 6)) continue;
+        projectile.savedVx = Number.isFinite(projectile.savedVx) ? projectile.savedVx : projectile.vx;
+        projectile.savedVy = Number.isFinite(projectile.savedVy) ? projectile.savedVy : projectile.vy;
+        projectile.vx = 0;
+        projectile.vy = 0;
+        projectile.timeFrozen = Math.max(Number(projectile.timeFrozen || 0), duration);
+        projectile.color = color;
       }
       return frozen;
     }
@@ -11100,13 +11288,29 @@
       const healFromSkill = (amount) => {
         if (context.skillHealAllowed && !remote) this.healPlayer(amount, { source: "power", allowAfterCombat: true });
       };
+      const visualExtra = {};
+      if (kind === "shadow" && key === "q") Object.assign(visualExtra, { x: tx, y: ty, radius: 112, width: 76 });
+      if (kind === "shadow" && key === "e") Object.assign(visualExtra, { length: 150, width: 42 });
+      if (kind === "shadow" && key === "r") Object.assign(visualExtra, { radius: 160, length: 126, width: 34 });
+      if (kind === "blood" && key === "q") Object.assign(visualExtra, { length: 210, width: 30 });
+      if (kind === "blood" && key === "e") Object.assign(visualExtra, { x, y, radius: 92 });
+      if (kind === "blood" && key === "r") Object.assign(visualExtra, { x, y, radius: 150 });
+      if (kind === "gravity" && key === "q") Object.assign(visualExtra, { x: tx, y: ty, radius: 132 });
+      if (kind === "gravity" && key === "e") Object.assign(visualExtra, { x: x + Math.cos(angle) * 92, y: y + Math.sin(angle) * 92, length: 152, width: 68 });
+      if (kind === "gravity" && key === "r") Object.assign(visualExtra, { x: tx, y: ty, radius: 154 });
+      if (kind === "crystal" && key === "q") Object.assign(visualExtra, { x: x + Math.cos(angle) * 76, y: y + Math.sin(angle) * 76, radius: 94, length: 118, width: 32 });
+      if (kind === "crystal" && key === "e") Object.assign(visualExtra, { x: tx, y: ty, radius: 112 });
+      if (kind === "crystal" && key === "r") Object.assign(visualExtra, { x, y, radius: 190 });
+      if (kind === "nature" && (key === "q" || key === "e")) Object.assign(visualExtra, { x: tx, y: ty, radius: key === "q" ? 106 : 126 });
+      if (kind === "nature" && key === "r") Object.assign(visualExtra, { x, y, radius: 164 });
       this.markDesignedCast(caster, power, key, angle, target, { owner, casterId });
-      this.addDesignedSkillVisual(kind, key, caster, angle, { x: tx, y: ty }, awakened);
+      this.addDesignedSkillVisual(kind, key, caster, angle, { x: tx, y: ty }, awakened, visualExtra);
 
       if (key === "q") {
         if (kind === "fire") {
           const len = 160;
-          this.rectangleSkillDamage(x, y, angle, len, 48, damage * 1.18, palette.color, kind, casterId, { burn: 3.4 });
+          const hits = this.rectangleSkillDamage(x, y, angle, len, 48, damage * 1.18, palette.color, kind, casterId, { burn: 3.4 });
+          for (const enemy of hits) this.detonateFireStacks(enemy, damage, casterId, palette.color);
           this.setDesignedCasterPosition(caster, x + Math.cos(angle) * len, y + Math.sin(angle) * len, { owner, casterId });
           this.addTrailDamage(x + Math.cos(angle) * 80, y + Math.sin(angle) * 80, palette.color);
         } else if (kind === "ice") {
@@ -11122,36 +11326,47 @@
           }
         } else if (kind === "lightning") {
           const len = 150;
-          this.rectangleSkillDamage(x, y, angle, len, 32, damage * 1.08, palette.color, kind, casterId, { stun: 0.5 });
+          const hits = this.rectangleSkillDamage(x, y, angle, len, 32, damage * 1.08, palette.color, kind, casterId, { stun: 0.5 });
+          for (const enemy of hits) this.applyLightningCharge(enemy, 1, 4.2, palette.color);
           this.setDesignedCasterPosition(caster, x + Math.cos(angle) * len, y + Math.sin(angle) * len, { owner, casterId });
           this.burstLines(x + Math.cos(angle) * len, y + Math.sin(angle) * len, palette.accent, 5, 120, 0.12);
         } else if (kind === "shadow") {
-          const len = 145;
-          this.rectangleSkillDamage(x, y, angle, len, 44, damage * 0.95, palette.color, kind, casterId, { mark: 2 });
-          this.setDesignedCasterPosition(caster, x + Math.cos(angle) * len, y + Math.sin(angle) * len, { owner, casterId });
-          caster.invuln = Math.max(caster.invuln || 0, 0.28);
-        } else if (kind === "blood") {
-          this.coneDamage(x, y, angle, 185, Math.PI * 0.92, damage * 1.22, palette.color, kind);
-          for (const enemy of this.enemiesNear(x, y, 210, 7)) {
-            const a = Math.atan2(enemy.y - y, enemy.x - x);
-            if (Math.abs(angleDelta(a, angle)) < Math.PI * 0.48) this.applyBloodBleed(enemy, damage, 5.2, casterId);
+          this.addEffect({ type: "zone", x: tx, y: ty, radius: 74, time: 3.0, tick: 0.18, tickRate: 0.35, damage: damage * 0.08, statusKind: "shadowSwamp", color: palette.color, kind, casterId });
+          this.addEffect({ type: "pull", x: tx, y: ty, radius: 92, time: 2.7, strength: 210, color: palette.color, casterId });
+          for (const enemy of this.enemiesNear(tx, ty, 92, 8)) {
+            enemy.chill = Math.max(enemy.chill || 0, 2.4);
+            enemy.blind = Math.max(enemy.blind || 0, enemy.boss ? 0.8 : 2.0);
+            enemy.mark += 1;
           }
-          healFromSkill(4 + damage * 0.04);
+        } else if (kind === "blood") {
+          const spent = !remote ? Math.max(1, caster.hp * 0.05) : 0;
+          if (!remote) caster.hp = Math.max(1, caster.hp - spent);
+          const hits = this.lineDamage(x, y, angle, 205, 24, damage * 1.42, palette.color, kind, 99);
+          for (const enemy of hits) this.applyBloodBleed(enemy, damage, 6.2, casterId);
+          if (hits.length >= 2 && !remote) {
+            caster.hp = Math.min(caster.maxHp, caster.hp + spent * 1.5);
+            this.addImpact(caster.x, caster.y - 18, palette.accent, Math.round(spent * 1.5), false);
+          }
         } else if (kind === "gravity") {
-          const cx = x + Math.cos(angle) * 120;
-          const cy = y + Math.sin(angle) * 120;
-          this.rectangleSkillDamage(x, y, angle, 260, 72, damage * 0.86, palette.color, kind, casterId);
-          this.addEffect({ type: "pull", x: cx, y: cy, radius: 210, time: 0.72, color: palette.color, casterId });
+          this.addEffect({ type: "pull", x: tx, y: ty, radius: 118, time: 2.0, strength: 650, color: palette.color, casterId });
+          for (const enemy of this.enemiesNear(tx, ty, 118, 10)) {
+            enemy.weighted = Math.max(enemy.weighted || 0, 3.0);
+            enemy.skillCd = Math.max(enemy.skillCd || 0, 0.45);
+            this.damageEnemy(enemy, damage * 0.36, { x: 0, y: 0, source: "gravityWell", kind, noKnockback: true, sourceId: casterId });
+          }
         } else if (kind === "crystal") {
-          for (let i = -3; i <= 3; i++) {
-            const a = angle + i * 0.13;
-            this.spawnProjectile({ owner, casterId, x: x + Math.cos(a) * 24, y: y + Math.sin(a) * 24, vx: Math.cos(a) * 700, vy: Math.sin(a) * 700, radius: 6, damage: damage * 0.72, life: 0.84, color: i ? palette.color : palette.accent, pierce: 1, kind });
+          const prismX = x + Math.cos(angle) * 92;
+          const prismY = y + Math.sin(angle) * 92;
+          this.addEffect({ type: "crystalPrism", x: prismX, y: prismY, angle, length: 92, width: 18, time: 4.0, maxTime: 4.0, color: palette.color, accent: palette.accent, casterId, owner });
+          for (const enemy of this.enemiesInLine(prismX - Math.sin(angle) * 44, prismY + Math.cos(angle) * 44, angle + Math.PI / 2, 88, 18, 5)) {
+            this.applyCrystalShards(enemy, 1, palette.accent);
           }
         } else if (kind === "nature") {
-          this.addEffect({ type: "zone", x: tx, y: ty, radius: 90, time: 2.3, tick: 0.25, color: palette.color, kind, casterId });
-          for (const enemy of this.enemiesNear(tx, ty, 115, 7)) {
-            enemy.stun = Math.max(enemy.stun || 0, enemy.boss ? 0.12 : 0.9);
-            this.damageEnemy(enemy, damage * 0.62, { x: 0, y: 0, source: "rootSnare", kind, noKnockback: true, sourceId: casterId });
+          this.addEffect({ type: "zone", x: tx, y: ty, radius: 66, time: 2.0, tick: 0.25, tickRate: 0.5, damage: 0, color: palette.color, kind, casterId });
+          for (const enemy of this.enemiesNear(tx, ty, 82, 7)) {
+            enemy.stun = Math.max(enemy.stun || 0, enemy.boss ? 0.18 : 2.0);
+            this.damageEnemy(enemy, damage * 0.46, { x: 0, y: 0, source: "rootChain", kind, noKnockback: true, sourceId: casterId });
+            this.applyEnemyPoison(enemy, damage, 5, casterId);
             this.addRootSnareVisual(enemy, caster, palette.color);
           }
         } else if (kind === "void") {
@@ -11164,44 +11379,64 @@
           caster.invuln = Math.max(caster.invuln || 0, 0.3);
         }
         this.camera.shake = Math.max(this.camera.shake, kind === "lightning" ? 8 : 5);
-        this.finishDesignedPowerSkill(kind, key, caster, angle, { x: tx, y: ty }, damage, owner, casterId, remote, awakened);
+        const eImpact = ["ice", "lightning", "shadow", "blood", "gravity"].includes(kind) ? { x, y } : { x: tx, y: ty };
+        this.finishDesignedPowerSkill(kind, key, caster, angle, eImpact, damage, owner, casterId, remote, awakened);
         return true;
       }
 
       if (key === "e") {
         if (kind === "fire") {
-          this.triangleDamage(tx, ty, angle, 130, damage * 0.78, palette.color, kind, casterId);
+          const hits = this.triangleDamage(tx, ty, angle, 130, damage * 0.78, palette.color, kind, casterId);
+          for (const enemy of hits) {
+            enemy.stun = Math.max(enemy.stun || 0, enemy.boss ? 0.18 : 1.5);
+            this.applyFireStacks(enemy, 2, 5.6, palette.color);
+          }
         } else if (kind === "ice") {
           caster.shield = Math.max(caster.shield || 0, 74 + this.run.stage * 7);
           this.freezeIceInArea(x, y, 82, 0.3, damage * 0.2, palette.color, casterId);
           this.addEffect({ type: "shield", target: caster, time: 3.2, color: palette.color });
         } else if (kind === "lightning") {
           this.crossSkillDamage(x, y, angle, 150, 28, damage * 0.9, palette.color, kind, casterId);
-          for (const enemy of this.enemiesNear(x, y, 185, 8)) enemy.stun = Math.max(enemy.stun || 0, enemy.boss ? 0.07 : 0.24);
+          for (const enemy of this.enemiesNear(x, y, 185, 8)) {
+            enemy.stun = Math.max(enemy.stun || 0, enemy.boss ? 0.07 : 0.24);
+            this.applyLightningCharge(enemy, 2, 4.6, palette.color);
+          }
         } else if (kind === "shadow") {
-          caster.invuln = Math.max(caster.invuln || 0, 0.78);
-          this.applyShadowWeaponBuff(caster, 2, !remote && caster === this.run.player);
-          for (const enemy of this.enemiesNear(x, y, 180, 8)) enemy.mark += 2;
+          const len = 130;
+          const hit = this.enemiesInLine(x, y, angle, len + 38, 34, 1)[0];
+          const oldX = x;
+          const oldY = y;
+          const endX = hit ? hit.x + Math.cos(angle) * (hit.radius + 36) : x + Math.cos(angle) * len;
+          const endY = hit ? hit.y + Math.sin(angle) * (hit.radius + 36) : y + Math.sin(angle) * len;
+          this.areaDamage(oldX, oldY, 62, damage * 0.42, palette.color, kind, false, casterId);
+          this.setDesignedCasterPosition(caster, endX, endY, { owner, casterId });
+          caster.invuln = Math.max(caster.invuln || 0, 0.36);
+          if (hit) {
+            hit.fear = Math.max(hit.fear || 0, hit.boss ? 0.35 : 1.0);
+            hit.blind = Math.max(hit.blind || 0, 1.5);
+            this.damageEnemy(hit, damage * 0.56, { x: Math.cos(angle), y: Math.sin(angle), source: "shadowSwap", kind, sourceId: casterId });
+          }
         } else if (kind === "blood") {
-          if (!remote) caster.hp = Math.max(1, caster.hp - 7);
-          caster.shield = Math.max(caster.shield || 0, 38);
-          this.areaDamage(x, y, 125, damage * 0.74, palette.color, kind, false, casterId);
-          for (const enemy of this.enemiesNear(x, y, 150, 8)) this.applyBloodBleed(enemy, damage, 5.6, casterId);
-          healFromSkill(5);
+          caster.invuln = Math.max(caster.invuln || 0, 1.5);
+          caster.bloodCocoon = Math.max(caster.bloodCocoon || 0, 1.5);
+          caster.shield = Math.max(caster.shield || 0, 54);
+          this.addEffect({ type: "skillBurst", x, y, radius: 118, time: 1.5, maxTime: 1.5, damage: damage * 0.82, color: palette.color, kind, casterId });
         } else if (kind === "gravity") {
-          caster.shield = Math.max(caster.shield || 0, 48);
-          this.addEffect({ type: "pull", x, y, radius: 220, time: 1.0, color: palette.color, casterId });
-          this.areaDamage(x, y, 92, damage * 0.42, palette.color, kind, false, casterId);
+          const hits = this.rectangleSkillDamage(x + Math.cos(angle) * 18, y + Math.sin(angle) * 18, angle, 154, 62, damage * 0.42, palette.color, kind, casterId, { noKnockback: true });
+          for (const enemy of hits) {
+            enemy.suspend = Math.max(enemy.suspend || 0, enemy.boss ? 0.42 : 1.5);
+            enemy.suspendDamage = Math.max(enemy.suspendDamage || 0, Math.min(enemy.maxHp * 0.1, damage * 0.72));
+            enemy.launch = Math.max(enemy.launch || 0, enemy.boss ? 0.12 : 0.42);
+          }
         } else if (kind === "crystal") {
-          caster.shield = Math.max(caster.shield || 0, 62);
-          for (let i = 0; i < 8; i++) {
-            const a = (i / 8) * TAU;
-            this.spawnProjectile({ owner, casterId, x, y, vx: Math.cos(a) * 500, vy: Math.sin(a) * 500, radius: 6, damage: damage * 0.34, life: 0.64, color: i % 2 ? palette.color : palette.accent, pierce: 0, kind });
+          this.areaDamage(tx, ty, 58, damage * 1.0, palette.color, kind, false, casterId);
+          for (const enemy of this.enemiesNear(tx, ty, 72, 7)) {
+            enemy.stun = Math.max(enemy.stun || 0, enemy.boss ? 0.1 : 1.0);
+            this.applyCrystalShards(enemy, 3, palette.accent);
           }
         } else if (kind === "nature") {
-          healFromSkill(14);
-          this.addEffect({ type: "zone", x, y, radius: 125, time: 2.8, tick: 0.28, color: palette.color, kind, casterId });
-          for (const enemy of this.enemiesNear(x, y, 145, 6)) enemy.stun = Math.max(enemy.stun || 0, enemy.boss ? 0.05 : 0.32);
+          this.addEffect({ type: "zone", x: tx, y: ty, radius: 84, time: 3.5, tick: 0.16, tickRate: 0.42, damage: damage * 0.08, statusKind: "natureSpores", color: palette.color, kind, casterId });
+          for (const enemy of this.enemiesNear(tx, ty, 96, 8)) this.applyEnemyPoison(enemy, damage, 5.5, casterId);
         } else if (kind === "void") {
           this.areaDamage(tx, ty, 72, damage * 1.28, palette.color, kind, false, casterId);
           for (const enemy of this.enemiesNear(tx, ty, 78, 8)) {
@@ -11210,10 +11445,11 @@
           }
         } else if (kind === "time") {
           this.stopTimeInArea(tx, ty, 95, 2.4, damage * 0.18, palette.color, casterId);
-          this.addEffect({ type: "zone", x: tx, y: ty, radius: 92, time: 3.0, tick: 0.45, color: palette.color, kind, casterId });
+          this.addEffect({ type: "zone", x: tx, y: ty, radius: 92, time: 3.0, tick: 0.45, tickRate: 0.35, damage: 0, statusKind: "timeStasis", color: palette.color, kind, casterId });
         }
         this.camera.shake = Math.max(this.camera.shake, 6);
-        this.finishDesignedPowerSkill(kind, key, caster, angle, { x: tx, y: ty }, damage, owner, casterId, remote, awakened);
+        const eImpact = ["ice", "lightning", "shadow", "blood"].includes(kind) ? { x, y } : { x: tx, y: ty };
+        this.finishDesignedPowerSkill(kind, key, caster, angle, eImpact, damage, owner, casterId, remote, awakened);
         return true;
       }
 
@@ -11224,8 +11460,16 @@
             this.coneDamage(x, y, a, 190, Math.PI / 6, damage * 0.74, palette.color, kind);
             this.addSkillShape(kind, "design-fire-cone", x, y, a, 190, 0.5, { design: true, length: 190, color: palette.color, accent: palette.accent });
           }
+          for (const enemy of this.enemiesNear(x, y, 215, 12)) {
+            const a = Math.atan2(enemy.y - y, enemy.x - x);
+            enemy.vx += Math.cos(a) * (enemy.boss ? 180 : 520);
+            enemy.vy += Math.sin(a) * (enemy.boss ? 180 : 520);
+            this.applyFireStacks(enemy, 2, 5.8, palette.color);
+            const wallHit = enemy.x < ROOM_PAD + 70 || enemy.x > WORLD_W - ROOM_PAD - 70 || enemy.y < ROOM_PAD + 70 || enemy.y > WORLD_H - ROOM_PAD - 70;
+            if (wallHit) enemy.stun = Math.max(enemy.stun || 0, enemy.boss ? 0.12 : 0.55);
+          }
         } else if (kind === "ice") {
-          this.addEffect({ type: "zone", x: tx, y: ty, radius: 132, time: 3.2, tick: 0.16, color: palette.color, kind, casterId });
+          this.addEffect({ type: "zone", x: tx, y: ty, radius: 132, time: 3.2, tick: 0.16, tickRate: 0.28, damage: damage * 0.08, statusKind: "iceHail", color: palette.color, kind, casterId });
           for (let i = 0; i < 12; i++) {
             const px = tx + rand(-115, 115);
             const py = ty + rand(-95, 95);
@@ -11236,41 +11480,68 @@
         } else if (kind === "lightning") {
           this.rectangleSkillDamage(tx - 40, ROOM_PAD, Math.PI / 2, WORLD_H - ROOM_PAD * 2, 90, damage * 1.65, palette.color, kind, casterId, { stun: 0.42 });
           const source = this.nearestEnemy(tx, ty, 220);
-          if (source) this.chainLightning(source, damage * 0.5);
-        } else if (kind === "shadow") {
-          for (const side of [-1, 1]) {
-            const a = angle + side * 0.14;
-            this.lineDamage(x - Math.sin(angle) * side * 36, y + Math.cos(angle) * side * 36, a, 430, 42, damage * 0.86, palette.color, kind, 6);
+          if (source) {
+            this.detonateLightningCharge(source, damage, casterId, palette.color);
+            this.chainLightning(source, damage * 0.5);
           }
-          for (const enemy of this.enemiesInLine(x, y, angle, 440, 70, 8)) {
-            enemy.mark += 3;
-            this.addShadowShard(enemy, caster, 2);
+        } else if (kind === "shadow") {
+          for (let i = 0; i < 4; i++) {
+            const a = i * Math.PI / 2;
+            const hits = this.rectangleSkillDamage(x + Math.cos(a) * 18, y + Math.sin(a) * 18, a, 116, 34, damage * 0.68, palette.color, kind, casterId, { noKnockback: true });
+            for (const enemy of hits) {
+              enemy.stun = Math.max(enemy.stun || 0, enemy.boss ? 0.22 : 1.5);
+              enemy.blind = Math.max(enemy.blind || 0, 2.0);
+              enemy.mark += 2;
+            }
           }
         } else if (kind === "blood") {
-          this.addEffect({ type: "zone", x, y, radius: 190, time: 3.8, tick: 0.12, color: palette.color, kind, casterId });
-          for (const enemy of this.enemiesNear(x, y, 210, 10)) this.applyBloodBleed(enemy, damage, 7.2, casterId);
-          healFromSkill(8);
+          let hits = 0;
+          for (const enemy of this.enemiesNear(x, y, 150, 12)) {
+            const d = Math.hypot(enemy.x - x, enemy.y - y);
+            const onRing = [42, 82, 122].some((ring) => Math.abs(d - ring) < enemy.radius + 13);
+            if (!onRing) continue;
+            hits++;
+            enemy.chill = Math.max(enemy.chill || 0, 1.5);
+            this.applyBloodBleed(enemy, damage, 7.2, casterId);
+            this.damageEnemy(enemy, damage * 0.62, { x: (enemy.x - x) / (d || 1), y: (enemy.y - y) / (d || 1), source: "bloodRings", kind, sourceId: casterId });
+          }
+          if (!remote && hits > 0) this.healPlayer(Math.min(16, hits * 2), { source: "power", allowAfterCombat: true });
         } else if (kind === "gravity") {
-          this.addEffect({ type: "pull", x: tx, y: ty, radius: 340, time: 2.2, color: palette.color, casterId });
-          this.areaDamage(tx, ty, 160, damage * 0.95, palette.color, kind, false, casterId);
-          for (let i = 0; i < 3; i++) this.addSkillShape(kind, "design-gravity-meteor", tx + rand(-70, 70), ty + rand(-50, 50), -Math.PI / 2, 118, 0.58, { design: true, color: palette.color, accent: palette.accent });
+          this.areaDamage(tx, ty, 86, damage * 1.28, palette.color, kind, false, casterId);
+          for (const enemy of this.enemiesNear(tx, ty, 92, 8)) {
+            enemy.stun = Math.max(enemy.stun || 0, enemy.boss ? 0.34 : 2.5);
+            enemy.weighted = Math.max(enemy.weighted || 0, 3.0);
+            enemy.vx *= 0.12;
+            enemy.vy *= 0.12;
+          }
+          this.addShockwave(tx, ty, 172, palette.color, 0);
         } else if (kind === "crystal") {
-          for (let i = 0; i < 14; i++) {
-            const px = tx + rand(-130, 130);
-            this.spawnProjectile({ owner, casterId, x: px, y: ty - 230, vx: rand(-45, 45), vy: 680, radius: 7, damage: damage * 0.46, life: 0.72, color: i % 2 ? palette.color : palette.accent, pierce: 0, kind });
+          let detonated = 0;
+          for (const enemy of [...this.run.enemies]) detonated += this.detonateCrystalShards(enemy, damage, owner, casterId, palette.accent);
+          if (detonated === 0) {
+            for (const enemy of this.enemiesNear(tx, ty, 150, 5)) {
+              this.applyCrystalShards(enemy, 1, palette.accent);
+              this.detonateCrystalShards(enemy, damage * 0.72, owner, casterId, palette.accent);
+            }
           }
-          this.addEffect({ type: "zone", x: tx, y: ty, radius: 130, time: 1.8, tick: 0.18, color: palette.accent, kind, casterId });
         } else if (kind === "nature") {
-          for (let i = 1; i <= 5; i++) {
-            const px = x + Math.cos(angle) * i * 70;
-            const py = y + Math.sin(angle) * i * 70;
-            this.areaDamage(px, py, 56, damage * 0.52, palette.color, kind, false, casterId);
-            this.addEffect({ type: "zone", x: px, y: py, radius: 54, time: 1.9, tick: 0.26, color: palette.color, kind, casterId });
+          let drained = 0;
+          for (const enemy of this.enemiesNear(x, y, 150, 12)) {
+            const d = Math.hypot(enemy.x - x, enemy.y - y) || 1;
+            const a = Math.atan2(enemy.y - y, enemy.x - x);
+            this.damageEnemy(enemy, damage * 0.76, { x: Math.cos(a) * 1.6, y: Math.sin(a) * 1.6, source: "parasiteBloom", kind, sourceId: casterId });
+            this.applyEnemyPoison(enemy, damage, 6, casterId);
+            enemy.vx += Math.cos(a) * (enemy.boss ? 110 : 310);
+            enemy.vy += Math.sin(a) * (enemy.boss ? 110 : 310);
+            drained += enemy.boss ? 0.8 : 1.2;
           }
-          for (const enemy of this.enemiesInLine(x, y, angle, 390, 72, 9)) enemy.stun = Math.max(enemy.stun || 0, enemy.boss ? 0.09 : 0.48);
+          this.restoreDomainEnergy({ casterId: casterId || this.lobby.id }, drained, palette.accent);
         } else if (kind === "void") {
           this.coneDamage(x, y, angle, 190, Math.PI * 0.5, damage * 1.36, palette.color, kind);
-          for (const enemy of this.enemiesNear(x + Math.cos(angle) * 100, y + Math.sin(angle) * 100, 180, 10)) enemy.mark += 2;
+          for (const enemy of this.enemiesNear(x + Math.cos(angle) * 100, y + Math.sin(angle) * 100, 180, 10)) {
+            enemy.mark += 2;
+            this.applyVoidDecay(enemy, damage, 3.2, casterId, palette.accent);
+          }
         } else if (kind === "time") {
           this.areaDamage(x, y, 160, damage * 1.18, palette.color, kind, false, casterId);
           this.stopTimeInArea(x, y, 160, 0.55, damage * 0.22, palette.color, casterId);
@@ -11280,7 +11551,8 @@
           }
         }
         this.camera.shake = Math.max(this.camera.shake, 9);
-        this.finishDesignedPowerSkill(kind, key, caster, angle, { x: tx, y: ty }, damage, owner, casterId, remote, awakened);
+        const rImpact = ["fire", "shadow", "blood", "crystal", "nature", "time"].includes(kind) ? { x, y } : { x: tx, y: ty };
+        this.finishDesignedPowerSkill(kind, key, caster, angle, rImpact, damage, owner, casterId, remote, awakened);
         return true;
       }
 
@@ -11964,6 +12236,25 @@
       enemy.bleed = 0;
       enemy.bleedTick = 0;
       enemy.bleedDamage = 0;
+      enemy.poison = 0;
+      enemy.poisonTick = 0;
+      enemy.poisonDamage = 0;
+      enemy.blind = 0;
+      enemy.fear = 0;
+      enemy.suspend = 0;
+      enemy.suspendDamage = 0;
+      enemy.crystalShards = 0;
+      enemy.weighted = 0;
+      enemy.fireStacks = 0;
+      enemy.fireStackTime = 0;
+      enemy.shockStacks = 0;
+      enemy.shockTime = 0;
+      enemy.voidDecay = 0;
+      enemy.voidDecayTick = 0;
+      enemy.voidDecayDamage = 0;
+      enemy.timeStoredDamage = 0;
+      enemy.timeStoredTime = 0;
+      enemy.iceHailStay = 0;
       enemy.stun = 0;
       enemy.launch = 0.28;
       enemy.flash = 0.16;
@@ -11984,6 +12275,9 @@
       }
       const p = this.run.player;
       const power = this.run.power;
+      const optionPowerKind = POWERS.some((entry) => entry.id === options.kind) ? options.kind : "";
+      const hitKind = optionPowerKind || power.id;
+      const hitPower = powerById(hitKind);
       const sourceId = options.sourceId || this.currentDamageSourceId || this.lobby.id;
       const crit = chance(p.crit + (options.source === "ultimate" ? 0.25 : 0) + (Number(options.critBonus) || 0));
       let damage = amount * (crit ? 2 : 1);
@@ -11993,6 +12287,12 @@
       if (this.trainingDamageDisabled(enemy)) damage = 0;
       if (this.run.curse?.id === "explosive" && p.combo % 5 === 0) {
         this.addShockwave(enemy.x, enemy.y, 120, "#ff8d3d", 32);
+      }
+      if (hitKind === "time" && options.source !== "timeRelease" && Number(enemy.domainFreeze || 0) > 0) {
+        this.storeTimeDamage(enemy, damage, Number(enemy.domainFreeze || 0) + 0.12, sourceId);
+        this.addImpact(enemy.x, enemy.y, hitPower.accent, damage, crit);
+        if (options.source !== "domain" && !this.ultimateGainPaused(sourceId)) this.gainUltimateFor(sourceId, crit ? 5 : 3);
+        return;
       }
       enemy.hp -= damage;
       enemy.flash = 0.12;
@@ -12005,21 +12305,34 @@
         enemy.vx *= 0.55;
         enemy.vy *= 0.55;
       }
-      if (power.id === "fire" || options.kind === "fire" || p.stats.burnDash) enemy.burn = Math.max(enemy.burn, 3);
-      if (power.id === "ice" || options.kind === "ice") enemy.chill = Math.max(enemy.chill, 2.4);
-      if (power.id === "shadow" || power.id === "void") enemy.mark += 1;
-      if (power.id === "gravity" && !suppressKnockback) {
+      if (hitKind === "fire" || p.stats.burnDash) {
+        enemy.burn = Math.max(enemy.burn, 3);
+        if (!["burn", "fireDetonate"].includes(options.source)) this.applyFireStacks(enemy, 1, 5.2, hitPower.color);
+      }
+      if (hitKind === "ice") enemy.chill = Math.max(enemy.chill, 2.4);
+      if (hitKind === "lightning" && options.source !== "lightningCharge") this.applyLightningCharge(enemy, 1, 4.2, hitPower.color);
+      if (hitKind === "shadow" || hitKind === "void") enemy.mark += 1;
+      if (hitKind === "void" && options.source !== "voidDecay" && options.source !== "voidCollapse") this.applyVoidDecay(enemy, damage, 3.0, sourceId, hitPower.accent);
+      if (hitKind === "time") {
+        enemy.chill = Math.max(enemy.chill || 0, 1.6);
+        enemy.skillCd = Math.max(enemy.skillCd || 0, 0.32);
+      }
+      if (hitKind === "shadow" && options.source !== "shadowDrain") enemy.blind = Math.max(enemy.blind || 0, enemy.boss ? 0.45 : 1.2);
+      if (hitKind === "nature" && options.source !== "poison") this.applyEnemyPoison(enemy, damage, 5, sourceId);
+      if (hitKind === "crystal" && options.source !== "crystalShatter") this.applyCrystalShards(enemy, 1, hitPower.accent);
+      if (hitKind === "gravity" && options.source !== "gravityDrop") enemy.weighted = Math.max(enemy.weighted || 0, 3.0);
+      if (hitKind === "gravity" && !suppressKnockback) {
         const a = angleTo(enemy, p);
         enemy.vx += Math.cos(a) * 120;
         enemy.vy += Math.sin(a) * 120;
       }
-      if (power.id === "blood" || p.stats.lifeSteal) {
-        this.healPlayer(damage * (power.id === "blood" ? 0.028 : p.stats.lifeSteal), { source: "power", allowAfterCombat: true });
+      if (hitKind === "blood" || p.stats.lifeSteal) {
+        this.healPlayer(damage * (hitKind === "blood" ? 0.028 : p.stats.lifeSteal), { source: "power", allowAfterCombat: true });
       }
       const assassinBasic = options.source === "assassin" || (options.source === "remoteBasic" && options.kind === "assassin");
       if (options.source === "assassin" && sourceId === this.lobby.id) this.healPlayer((p.maxHp || 1) * rand(0.01, 0.03), { source: "power", allowAfterCombat: true });
       if (assassinBasic && enemy.hp > 0 && chance(0.25)) this.applyAssassinBleed(enemy, damage, options);
-      if (crit && (p.stats.chainCrit || power.id === "lightning")) this.chainLightning(enemy, damage * 0.45);
+      if (crit && (p.stats.chainCrit || hitKind === "lightning")) this.chainLightning(enemy, damage * 0.45);
       if (enemy.chill > 0 && enemy.hp <= 0 && p.stats.fracture) this.fracture(enemy);
       if (options.source !== "domain" && !this.ultimateGainPaused(sourceId)) this.gainUltimateFor(sourceId, crit ? 5 : 3);
       const basicKind = this.basicHitKind(options);
@@ -12069,6 +12382,113 @@
         return;
       }
       if (enemy.hp <= 0) this.killEnemy(enemy);
+    }
+
+    enemyAttackMisses(source, target = null) {
+      if (!source || !Number.isFinite(source.blind) || source.blind <= 0) return false;
+      if (!chance(source.boss ? 0.16 : 0.3)) return false;
+      source.attackAnim = Math.max(source.attackAnim || 0, 0.16);
+      const x = target?.x ?? source.x;
+      const y = target?.y ?? source.y;
+      this.addParticle(x + rand(-14, 14), y - 18 + rand(-8, 6), "#1c1c1c", rand(7, 13), rand(0.18, 0.35), "shade", rand(-Math.PI, Math.PI), rand(35, 90));
+      this.addImpact(x, y - 16, "#8f72ff", 0, false);
+      return true;
+    }
+
+    applyEnemyPoison(enemy, damage, duration = 5, sourceId = "") {
+      if (!enemy || enemy.hp <= 0) return;
+      if (!this.isMultiplayerClient()) {
+        enemy.poison = Math.max(enemy.poison || 0, enemy.boss ? duration * 0.65 : duration);
+        enemy.poisonTick = Math.min(Number(enemy.poisonTick || 0.55), 0.44);
+        enemy.poisonDamage = Math.max(enemy.poisonDamage || 0, Math.max(0.8, damage * (enemy.boss ? 0.026 : 0.044)));
+        if (sourceId) enemy.lastPoisonSourceId = sourceId;
+      }
+      this.addParticle(enemy.x + rand(-enemy.radius * 0.35, enemy.radius * 0.35), enemy.y - enemy.radius * 0.25, "#75e66e", rand(5, 11), rand(0.22, 0.45), "leaf", -Math.PI / 2 + rand(-0.7, 0.7), rand(35, 100));
+    }
+
+    tickEnemyPoison(enemy, dt) {
+      if (!enemy || enemy.poison <= 0) return;
+      enemy.poison = Math.max(0, enemy.poison - dt);
+      if (enemy.poison <= 0) {
+        enemy.poisonDamage = 0;
+        enemy.poisonTick = 0;
+        return;
+      }
+      enemy.poisonTick = Math.max(0, Number(enemy.poisonTick || 0) - dt);
+      if (enemy.poisonTick > 0) return;
+      enemy.poisonTick = 0.55;
+      const damage = Math.max(1, Number(enemy.poisonDamage || 1));
+      if (!this.trainingDamageDisabled(enemy)) enemy.hp -= damage;
+      enemy.flash = Math.max(enemy.flash || 0, 0.08);
+      if (chance(0.62)) this.addParticle(enemy.x + rand(-enemy.radius * 0.35, enemy.radius * 0.35), enemy.y - enemy.radius * 0.35, "#75e66e", rand(5, 10), rand(0.18, 0.36), "leaf", -Math.PI / 2 + rand(-0.8, 0.8), rand(35, 105));
+      if (enemy.trainingDummy && enemy.hp <= 0) {
+        this.resetTrainingDummy(enemy);
+        return;
+      }
+      if (enemy.hp <= 0) this.killEnemy(enemy);
+    }
+
+    applyCrystalShards(enemy, count = 1, color = "#ffc4f5") {
+      if (!enemy || enemy.hp <= 0) return 0;
+      enemy.crystalShards = clamp(Math.floor(Number(enemy.crystalShards || 0)) + count, 0, 3);
+      for (let i = 0; i < count + 1; i++) {
+        const a = rand(-Math.PI, Math.PI);
+        this.addParticle(enemy.x + Math.cos(a) * enemy.radius * 0.45, enemy.y + Math.sin(a) * enemy.radius * 0.35, color, rand(5, 11), rand(0.2, 0.42), "shard", a, rand(50, 120));
+      }
+      return enemy.crystalShards;
+    }
+
+    detonateCrystalShards(enemy, damage, owner = "player", casterId = "", color = "#ffc4f5") {
+      const shards = Math.floor(Number(enemy?.crystalShards || 0));
+      if (!enemy || enemy.hp <= 0 || shards <= 0) return 0;
+      enemy.crystalShards = 0;
+      const blast = 42 + shards * 10;
+      this.addShockwave(enemy.x, enemy.y, blast + 36, color, 0);
+      this.addSkillShape("crystal", "design-crystal-r", enemy.x, enemy.y, rand(0, TAU), 118, 0.42, {
+        design: true,
+        color,
+        accent: "#ffffff"
+      });
+      let hits = 0;
+      for (const target of this.enemiesNear(enemy.x, enemy.y, blast + 26, 7)) {
+        const a = Math.atan2(target.y - enemy.y, target.x - enemy.x);
+        const mult = target === enemy ? 0.38 + shards * 0.2 : 0.16 + shards * 0.08;
+        this.damageEnemy(target, damage * mult, { x: Math.cos(a), y: Math.sin(a), source: "crystalShatter", kind: "crystal", sourceId: casterId });
+        if (target !== enemy) this.applyCrystalShards(target, 1, color);
+        hits++;
+      }
+      for (let i = 0; i < 5 + shards * 3; i++) {
+        const a = rand(0, TAU);
+        this.spawnProjectile({
+          owner,
+          casterId,
+          x: enemy.x + Math.cos(a) * 16,
+          y: enemy.y + Math.sin(a) * 16,
+          vx: Math.cos(a) * rand(360, 620),
+          vy: Math.sin(a) * rand(360, 620),
+          radius: 4,
+          damage: damage * 0.09,
+          life: 0.32,
+          color,
+          pierce: 0,
+          kind: "crystal"
+        });
+      }
+      return hits;
+    }
+
+    releaseGravitySuspension(enemy, color = "#b28dff") {
+      if (!enemy || enemy.hp <= 0) return;
+      const damage = Math.max(0, Number(enemy.suspendDamage || 0));
+      enemy.suspend = 0;
+      enemy.suspendDamage = 0;
+      enemy.launch = Math.max(enemy.launch || 0, enemy.boss ? 0.12 : 0.42);
+      enemy.vx *= 0.18;
+      enemy.vy *= 0.18;
+      this.addShockwave(enemy.x, enemy.y, enemy.boss ? 104 : 82, color, 0);
+      if (damage > 0 && !this.isMultiplayerClient()) {
+        this.damageEnemy(enemy, damage, { x: 0, y: 1, source: "gravityDrop", kind: "gravity", noKnockback: true });
+      }
     }
 
     tryGuardianReflect(target, amount, source) {
@@ -13694,6 +14114,7 @@
     }
 
     damageCombatTarget(target, amount, source = null) {
+      if (this.enemyAttackMisses(source, target)) return;
       if (!target || target.local || target.id === this.lobby.id || !this.isMultiplayerHost()) {
         this.damagePlayer(amount, source);
         return;
@@ -13737,11 +14158,38 @@
           enemy.burn -= dt;
           if (chance(dt * 5)) this.damageEnemy(enemy, 2.2 + this.run.stage, { x: 0, y: 0, source: "burn", kind: "fire" });
         }
+        if (enemy.fireStackTime > 0) {
+          enemy.fireStackTime = Math.max(0, enemy.fireStackTime - dt);
+          if (enemy.fireStackTime <= 0) enemy.fireStacks = 0;
+        }
+        if (enemy.shockTime > 0) {
+          enemy.shockTime = Math.max(0, enemy.shockTime - dt);
+          if (enemy.shockTime <= 0) enemy.shockStacks = 0;
+        }
         if (enemy.bleed > 0) {
           this.tickEnemyBleed(enemy, dt);
           if (enemy.hp <= 0) continue;
         }
+        if (enemy.poison > 0) {
+          this.tickEnemyPoison(enemy, dt);
+          if (enemy.hp <= 0) continue;
+        }
+        if (enemy.voidDecay > 0) {
+          this.tickVoidDecay(enemy, dt);
+          if (enemy.hp <= 0) continue;
+        }
         if (enemy.chill > 0) enemy.chill -= dt;
+        if (enemy.iceHailStay > 0) enemy.iceHailStay = Math.max(0, enemy.iceHailStay - dt * 0.65);
+        if (enemy.blind > 0) enemy.blind = Math.max(0, enemy.blind - dt);
+        if (enemy.fear > 0) enemy.fear = Math.max(0, enemy.fear - dt);
+        if (enemy.weighted > 0) enemy.weighted = Math.max(0, enemy.weighted - dt);
+        if (enemy.timeStoredTime > 0) {
+          enemy.timeStoredTime = Math.max(0, enemy.timeStoredTime - dt);
+          if (enemy.timeStoredTime <= 0 && enemy.timeStoredDamage > 0) {
+            this.releaseTimeStoredDamage(enemy);
+            if (enemy.hp <= 0) continue;
+          }
+        }
         if (enemy.mark > 0 && enemy.mark >= 4) {
           enemy.mark = 0;
           this.damageEnemy(enemy, 38, { x: 0, y: 0, source: "mark", kind: "void" });
@@ -13764,7 +14212,19 @@
           enemy.vx = 0;
           enemy.vy = 0;
           enemy.attackAnim = Math.max(enemy.attackAnim || 0, 0.08);
+          if (enemy.domainFreeze <= 0 && enemy.timeStoredDamage > 0) {
+            this.releaseTimeStoredDamage(enemy);
+            if (enemy.hp <= 0) continue;
+          }
           continue;
+        }
+        if (enemy.suspend > 0) {
+          enemy.suspend = Math.max(0, enemy.suspend - dt);
+          enemy.vx *= 0.2;
+          enemy.vy *= 0.2;
+          enemy.launch = Math.max(enemy.launch || 0, enemy.boss ? 0.12 : 0.38);
+          if (enemy.suspend <= 0) this.releaseGravitySuspension(enemy);
+          else continue;
         }
         if (enemy.stun > 0) continue;
         if (enemy.boss) this.updateBoss(enemy, dt);
@@ -13816,11 +14276,15 @@
       const d = Math.hypot(p.x - enemy.x, p.y - enemy.y);
       const a = Math.atan2(p.y - enemy.y, p.x - enemy.x);
       enemy.facingDir = p.x >= enemy.x ? 1 : -1;
-      const slow = enemy.chill > 0 ? 0.48 : 1;
+      const slow = (enemy.chill > 0 ? 0.48 : 1) * (enemy.weighted > 0 ? 0.82 : 1);
       enemy.attackCd -= dt;
       enemy.skillCd = Math.max(0, (enemy.skillCd || 0) - dt);
       if (this.updateEnemyWindup(enemy, dt, p)) return;
       if (this.updateEnemyCharge(enemy, dt, p)) return;
+      if (enemy.fear > 0) {
+        this.steerEnemy(enemy, -Math.cos(a) * enemy.speed * 1.1, -Math.sin(a) * enemy.speed * 1.1, dt, 10);
+        return;
+      }
 
       if (enemy.ranged) {
         const desired = enemy.role === "marksman" ? 360 : enemy.role === "bomber" ? 280 : enemy.role === "caster" ? 300 : 320;
@@ -15449,11 +15913,72 @@
       return best;
     }
 
+    refractProjectileWithCrystalPrism(projectile, fromX, fromY) {
+      if (!projectile || projectile.owner !== "enemy" || this.isMultiplayerClient()) return false;
+      const prisms = (this.run?.effects || []).filter((effect) => effect.type === "crystalPrism" && effect.time > 0);
+      if (!prisms.length) return false;
+      for (const prism of prisms) {
+        const wallAngle = (prism.angle || 0) + Math.PI / 2;
+        const dx = Math.cos(wallAngle);
+        const dy = Math.sin(wallAngle);
+        const hit = this.segmentCircleHit(fromX, fromY, projectile.x, projectile.y, prism.x, prism.y, (prism.length || 92) * 0.55 + (projectile.radius || 6));
+        if (!hit) continue;
+        const rx = hit.x - prism.x;
+        const ry = hit.y - prism.y;
+        const along = rx * dx + ry * dy;
+        const side = Math.abs(rx * -dy + ry * dx);
+        if (Math.abs(along) > (prism.length || 92) * 0.55 + (projectile.radius || 6) || side > (prism.width || 18) + (projectile.radius || 6)) continue;
+        projectile.life = 0;
+        prism.flash = 0.2;
+        const base = Math.atan2(projectile.vy || 0, projectile.vx || 1);
+        const owner = prism.owner === "ally" ? "ally" : "player";
+        for (const offset of [-0.18, 0, 0.18]) {
+          const a = base + offset;
+          this.spawnProjectile({
+            owner,
+            casterId: prism.casterId || this.lobby.id,
+            x: hit.x + Math.cos(a) * 12,
+            y: hit.y + Math.sin(a) * 12,
+            vx: Math.cos(a) * 720,
+            vy: Math.sin(a) * 720,
+            radius: 5,
+            damage: Math.max(1, (projectile.damage || 10) * 0.46),
+            life: 0.62,
+            color: prism.accent || "#ffc4f5",
+            pierce: 1,
+            kind: "crystal"
+          });
+        }
+        this.addShockwave(hit.x, hit.y, 74, prism.accent || "#ffc4f5", 0);
+        this.addSkillShape("crystal", "design-crystal-q", prism.x, prism.y, prism.angle || 0, 82, 0.28, {
+          design: true,
+          length: prism.length || 92,
+          width: prism.width || 18,
+          color: prism.color || "#76ffd8",
+          accent: prism.accent || "#ffc4f5"
+        });
+        return true;
+      }
+      return false;
+    }
+
     updateProjectiles(dt) {
       let write = 0;
       for (let i = 0; i < this.run.projectiles.length; i++) {
         const projectile = this.run.projectiles[i];
         projectile.age += dt;
+        if (projectile.timeFrozen > 0) {
+          projectile.timeFrozen = Math.max(0, projectile.timeFrozen - dt);
+          projectile.angle = Number.isFinite(projectile.angle) ? projectile.angle : Math.atan2(projectile.savedVy || projectile.vy || 0, projectile.savedVx || projectile.vx || 1);
+          if (projectile.timeFrozen > 0) {
+            this.run.projectiles[write++] = projectile;
+            continue;
+          }
+          if (Number.isFinite(projectile.savedVx)) projectile.vx = projectile.savedVx;
+          if (Number.isFinite(projectile.savedVy)) projectile.vy = projectile.savedVy;
+          projectile.savedVx = undefined;
+          projectile.savedVy = undefined;
+        }
         projectile.life -= dt;
         const fromX = projectile.x;
         const fromY = projectile.y;
@@ -15493,6 +16018,7 @@
             if (projectile.pierce < 0) projectile.life = 0;
           }
         } else if (projectile.owner === "enemy" && !this.isMultiplayerClient()) {
+          if (this.refractProjectileWithCrystalPrism(projectile, fromX, fromY)) continue;
           let reflected = false;
           const hit = this.firstProjectileTargetHit(projectile, fromX, fromY);
           if (hit) {
@@ -16110,11 +16636,11 @@
           }
         }
       }
-      if (!this.isMultiplayerClient() && (kind === "gravity" || kind === "void" || kind === "time")) {
+      if (!this.isMultiplayerClient() && (kind === "gravity" || kind === "void")) {
         for (const enemy of this.run.enemies) {
           const d = Math.hypot(enemy.x - effect.x, enemy.y - effect.y);
           if (d < radius + enemy.radius) {
-            const pull = kind === "time" ? 95 : kind === "gravity" ? 210 : 165;
+            const pull = kind === "gravity" ? 210 : 165;
             const a = Math.atan2(effect.y - enemy.y, effect.x - enemy.x);
             enemy.vx += Math.cos(a) * pull * dt;
             enemy.vy += Math.sin(a) * pull * dt;
@@ -16140,22 +16666,75 @@
       for (let i = 0; i < this.run.effects.length; i++) {
         const effect = this.run.effects[i];
         effect.time -= dt;
+        if (effect.flash > 0) effect.flash = Math.max(0, effect.flash - dt);
         if (effect.type === "ultimate" && effect.domain) this.updatePowerDomain(effect, dt);
         if (effect.type === "pull" && !this.isMultiplayerClient()) {
+          const strength = Number.isFinite(Number(effect.strength)) ? Number(effect.strength) : 420;
           for (const enemy of this.run.enemies) {
             const d = Math.hypot(effect.x - enemy.x, effect.y - enemy.y);
             if (d < effect.radius) {
               const a = Math.atan2(effect.y - enemy.y, effect.x - enemy.x);
-              enemy.vx += Math.cos(a) * 420 * dt;
-              enemy.vy += Math.sin(a) * 420 * dt;
+              enemy.vx += Math.cos(a) * strength * dt;
+              enemy.vy += Math.sin(a) * strength * dt;
             }
           }
         }
         if (effect.type === "zone") {
           effect.tick -= dt;
           if (effect.tick <= 0 && !this.isMultiplayerClient()) {
-            effect.tick = 0.35;
-            this.areaDamage(effect.x, effect.y, effect.radius, 20, effect.color, effect.kind, false, effect.casterId || "");
+            effect.tick = Number.isFinite(Number(effect.tickRate)) ? Number(effect.tickRate) : 0.35;
+            const zoneDamage = Number.isFinite(Number(effect.damage)) ? Number(effect.damage) : 20;
+            if (zoneDamage > 0) this.areaDamage(effect.x, effect.y, effect.radius, zoneDamage, effect.color, effect.kind, false, effect.casterId || "");
+            if (effect.statusKind === "shadowSwamp") {
+              for (const enemy of this.enemiesNear(effect.x, effect.y, effect.radius + 12, 99)) {
+                enemy.chill = Math.max(enemy.chill || 0, 0.6);
+                enemy.blind = Math.max(enemy.blind || 0, enemy.boss ? 0.45 : 1.1);
+                const d = Math.hypot(effect.x - enemy.x, effect.y - enemy.y) || 1;
+                enemy.vx += ((effect.x - enemy.x) / d) * (enemy.boss ? 80 : 180);
+                enemy.vy += ((effect.y - enemy.y) / d) * (enemy.boss ? 80 : 180);
+              }
+            }
+            if (effect.statusKind === "natureSpores") {
+              for (const enemy of this.enemiesNear(effect.x, effect.y, effect.radius + 10, 99)) {
+                this.applyEnemyPoison(enemy, 7 + this.run.stage * 1.6, 5, effect.casterId || "");
+              }
+              const localCaster = (effect.casterId || this.lobby.id) === this.lobby.id ? this.run.player : null;
+              if (localCaster && !localCaster.dead && Math.hypot(localCaster.x - effect.x, localCaster.y - effect.y) < effect.radius + localCaster.radius) {
+                this.healPlayer(1.1, { source: "power", allowAfterCombat: true });
+              }
+            }
+            if (effect.statusKind === "iceHail") {
+              for (const enemy of this.enemiesNear(effect.x, effect.y, effect.radius + 8, 99)) {
+                enemy.chill = Math.max(enemy.chill || 0, 3.2);
+                enemy.iceHailStay = Math.max(0, Number(enemy.iceHailStay || 0)) + (effect.tickRate || 0.28);
+                if (enemy.iceHailStay > (enemy.boss ? 1.7 : 1.05)) enemy.stun = Math.max(enemy.stun || 0, enemy.boss ? 0.08 : 0.34);
+              }
+            }
+            if (effect.statusKind === "timeStasis") {
+              for (const enemy of this.enemiesNear(effect.x, effect.y, effect.radius + 8, 99)) {
+                enemy.domainFreeze = Math.max(enemy.domainFreeze || 0, enemy.boss ? 0.14 : 0.36);
+                enemy.chill = Math.max(enemy.chill || 0, 1.5);
+              }
+              for (const projectile of this.run.projectiles || []) {
+                if (projectile.owner !== "enemy" || projectile.life <= 0) continue;
+                if (Math.hypot(projectile.x - effect.x, projectile.y - effect.y) > effect.radius + (projectile.radius || 6)) continue;
+                projectile.savedVx = Number.isFinite(projectile.savedVx) ? projectile.savedVx : projectile.vx;
+                projectile.savedVy = Number.isFinite(projectile.savedVy) ? projectile.savedVy : projectile.vy;
+                projectile.vx = 0;
+                projectile.vy = 0;
+                projectile.timeFrozen = Math.max(Number(projectile.timeFrozen || 0), 0.5);
+              }
+            }
+          }
+        }
+        if (effect.type === "skillBurst" && effect.time <= 0.05 && !effect.done) {
+          effect.done = true;
+          this.addShockwave(effect.x, effect.y, effect.radius + 34, effect.color, 0);
+          if (!this.isMultiplayerClient()) {
+            this.areaDamage(effect.x, effect.y, effect.radius, Number(effect.damage || 20), effect.color, effect.kind, false, effect.casterId || "");
+            if (effect.kind === "blood") {
+              for (const enemy of this.enemiesNear(effect.x, effect.y, effect.radius + 24, 8)) this.applyBloodBleed(enemy, Number(effect.damage || 20), 5.8, effect.casterId || "");
+            }
           }
         }
         if (effect.type === "danger" && effect.time <= 0.05 && !effect.done) {
@@ -19117,14 +19696,55 @@
         ctx.fillRect(-12, -28, 4, 7);
         ctx.fillRect(6, -30, 5, 8);
       }
+      if (enemy.fireStacks > 0) {
+        ctx.fillStyle = "#ffd700";
+        for (let i = 0; i < Math.min(5, enemy.fireStacks); i++) {
+          ctx.fillRect(-14 + i * 7, -35, 5, 5);
+        }
+      }
       if (enemy.chill > 0) {
         ctx.strokeStyle = "#83e8ff";
         ctx.lineWidth = 2;
         ctx.strokeRect(-18, -25, 36, 42);
       }
+      if (enemy.shockStacks > 0) {
+        ctx.strokeStyle = "#ffff00";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(-14, -32);
+        ctx.lineTo(-4, -22);
+        ctx.lineTo(-10, -22);
+        ctx.lineTo(2, -9);
+        ctx.moveTo(8, -31);
+        ctx.lineTo(16, -22);
+        ctx.lineTo(11, -22);
+        ctx.lineTo(20, -11);
+        ctx.stroke();
+      }
       if (enemy.mark > 0) {
         ctx.strokeStyle = "#8f72ff";
         ctx.strokeRect(-22, -29, 44, 50);
+      }
+      if (enemy.voidDecay > 0) {
+        ctx.fillStyle = "#f2f6ff";
+        ctx.globalAlpha = 0.7;
+        ctx.fillRect(-20, 18, 7, 4);
+        ctx.fillRect(-4, 23, 10, 4);
+        ctx.fillRect(12, 17, 6, 6);
+        ctx.globalAlpha = 1;
+      }
+      if (enemy.timeStoredDamage > 0) {
+        ctx.strokeStyle = "#b38f00";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(0, -7, enemy.radius + 8, 0, TAU);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(0, -7);
+        ctx.lineTo(0, -enemy.radius - 10);
+        ctx.moveTo(0, -7);
+        ctx.lineTo(enemy.radius * 0.55, -7);
+        ctx.stroke();
       }
       if (enemy.bleed > 0) {
         ctx.strokeStyle = "#d12a54";
@@ -19135,6 +19755,40 @@
         ctx.moveTo(-9, 14);
         ctx.lineTo(18, -14);
         ctx.stroke();
+      }
+      if (enemy.poison > 0) {
+        ctx.strokeStyle = "#75e66e";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(-18, 15);
+        ctx.lineTo(-9, 6);
+        ctx.lineTo(1, 15);
+        ctx.lineTo(12, 6);
+        ctx.stroke();
+      }
+      if (enemy.blind > 0 || enemy.fear > 0) {
+        ctx.fillStyle = enemy.fear > 0 ? "#d7c4ff" : "#1c1c1c";
+        ctx.globalAlpha = 0.75;
+        ctx.fillRect(-12, -20, 24, 4);
+        ctx.fillRect(-5, -27, 10, 5);
+        ctx.globalAlpha = 1;
+      }
+      if (enemy.suspend > 0 || enemy.weighted > 0) {
+        ctx.strokeStyle = enemy.suspend > 0 ? "#59ffd4" : "#b28dff";
+        ctx.lineWidth = 2;
+        ctx.strokeRect(-21, -28, 42, 42);
+        ctx.strokeRect(-16, -23, 32, 32);
+      }
+      if (enemy.crystalShards > 0) {
+        ctx.fillStyle = "#ffc4f5";
+        for (let i = 0; i < Math.min(3, enemy.crystalShards); i++) {
+          const a = -Math.PI / 2 + (i - 1) * 0.7;
+          ctx.save();
+          ctx.translate(Math.cos(a) * 18, -18 + Math.sin(a) * 10);
+          ctx.rotate(Math.PI / 4);
+          ctx.fillRect(-3, -6, 6, 12);
+          ctx.restore();
+        }
       }
       if (enemy.boss && enemy.fatigueTime > 0) {
         const fatigueRatio = clamp(enemy.fatigueTime / (enemy.fatigueMax || enemy.fatigueTime || 1), 0, 1);
@@ -19409,6 +20063,52 @@
           ctx.stroke();
         }
         if (effect.type === "skillShape") this.drawSkillShape(ctx, effect);
+        if (effect.type === "crystalPrism") {
+          const progress = 1 - effect.time / Math.max(0.1, effect.maxTime || effect.time || 1);
+          const len = effect.length || 92;
+          const width = effect.width || 18;
+          ctx.translate(effect.x, effect.y);
+          ctx.rotate((effect.angle || 0) + Math.PI / 2);
+          ctx.globalAlpha = 0.32 + Math.sin(this.menuTime * 7) * 0.08 + (effect.flash || 0) * 1.2;
+          ctx.fillStyle = effect.color || "#76ffd8";
+          ctx.fillRect(-len * 0.5, -width * 0.5, len, width);
+          ctx.globalAlpha = 0.76;
+          ctx.strokeStyle = effect.accent || "#ffc4f5";
+          ctx.lineWidth = 3;
+          ctx.strokeRect(-len * 0.5, -width * 0.5, len, width);
+          ctx.lineWidth = 1.5;
+          ctx.globalAlpha = 0.48;
+          for (let i = -2; i <= 2; i++) {
+            ctx.beginPath();
+            ctx.moveTo(i * 22 - 16 + progress * 8, -width * 0.48);
+            ctx.lineTo(i * 22 + 18 + progress * 8, width * 0.48);
+            ctx.stroke();
+          }
+        }
+        if (effect.type === "skillBurst") {
+          const progress = 1 - effect.time / Math.max(0.1, effect.maxTime || effect.time || 1);
+          ctx.translate(effect.x, effect.y);
+          ctx.globalAlpha = 0.62 * (1 - progress * 0.2);
+          ctx.strokeStyle = effect.color || "#b00028";
+          ctx.fillStyle = effect.color || "#b00028";
+          ctx.lineWidth = 3;
+          ctx.beginPath();
+          ctx.moveTo(0, -42);
+          ctx.lineTo(34, 0);
+          ctx.lineTo(0, 42);
+          ctx.lineTo(-34, 0);
+          ctx.closePath();
+          ctx.stroke();
+          ctx.globalAlpha = 0.22;
+          ctx.fill();
+          ctx.globalAlpha = 0.48;
+          for (let i = -3; i <= 3; i++) {
+            ctx.beginPath();
+            ctx.moveTo(-32, i * 10);
+            ctx.lineTo(32, -i * 10 + Math.sin(progress * Math.PI) * 6);
+            ctx.stroke();
+          }
+        }
         if (effect.type === "lineTell") {
           const progress = 1 - effect.time / effect.maxTime;
           ctx.translate(effect.x, effect.y);
@@ -20485,34 +21185,81 @@
               const segments = 5;
               for (let i = 1; i <= segments; i++) ctx.lineTo(i * 30, (i % 2 ? -18 : 18) * (1 - after * 0.3));
             }, 1.45);
-          } else if (designKind === "shadow" || designKind === "void") {
+          } else if (designKind === "shadow") {
+            ctx.save();
+            ctx.rotate(-(effect.angle || 0));
+            ctx.globalAlpha = alpha * 0.78;
+            ctx.fillStyle = "#05030d";
+            ctx.beginPath();
+            ctx.arc(0, 0, r * (0.36 + Math.sin(this.menuTime * 8) * 0.03), 0, TAU);
+            ctx.fill();
+            ctx.globalAlpha = alpha * 0.9;
+            ctx.strokeStyle = accent;
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.ellipse(0, 0, r * 0.48, r * 0.28, this.menuTime * 0.35, 0, TAU);
+            ctx.stroke();
+            for (let i = 0; i < 8; i++) {
+              const a = (i / 8) * TAU + localProgress * 1.2;
+              ctx.fillRect(Math.cos(a) * r * 0.3 - 3, Math.sin(a) * r * 0.2 - 3, 6, 6);
+            }
+            ctx.restore();
+          } else if (designKind === "void") {
             opticalPolygon([[-8, -34], [34, -8], [10, 12], [42, 36], [-8, 14], [-34, 36], [-16, 0]], 1.05, 0.18);
             drawLineToTarget();
           } else if (designKind === "blood") {
-            opticalStroke(() => ctx.arc(0, 0, r * 0.58, -0.92, 0.92), 1.3);
-            for (let i = 0; i < 5; i++) {
-              const a = -0.82 + i * 0.4;
-              opticalPolygon([[Math.cos(a) * r * 0.58, Math.sin(a) * r * 0.58], [Math.cos(a) * r * 0.74, Math.sin(a) * r * 0.76], [Math.cos(a) * r * 0.5, Math.sin(a) * r * 0.76]], 0.35, 0.28);
-            }
+            opticalPolygon([[0, -14], [length * 0.86, -12], [length, 0], [length * 0.86, 12], [0, 14], [12, 0]], 1.15, 0.36);
+            opticalStroke(() => {
+              ctx.moveTo(-12, 0);
+              ctx.lineTo(length * 0.88, 0);
+            }, 0.72, effect.color, "#ffc0c8");
+            opticalStroke(() => {
+              ctx.moveTo(length * 0.22, 18);
+              ctx.quadraticCurveTo(length * 0.48, 38, length * 0.72, 16);
+            }, 0.42, effect.color, accent);
           } else if (designKind === "gravity") {
-            opticalStroke(() => ctx.rect(-r * 0.34, -r * 0.34, r * 0.68, r * 0.68), 1.0);
-            drawLineToTarget();
-          } else if (designKind === "crystal") {
+            ctx.save();
+            ctx.rotate(-(effect.angle || 0));
+            ctx.fillStyle = "#000000";
+            ctx.globalAlpha = alpha * 0.82;
+            ctx.beginPath();
+            ctx.arc(0, 0, r * 0.34, 0, TAU);
+            ctx.fill();
+            ctx.globalAlpha = alpha * 0.52;
+            ctx.strokeStyle = accent;
+            ctx.lineWidth = 2;
             for (let i = -3; i <= 3; i++) {
-              ctx.save();
-              ctx.rotate(i * 0.13);
-              opticalPolygon([[34, 0], [92, -10], [136, 0], [92, 10]], 0.64, 0.24);
-              ctx.restore();
+              ctx.beginPath();
+              ctx.moveTo(-r * 0.64, i * 14);
+              ctx.quadraticCurveTo(0, i * 4, r * 0.64, i * 14);
+              ctx.stroke();
+              ctx.beginPath();
+              ctx.moveTo(i * 14, -r * 0.64);
+              ctx.quadraticCurveTo(i * 4, 0, i * 14, r * 0.64);
+              ctx.stroke();
             }
+            ctx.restore();
+          } else if (designKind === "crystal") {
+            ctx.save();
+            ctx.rotate(Math.PI / 2);
+            opticalPolygon([[-length * 0.5, -14], [length * 0.5, -14], [length * 0.56, 0], [length * 0.5, 14], [-length * 0.5, 14], [-length * 0.56, 0]], 0.85, 0.3);
+            for (let i = -2; i <= 2; i++) {
+              opticalStroke(() => {
+                ctx.moveTo(i * 22 - 18, -12);
+                ctx.lineTo(i * 22 + 18, 12);
+              }, 0.24, effect.color, "#ffffff");
+            }
+            ctx.restore();
           } else if (designKind === "nature") {
-            for (let i = 0; i < 6; i++) {
-              const a = (i / 6) * TAU;
+            for (let i = 0; i < 7; i++) {
+              const a = (i / 7) * TAU;
               ctx.save();
               ctx.rotate(a);
               opticalStroke(() => {
-                ctx.moveTo(r * 0.68, 0);
-                ctx.bezierCurveTo(r * 0.42, -20, r * 0.18, 18, 0, 0);
-              }, 0.8);
+                ctx.moveTo(r * 0.58, 0);
+                ctx.bezierCurveTo(r * 0.34, -24, r * 0.12, 18, 0, 0);
+              }, 0.82);
+              opticalPolygon([[r * 0.22, -7], [r * 0.34, -20], [r * 0.3, -4]], 0.24, 0.28);
               ctx.restore();
             }
           } else if (designKind === "time") {
@@ -20539,37 +21286,67 @@
           } else if (designKind === "lightning") {
             drawCross(150);
           } else if (designKind === "shadow") {
-            for (let i = 0; i < 5; i++) {
-              ctx.save();
-              ctx.rotate(i * 0.65 + localProgress * 0.4);
-              opticalPolygon([[0, -r * 0.52], [18, -r * 0.18], [0, r * 0.22], [-18, -r * 0.18]], 0.7, 0.18);
-              ctx.restore();
+            opticalStroke(() => {
+              ctx.moveTo(0, 0);
+              ctx.lineTo(150, 0);
+            }, 0.9, "#05030d", accent);
+            ctx.globalAlpha = alpha * 0.44;
+            ctx.fillStyle = "#05030d";
+            ctx.beginPath();
+            ctx.arc(0, 0, 48 + Math.sin(localProgress * Math.PI) * 14, 0, TAU);
+            ctx.fill();
+            for (let i = 0; i < 3; i++) {
+              opticalPolygon([[70 + i * 22, -16], [92 + i * 22, 0], [70 + i * 22, 16], [58 + i * 22, 0]], 0.4, 0.18);
             }
           } else if (designKind === "blood") {
-            drawTriangle(115);
-            opticalStroke(() => ctx.arc(0, 0, r * 0.46, 0, TAU), 0.8);
+            opticalPolygon([[0, -48], [36, 0], [0, 48], [-36, 0]], 1.1, 0.28);
+            for (let i = -3; i <= 3; i++) {
+              opticalStroke(() => {
+                ctx.moveTo(-30, i * 8);
+                ctx.lineTo(30, -i * 8);
+              }, 0.3, effect.color, accent);
+            }
           } else if (designKind === "gravity") {
-            for (let i = 0; i < 4; i++) {
-              ctx.save();
-              ctx.rotate(i * Math.PI / 2 + localProgress);
-              opticalStroke(() => ctx.rect(r * 0.2, -12, r * 0.38, 24), 0.72);
-              ctx.restore();
+            ctx.fillStyle = effect.dark || "#211430";
+            ctx.globalAlpha = alpha * 0.28;
+            ctx.fillRect(0, -32, 150, 64);
+            opticalStroke(() => {
+              ctx.moveTo(0, 22);
+              ctx.lineTo(150, 22);
+              ctx.moveTo(0, -22);
+              ctx.lineTo(150, -22);
+            }, 0.84);
+            for (let i = 0; i < 5; i++) {
+              const px = 22 + i * 26;
+              opticalStroke(() => {
+                ctx.moveTo(px, 30);
+                ctx.lineTo(px, -30);
+              }, 0.22, effect.color, accent);
             }
           } else if (designKind === "crystal") {
-            hex(0, 0, r * 0.58, false);
-            for (let i = 0; i < 6; i++) {
+            for (let i = -2; i <= 2; i++) {
+              const h = r * (0.38 + (2 - Math.abs(i)) * 0.08);
               ctx.save();
-              ctx.rotate((i / 6) * TAU);
-              opticalPolygon([[r * 0.35, 0], [r * 0.55, -12], [r * 0.68, 0], [r * 0.55, 12]], 0.5, 0.2);
+              ctx.translate(i * 18, 10);
+              opticalPolygon([[0, -h], [13, 0], [0, h * 0.42], [-13, 0]], 0.62, 0.28);
               ctx.restore();
             }
+            opticalStroke(() => {
+              ctx.moveTo(-58, 18);
+              ctx.lineTo(58, 18);
+            }, 0.5, effect.color, "#ffffff");
           } else if (designKind === "nature") {
-            for (let i = 0; i < 8; i++) {
-              const a = (i / 8) * TAU;
-              ctx.save();
-              ctx.translate(Math.cos(a) * r * 0.28, Math.sin(a) * r * 0.22);
-              leaf(0, 0, 18, a);
-              ctx.restore();
+            ctx.globalAlpha = alpha * 0.22;
+            ctx.fillStyle = "#d4a373";
+            ctx.beginPath();
+            ctx.arc(0, 0, r * 0.48, 0, TAU);
+            ctx.fill();
+            for (let i = 0; i < 14; i++) {
+              const a = (i / 14) * TAU + Math.sin(this.menuTime + i) * 0.16;
+              const rr = r * (0.12 + (i % 5) * 0.07);
+              ctx.fillStyle = i % 2 ? effect.color : accent;
+              ctx.globalAlpha = alpha * 0.52;
+              ctx.fillRect(Math.cos(a) * rr - 3, Math.sin(a) * rr - 3, 6, 6);
             }
           } else if (designKind === "void") {
             ctx.globalAlpha = alpha * 0.86;
@@ -20625,38 +21402,69 @@
             }
             ctx.restore();
           } else if (designKind === "shadow") {
-            for (const side of [-1, 1]) {
+            for (let arm = 0; arm < 4; arm++) {
               ctx.save();
-              ctx.translate(0, side * 34);
-              drawCone(210, Math.PI / 14);
+              ctx.rotate(arm * Math.PI / 2);
+              for (let i = 0; i < 6; i++) {
+                const s = 28 - i * 2;
+                ctx.save();
+                ctx.translate(24 + i * 18, Math.sin(localProgress * Math.PI + i) * 8);
+                ctx.rotate(Math.sin(localProgress * 5 + i) * 0.18);
+                ctx.fillStyle = i % 2 ? "#05030d" : effect.color;
+                ctx.globalAlpha = alpha * (0.74 - i * 0.06);
+                ctx.fillRect(-s * 0.5, -s * 0.5, s, s);
+                ctx.strokeStyle = accent;
+                ctx.lineWidth = 1.5;
+                ctx.strokeRect(-s * 0.5, -s * 0.5, s, s);
+                ctx.restore();
+              }
               ctx.restore();
             }
           } else if (designKind === "blood") {
-            for (let i = 0; i < 7; i++) {
+            for (let i = 0; i < 3; i++) {
               ctx.save();
-              ctx.rotate((i / 7) * TAU + localProgress);
-              opticalStroke(() => ctx.arc(r * 0.38, 0, 28, -0.9, 0.9), 0.9);
+              ctx.rotate((i % 2 ? -1 : 1) * localProgress * 1.6);
+              opticalStroke(() => ctx.arc(0, 0, 42 + i * 40, 0, TAU), 1.0 - i * 0.12, effect.color, i % 2 ? "#ffc0c8" : accent);
               ctx.restore();
             }
+            for (let i = 0; i < 10; i++) {
+              const a = (i / 10) * TAU + localProgress;
+              ctx.fillStyle = effect.color;
+              ctx.globalAlpha = alpha * 0.46;
+              ctx.fillRect(Math.cos(a) * (42 + (i % 3) * 40) - 3, Math.sin(a) * (42 + (i % 3) * 40) - 3, 6, 6);
+            }
           } else if (designKind === "gravity") {
-            opticalStroke(() => ctx.rect(-r * 0.45, -r * 0.45, r * 0.9, r * 0.9), 1.0);
-            opticalStroke(() => ctx.arc(0, 0, r * 0.54, 0, TAU), 0.75);
+            ctx.save();
+            ctx.rotate(localProgress * 0.45);
+            opticalStroke(() => ctx.rect(-r * 0.38, -r * 0.38, r * 0.76, r * 0.76), 1.15);
+            ctx.restore();
+            ctx.globalAlpha = alpha * 0.25;
+            ctx.fillStyle = "#000000";
+            ctx.beginPath();
+            ctx.ellipse(0, r * 0.32, r * 0.52, r * 0.16, 0, 0, TAU);
+            ctx.fill();
+            opticalStroke(() => {
+              ctx.moveTo(-r * 0.52, r * 0.34);
+              ctx.lineTo(r * 0.52, r * 0.34);
+            }, 0.5, effect.color, accent);
           } else if (designKind === "crystal") {
-            for (let i = -5; i <= 5; i++) {
+            opticalStroke(() => ctx.arc(0, 0, r * 0.56, 0, TAU), 0.7, effect.color, "#ffffff");
+            for (let i = 0; i < 14; i++) {
+              const a = (i / 14) * TAU + localProgress * 0.4;
               ctx.save();
-              ctx.translate(i * 18, -r * 0.42 + Math.abs(i) * 4);
-              opticalPolygon([[0, -32], [10, 0], [0, 38], [-10, 0]], 0.5, 0.24);
+              ctx.translate(Math.cos(a) * r * 0.42, Math.sin(a) * r * 0.42);
+              ctx.rotate(a);
+              opticalPolygon([[0, -6], [34, -2], [44, 0], [34, 2], [0, 6], [-7, 0]], 0.32, 0.22);
               ctx.restore();
             }
           } else if (designKind === "nature") {
-            for (let i = 1; i <= 5; i++) {
-              const x = i * 62;
-              opticalPolygon([[x, 0], [x + 14, -34], [x + 30, 0], [x + 12, 14]], 0.54, 0.24);
+            for (let i = 0; i < 5; i++) {
+              ctx.save();
+              ctx.rotate((i / 5) * TAU + localProgress * 0.2);
+              opticalPolygon([[0, 0], [28, -32], [130, 0], [28, 32]], 0.86, 0.26);
+              ctx.restore();
             }
-            opticalStroke(() => {
-              ctx.moveTo(0, 0);
-              ctx.bezierCurveTo(90, -36, 230, 36, 360, 0);
-            }, 1.0);
+            opticalStroke(() => ctx.arc(0, 0, 52, 0, TAU), 0.58, effect.color, accent);
           } else if (designKind === "void") {
             drawCone(190, Math.PI * 0.25);
             for (let i = 0; i < 12; i++) {

@@ -7,7 +7,7 @@
   const ROOM_PAD = 86;
   const SAVE_KEY = "soulrift-save-v1";
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
-  const APP_VERSION = "20260605-joystick-padding-155";
+  const APP_VERSION = "20260605-pretty-performance-156";
   const VERSION_CHECK_INTERVAL = 15000;
   const UPDATE_ATTEMPT_KEY = "soulrift-update-attempt-v1";
   const CLOUD_MIGRATION_KEY = "soulrift-cloud-migrated-v1";
@@ -3735,6 +3735,29 @@
       return clamp(1 - pressure * 0.92 - weakBias * 0.24 - loadTrim, this.performancePanic() ? 0.08 : 0.16, 1);
     }
 
+    visualStress() {
+      const pressure = this.performancePressure();
+      const weakBias = this.devicePerformanceBias();
+      const load = this.graphicsCombatLoad();
+      const hold = this.performancePanic() ? 0.22 : this.performanceEmergency() ? 0.12 : 0;
+      return clamp(pressure * 0.72 + weakBias * 0.3 + load * 0.12 + hold, 0, 1);
+    }
+
+    prettyVisualScale(min = 0.18) {
+      const quality = this.perf?.quality ?? 1;
+      const stress = this.visualStress();
+      return clamp((0.48 + quality * 0.52) * (1 - stress * 0.56), min, 1);
+    }
+
+    particleCount(base, options = {}) {
+      if (this.save.settings.particles <= 0) return 0;
+      const important = Boolean(options.important);
+      const min = Number.isFinite(options.min) ? options.min : important ? 1 : 0;
+      const scale = this.prettyVisualScale(important ? 0.42 : 0.12);
+      const count = Math.round(base * this.save.settings.particles * scale);
+      return Math.max(min, count);
+    }
+
     optionalVisualEffect(type) {
       return [
         "attackBurst",
@@ -3852,9 +3875,10 @@
       if (["crit", "plus"].includes(shape)) return pressure > 0.48 ? 0.25 : 1;
       const quality = this.perf?.quality ?? 1;
       const weakBias = this.devicePerformanceBias();
+      const stress = this.visualStress();
       const mobileBias = this.isMobileDevice() ? 0.58 : 0.82;
       const shapeKeep = ["ring", "leaf", "flame", "snow", "void", "clock"].includes(shape) ? 0.14 : 0;
-      return clamp((mobileBias + shapeKeep) * (1 - weakBias * 0.42) * (0.26 + quality * 0.74) * this.visualBudgetScale(), 0.01, 0.92);
+      return clamp((mobileBias + shapeKeep) * (1 - weakBias * 0.42) * (0.26 + quality * 0.74) * this.visualBudgetScale() * (1 - stress * 0.34), 0.01, 0.92);
     }
 
     particleLimit() {
@@ -3875,8 +3899,10 @@
       if (this.performancePanic()) return 0;
       const quality = this.perf?.quality ?? 1;
       const weakBias = this.devicePerformanceBias();
+      const stress = this.visualStress();
       if (quality < 0.5 || (weakBias > 0.55 && this.performanceEmergency())) return 0;
-      return value * clamp(quality * (this.isMobileDevice() ? 0.24 : 0.46) * (1 - weakBias * 0.38), 0.04, 0.54);
+      if (stress > 0.62 && value < 18) return 0;
+      return value * clamp(quality * (this.isMobileDevice() ? 0.24 : 0.46) * (1 - weakBias * 0.38) * (1 - stress * 0.48), 0.02, 0.5);
     }
 
     readableTextBoost() {
@@ -4403,7 +4429,7 @@
         const x = pos.x + Math.cos(this.menuTime * 2.6) * 46;
         const y = pos.y - 34 + Math.sin(this.menuTime * 3.25) * 20;
         this.addShockwave(x, y, 150, "#d9fbff", 0);
-        for (let i = 0; i < 22 * this.save.settings.particles; i++) {
+        for (let i = 0; i < this.particleCount(22, { important: true }); i++) {
           this.addParticle(x + rand(-12, 12), y + rand(-12, 12), i % 2 ? "#d9fbff" : "#70e083", rand(8, 24), rand(0.28, 0.78), i % 3 === 0 ? "ring" : "spark");
         }
         this.run.spectating = false;
@@ -7818,7 +7844,7 @@
       actor.vy = 0;
       if (wasDead) {
         this.addShockwave(actor.x, actor.y, 145, "#70e083", 0);
-        for (let i = 0; i < 16 * this.save.settings.particles; i++) {
+        for (let i = 0; i < this.particleCount(16, { important: true }); i++) {
           this.addParticle(actor.x + rand(-18, 18), actor.y + rand(-18, 18), i % 2 ? "#70e083" : "#d9fbff", rand(8, 20), rand(0.3, 0.75), i % 3 === 0 ? "ring" : "spark");
         }
       }
@@ -9126,7 +9152,7 @@
           damageMult
         });
       }
-      const count = Math.round(Math.min(12, 4 + stacks * 1.15) * this.save.settings.particles);
+      const count = this.particleCount(Math.min(12, 4 + stacks * 1.15));
       for (let i = 0; i < count; i++) {
         this.addParticle(caster.x + rand(-15, 15), caster.y + rand(-24, 10), i % 3 === 0 ? "#05030d" : "#7b5cff", rand(5, 12), rand(0.34, 0.72), "shade", rand(-Math.PI, Math.PI), rand(24, 92));
       }
@@ -9834,7 +9860,7 @@
         time: "clock"
       }[kind] || "spark";
       const particleScale = clamp(this.perf?.quality ?? 1, 0.35, 1) * (this.isMobileDevice() ? 0.55 : 0.78);
-      const count = Math.round((subtle ? 3 + intensity * 1.6 : 7 + intensity * 5) * this.save.settings.particles * particleScale);
+      const count = this.particleCount((subtle ? 3 + intensity * 1.6 : 7 + intensity * 5) * particleScale, { important: !subtle && kind === "lightning" });
       for (let i = 0; i < count; i++) {
         const directional = i % 2 === 0;
         const a = subtle ? rand(-Math.PI, Math.PI) : directional ? angle + rand(-0.55, 0.55) : angle + rand(-Math.PI, Math.PI);
@@ -9927,7 +9953,7 @@
         }
       }
       const particleScale = clamp(this.perf?.quality ?? 1, 0.35, 1) * (this.isMobileDevice() ? 0.56 : 0.78);
-      const count = Math.round((ultimate ? 16 : 7) * this.save.settings.particles * particleScale);
+      const count = this.particleCount((ultimate ? 16 : 7) * particleScale, { important: ultimate });
       for (let i = 0; i < count; i++) {
         const angle = rand(0, TAU);
         const r = rand(20, radius);
@@ -9956,7 +9982,7 @@
       enemy.x = enemy.anchorX || enemy.x;
       enemy.y = enemy.anchorY || enemy.y;
       this.addShockwave(enemy.x, enemy.y, 92, "#82ffd3", 0);
-      for (let i = 0; i < 8 * this.save.settings.particles; i++) {
+      for (let i = 0; i < this.particleCount(8); i++) {
         this.addParticle(enemy.x + rand(-enemy.radius, enemy.radius), enemy.y + rand(-enemy.radius, enemy.radius), "#82ffd3", rand(7, 15), rand(0.18, 0.42), "spark");
       }
     }
@@ -10028,7 +10054,7 @@
       enemy.bleedDamage = Math.max(enemy.bleedDamage || 0, Math.max(1.2, damage * (enemy.boss ? 0.09 : 0.14)));
       const angle = Math.atan2(options.y || 0, options.x || 1);
       this.addBasicHitSpark(enemy.x, enemy.y, angle + 0.22, "assassin", false);
-      for (let i = 0; i < 5 * this.save.settings.particles; i++) {
+      for (let i = 0; i < this.particleCount(5); i++) {
         this.addParticle(enemy.x + rand(-enemy.radius * 0.4, enemy.radius * 0.4), enemy.y + rand(-enemy.radius * 0.5, enemy.radius * 0.35), "#b01d45", rand(5, 11), rand(0.22, 0.42), "spark", angle + Math.PI + rand(-0.8, 0.8), rand(60, 160));
       }
     }
@@ -10254,7 +10280,7 @@
       }
       const index = this.run.enemies.indexOf(enemy);
       if (index >= 0) this.run.enemies.splice(index, 1);
-      for (let i = 0; i < 16 * this.save.settings.particles; i++) {
+      for (let i = 0; i < this.particleCount(16, { important: enemy.boss }); i++) {
         this.addParticle(enemy.x + rand(-enemy.radius, enemy.radius), enemy.y + rand(-enemy.radius, enemy.radius), enemy.boss ? "#f2bf63" : this.run.power.color, rand(8, 24), rand(0.25, 0.7), "spark");
       }
       if (enemy.boss) {
@@ -10469,7 +10495,7 @@
       }
       if (chest) {
         this.addShockwave(pickup.x, pickup.y, 78, pickup.color || "#f2bf63", 0);
-        for (let i = 0; i < 6 * this.save.settings.particles; i++) {
+        for (let i = 0; i < this.particleCount(6); i++) {
           this.addParticle(pickup.x + rand(-14, 14), pickup.y + rand(-10, 8), "#aeb3c2", rand(5, 12), rand(0.18, 0.42), "spark", rand(0, TAU), rand(28, 95));
         }
       }
@@ -10537,7 +10563,7 @@
       });
       const firstColor = this.rewardColor(rewards[0]?.reward || { type: "material", rarity: "rare" });
       this.addShockwave(x, y, 110, firstColor, 0);
-      for (let i = 0; i < 18 * this.save.settings.particles; i++) {
+      for (let i = 0; i < this.particleCount(18, { important: true }); i++) {
         this.addParticle(x + rand(-28, 28), y + rand(-18, 18), firstColor, rand(8, 22), rand(0.35, 0.85), i % 4 === 0 ? "ring" : "spark");
       }
       this.toast(this.isMultiplayerRun() ? `Rơi ${rewards.length} rương gỗ riêng và tiền` : `Rơi rương gỗ: ${this.rewardLabel(rewards[0].reward)}`);
@@ -10660,7 +10686,7 @@
         }
       }
       this.addShockwave(chest.x, chest.y, 118, color, 0);
-      for (let i = 0; i < 18 * this.save.settings.particles; i++) {
+      for (let i = 0; i < this.particleCount(18, { important: true }); i++) {
         const a = -Math.PI / 2 + rand(-1.25, 1.25);
         this.addParticle(
           chest.x + rand(-20, 20),
@@ -11014,12 +11040,12 @@
       const color = this.rewardColor(pickup.reward);
       if (pickup.reward.type === "coin") {
         this.audio.coin(pickup.reward.amount || 1);
-        for (let i = 0; i < 4 * this.save.settings.particles; i++) {
+        for (let i = 0; i < this.particleCount(4, { important: true }); i++) {
           this.addParticle(pickup.x, pickup.y, "#ffd84d", rand(4, 9), rand(0.16, 0.34), "spark", rand(0, TAU), rand(25, 90));
         }
       } else {
         this.addShockwave(pickup.x, pickup.y, 140, color, 0);
-        for (let i = 0; i < 14 * this.save.settings.particles; i++) {
+        for (let i = 0; i < this.particleCount(14, { important: true }); i++) {
           this.addParticle(pickup.x, pickup.y, color, rand(8, 20), rand(0.3, 0.75), i % 3 === 0 ? "ring" : "spark");
         }
       }
@@ -11101,7 +11127,7 @@
       if (remote) {
         const pos = this.displayActorPosition(remote);
         this.addShockwave(pos.x, pos.y - 16, 120, "#d9fbff", 0);
-        for (let i = 0; i < 10 * this.save.settings.particles; i++) {
+        for (let i = 0; i < this.particleCount(10, { important: true }); i++) {
           this.addParticle(pos.x + rand(-12, 12), pos.y + rand(-20, 8), "#d9fbff", rand(6, 16), rand(0.24, 0.6), i % 3 === 0 ? "ring" : "spark");
         }
       }
@@ -12035,7 +12061,7 @@
       enemy.vx *= 0.18;
       enemy.vy *= 0.18;
       this.addShockwave(enemy.x, enemy.y, 150, "#8feaff", 0, { owner: "enemy" });
-      for (let i = 0; i < 10 * this.save.settings.particles; i++) {
+      for (let i = 0; i < this.particleCount(10, { important: true }); i++) {
         this.addParticle(enemy.x + rand(-enemy.radius, enemy.radius), enemy.y + rand(-enemy.radius, enemy.radius * 0.2), "#8feaff", rand(8, 18), rand(0.3, 0.72), i % 3 === 0 ? "ring" : "spark", -Math.PI / 2 + rand(-0.8, 0.8), rand(60, 150));
       }
     }
@@ -12183,7 +12209,7 @@
       if (!projectile.visualImpact) {
         projectile.visualImpact = true;
         this.addShockwave(projectile.x, projectile.y, projectile.kind === "rangerBasic" ? 42 : 54, projectile.color || "#ffffff", 0);
-        for (let i = 0; i < 5 * this.save.settings.particles; i++) {
+        for (let i = 0; i < this.particleCount(5); i++) {
           this.addParticle(projectile.x, projectile.y, projectile.color || "#ffffff", rand(5, 12), rand(0.18, 0.36), "spark");
         }
       }
@@ -12564,7 +12590,7 @@
         }
       }
       const color = effect.color || this.run.biome.accent;
-      for (let i = 0; i < 8 * this.save.settings.particles; i++) {
+      for (let i = 0; i < this.particleCount(8); i++) {
         const t = rand(0.08, 0.92);
         const x = sx + (ex - sx) * t + rand(-width, width);
         const y = sy + (ey - sy) * t + rand(-width, width);
@@ -12852,7 +12878,7 @@
       effect.tick = this.powerDomainTickRate(kind);
       this.updatePowerDomainIdentity(effect, radius, color);
       const particleScale = clamp(this.perf?.quality ?? 1, 0.35, 1) * (this.isMobileDevice() ? 0.35 : 0.55);
-      const count = Math.max(2, Math.round(5 * this.save.settings.particles * particleScale));
+      const count = this.particleCount(5 * particleScale, { min: 2 });
       for (let i = 0; i < count; i++) {
         const a = rand(0, TAU);
         const r = rand(radius * 0.18, radius * 0.96);
@@ -13042,7 +13068,7 @@
     addImpact(x, y, color, damage, crit) {
       this.camera.shake = Math.max(this.camera.shake, crit ? 9 : 4);
       const pressure = this.performancePressure();
-      const particleCount = Math.round((crit ? 14 : 8) * this.save.settings.particles * clamp(1 - pressure * 0.78, 0.18, 1));
+      const particleCount = Math.round(this.particleCount(crit ? 14 : 8, { important: crit }) * clamp(1 - pressure * 0.58, 0.32, 1));
       for (let i = 0; i < particleCount; i++) {
         this.addParticle(x, y, color, rand(6, crit ? 18 : 13), rand(0.25, 0.7), crit ? "crit" : "spark");
       }
@@ -13104,7 +13130,7 @@
     }
 
     addAttackDust(x, y, angle, heavy = false) {
-      const count = Math.round((heavy ? 10 : 6) * this.save.settings.particles);
+      const count = this.particleCount(heavy ? 10 : 6);
       for (let i = 0; i < count; i++) {
         this.addParticle(
           x + rand(-5, 5),
@@ -13135,7 +13161,7 @@
         time: life,
         maxTime: life
       });
-      const count = Math.round((heavy ? 16 : 11) * this.save.settings.particles);
+      const count = this.particleCount(heavy ? 16 : 11, { important: heavy });
       for (let i = 0; i < count; i++) {
         this.addParticle(
           x + rand(-4, 4),
@@ -13160,9 +13186,10 @@
       }
       const weakBias = this.devicePerformanceBias();
       const pressure = this.performancePressure();
+      const stress = this.visualStress();
       const important = ["crit", "plus", "ring"].includes(shape);
-      const lifeScale = important ? 1 : clamp(1 - weakBias * 0.24 - pressure * 0.18, 0.58, 1);
-      const sizeScale = important ? 1 : clamp(1 - weakBias * 0.12 - pressure * 0.08, 0.72, 1);
+      const lifeScale = important ? 1 : clamp(1 - weakBias * 0.24 - pressure * 0.18 - stress * 0.14, 0.5, 1);
+      const sizeScale = important ? 1 : clamp(1 - weakBias * 0.12 - pressure * 0.08 - stress * 0.08, 0.68, 1);
       this.run.particles.push({
         x,
         y,
@@ -13631,15 +13658,16 @@
         ctx.fillRect(WORLD_W - ROOM_PAD, 0, ROOM_PAD, WORLD_H);
         return;
       }
-      const startX = Math.max(ROOM_PAD, ROOM_PAD + Math.floor((bounds.left - ROOM_PAD) / 64) * 64);
+      const tile = this.performanceEmergency() ? 96 : (this.perf?.quality ?? 1) < 0.58 ? 80 : 64;
+      const startX = Math.max(ROOM_PAD, ROOM_PAD + Math.floor((bounds.left - ROOM_PAD) / tile) * tile);
       const endX = Math.min(WORLD_W - ROOM_PAD, bounds.right + 64);
-      const startY = Math.max(ROOM_PAD, ROOM_PAD + Math.floor((bounds.top - ROOM_PAD) / 64) * 64);
+      const startY = Math.max(ROOM_PAD, ROOM_PAD + Math.floor((bounds.top - ROOM_PAD) / tile) * tile);
       const endY = Math.min(WORLD_H - ROOM_PAD, bounds.bottom + 64);
-      for (let x = startX; x < endX; x += 64) {
-        for (let y = startY; y < endY; y += 64) {
+      for (let x = startX; x < endX; x += tile) {
+        for (let y = startY; y < endY; y += tile) {
           const n = Math.sin(x * 0.04 + y * 0.03 + this.run.seed * 10);
           ctx.fillStyle = n > 0 ? "rgba(255,255,255,0.025)" : "rgba(0,0,0,0.08)";
-          ctx.fillRect(x, y, 62, 62);
+          ctx.fillRect(x, y, tile - 2, tile - 2);
           if ((x + y) % 192 === 0) {
             ctx.fillStyle = biome.accent;
             ctx.globalAlpha = 0.1;
@@ -16967,9 +16995,14 @@
     }
 
     drawParticles(ctx) {
+      const stress = this.visualStress();
+      const simple = stress > 0.46 || (this.perf?.quality ?? 1) < 0.66;
+      const drawLimit = simple ? Math.max(6, Math.round(this.particleLimit() * 0.72)) : this.run.particles.length;
+      const startIndex = Math.max(0, this.run.particles.length - drawLimit);
       ctx.save();
-      ctx.globalCompositeOperation = "lighter";
-      for (const particle of this.run.particles) {
+      ctx.globalCompositeOperation = simple ? "source-over" : "lighter";
+      for (let index = startIndex; index < this.run.particles.length; index++) {
+        const particle = this.run.particles[index];
         if (!this.inView(particle.x, particle.y, particle.size + 80)) continue;
         const alpha = particle.life / particle.maxLife;
         ctx.globalAlpha = alpha;
@@ -16985,45 +17018,69 @@
           ctx.fillRect(particle.x - size / 4, particle.y - size / 2, size / 2, size);
           ctx.fillRect(particle.x - size / 2, particle.y - size / 4, size, size / 2);
         } else if (["spark", "crit"].includes(particle.shape)) {
-          ctx.save();
-          ctx.translate(particle.x, particle.y);
-          ctx.rotate((particle.vx + particle.vy) * 0.02);
-          ctx.fillRect(-size / 2, -size / 6, size, Math.max(1, size / 3));
-          ctx.fillRect(-size / 6, -size / 2, Math.max(1, size / 3), size);
-          ctx.restore();
-        } else if (particle.shape === "shade") {
-          ctx.save();
-          ctx.translate(particle.x, particle.y);
-          ctx.rotate(Math.atan2(particle.vy || 0, particle.vx || 1) + Math.sin(this.menuTime * 4 + particle.x) * 0.25);
-          ctx.globalCompositeOperation = "source-over";
-          ctx.globalAlpha = alpha * 0.5;
-          ctx.fillStyle = "#05030d";
-          ctx.beginPath();
-          ctx.ellipse(0, 0, size * 0.82, size * 0.34, 0, 0, TAU);
-          ctx.fill();
-          ctx.globalCompositeOperation = "lighter";
-          ctx.globalAlpha = alpha * 0.34;
-          ctx.strokeStyle = particle.color === "#05030d" ? "#7b5cff" : particle.color;
-          ctx.lineWidth = Math.max(1, size * 0.12);
-          ctx.beginPath();
-          ctx.arc(0, 0, size * 0.58, -0.9, 0.9);
-          ctx.stroke();
-          ctx.restore();
-        } else if (["leaf", "shard", "drop", "flame", "snow", "void", "clock"].includes(particle.shape)) {
-          ctx.save();
-          ctx.translate(particle.x, particle.y);
-          ctx.rotate((particle.vx + particle.vy) * 0.01);
-          ctx.beginPath();
-          if (particle.shape === "leaf") ctx.ellipse(0, 0, size * 0.65, size * 0.28, 0, 0, TAU);
-          else if (particle.shape === "drop") ctx.ellipse(0, 0, size * 0.38, size * 0.72, 0, 0, TAU);
-          else if (particle.shape === "snow") {
-            ctx.fillRect(-size / 2, -1, size, 2);
-            ctx.fillRect(-1, -size / 2, 2, size);
+          if (simple) {
+            ctx.fillRect(particle.x - size / 2, particle.y - 1, size, 2);
+            ctx.fillRect(particle.x - 1, particle.y - size / 2, 2, size);
           } else {
-            ctx.fillRect(-size / 2, -size / 2, size, size);
+            ctx.save();
+            ctx.translate(particle.x, particle.y);
+            ctx.rotate((particle.vx + particle.vy) * 0.02);
+            ctx.fillRect(-size / 2, -size / 6, size, Math.max(1, size / 3));
+            ctx.fillRect(-size / 6, -size / 2, Math.max(1, size / 3), size);
+            ctx.restore();
           }
-          ctx.fill();
-          ctx.restore();
+        } else if (particle.shape === "shade") {
+          if (simple) {
+            ctx.globalAlpha = alpha * 0.45;
+            ctx.fillStyle = particle.color === "#05030d" ? "#7b5cff" : particle.color;
+            ctx.fillRect(particle.x - size * 0.42, particle.y - size * 0.18, size * 0.84, size * 0.36);
+          } else {
+            ctx.save();
+            ctx.translate(particle.x, particle.y);
+            ctx.rotate(Math.atan2(particle.vy || 0, particle.vx || 1) + Math.sin(this.menuTime * 4 + particle.x) * 0.25);
+            ctx.globalCompositeOperation = "source-over";
+            ctx.globalAlpha = alpha * 0.5;
+            ctx.fillStyle = "#05030d";
+            ctx.beginPath();
+            ctx.ellipse(0, 0, size * 0.82, size * 0.34, 0, 0, TAU);
+            ctx.fill();
+            ctx.globalCompositeOperation = "lighter";
+            ctx.globalAlpha = alpha * 0.34;
+            ctx.strokeStyle = particle.color === "#05030d" ? "#7b5cff" : particle.color;
+            ctx.lineWidth = Math.max(1, size * 0.12);
+            ctx.beginPath();
+            ctx.arc(0, 0, size * 0.58, -0.9, 0.9);
+            ctx.stroke();
+            ctx.restore();
+          }
+        } else if (["leaf", "shard", "drop", "flame", "snow", "void", "clock"].includes(particle.shape)) {
+          if (simple) {
+            if (particle.shape === "snow") {
+              ctx.fillRect(particle.x - size / 2, particle.y - 1, size, 2);
+              ctx.fillRect(particle.x - 1, particle.y - size / 2, 2, size);
+            } else if (particle.shape === "leaf" || particle.shape === "drop") {
+              ctx.beginPath();
+              ctx.ellipse(particle.x, particle.y, size * 0.48, size * 0.24, 0, 0, TAU);
+              ctx.fill();
+            } else {
+              ctx.fillRect(particle.x - size / 2, particle.y - size / 2, size, size);
+            }
+          } else {
+            ctx.save();
+            ctx.translate(particle.x, particle.y);
+            ctx.rotate((particle.vx + particle.vy) * 0.01);
+            ctx.beginPath();
+            if (particle.shape === "leaf") ctx.ellipse(0, 0, size * 0.65, size * 0.28, 0, 0, TAU);
+            else if (particle.shape === "drop") ctx.ellipse(0, 0, size * 0.38, size * 0.72, 0, 0, TAU);
+            else if (particle.shape === "snow") {
+              ctx.fillRect(-size / 2, -1, size, 2);
+              ctx.fillRect(-1, -size / 2, 2, size);
+            } else {
+              ctx.fillRect(-size / 2, -size / 2, size, size);
+            }
+            ctx.fill();
+            ctx.restore();
+          }
         } else if (particle.shape === "leaf") {
           ctx.fillRect(particle.x - size / 2, particle.y - size / 4, size, size / 2);
         } else {

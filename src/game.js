@@ -7,7 +7,7 @@
   const ROOM_PAD = 86;
   const SAVE_KEY = "soulrift-save-v1";
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
-  const APP_VERSION = "20260605-mobile-controls-153";
+  const APP_VERSION = "20260605-awakened-aura-154";
   const VERSION_CHECK_INTERVAL = 15000;
   const UPDATE_ATTEMPT_KEY = "soulrift-update-attempt-v1";
   const CLOUD_MIGRATION_KEY = "soulrift-cloud-migrated-v1";
@@ -1323,11 +1323,13 @@
     }
 
     playerProfile() {
+      const powerId = this.game.save?.account?.selectedPower || "";
       return {
         id: this.id,
         name: this.playerName(),
-        powerId: this.game.save?.account?.selectedPower || "",
-        characterId: this.game.save?.account?.selectedCharacter || "swordsman"
+        powerId,
+        characterId: this.game.save?.account?.selectedCharacter || "swordsman",
+        powerAwakened: this.game.powerAwakeningActive(powerId)
       };
     }
 
@@ -1755,6 +1757,7 @@
           vote: this.mapVote,
           powerId: message.powerId || "",
           characterId: message.characterId || "swordsman",
+          powerAwakened: Boolean(message.powerAwakened),
           host: false
         });
         this.renderLobbyIfVisible();
@@ -1788,6 +1791,7 @@
           vote: this.mapVote,
           powerId: message.powerId || "",
           characterId: message.characterId || "swordsman",
+          powerAwakened: Boolean(message.powerAwakened),
           host: false
         });
         this.broadcastLobby();
@@ -1966,6 +1970,7 @@
           vote: this.host ? this.mapVote : (message.vote || this.mapVote),
           powerId: message.powerId || "",
           characterId: message.characterId || "swordsman",
+          powerAwakened: Boolean(message.powerAwakened),
           host: Boolean(message.host)
         });
         if (this.host) this.broadcastLobby();
@@ -1979,6 +1984,7 @@
           vote: this.mapVote,
           powerId: message.powerId || "",
           characterId: message.characterId || "swordsman",
+          powerAwakened: Boolean(message.powerAwakened),
           host: false
         });
         this.broadcastLobby();
@@ -3068,6 +3074,7 @@
       p.damage = stats.damage;
       p.crit = stats.crit;
       p.basicAttackCd = stats.attackCd;
+      p.powerAwakened = this.powerAwakeningActive(this.run.power.id);
       if (this.isMultiplayerRun()) this.lobby.sendState(this.networkPlayerState(this.lobby.id, p));
     }
 
@@ -5492,6 +5499,15 @@
         return;
       }
       meta.useAwakened = !this.powerAwakeningActive(power.id);
+      if (this.run?.player && this.run.power?.id === power.id) {
+        this.run.player.powerAwakened = this.powerAwakeningActive(power.id);
+        if (this.isMultiplayerRun()) this.lobby.sendState(this.networkPlayerState(this.lobby.id, this.run.player));
+      }
+      if (this.lobby) {
+        this.lobby.syncOwnSlot();
+        this.lobby.broadcastReady();
+        if (this.lobby.host) this.lobby.broadcastLobby();
+      }
       this.persist();
       this.toast(`${power.name}: ${meta.useAwakened ? "đang dùng bản thức tỉnh" : "đang dùng bản thường"}`);
       if (this.mode === "awakening") this.showAwakening();
@@ -6505,6 +6521,7 @@
           actionTime: 0,
           actionTotal: 0,
           power: slot.powerId || "fire",
+          powerAwakened: Boolean(slot.powerAwakened),
           ult: 0,
           facing: -Math.PI / 2,
           t: performance.now()
@@ -6544,6 +6561,7 @@
         spectating: Boolean(player.spectating || extra.spectating || (localState && this.run?.spectating)),
         spectateId: player.spectateId || extra.spectateId || (localState ? this.run?.spectateId : "") || "",
         power: extra.power || this.run.power.id,
+        powerAwakened: Boolean(extra.powerAwakened ?? (localState ? this.powerAwakeningActive(extra.power || this.run.power.id) : player.powerAwakened)),
         facing: player.facing,
         t: performance.now(),
         sentAt: Number.isFinite(extra.sentAt) ? extra.sentAt : performance.now()
@@ -6657,7 +6675,8 @@
         const playerState = this.networkPlayerState(id, state, {
           name: state.name || slot?.name,
           color: state.color,
-          power: state.power
+          power: state.power,
+          powerAwakened: state.powerAwakened
         });
         if (playerState) players.push(playerState);
       }
@@ -6847,6 +6866,7 @@
         baseStats: { ...stats },
         name: this.save.account.username || "Bạn",
         characterId: character.id,
+        powerAwakened: this.powerAwakeningActive(this.save.account.selectedPower),
         basicAttackCd: stats.attackCd,
         combo: 0,
         comboTimer: 0,
@@ -9733,6 +9753,7 @@
         maxTime: DOMAIN_CUTIN_TIME,
         color: power.color,
         accent: power.accent,
+        awakened: Boolean(options.awakened ?? this.powerAwakeningActive(power.id)),
         characterId: options.characterId || caster.characterId || this.run.player.characterId || "swordsman",
         casterColor: options.casterColor || custom.color || "#d8b46a",
         casterAura: options.casterAura || custom.aura || "",
@@ -13221,6 +13242,7 @@
       if (!previous) return true;
       if ((performance.now() - Number(previous.sentAt || 0)) > 240) return true;
       if (state.roomNumber !== previous.roomNumber) return true;
+      if (state.power !== previous.power || state.powerAwakened !== previous.powerAwakened) return true;
       if (state.dead !== previous.dead || state.spectating !== previous.spectating || state.spectateId !== previous.spectateId) return true;
       if (state.animation !== previous.animation || Math.abs((state.actionTime || 0) - (previous.actionTime || 0)) > 0.08) return true;
       if (Math.abs((state.ult || 0) - (previous.ult || 0)) > 0.5) return true;
@@ -13289,6 +13311,7 @@
           actionTime: 0,
           actionTotal: 0,
           power: slot.powerId || "fire",
+          powerAwakened: Boolean(slot.powerAwakened),
           facing: -Math.PI / 2,
           t: performance.now()
         });
@@ -13562,6 +13585,7 @@
           hp: remote.hp,
           dead: remote.dead,
           characterId: remote.characterId,
+          powerAwakened: Boolean(remote.powerAwakened),
           shadowWeapon: remote.shadowWeapon || 0,
           shadowWeaponDamageMult: remote.shadowWeaponDamageMult || 1
         }, powerById(remote.power), { ...this.save.customization, color: remote.color });
@@ -14510,6 +14534,185 @@
       this.drawNameTag(ctx, x, y - 24, name || "Linh hồn", self);
     }
 
+    drawAwakenedPowerAura(ctx, power, t) {
+      const kind = power?.id || "fire";
+      const color = power?.color || "#f2bf63";
+      const accent = power?.accent || "#ffffff";
+      const quality = this.perf?.quality ?? 1;
+      const emergency = this.performanceEmergency();
+      const lowDetail = emergency || this.performancePanic() || quality < 0.64;
+      const pulse = Math.sin(t * 4.6) * 1.6;
+      const orbitSpeed = kind === "time" ? -1.55 : kind === "lightning" ? 2.35 : 1.25;
+      ctx.save();
+      ctx.globalCompositeOperation = emergency ? "source-over" : "lighter";
+      ctx.shadowColor = accent;
+      ctx.shadowBlur = emergency ? 0 : this.glow(lowDetail ? 8 : 14);
+      ctx.fillStyle = hexToRgba(color, emergency ? 0.12 : 0.2);
+      ctx.strokeStyle = hexToRgba(accent, emergency ? 0.34 : 0.58);
+      ctx.lineWidth = lowDetail ? 1.2 : 1.6;
+      ctx.beginPath();
+      ctx.ellipse(0, -3, 29 + pulse, 38 + pulse * 0.9, 0, 0, TAU);
+      ctx.fill();
+      ctx.stroke();
+      if (emergency) {
+        ctx.restore();
+        return;
+      }
+
+      const glyphCount = lowDetail ? 2 : 3;
+      for (let i = 0; i < glyphCount; i++) {
+        const a = t * orbitSpeed + i * TAU / glyphCount;
+        ctx.save();
+        ctx.translate(Math.cos(a) * 27, -4 + Math.sin(a) * 34);
+        ctx.rotate(-a * 0.7);
+        ctx.globalAlpha = 0.38 + (i % 2) * 0.14;
+        this.drawPowerIconShape(ctx, kind, lowDetail ? 3.7 : 4.8, color, accent);
+        ctx.restore();
+      }
+
+      ctx.lineCap = "round";
+      ctx.lineJoin = "round";
+      if (kind === "lightning") {
+        ctx.strokeStyle = accent;
+        ctx.lineWidth = lowDetail ? 1.9 : 2.4;
+        const bolts = lowDetail ? 3 : 5;
+        for (let i = 0; i < bolts; i++) {
+          const a = t * 5.2 + i * TAU / bolts;
+          const r1 = 23 + Math.sin(t * 8 + i) * 3;
+          const r2 = 35 + Math.cos(t * 7 + i) * 3;
+          const sx = Math.cos(a) * r1;
+          const sy = -4 + Math.sin(a) * (r1 + 8);
+          const ex = Math.cos(a + 0.42) * r2;
+          const ey = -4 + Math.sin(a + 0.42) * (r2 + 8);
+          ctx.globalAlpha = 0.62 + 0.22 * Math.sin(t * 13 + i);
+          ctx.beginPath();
+          ctx.moveTo(sx, sy);
+          ctx.lineTo((sx + ex) * 0.5 + Math.cos(a + 1.4) * 8, (sy + ey) * 0.5 + Math.sin(a + 1.4) * 7);
+          ctx.lineTo(ex, ey);
+          ctx.stroke();
+        }
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 1.2;
+        ctx.globalAlpha = 0.75;
+        ctx.beginPath();
+        ctx.arc(0, -4, 34 + Math.sin(t * 9) * 2, -0.35 + t * 0.8, Math.PI * 1.15 + t * 0.8);
+        ctx.stroke();
+      } else if (kind === "fire") {
+        ctx.fillStyle = color;
+        const flames = lowDetail ? 4 : 6;
+        for (let i = 0; i < flames; i++) {
+          const a = t * 1.8 + i * TAU / flames;
+          const fx = Math.cos(a) * 26;
+          const fy = -1 + Math.sin(a) * 29;
+          const h = 7 + Math.sin(t * 7 + i) * 2;
+          ctx.globalAlpha = 0.45;
+          ctx.beginPath();
+          ctx.moveTo(fx, fy - h);
+          ctx.quadraticCurveTo(fx + 5, fy - 1, fx, fy + h);
+          ctx.quadraticCurveTo(fx - 5, fy - 1, fx, fy - h);
+          ctx.fill();
+        }
+      } else if (kind === "ice") {
+        ctx.strokeStyle = accent;
+        ctx.lineWidth = 1.5;
+        for (let i = 0; i < (lowDetail ? 4 : 6); i++) {
+          const a = t * 0.9 + i * TAU / 6;
+          const x = Math.cos(a) * 30;
+          const y = -4 + Math.sin(a) * 36;
+          ctx.globalAlpha = 0.58;
+          ctx.beginPath();
+          ctx.moveTo(x - Math.cos(a) * 5, y - Math.sin(a) * 5);
+          ctx.lineTo(x + Math.cos(a) * 6, y + Math.sin(a) * 6);
+          ctx.moveTo(x - Math.sin(a) * 4, y + Math.cos(a) * 4);
+          ctx.lineTo(x + Math.sin(a) * 4, y - Math.cos(a) * 4);
+          ctx.stroke();
+        }
+      } else if (kind === "nature") {
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 1.7;
+        for (let i = 0; i < (lowDetail ? 3 : 5); i++) {
+          const a = t * 1.05 + i * TAU / 5;
+          const x = Math.cos(a) * 27;
+          const y = -3 + Math.sin(a) * 34;
+          ctx.globalAlpha = 0.5;
+          ctx.beginPath();
+          ctx.ellipse(x, y, 3.4, 7.5, a + 0.8, 0, TAU);
+          ctx.fillStyle = i % 2 ? color : accent;
+          ctx.fill();
+          ctx.beginPath();
+          ctx.moveTo(x - Math.cos(a) * 4, y + Math.sin(a) * 3);
+          ctx.quadraticCurveTo(0, 14, -x * 0.25, 24);
+          ctx.stroke();
+        }
+      } else if (kind === "gravity") {
+        ctx.strokeStyle = accent;
+        ctx.lineWidth = 1.5;
+        ctx.globalAlpha = 0.5;
+        for (let i = 0; i < 2; i++) {
+          ctx.save();
+          ctx.rotate(t * (0.65 + i * 0.28) + i * 1.2);
+          ctx.scale(1, 0.55 + i * 0.14);
+          ctx.beginPath();
+          ctx.arc(0, -4, 34 + i * 7, 0, TAU);
+          ctx.stroke();
+          ctx.restore();
+        }
+      } else if (kind === "shadow" || kind === "void") {
+        ctx.fillStyle = kind === "shadow" ? accent : color;
+        for (let i = 0; i < (lowDetail ? 4 : 7); i++) {
+          const a = -t * 1.6 + i * TAU / 7;
+          const x = Math.cos(a) * (26 + (i % 2) * 8);
+          const y = -5 + Math.sin(a) * (30 + (i % 3) * 3);
+          ctx.save();
+          ctx.translate(x, y);
+          ctx.rotate(a + t * 0.8);
+          ctx.globalAlpha = kind === "void" ? 0.36 : 0.44;
+          ctx.fillRect(-3, -3, 6, 6);
+          ctx.restore();
+        }
+      } else if (kind === "blood") {
+        ctx.fillStyle = color;
+        for (let i = 0; i < (lowDetail ? 4 : 6); i++) {
+          const a = t * 1.3 + i * TAU / 6;
+          const x = Math.cos(a) * 27;
+          const y = -3 + Math.sin(a) * 35;
+          ctx.globalAlpha = 0.42;
+          ctx.beginPath();
+          ctx.moveTo(x, y - 6);
+          ctx.bezierCurveTo(x + 5, y - 1, x + 3, y + 6, x, y + 6);
+          ctx.bezierCurveTo(x - 3, y + 6, x - 5, y - 1, x, y - 6);
+          ctx.fill();
+        }
+      } else if (kind === "crystal") {
+        for (let i = 0; i < (lowDetail ? 4 : 6); i++) {
+          const a = t * 1.1 + i * TAU / 6;
+          const x = Math.cos(a) * 29;
+          const y = -4 + Math.sin(a) * 34;
+          ctx.save();
+          ctx.translate(x, y);
+          ctx.rotate(a);
+          ctx.globalAlpha = 0.48;
+          this.drawPowerIconShape(ctx, "crystal", lowDetail ? 4 : 5.4, color, accent);
+          ctx.restore();
+        }
+      } else if (kind === "time") {
+        ctx.strokeStyle = accent;
+        ctx.lineWidth = 1.4;
+        ctx.globalAlpha = 0.54;
+        ctx.beginPath();
+        ctx.arc(0, -4, 33, t * 1.6, t * 1.6 + Math.PI * 1.45);
+        ctx.stroke();
+        for (let i = 0; i < 8; i++) {
+          const a = i * TAU / 8 - t * 1.2;
+          ctx.beginPath();
+          ctx.moveTo(Math.cos(a) * 28, -4 + Math.sin(a) * 35);
+          ctx.lineTo(Math.cos(a) * 31, -4 + Math.sin(a) * 38);
+          ctx.stroke();
+        }
+      }
+      ctx.restore();
+    }
+
     drawHero(ctx, x, y, scale, actor, power, custom) {
       const t = this.menuTime;
       const facing = actor.facing || 0;
@@ -14612,6 +14815,7 @@
       const armorLight = "#d7e2ec";
       const armorTrim = character.color || power.color;
       const auraColor = { gold: "#f2bf63", crimson: "#ff4b55", teal: "#35d6c9", violet: "#a169ff" }[custom.aura] || power.color;
+      const awakenedPowerActive = Boolean(actor.powerAwakened ?? (actor === this.run?.player && this.run?.power?.id === power.id && this.powerAwakeningActive(power.id)));
       ctx.save();
       ctx.translate(Math.round(x), Math.round(y + bob));
       ctx.scale(scale, scale);
@@ -14628,6 +14832,7 @@
       ctx.beginPath();
       ctx.ellipse(0, 20, 19 + Math.abs(stride) * 2, 5, 0, 0, TAU);
       ctx.fill();
+      if (awakenedPowerActive && deathProgress <= 0) this.drawAwakenedPowerAura(ctx, power, t);
       ctx.fillStyle = auraColor;
       ctx.globalAlpha *= anim === "ultimate" ? 0.28 : anim === "skill" ? 0.22 : 0.14;
       ctx.beginPath();
@@ -14643,8 +14848,8 @@
         ctx.stroke();
         ctx.globalAlpha = 1;
       }
-      if (custom.trail === "runes" || this.powerAwakeningActive(power.id)) {
-        ctx.strokeStyle = auraColor;
+      if (custom.trail === "runes" || awakenedPowerActive) {
+        ctx.strokeStyle = awakenedPowerActive ? power.accent : auraColor;
         ctx.globalAlpha = 0.55;
         for (let i = 0; i < 3; i++) {
           const a = t * 1.8 + i * TAU / 3;
@@ -16978,7 +17183,8 @@
         animation: "ultimate",
         actionTime: Math.max(0.05, effect.time),
         actionTotal: effect.maxTime || DOMAIN_CUTIN_TIME,
-        characterId: effect.characterId || this.run.player.characterId
+        characterId: effect.characterId || this.run.player.characterId,
+        powerAwakened: Boolean(effect.awakened)
       };
       ctx.save();
       ctx.translate((1 - fadeIn) * -80 + Math.sin(progress * Math.PI) * 16, 0);

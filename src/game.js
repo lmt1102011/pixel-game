@@ -7,7 +7,7 @@
   const ROOM_PAD = 86;
   const SAVE_KEY = "soulrift-save-v1";
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
-  const APP_VERSION = "20260605-light-awakened-aura-159";
+  const APP_VERSION = "20260605-tight-awakened-aura-160";
   const VERSION_CHECK_INTERVAL = 15000;
   const UPDATE_ATTEMPT_KEY = "soulrift-update-attempt-v1";
   const CLOUD_MIGRATION_KEY = "soulrift-cloud-migrated-v1";
@@ -14780,7 +14780,7 @@
       ctx.lineWidth = 1;
       ctx.globalAlpha = emergency ? 0.3 : 0.46;
       ctx.beginPath();
-      ctx.ellipse(0, -3, 23 + Math.sin(t * 2.2) * 0.8, 31 + Math.cos(t * 1.9) * 0.8, 0, -0.2, Math.PI * 1.15);
+      ctx.ellipse(0, -3, 18 + Math.sin(t * 2.2) * 0.6, 24 + Math.cos(t * 1.9) * 0.6, 0, -0.2, Math.PI * 1.15);
       ctx.stroke();
       if (emergency) {
         ctx.restore();
@@ -14798,15 +14798,15 @@
           ctx.globalAlpha = (1 - age / 0.2) * 0.72;
           for (let i = 0; i < flashes; i++) {
             const a = seedRand(slot + i * 9) * TAU;
-            const r1 = 14 + seedRand(slot + i * 13) * 14;
-            const r2 = r1 + 12 + seedRand(slot + i * 17) * 10;
+            const r1 = 8 + seedRand(slot + i * 13) * 9;
+            const r2 = r1 + 7 + seedRand(slot + i * 17) * 6;
             const sx = Math.cos(a) * r1;
-            const sy = -5 + Math.sin(a) * (r1 + 8);
+            const sy = -4 + Math.sin(a) * (r1 + 5);
             const ex = Math.cos(a + 0.18) * r2;
-            const ey = -5 + Math.sin(a + 0.18) * (r2 + 8);
+            const ey = -4 + Math.sin(a + 0.18) * (r2 + 5);
             ctx.beginPath();
             ctx.moveTo(sx, sy);
-            ctx.lineTo((sx + ex) * 0.5 + Math.cos(a + 1.7) * 5, (sy + ey) * 0.5 + Math.sin(a + 1.7) * 5);
+            ctx.lineTo((sx + ex) * 0.5 + Math.cos(a + 1.7) * 3.5, (sy + ey) * 0.5 + Math.sin(a + 1.7) * 3.5);
             ctx.lineTo(ex, ey);
             ctx.stroke();
           }
@@ -14816,9 +14816,9 @@
         const flames = lowDetail ? 2 : 3;
         for (let i = 0; i < flames; i++) {
           const a = t * 0.85 + i * TAU / flames;
-          const fx = Math.cos(a) * 20;
-          const fy = 3 + Math.sin(a) * 25;
-          const h = 5 + Math.sin(t * 5 + i) * 1.2;
+          const fx = Math.cos(a) * 15;
+          const fy = 2 + Math.sin(a) * 18;
+          const h = 4.2 + Math.sin(t * 5 + i) * 1;
           ctx.globalAlpha = 0.28;
           ctx.beginPath();
           ctx.moveTo(fx, fy - h);
@@ -14831,14 +14831,14 @@
         ctx.lineWidth = 1.2;
         for (let i = 0; i < (lowDetail ? 1 : 2); i++) {
           const a = t * 0.55 + i * Math.PI;
-          const x = Math.cos(a) * 24;
-          const y = -4 + Math.sin(a) * 30;
+          const x = Math.cos(a) * 18;
+          const y = -4 + Math.sin(a) * 22;
           ctx.globalAlpha = 0.42;
           ctx.beginPath();
-          ctx.moveTo(x - Math.cos(a) * 5, y - Math.sin(a) * 5);
-          ctx.lineTo(x + Math.cos(a) * 6, y + Math.sin(a) * 6);
-          ctx.moveTo(x - Math.sin(a) * 4, y + Math.cos(a) * 4);
-          ctx.lineTo(x + Math.sin(a) * 4, y - Math.cos(a) * 4);
+          ctx.moveTo(x - Math.cos(a) * 4, y - Math.sin(a) * 4);
+          ctx.lineTo(x + Math.cos(a) * 5, y + Math.sin(a) * 5);
+          ctx.moveTo(x - Math.sin(a) * 3, y + Math.cos(a) * 3);
+          ctx.lineTo(x + Math.sin(a) * 3, y - Math.cos(a) * 3);
           ctx.stroke();
         }
       } else if (kind === "nature") {
@@ -14846,8 +14846,8 @@
         ctx.lineWidth = 1.2;
         for (let i = 0; i < (lowDetail ? 1 : 2); i++) {
           const a = t * 0.52 + i * Math.PI;
-          const x = Math.cos(a) * 22;
-          const y = -1 + Math.sin(a) * 28;
+          const x = Math.cos(a) * 16;
+          const y = -1 + Math.sin(a) * 21;
           ctx.globalAlpha = 0.34;
           ctx.beginPath();
           ctx.ellipse(x, y, 2.6, 5.8, a + 0.8, 0, TAU);
@@ -14855,7 +14855,7 @@
           ctx.fill();
           ctx.beginPath();
           ctx.moveTo(x - Math.cos(a) * 4, y + Math.sin(a) * 3);
-          ctx.quadraticCurveTo(0, 14, -x * 0.25, 24);
+          ctx.quadraticCurveTo(0, 11, -x * 0.2, 18);
           ctx.stroke();
         }
       } else if (kind === "gravity") {
@@ -14866,15 +14866,15 @@
         ctx.rotate(t * 0.42);
         ctx.scale(1, 0.56);
         ctx.beginPath();
-        ctx.arc(0, -6, 31, 0.35, Math.PI * 1.58);
+        ctx.arc(0, -5, 23, 0.35, Math.PI * 1.58);
         ctx.stroke();
         ctx.restore();
       } else if (kind === "shadow" || kind === "void") {
         ctx.fillStyle = kind === "shadow" ? accent : color;
         for (let i = 0; i < (lowDetail ? 1 : 3); i++) {
           const a = -t * 0.75 + i * TAU / 3;
-          const x = Math.cos(a) * (20 + (i % 2) * 5);
-          const y = -5 + Math.sin(a) * (26 + (i % 3) * 2);
+          const x = Math.cos(a) * (15 + (i % 2) * 4);
+          const y = -4 + Math.sin(a) * (19 + (i % 3) * 2);
           ctx.save();
           ctx.translate(x, y);
           ctx.rotate(a + t * 0.8);
@@ -14886,8 +14886,8 @@
         ctx.fillStyle = color;
         for (let i = 0; i < (lowDetail ? 1 : 2); i++) {
           const a = t * 0.62 + i * Math.PI;
-          const x = Math.cos(a) * 23;
-          const y = -3 + Math.sin(a) * 30;
+          const x = Math.cos(a) * 17;
+          const y = -3 + Math.sin(a) * 22;
           ctx.globalAlpha = 0.28;
           ctx.beginPath();
           ctx.moveTo(x, y - 5);
@@ -14898,13 +14898,13 @@
       } else if (kind === "crystal") {
         for (let i = 0; i < (lowDetail ? 1 : 2); i++) {
           const a = t * 0.54 + i * Math.PI;
-          const x = Math.cos(a) * 24;
-          const y = -4 + Math.sin(a) * 30;
+          const x = Math.cos(a) * 18;
+          const y = -4 + Math.sin(a) * 22;
           ctx.save();
           ctx.translate(x, y);
           ctx.rotate(a);
           ctx.globalAlpha = 0.34;
-          this.drawPowerIconShape(ctx, "crystal", lowDetail ? 3.2 : 4.1, color, accent);
+          this.drawPowerIconShape(ctx, "crystal", lowDetail ? 2.8 : 3.5, color, accent);
           ctx.restore();
         }
       } else if (kind === "time") {
@@ -14912,13 +14912,13 @@
         ctx.lineWidth = 1.15;
         ctx.globalAlpha = 0.36;
         ctx.beginPath();
-        ctx.arc(0, -4, 29, t * 0.8, t * 0.8 + Math.PI * 1.18);
+        ctx.arc(0, -4, 22, t * 0.8, t * 0.8 + Math.PI * 1.18);
         ctx.stroke();
         for (let i = 0; i < (lowDetail ? 2 : 4); i++) {
           const a = i * TAU / 4 - t * 0.7;
           ctx.beginPath();
-          ctx.moveTo(Math.cos(a) * 24, -4 + Math.sin(a) * 30);
-          ctx.lineTo(Math.cos(a) * 27, -4 + Math.sin(a) * 33);
+          ctx.moveTo(Math.cos(a) * 18, -4 + Math.sin(a) * 23);
+          ctx.lineTo(Math.cos(a) * 20, -4 + Math.sin(a) * 25);
           ctx.stroke();
         }
       }

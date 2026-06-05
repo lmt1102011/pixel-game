@@ -7,7 +7,7 @@
   const ROOM_PAD = 86;
   const SAVE_KEY = "soulrift-save-v1";
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
-  const APP_VERSION = "20260605-boss-minigame-165";
+  const APP_VERSION = "20260605-player-boss-minigame-166";
   const VERSION_CHECK_INTERVAL = 15000;
   const UPDATE_ATTEMPT_KEY = "soulrift-update-attempt-v1";
   const CLOUD_MIGRATION_KEY = "soulrift-cloud-migrated-v1";
@@ -2163,7 +2163,8 @@
         host: false,
         seed: message.seed,
         difficulty: message.difficultyId || this.difficultyVote || "normal",
-        miniGame: message.miniGame || (message.runMode === "bossRush" ? "bossRush" : "")
+        miniGame: message.miniGame || (message.runMode === "bossRush" ? "bossRush" : message.runMode === "playerBoss" ? "playerBoss" : ""),
+        bossPlayerId: message.bossPlayerId || ""
       });
     }
 
@@ -2212,6 +2213,12 @@
       if (this.game.run?.leaderId === remoteId) {
         this.game.run.leaderId = "";
         this.game.updateRunLeader();
+      }
+      if (this.host && this.game.isPlayerBossRun?.() && remoteId === this.game.run?.playerBossId && !this.game.run?.currentRoom?.playerBossResult) {
+        this.broadcastLobby();
+        this.game.finishPlayerBossRound("hunters");
+        this.renderLobbyIfVisible();
+        return;
       }
       if (before !== this.slots.length || leavingSlot) {
         if (this.host) {
@@ -2290,10 +2297,11 @@
       }
     }
 
-    broadcastStart(powerId, biomeId, seed, slots = this.slots, difficultyId = this.difficultyVote, runMode = this.runMode) {
+    broadcastStart(powerId, biomeId, seed, slots = this.slots, difficultyId = this.difficultyVote, runMode = this.runMode, bossPlayerId = "") {
       for (const timer of this.startRetryTimers) clearTimeout(timer);
       this.startRetryTimers = [];
-      const message = { type: "start", powerId, biomeId, seed, slots, difficultyId, runMode, miniGame: runMode === "bossRush" ? "bossRush" : "", roomSession: this.roomSession };
+      const miniGame = runMode === "bossRush" ? "bossRush" : runMode === "playerBoss" ? "playerBoss" : "";
+      const message = { type: "start", powerId, biomeId, seed, slots, difficultyId, runMode, miniGame, bossPlayerId, roomSession: this.roomSession };
       this.lastStartMessage = message;
       this.lastStartAt = Date.now();
       const send = () => {
@@ -4750,6 +4758,7 @@
       if (action === "play-boss-rush") this.showBossRushMenu();
       if (action === "play-boss-rush-solo") this.showBossRushSoloMenu();
       if (action === "play-boss-rush-multiplayer") this.showMultiplayerHub("bossRush");
+      if (action === "play-player-boss") this.showMultiplayerHub("playerBoss");
       if (action === "play-training") this.showTrainingSetup();
       if (action === "play-multiplayer") this.showMultiplayerHub();
       if (action === "find-room") this.showRoomFinder();
@@ -4841,7 +4850,10 @@
       if (action === "drop-run-item") this.dropRunItem(target.dataset.uid);
       if (action === "awaken-power") this.awakenPower(target.dataset.power);
       if (action === "create-room") this.lobby.create();
-      if (action === "join-room") this.lobby.join(target.dataset.roomCode || document.getElementById("roomCodeInput")?.value);
+      if (action === "join-room") {
+        if (target.dataset.runMode) this.lobby.runMode = target.dataset.runMode;
+        this.lobby.join(target.dataset.roomCode || document.getElementById("roomCodeInput")?.value);
+      }
       if (action === "ready-room") this.lobby.toggleReady();
       if (action === "vote-map") this.lobby.setVote(target.dataset.biome);
       if (action === "vote-difficulty") this.lobby.setDifficulty(target.dataset.difficulty);
@@ -4936,6 +4948,11 @@
                 <div class="card-icon">BOSS</div>
                 <h3>Đại chiến boss</h3>
                 <p>Vào thẳng đấu trùm, không có phòng quái thường.</p>
+              </button>
+              <button class="choice-card" data-action="play-player-boss">
+                <div class="card-icon">VS</div>
+                <h3>Hóa Trùm</h3>
+                <p>Tạo phòng, bắt đầu rồi random một người biến thành boss đánh cả nhóm.</p>
               </button>
             </div>
           </div>
@@ -5120,23 +5137,33 @@
       this.roomFinderOpen = false;
       this.lobby.runMode = runMode;
       const bossRush = runMode === "bossRush";
+      const playerBoss = runMode === "playerBoss";
+      const title = playerBoss ? "Hóa Trùm cùng bạn" : bossRush ? "Đại chiến boss cùng bạn" : "Vượt ải cùng bạn";
+      const subtitle = playerBoss
+        ? "Tạo phòng hoặc tìm phòng. Khi bắt đầu, hệ thống random một người làm boss."
+        : bossRush
+          ? "Tạo phòng boss-only hoặc tìm phòng để cùng nhau đánh trùm."
+          : "Tạo phòng mới hoặc tìm phòng để cùng nhau vượt ải.";
+      const backAction = playerBoss ? "play-minigames" : bossRush ? "play-boss-rush" : "play-gauntlet";
+      const backLabel = playerBoss ? "MINI GAME" : bossRush ? "BOSS" : "VƯỢT ẢI";
       this.setScreen(`
         <section class="shell">
           ${this.navHtml("play")}
           <div class="panel">
             <div class="panel-header">
               <div>
-                <h2 class="panel-title">${bossRush ? "Đại chiến boss cùng bạn" : "Vượt ải cùng bạn"}</h2>
-                <p class="panel-subtitle">${bossRush ? "Tạo phòng boss-only hoặc tìm phòng để cùng nhau đánh trùm." : "Tạo phòng mới hoặc tìm phòng để cùng nhau vượt ải."}</p>
+                <h2 class="panel-title">${title}</h2>
+                <p class="panel-subtitle">${subtitle}</p>
               </div>
-              <button class="btn" data-action="${bossRush ? "play-boss-rush" : "play-gauntlet"}">${bossRush ? "BOSS" : "VƯỢT ẢI"}</button>
+              <button class="btn" data-action="${backAction}">${backLabel}</button>
             </div>
             ${bossRush ? `<p class="small">Chế độ phòng: Đại chiến boss. Khi bắt đầu sẽ vào thẳng boss, không có phòng quái thường.</p>` : ""}
+            ${playerBoss ? `<p class="small">Chế độ phòng: Hóa Trùm. Một người ngẫu nhiên thành boss, những người còn lại phải hạ boss.</p>` : ""}
             <div class="grid cols-2">
               <button class="choice-card" data-action="create-room-from-play" data-run-mode="${runMode}">
                 <div class="card-icon">+</div>
                 <h3>Tạo phòng</h3>
-                <p>${bossRush ? "Bạn là chủ phòng và bắt đầu trận đại chiến boss." : "Bạn là chủ phòng và là người duy nhất được bắt đầu."}</p>
+                <p>${playerBoss ? "Chủ phòng bắt đầu, game sẽ random boss trong phòng." : bossRush ? "Bạn là chủ phòng và bắt đầu trận đại chiến boss." : "Bạn là chủ phòng và là người duy nhất được bắt đầu."}</p>
               </button>
               <button class="choice-card" data-action="find-room">
                 <div class="card-icon">ID</div>
@@ -5168,6 +5195,12 @@
       } catch {
         // Local room history is optional.
       }
+    }
+
+    roomModeLabel(runMode = this.lobby.runMode || "gauntlet") {
+      if (runMode === "playerBoss") return "Hóa Trùm";
+      if (runMode === "bossRush") return "Đại Chiến Boss";
+      return "Vượt Ải";
     }
 
     updateRoomDirectory(dt) {
@@ -5241,6 +5274,7 @@
               hostName: payload.hostName || "Chủ phòng",
               players,
               maxPlayers: Number(payload.maxPlayers) || 4,
+              runMode: payload.runMode || "gauntlet",
               sentAt: seenAt,
               emptySince,
               emptyFor
@@ -5260,6 +5294,9 @@
       const scroll = this.mode === "play" && this.roomFinderOpen ? this.captureScreenScroll() : null;
       this.mode = "play";
       this.roomFinderOpen = true;
+      const desiredRunMode = this.lobby.runMode || "gauntlet";
+      const modeLabel = this.roomModeLabel(desiredRunMode);
+      const backAction = desiredRunMode === "playerBoss" ? "play-player-boss" : desiredRunMode === "bossRush" ? "play-boss-rush-multiplayer" : "play-multiplayer";
       const pendingCode = this.lobby.joinPending && this.lobby.code ? this.lobby.code : "";
       const joinedCode = this.lobby.code && !this.lobby.joinPending ? this.lobby.code : "";
       const current = joinedCode ? [joinedCode] : [];
@@ -5271,19 +5308,27 @@
         && now - Number(room.sentAt || 0) <= ROOM_TTL_MS
         && !(Number(room.players || 0) <= 1 && Number(room.emptyFor || 0) > ROOM_TTL_MS)
       ));
-      const publicCodes = this.publicRooms.map((room) => room.code).filter(Boolean);
+      const visiblePublicRooms = this.publicRooms.filter((room) => (room.runMode || "gauntlet") === desiredRunMode);
+      const publicCodes = visiblePublicRooms.map((room) => room.code).filter(Boolean);
       const rooms = [...current, ...publicCodes]
         .filter((code, index, list) => list.indexOf(code) === index)
         .slice(0, 8);
-      const roomList = rooms.length ? rooms.map((code) => `
-        <button class="choice-card" data-action="${code === joinedCode ? "multiplayer" : "join-room"}" data-room-code="${code}">
-          <div class="card-icon">${code.slice(0, 2)}</div>
-          <div>
-            <h3>${code}</h3>
-            <p>${code === joinedCode ? (this.lobby.host ? "Phòng bạn đang tạo" : "Phòng đang tham gia") : "Phòng online"}</p>
-          </div>
-        </button>
-      `).join("") : `<div class="empty-state">Chưa có phòng nào được phát hiện trên máy này.</div>`;
+      const roomList = rooms.length ? rooms.map((code) => {
+        const roomMeta = this.publicRooms.find((room) => room.code === code) || { runMode: desiredRunMode };
+        const runMode = roomMeta.runMode || desiredRunMode;
+        const description = code === joinedCode
+          ? (this.lobby.host ? "Phòng bạn đang tạo" : "Phòng đang tham gia")
+          : `${this.roomModeLabel(runMode)} online`;
+        return `
+          <button class="choice-card" data-action="${code === joinedCode ? "multiplayer" : "join-room"}" data-room-code="${code}" data-run-mode="${runMode}">
+            <div class="card-icon">${code.slice(0, 2)}</div>
+            <div>
+              <h3>${code}</h3>
+              <p>${description}</p>
+            </div>
+          </button>
+        `;
+      }).join("") : `<div class="empty-state">Chưa có phòng ${modeLabel} nào được phát hiện trên máy này.</div>`;
       const pendingNotice = pendingCode ? `
         <div class="join-pending">
           <b>Đang tìm phòng ${pendingCode}</b>
@@ -5296,12 +5341,12 @@
           <div class="panel">
             <div class="panel-header">
               <div>
-                <h2 class="panel-title">Tìm phòng vượt ải</h2>
-                <p class="panel-subtitle">Nhập ID phòng hoặc chọn phòng vượt ải đang có.</p>
+                <h2 class="panel-title">Tìm phòng ${modeLabel}</h2>
+                <p class="panel-subtitle">Nhập ID phòng hoặc chọn phòng ${modeLabel} đang có.</p>
               </div>
               <div class="header-actions">
                 <button class="btn icon-label" data-action="reload-rooms"><span class="btn-icon">↻</span> TẢI LẠI</button>
-                <button class="btn" data-action="play-multiplayer">CHƠI NHIỀU NGƯỜI</button>
+                <button class="btn" data-action="${backAction}">${modeLabel}</button>
               </div>
             </div>
             <div class="room-finder-layout">
@@ -6484,6 +6529,7 @@
       if (this.lobby.code) this.lobby.syncOwnSlot();
       const isHost = this.lobby.host;
       const bossRush = this.lobby.runMode === "bossRush";
+      const playerBoss = this.lobby.runMode === "playerBoss";
       if (!this.lobby.code || !isHost) this.lobbyFriendInviteOpen = false;
       const slots = Array.from({ length: 4 }, (_, index) => {
         const slot = this.lobby.slots[index];
@@ -6529,8 +6575,8 @@
           <div class="panel">
             <div class="panel-header">
               <div>
-                <h2 class="panel-title">${bossRush ? "Phòng đại chiến boss" : "Phòng vượt ải"}</h2>
-                <p class="panel-subtitle">${bossRush ? (isHost ? "Chủ phòng chọn boss/khu, độ khó và bắt đầu boss-only khi mọi người sẵn sàng." : "Bạn chỉ cần sẵn sàng, chủ phòng sẽ bắt đầu trận boss-only.") : (isHost ? "Chủ phòng chọn khu, độ khó và bắt đầu khi mọi người sẵn sàng." : "Bạn chỉ cần sẵn sàng, chủ phòng sẽ chọn khu, độ khó và bắt đầu.")}</p>
+                <h2 class="panel-title">${playerBoss ? "Phòng hóa trùm" : bossRush ? "Phòng đại chiến boss" : "Phòng vượt ải"}</h2>
+                <p class="panel-subtitle">${playerBoss ? (isHost ? "Chủ phòng chọn khu, độ khó rồi bắt đầu để random một người làm boss." : "Bạn sẵn sàng, khi bắt đầu sẽ random một người làm boss.") : bossRush ? (isHost ? "Chủ phòng chọn boss/khu, độ khó và bắt đầu boss-only khi mọi người sẵn sàng." : "Bạn chỉ cần sẵn sàng, chủ phòng sẽ bắt đầu trận boss-only.") : (isHost ? "Chủ phòng chọn khu, độ khó và bắt đầu khi mọi người sẵn sàng." : "Bạn chỉ cần sẵn sàng, chủ phòng sẽ chọn khu, độ khó và bắt đầu.")}</p>
               </div>
             </div>
             <div class="grid cols-2 ${this.lobby.code ? "hidden" : ""}">
@@ -6585,11 +6631,19 @@
       const biomeId = this.lobby.mapVote || "forest";
       const difficultyId = this.lobby.difficultyVote || "normal";
       const runMode = this.lobby.runMode || "gauntlet";
+      const bossPlayerId = runMode === "playerBoss" ? pick(this.lobby.slots.filter(Boolean)).id : "";
       const seed = Math.random();
       this.lobby.publishDirectoryPresence(false);
       this.publicRooms = (this.publicRooms || []).filter((room) => room?.code !== this.lobby.code);
-      this.lobby.broadcastStart(selectedPower.id, biomeId, seed, this.lobby.slots, difficultyId, runMode);
-      this.startRun(selectedPower, biomeId, { multiplayer: true, host: true, seed, difficulty: difficultyId, miniGame: runMode === "bossRush" ? "bossRush" : "" });
+      this.lobby.broadcastStart(selectedPower.id, biomeId, seed, this.lobby.slots, difficultyId, runMode, bossPlayerId);
+      this.startRun(selectedPower, biomeId, {
+        multiplayer: true,
+        host: true,
+        seed,
+        difficulty: difficultyId,
+        miniGame: runMode === "bossRush" ? "bossRush" : runMode === "playerBoss" ? "playerBoss" : "",
+        bossPlayerId
+      });
     }
 
     equipItem(itemId) {
@@ -6701,6 +6755,7 @@
         roomNumber: 0,
         roomsCleared: 0,
         miniGame: options.miniGame || "",
+        playerBossId: options.bossPlayerId || "",
         multiplayer: Boolean(options.multiplayer),
         netHost: options.multiplayer ? Boolean(options.host) : true,
         training,
@@ -6756,8 +6811,8 @@
       this.touchLayer.classList.toggle("hidden", !this.isMobileDevice());
       this.startRoom(training
         ? { type: "training", label: "Phòng Huấn Luyện", icon: "T", color: "#82ffd3" }
-        : options.miniGame === "bossRush"
-          ? { type: "boss", label: "Đại Chiến Boss", icon: "B", color: startBiome.accent }
+        : options.miniGame === "bossRush" || options.miniGame === "playerBoss"
+          ? { type: "boss", label: options.miniGame === "playerBoss" ? "Hóa Trùm" : "Đại Chiến Boss", icon: "B", color: startBiome.accent }
           : { type: "normal", label: "Phòng Thường", icon: "X", color: "#c9d0db" });
       if (this.isMultiplayerClient()) {
         this.run.enemies = [];
@@ -6788,6 +6843,62 @@
 
     isBossRushRun() {
       return this.run?.miniGame === "bossRush";
+    }
+
+    isPlayerBossRun() {
+      return this.run?.miniGame === "playerBoss";
+    }
+
+    isPlayerBossId(id = this.lobby.id) {
+      return Boolean(this.isPlayerBossRun() && id && this.run?.playerBossId === id);
+    }
+
+    isLocalPlayerBoss() {
+      return this.isPlayerBossId(this.lobby.id);
+    }
+
+    playerBossEnemy() {
+      return this.run?.enemies?.find((enemy) => enemy.playerBoss) || null;
+    }
+
+    applyLocalPlayerBossStats() {
+      const p = this.run?.player;
+      if (!p || !this.isLocalPlayerBoss()) return;
+      const base = p.baseStats || this.effectiveCharacterStats(characterById(p.characterId || "swordsman"));
+      p.radius = 34;
+      p.speed = Math.max(150, Math.min(205, (base.speed || p.speed || 190) * 0.82));
+      p.basicAttackCd = 0.92;
+      p.maxHp = Math.max(p.maxHp || 0, 1450 + (this.run?.stage || 0) * 420);
+      p.energy = p.maxEnergy;
+      p.ult = 100;
+    }
+
+    syncPlayerBossProxy() {
+      if (!this.isPlayerBossRun()) return;
+      if (this.isLocalPlayerBoss()) this.applyLocalPlayerBossStats();
+      const proxy = this.playerBossEnemy();
+      if (!proxy) {
+        if (this.isMultiplayerHost()) this.spawnPlayerBossProxy();
+        return;
+      }
+      const actor = this.playerByNetworkId(this.run.playerBossId);
+      if (!actor) return;
+      proxy.x = clamp(actor.x, ROOM_PAD + proxy.radius, WORLD_W - ROOM_PAD - proxy.radius);
+      proxy.y = clamp(actor.y, ROOM_PAD + proxy.radius, WORLD_H - ROOM_PAD - proxy.radius);
+      proxy.vx = actor.vx || 0;
+      proxy.vy = actor.vy || 0;
+      proxy.facingDir = Math.cos(actor.facing || 0) >= 0 ? 1 : -1;
+      proxy.attackDir = Number.isFinite(actor.facing) ? actor.facing : proxy.attackDir;
+      if (this.isPlayerBossId(this.lobby.id)) {
+        this.run.player.hp = proxy.hp;
+        this.run.player.maxHp = proxy.maxHp;
+      } else if (this.isMultiplayerHost() && this.run.playerBossId) {
+        const remote = this.remotePlayers.get(this.run.playerBossId);
+        if (remote) {
+          remote.hp = proxy.hp;
+          remote.maxHp = proxy.maxHp;
+        }
+      }
     }
 
     trainingRule(key) {
@@ -6951,7 +7062,7 @@
     compactEnemy(enemy) {
       return this.compactFields(enemy, [
         "id", "kind", "x", "y", "vx", "vy", "radius", "hp", "maxHp", "speed", "damage",
-        "role", "specialSkill", "ranged", "bulky", "elite", "boss", "attackCd", "skillCd", "windupType",
+        "role", "specialSkill", "ranged", "bulky", "elite", "boss", "playerBoss", "playerBossId", "attackCd", "skillCd", "windupType",
         "windupTime", "windupTotal", "windupAngle", "windupX", "windupY", "chargeTime",
         "chargeHit", "chargeDir", "chargeSpeed", "chargeDamage", "attackAnim", "attackDir", "facingDir",
         "launch", "flash", "stun", "domainFreeze", "domainBound", "burn", "chill", "mark", "bleed", "bleedTick", "bleedDamage", "phase", "phaseLock", "fatigueTime", "fatigueMax", "fatigueCounter", "bossDebuff", "aiTimer", "trainingDummy", "anchorX", "anchorY"
@@ -7040,6 +7151,8 @@
         roomNumber: this.run.roomNumber,
         roomsCleared: this.run.roomsCleared,
         roomClearTimer: this.run.roomClearTimer,
+        miniGame: this.run.miniGame || "",
+        playerBossId: this.run.playerBossId || "",
         biomeId: this.run.biome.id,
         seed: this.run.seed,
         leaderId: this.run.leaderId || this.lobby.id,
@@ -7061,6 +7174,7 @@
           bossDefeated: this.run.currentRoom.bossDefeated,
           bossExitOpened: this.run.currentRoom.bossExitOpened,
           advancing: this.run.currentRoom.advancing,
+          playerBossResult: this.run.currentRoom.playerBossResult || "",
           rewardClaims: this.run.currentRoom.rewardClaims || {},
           rewardOwners: this.run.currentRoom.rewardOwners || []
         } : null,
@@ -7098,6 +7212,8 @@
       this.run.roomNumber = Number.isFinite(snapshot.roomNumber) ? snapshot.roomNumber : this.run.roomNumber;
       this.run.roomsCleared = Number.isFinite(snapshot.roomsCleared) ? snapshot.roomsCleared : this.run.roomsCleared;
       this.run.roomClearTimer = Number.isFinite(snapshot.roomClearTimer) ? snapshot.roomClearTimer : this.run.roomClearTimer;
+      if (snapshot.miniGame != null) this.run.miniGame = snapshot.miniGame || "";
+      if (snapshot.playerBossId != null) this.run.playerBossId = snapshot.playerBossId || "";
       if (Number.isFinite(snapshot.seed)) this.run.seed = snapshot.seed;
       if (snapshot.leaderId != null) this.run.leaderId = snapshot.leaderId || "";
       this.run.curse = snapshot.curse ? { ...snapshot.curse } : null;
@@ -7108,6 +7224,9 @@
       if (Array.isArray(snapshot.nextRooms)) this.run.nextRooms = snapshot.nextRooms.map((room) => ({ ...room }));
       if (snapshot.currentRoom) {
         this.run.currentRoom = { ...(this.run.currentRoom || {}), ...snapshot.currentRoom };
+      }
+      if (this.isPlayerBossRun() && snapshot.currentRoom?.playerBossResult && this.mode === "game") {
+        this.showPlayerBossVictory(snapshot.currentRoom.playerBossResult);
       }
       if (this.run.roomNumber !== previousRoomNumber && this.run.currentRoom && !this.run.currentRoom.cleared) {
         this.mode = "game";
@@ -7523,7 +7642,8 @@
       else if (type === "training") this.spawnTrainingDummies();
       else if (type === "boss") {
         this.run.currentRoom.started = true;
-        this.spawnBoss();
+        if (this.isPlayerBossRun()) this.spawnPlayerBossProxy();
+        else this.spawnBoss();
       }
       else this.spawnRoomEnemies(type);
       if (this.run.enemies.length === 0 && ["healing", "secret"].includes(type)) {
@@ -7987,6 +8107,65 @@
       this.addShockwave(WORLD_W / 2, ROOM_PAD + 210, 220, this.run.biome.accent);
     }
 
+    spawnPlayerBossProxy() {
+      if (!this.run) return;
+      const biome = this.run.biome;
+      this.run.hazards = [];
+      this.run.roomObjects = [];
+      this.run.enemies = this.run.enemies.filter((enemy) => enemy.playerBoss);
+      if (this.run.enemies.some((enemy) => enemy.playerBoss)) return;
+      const bossId = this.run.playerBossId || pick(this.lobby.slots.filter(Boolean)).id;
+      this.run.playerBossId = bossId;
+      const slot = this.lobby.slots.find((entry) => entry.id === bossId);
+      const actor = this.playerByNetworkId(bossId) || this.run.player;
+      const hunters = Math.max(1, (this.lobby.slots || []).filter((entry) => entry?.id && entry.id !== bossId).length);
+      const hp = (1450 + this.run.stage * 420) * (this.run.difficulty?.enemyHp || 1) * (1 + (hunters - 1) * 0.28);
+      const bossDebuff = pick(BOSS_DEBUFFS);
+      this.run.enemies.push({
+        id: "player-boss",
+        kind: `${slot?.name || "Boss"} - ${biome.boss}`,
+        x: actor.x || WORLD_W / 2,
+        y: actor.y || ROOM_PAD + 220,
+        vx: 0,
+        vy: 0,
+        radius: 64,
+        hp,
+        maxHp: hp,
+        speed: 0,
+        damage: (28 + this.run.stage * 6.2) * (this.run.difficulty?.enemyDamage || 1),
+        ranged: true,
+        bulky: true,
+        elite: true,
+        boss: true,
+        playerBoss: true,
+        playerBossId: bossId,
+        attackCd: 0,
+        attackAnim: 0,
+        attackDir: 0,
+        facingDir: 1,
+        launch: 0,
+        flash: 0,
+        stun: 0,
+        burn: 0,
+        chill: 0,
+        mark: 0,
+        bleed: 0,
+        bleedTick: 0,
+        bleedDamage: 0,
+        phase: 1,
+        phaseLock: 0,
+        fatigueTime: 0,
+        fatigueMax: 0,
+        fatigueCounter: 0,
+        bossDebuff: bossDebuff.id,
+        aiTimer: 0
+      });
+      if (this.isLocalPlayerBoss()) this.applyLocalPlayerBossStats();
+      this.camera.shake = Math.max(this.camera.shake, 20);
+      this.addShockwave(actor.x || WORLD_W / 2, actor.y || ROOM_PAD + 220, 260, biome.accent, 0, { owner: "enemy" });
+      this.toast(`${slot?.name || "Một người chơi"} đã hóa thành boss`);
+    }
+
     update(dt) {
       if (!this.run) return;
       const player = this.run.player;
@@ -8004,6 +8183,7 @@
       this.updateRunLeader();
       this.updateNetwork(dt);
       this.updateNetworkInterpolation(dt);
+      this.syncPlayerBossProxy();
       if (this.run.currentRoom.intro > 0) {
         this.run.currentRoom.intro -= dt;
         return;
@@ -8022,7 +8202,10 @@
       if (this.input.mouse.left && !this.pauseOverlay && !player.dead) this.attackBasic();
       if (player.comboTimer > 0) player.comboTimer -= worldDt;
       else player.combo = 0;
-      if (!this.isMultiplayerClient()) this.ensureRoomClearState(worldDt);
+      if (!this.isMultiplayerClient()) {
+        this.ensureRoomClearState(worldDt);
+        this.checkPlayerBossRoundEnd();
+      }
     }
 
     ensureRoomClearState(dt) {
@@ -8033,6 +8216,23 @@
       if (!Number.isFinite(this.run.roomClearTimer) || this.run.roomClearTimer <= 0) this.run.roomClearTimer = 0.35;
       this.run.roomClearTimer -= Math.max(0.016, dt || 0);
       if (this.run.roomClearTimer <= 0) this.clearRoom();
+    }
+
+    checkPlayerBossRoundEnd() {
+      if (!this.isMultiplayerHost() || !this.isPlayerBossRun()) return;
+      const room = this.run?.currentRoom;
+      if (!room || room.playerBossResult) return;
+      const boss = this.playerBossEnemy();
+      if (!boss || boss.hp <= 0) return;
+      const hunterIds = (this.lobby.slots || [])
+        .map((slot) => slot?.id || "")
+        .filter((id) => id && id !== this.run.playerBossId);
+      const hasLivingHunter = hunterIds.some((id) => (
+        id === this.lobby.id
+          ? this.aliveActor(this.run.player)
+          : this.aliveActor(this.remotePlayers.get(id))
+      ));
+      if (!hasLivingHunter) this.finishPlayerBossRound("boss");
     }
 
     roomNeedsObjectInteraction(room = this.run?.currentRoom) {
@@ -8443,6 +8643,10 @@
     attackBasic() {
       const p = this.run?.player;
       if (!p || p.dead || this.pauseOverlay || p.attackCd > 0 || this.run.currentRoom.intro > 0) return;
+      if (this.isLocalPlayerBoss()) {
+        this.usePlayerBossAction("basic");
+        return;
+      }
       const character = characterById(p.characterId);
       const angle = this.basicAimAngle(p);
       const mageBasicCost = 7;
@@ -8490,6 +8694,104 @@
         return;
       }
       this.basicSwordAttack(p, angle);
+    }
+
+    usePlayerBossAction(key = "basic") {
+      const p = this.run?.player;
+      if (!p || !this.isLocalPlayerBoss() || this.run.currentRoom?.intro > 0) return;
+      const angle = this.basicAimAngle(p);
+      const target = this.skillTargetPoint(p, angle, 320);
+      const skillCd = { q: 2.4, e: 4.4, r: 6.2, f: 8.5 }[key] || 0;
+      if (key === "basic") {
+        if (p.attackCd > 0) return;
+        p.attackCd = 0.92;
+      } else {
+        if ((p.cooldowns[key] || 0) > 0) return;
+        p.cooldowns[key] = skillCd;
+      }
+      p.facing = angle;
+      p.animation = key === "f" ? "ultimate" : key === "basic" ? "attack" : "skill";
+      p.actionTotal = key === "f" ? 0.72 : key === "basic" ? 0.42 : 0.5;
+      p.actionTime = p.actionTotal;
+      p.energy = p.maxEnergy;
+      p.ult = 100;
+      this.camera.shake = Math.max(this.camera.shake, key === "f" ? 12 : 5);
+      if (this.isMultiplayerClient()) {
+        const packet = {
+          playerBoss: true,
+          key,
+          x: p.x,
+          y: p.y,
+          angle,
+          targetX: target.x,
+          targetY: target.y,
+          t: performance.now()
+        };
+        if (key === "basic") this.lobby.sendAttack(packet);
+        else this.lobby.sendSkill(packet);
+      } else {
+        this.executePlayerBossAction(this.lobby.id, key, p.x, p.y, angle, target);
+      }
+    }
+
+    noteRemotePlayerBossAction(remoteId, x, y, angle, key = "basic") {
+      const remote = this.remotePlayers.get(remoteId) || {};
+      const slot = this.lobby.slots.find((entry) => entry.id === remoteId);
+      const character = characterById(remote.characterId || slot?.characterId || "swordsman");
+      const actionTotal = key === "f" ? 0.68 : key === "basic" ? 0.42 : 0.5;
+      this.remotePlayers.set(remoteId, {
+        ...remote,
+        id: remoteId,
+        name: remote.name || slot?.name || "Người chơi",
+        x,
+        y,
+        displayX: Number.isFinite(remote.displayX) ? remote.displayX : x,
+        displayY: Number.isFinite(remote.displayY) ? remote.displayY : y,
+        hp: Number.isFinite(remote.hp) ? remote.hp : character.stats.hp,
+        maxHp: Number.isFinite(remote.maxHp) ? remote.maxHp : character.stats.hp,
+        energy: Number.isFinite(remote.energy) ? remote.energy : character.stats.energy,
+        maxEnergy: Number.isFinite(remote.maxEnergy) ? remote.maxEnergy : character.stats.energy,
+        damage: Number.isFinite(remote.damage) ? remote.damage : character.stats.damage,
+        crit: Number.isFinite(remote.crit) ? remote.crit : character.stats.crit,
+        animation: key === "f" ? "ultimate" : key === "basic" ? "attack" : "skill",
+        actionTotal,
+        actionTime: actionTotal,
+        facing: angle,
+        t: performance.now()
+      });
+    }
+
+    executePlayerBossAction(actorId, key = "basic", x = WORLD_W / 2, y = WORLD_H / 2, angle = 0, target = null) {
+      if (!this.isMultiplayerHost() || !this.isPlayerBossId(actorId)) return;
+      const boss = this.playerBossEnemy();
+      if (!boss || boss.hp <= 0) return;
+      const now = performance.now();
+      const normalizedKey = ["q", "e", "r", "f"].includes(key) ? key : "basic";
+      const waitMs = { basic: 780, q: 2200, e: 4000, r: 5600, f: 7800 }[normalizedKey] || 780;
+      boss.playerBossNextAction ||= {};
+      if (now < (boss.playerBossNextAction[normalizedKey] || 0)) return;
+      boss.playerBossNextAction[normalizedKey] = now + waitMs;
+      boss.x = clamp(Number(x) || boss.x, ROOM_PAD + boss.radius, WORLD_W - ROOM_PAD - boss.radius);
+      boss.y = clamp(Number(y) || boss.y, ROOM_PAD + boss.radius, WORLD_H - ROOM_PAD - boss.radius);
+      boss.attackAnim = normalizedKey === "f" ? 0.68 : 0.46;
+      boss.attackDir = angle;
+      boss.facingDir = Math.cos(angle) >= 0 ? 1 : -1;
+      const aimTarget = target || this.nearestCombatTarget(boss.x, boss.y) || this.run.player;
+      if (normalizedKey === "basic") {
+        this.bossLine(boss, angle);
+        if (chance(0.55)) this.bossFrostFan(boss, angle + rand(-0.18, 0.18));
+      } else if (normalizedKey === "q") {
+        this.bossLaneWalls(boss, aimTarget);
+      } else if (normalizedKey === "e") {
+        this.bossBulletCurtain(boss);
+      } else if (normalizedKey === "r") {
+        this.bossSoulCage(boss, aimTarget);
+      } else if (normalizedKey === "f") {
+        this.bossPinwheel(boss);
+        this.bossCheckerBoard(boss, aimTarget);
+        this.addShockwave(boss.x, boss.y, 310, this.run.biome.accent, 0, { owner: "enemy" });
+      }
+      this.audio.sfx(normalizedKey === "f" ? 82 : 160 + randi(0, 80), normalizedKey === "basic" ? "sawtooth" : "square", normalizedKey === "f" ? 0.14 : 0.08, normalizedKey === "f" ? 0.24 : 0.14);
     }
 
     basicSwordAttack(p, angle) {
@@ -8829,6 +9131,13 @@
       const y = Number(attack.y);
       const angle = Number(attack.angle);
       if (![x, y, angle].every(Number.isFinite)) return;
+      if (attack.playerBoss && this.isPlayerBossId(remoteId)) {
+        const targetX = Number.isFinite(Number(attack.targetX)) ? Number(attack.targetX) : x + Math.cos(angle) * 320;
+        const targetY = Number.isFinite(Number(attack.targetY)) ? Number(attack.targetY) : y + Math.sin(angle) * 320;
+        this.noteRemotePlayerBossAction(remoteId, x, y, angle, attack.key || "basic");
+        this.executePlayerBossAction(remoteId, attack.key || "basic", x, y, angle, { x: targetX, y: targetY });
+        return;
+      }
       const combo = clamp(Math.floor(Number(attack.combo || 1)), 1, 12);
       const baseDamage = Math.max(1, Number(attack.damage) || character.stats.damage);
       const dirX = Math.cos(angle);
@@ -8941,6 +9250,11 @@
       const targetY = Number.isFinite(Number(skill.targetY)) ? Number(skill.targetY) : y + Math.sin(angle) * 240;
       const damage = Math.max(8, Number(skill.damage) || 24);
       if (![x, y, angle].every(Number.isFinite)) return;
+      if (skill.playerBoss && this.isPlayerBossId(remoteId)) {
+        this.noteRemotePlayerBossAction(remoteId, x, y, angle, skill.key || "q");
+        this.executePlayerBossAction(remoteId, skill.key || "q", x, y, angle, { x: targetX, y: targetY });
+        return;
+      }
       const remote = this.remotePlayers.get(remoteId) || {};
       const character = characterById(skill.characterId || remote.characterId || "swordsman");
       const slot = this.lobby.slots.find((entry) => entry.id === remoteId);
@@ -8993,6 +9307,10 @@
     useSkill(key) {
       const p = this.run?.player;
       if (!p || p.dead || this.pauseOverlay) return;
+      if (this.isLocalPlayerBoss()) {
+        this.usePlayerBossAction(key);
+        return;
+      }
       const cost = { q: 18, e: 24, r: 34, f: 0 }[key];
       const cooldown = { q: 3.2, e: 5.4, r: 8.6, f: 0.8 }[key];
       const ultimateCost = key === "f" ? this.ultimateEnergyCost(p) : 0;
@@ -10639,6 +10957,11 @@
       if (this.run.currentRoom) this.run.currentRoom.bossDefeated = true;
       const x = enemy?.x ?? WORLD_W / 2;
       const y = enemy?.y ?? WORLD_H / 2;
+      if (this.isPlayerBossRun()) {
+        this.addShockwave(x, y, 520, "#f2bf63", 88);
+        this.finishPlayerBossRound("hunters");
+        return;
+      }
       this.claimBossExitReward(x, y);
       this.addShockwave(x, y, 520, "#f2bf63", 88);
       this.toast("Boss gục xuống. Rương vàng đã rơi.");
@@ -10658,6 +10981,10 @@
         this.showBossRushVictory();
         return;
       }
+      if (this.isPlayerBossRun()) {
+        this.finishPlayerBossRound("hunters");
+        return;
+      }
       if (this.run.currentRoom?.advancing) return;
       if (this.run.currentRoom) this.run.currentRoom.advancing = true;
       this.run.stage += 1;
@@ -10671,6 +10998,33 @@
       this.run.nextRooms = [];
       this.toast(`Tiến vào ${this.run.biome.name}`);
       this.startRoom({ type: "normal", label: "Phòng Thường", icon: "X", color: "#c9d0db" });
+    }
+
+    finishPlayerBossRound(result = "hunters") {
+      if (!this.isPlayerBossRun() || !this.run) return;
+      const normalized = result === "boss" ? "boss" : "hunters";
+      const room = this.run.currentRoom;
+      if (room) {
+        if (room.playerBossResult) return;
+        room.playerBossResult = normalized;
+        room.cleared = true;
+        room.rewardDropped = true;
+        room.rewardClaimed = true;
+        room.nextOpened = true;
+        if (normalized === "hunters") room.bossDefeated = true;
+      }
+      this.run.pendingDoor = null;
+      this.run.hazards = [];
+      this.run.roomObjects = [];
+      this.run.projectiles = [];
+      this.run.slashes = [];
+      this.run.delayedStrikes = [];
+      this.addShockwave(WORLD_W / 2, WORLD_H / 2, normalized === "boss" ? 360 : 440, normalized === "boss" ? "#ff4b8f" : "#f2bf63", 0, { owner: "enemy" });
+      if (this.isMultiplayerHost()) {
+        const snapshot = this.networkSnapshot(true);
+        if (snapshot) this.lobby.broadcastSnapshot(snapshot, snapshot);
+      }
+      this.showPlayerBossVictory(normalized);
     }
 
     clearRoom() {
@@ -11477,6 +11831,10 @@
       this.lobby.slots = this.lobby.slots.filter((slot) => slot?.id !== remoteId);
       if (this.run.leaderId === remoteId) this.run.leaderId = "";
       this.updateRunLeader();
+      if (this.isMultiplayerHost() && this.isPlayerBossRun() && remoteId === this.run.playerBossId && !this.run.currentRoom?.playerBossResult) {
+        this.finishPlayerBossRound("hunters");
+        return;
+      }
       if (this.isMultiplayerHost()) {
         this.lobby.broadcastLobby();
         const snapshot = this.networkSnapshot(true);
@@ -11643,6 +12001,30 @@
       `);
     }
 
+    showPlayerBossVictory(result = "hunters") {
+      const bossWon = result === "boss";
+      const localBoss = this.isLocalPlayerBoss();
+      const title = bossWon ? "Boss Đã Thắng" : "Boss Đã Bị Hạ";
+      const subtitle = bossWon
+        ? (localBoss ? "Bạn đã quét sạch phe săn boss." : "Boss đã hạ toàn bộ người chơi.")
+        : (localBoss ? "Bạn đã bị phe săn boss hạ gục." : "Phe săn boss đã hạ người chơi hóa trùm.");
+      this.mode = "victory";
+      this.setScreen(`
+        <section class="wide-panel">
+          <div class="panel-header">
+            <div>
+              <h2 class="panel-title">${title}</h2>
+              <p class="panel-subtitle">${subtitle}</p>
+            </div>
+          </div>
+          <div class="grid cols-2">
+            <button class="btn primary" data-action="play-player-boss">CHƠI LẠI HÓA TRÙM</button>
+            <button class="btn" data-action="play-minigames">MINI GAME</button>
+          </div>
+        </section>
+      `);
+    }
+
     playerDeath() {
       if (!this.run || this.run.player.dead) return;
       const p = this.run.player;
@@ -11751,9 +12133,10 @@
     combatTargets() {
       if (!this.run) return [];
       const targets = [];
-      if (this.aliveActor(this.run.player)) targets.push({ id: this.lobby.id, local: true, radius: this.run.player.radius, ...this.run.player });
+      if (this.aliveActor(this.run.player) && !this.isPlayerBossId(this.lobby.id)) targets.push({ id: this.lobby.id, local: true, radius: this.run.player.radius, ...this.run.player });
       if (this.isMultiplayerHost()) {
         for (const [id, remote] of this.remotePlayers) {
+          if (this.isPlayerBossId(id)) continue;
           if (this.aliveActor(remote)) targets.push({ id, local: false, radius: 22, ...remote });
         }
       }
@@ -11833,6 +12216,10 @@
           enemy.y = enemy.anchorY || enemy.y;
           enemy.facingDir = p.x >= enemy.x ? 1 : -1;
           if (enemy.hp <= 0) this.resetTrainingDummy(enemy);
+          continue;
+        }
+        if (enemy.playerBoss) {
+          this.syncPlayerBossProxy();
           continue;
         }
         if (enemy.domainFreeze > 0) {
@@ -13966,7 +14353,13 @@
       if (now < this.nextHudSkillAt) return;
       this.nextHudSkillAt = now + (this.perf.quality < 0.7 ? 150 : 95);
       const ultimateCost = this.ultimateEnergyCost(p);
-      const skills = [
+      const skills = this.isLocalPlayerBoss() ? [
+        ["ĐÁNH", "Tam Tuyến Áp Sát", this.run.player.attackCd, 0.92],
+        ["Q", "Tường Làn", p.cooldowns.q, 2.4],
+        ["E", "Mưa Đạn Boss", p.cooldowns.e, 4.4],
+        ["R", "Lồng Linh Hồn", p.cooldowns.r, 6.2],
+        ["F", "Áp Chế Toàn Sân", p.cooldowns.f, 8.5]
+      ] : [
         ["ĐÁNH", this.run.power.skills.basic, this.run.player.attackCd, this.run.player.basicAttackCd || 0.38],
         ["Q", this.run.power.skills.q, p.cooldowns.q, 3.2],
         ["E", this.run.power.skills.e, p.cooldowns.e, 5.4],
@@ -14103,8 +14496,10 @@
       for (const drone of this.run.drones) this.drawDrone(ctx, drone);
       const actorY = (actor) => Number.isFinite(actor.displayY) ? actor.displayY : actor.y;
       const localGhost = this.run.player.dead && this.run.spectating;
+      const bossProxyVisible = Boolean(this.playerBossEnemy());
+      const localHiddenBoss = this.isPlayerBossId(this.lobby.id) && bossProxyVisible;
       const actors = [...this.run.enemies];
-      if (!localGhost) actors.push(this.run.player);
+      if (!localGhost && !localHiddenBoss) actors.push(this.run.player);
       actors.sort((a, b) => actorY(a) - actorY(b));
       for (const actor of actors) {
         if (actor === this.run.player) {
@@ -14117,6 +14512,7 @@
         }
       }
       for (const remote of this.remotePlayers.values()) {
+        if (this.isPlayerBossId(remote.id) && bossProxyVisible) continue;
         const remoteX = Number.isFinite(remote.displayX) ? remote.displayX : remote.x;
         const remoteY = Number.isFinite(remote.displayY) ? remote.displayY : remote.y;
         if (remote.dead && remote.spectating) {

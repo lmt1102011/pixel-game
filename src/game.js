@@ -9,7 +9,7 @@
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
   const SIGNAL_REALTIME_RELAY_LIMIT = 2;
   const SIGNAL_REALTIME_TYPES = new Set(["state", "snapshot", "attack", "skill", "collect", "openChest", "dropItem", "damage", "chooseDoor"]);
-  const APP_VERSION = "20260605-door-rewards-174";
+  const APP_VERSION = "20260605-awakening-raid-175";
   const CHANGELOG_ENTRIES = [
     {
       version: APP_VERSION,
@@ -24,6 +24,7 @@
         "Cải thiện kết nối khác mạng bằng nhiều STUN server hơn và cảnh báo rõ khi rơi về Relay chậm.",
         "Làm lại cổng Bí Mật thành phòng giải đố có bia riêng và phần thưởng nguyên liệu tương ứng.",
         "Tách phần thưởng từng loại cửa rõ rệt hơn và giảm tần suất xuất hiện cửa Kho Báu.",
+        "Đổi thức tỉnh: cần Ngọc power từ Raid A cùng 3 Lõi Trùm và 1 Tia Thần.",
         "Thêm trạng thái mạng gọn trong trận và tự xin đồng bộ nhanh hơn khi client bị lệch.",
         "Thêm bảng cập nhật để biết bản mới vừa thay đổi gì."
       ]
@@ -273,6 +274,19 @@
       }
     }
   ];
+
+  const AWAKENING_RAID_BIOMES = {
+    fire: "lava",
+    ice: "frozen",
+    lightning: "neon",
+    shadow: "neon",
+    blood: "forest",
+    gravity: "temple",
+    crystal: "frozen",
+    nature: "forest",
+    void: "neon",
+    time: "temple"
+  };
 
   const BIOMES = [
     {
@@ -793,7 +807,20 @@
   }
 
   function materialLabel(material) {
+    if (String(material || "").endsWith("Gem")) {
+      const powerId = String(material).slice(0, -"Gem".length);
+      const power = POWERS.find((entry) => entry.id === powerId);
+      if (power) return `Ngọc ${power.name}`;
+    }
     return MATERIAL_LABELS[material] || title(material);
+  }
+
+  function awakeningGemMaterial(powerId) {
+    return `${powerId}Gem`;
+  }
+
+  function awakeningRaidBiomeId(powerId) {
+    return AWAKENING_RAID_BIOMES[powerId] || "forest";
   }
 
   function upgradeLabel(stat) {
@@ -953,7 +980,8 @@
         bloodAmber: 0,
         gold: 0,
         bossCore: 0,
-        divineSpark: 0
+        divineSpark: 0,
+        ...Object.fromEntries(POWERS.map((power) => [awakeningGemMaterial(power.id), 0]))
       },
       achievements: {
         firstRift: false,
@@ -3163,6 +3191,9 @@
       this.save.inventory = [];
       this.save.equipped = Object.fromEntries(SLOT_NAMES.map((slot) => [slot, ""]));
       this.save.materials ||= defaultProfile(this.save.account.username).materials;
+      for (const [key, value] of Object.entries(defaultProfile(this.save.account.username).materials)) {
+        if (!Number.isFinite(Number(this.save.materials[key]))) this.save.materials[key] = value;
+      }
       this.save.materials.gold = Math.max(0, Math.floor(Number(this.save.materials.gold || 0)));
       this.normalizeSettings();
       this.normalizeStatPoints();
@@ -3445,6 +3476,9 @@
       this.save.inventory = [];
       this.save.equipped = Object.fromEntries(SLOT_NAMES.map((slot) => [slot, ""]));
       this.save.materials ||= defaultProfile(this.save.account.username).materials;
+      for (const [key, value] of Object.entries(defaultProfile(this.save.account.username).materials)) {
+        if (!Number.isFinite(Number(this.save.materials[key]))) this.save.materials[key] = value;
+      }
       this.save.materials.gold = Math.max(0, Math.floor(Number(this.save.materials.gold || 0)));
       this.normalizeSettings();
       this.normalizeStatPoints();
@@ -4935,6 +4969,15 @@
       }
       if (action === "play") this.showPlayMenu();
       if (action === "play-gauntlet") this.showGauntletMenu();
+      if (action === "play-gauntlet-normal") this.showGauntletNormalMenu();
+      if (action === "play-awakening-raid") {
+        if (target.dataset.power && this.save.account.ownedPowers.includes(target.dataset.power)) {
+          this.save.account.selectedPower = target.dataset.power;
+          this.persist();
+        }
+        this.showAwakeningRaidMenu();
+      }
+      if (action === "start-awakening-raid") this.startAwakeningRaid();
       if (action === "play-solo") this.showSoloMenu();
       if (action === "play-minigames") this.showMiniGameMenu();
       if (action === "play-boss-rush") this.showBossRushMenu();
@@ -5216,6 +5259,39 @@
       this.mode = "play";
       this.roomFinderOpen = false;
       const selected = this.save.account.selectedPower ? powerById(this.save.account.selectedPower) : null;
+      const gem = selected ? materialLabel(awakeningGemMaterial(selected.id)) : "Ngọc power";
+      this.setScreen(`
+        <section class="shell">
+          ${this.navHtml("play")}
+          <div class="panel">
+            <div class="panel-header">
+              <div>
+                <h2 class="panel-title">Vượt ải</h2>
+                <p class="panel-subtitle">${selected ? `Power: ${selected.name}. Chọn vượt ải thường hoặc Raid A để kiếm ${gem}.` : "Hãy quay và chọn power trước khi bắt đầu."}</p>
+              </div>
+              <button class="btn" data-action="play">CHƠI</button>
+            </div>
+            <div class="grid cols-2">
+              <button class="choice-card" data-action="play-gauntlet-normal">
+                <div class="card-icon">ẢI</div>
+                <h3>Vượt ải thường</h3>
+                <p>Chơi đơn hoặc nhiều người, farm vật liệu, boss, tiền và phụ trợ.</p>
+              </button>
+              <button class="choice-card" data-action="play-awakening-raid">
+                <div class="card-icon">A</div>
+                <h3>Raid A</h3>
+                <p>Raid thức tỉnh theo power đang chọn. Clear raid sẽ nhận 1 ${gem}.</p>
+              </button>
+            </div>
+          </div>
+        </section>
+      `);
+    }
+
+    showGauntletNormalMenu() {
+      this.mode = "play";
+      this.roomFinderOpen = false;
+      const selected = this.save.account.selectedPower ? powerById(this.save.account.selectedPower) : null;
       this.setScreen(`
         <section class="shell">
           ${this.navHtml("play")}
@@ -5225,7 +5301,7 @@
                 <h2 class="panel-title">Vượt ải</h2>
                 <p class="panel-subtitle">${selected ? `Power: ${selected.name}. Chọn chơi đơn hoặc chơi nhiều người.` : "Hãy quay và chọn power trước khi bắt đầu."}</p>
               </div>
-              <button class="btn" data-action="play">CHƠI</button>
+              <button class="btn" data-action="play-gauntlet">VƯỢT ẢI</button>
             </div>
             <div class="grid cols-2">
               <button class="choice-card" data-action="play-solo">
@@ -5271,6 +5347,64 @@
           </div>
         </section>
       `);
+    }
+
+    showAwakeningRaidMenu() {
+      this.mode = "play";
+      this.roomFinderOpen = false;
+      const selected = this.save.account.selectedPower ? powerById(this.save.account.selectedPower) : null;
+      if (!selected || !this.save.account.ownedPowers.includes(selected.id)) {
+        this.toast("Hãy chọn power trước khi vào Raid A");
+        this.showPowers();
+        return;
+      }
+      const biome = BIOMES.find((entry) => entry.id === awakeningRaidBiomeId(selected.id)) || BIOMES[0];
+      const gemId = awakeningGemMaterial(selected.id);
+      const ownedGem = Math.floor(Number(this.save.materials?.[gemId] || 0));
+      this.setScreen(`
+        <section class="shell">
+          ${this.navHtml("play")}
+          <div class="panel">
+            <div class="panel-header">
+              <div>
+                <h2 class="panel-title">Raid A</h2>
+                <p class="panel-subtitle">Raid thức tỉnh của ${selected.name}. Thắng raid sẽ nhận 1 ${materialLabel(gemId)}.</p>
+              </div>
+              <button class="btn" data-action="play-gauntlet">VƯỢT ẢI</button>
+            </div>
+            <div class="grid cols-2">
+              <div class="choice-card locked" style="border-color:${selected.color}">
+                ${this.powerIllustration(selected)}
+                <h3 style="color:${selected.color}">Raid ${selected.name}</h3>
+                <p>Khu raid: ${biome.name}. Boss mạnh hơn phòng thường nhưng không rơi Lõi Trùm/Tia Thần.</p>
+                <p class="small">${materialLabel(gemId)} đang có: ${ownedGem}</p>
+              </div>
+              <button class="choice-card" data-action="start-awakening-raid" style="border-color:${selected.color}">
+                <div class="card-icon">A</div>
+                <h3>Bắt đầu Raid A</h3>
+                <p>Solo boss raid để lấy ngọc thức tỉnh của power đang chọn.</p>
+                <p class="small">Cần thêm 3 Lõi Trùm + 1 Tia Thần khi bấm thức tỉnh.</p>
+              </button>
+            </div>
+          </div>
+        </section>
+      `);
+    }
+
+    startAwakeningRaid() {
+      const powerId = this.save.account.selectedPower;
+      if (!powerId || !this.save.account.ownedPowers.includes(powerId)) {
+        this.toast("Hãy chọn power trước khi vào Raid A");
+        this.showPowers();
+        return;
+      }
+      const power = powerById(powerId);
+      const biomeId = awakeningRaidBiomeId(power.id);
+      this.startRun(power, biomeId, {
+        difficulty: "hard",
+        miniGame: "awakeningRaid",
+        raidPowerId: power.id
+      });
     }
 
     defaultTrainingOptions() {
@@ -6432,13 +6566,13 @@
     showInventory() {
       this.mode = "inventory";
       const mat = this.save.materials || {};
-      const materialOrder = ["emberGlass", "frostCore", "stormThread", "bloodAmber", "bossCore", "divineSpark"];
+      const materialOrder = ["emberGlass", "frostCore", "stormThread", "bloodAmber", "bossCore", "divineSpark", ...POWERS.map((power) => awakeningGemMaterial(power.id))];
       const materials = materialOrder.map((id) => `
         <div class="reward-card material-card">
-          <div class="mini-ill material-ill" style="--ill:${id === "gold" ? "#f2bf63" : "#35d6c9"}"><span>${id === "gold" ? "$" : "NL"}</span></div>
+          <div class="mini-ill material-ill" style="--ill:${id.endsWith("Gem") ? powerById(id.slice(0, -3)).color : id === "gold" ? "#f2bf63" : "#35d6c9"}"><span>${id.endsWith("Gem") ? "A" : id === "gold" ? "$" : "NL"}</span></div>
           <h3>${materialLabel(id)}</h3>
           <p>${Math.floor(Number(mat[id] || 0))}</p>
-          <p class="small">Được giữ lại sau khi vượt phòng.</p>
+          <p class="small">${id.endsWith("Gem") ? "Dùng để thức tỉnh power tương ứng." : "Được giữ lại sau khi vượt phòng."}</p>
         </div>
       `).join("");
       this.setScreen(`
@@ -6575,18 +6709,21 @@
         const meta = this.save.powers[power.id];
         const rate = this.awakeningRate(power.id);
         const activeAwakened = this.powerAwakeningActive(power.id);
+        const gemId = awakeningGemMaterial(power.id);
+        const gemCount = Math.floor(Number(mat[gemId] || 0));
         return `
           <div class="power-row rarity-${meta.rarity}">
             ${this.powerIllustration(power)}
             <div>
               <h3 style="color:${power.color}">${power.name}</h3>
               <p>${meta.awakened ? `Đã thức tỉnh. Hiện đang dùng ${activeAwakened ? "bản thức tỉnh" : "bản thường"}.` : `Tỉ lệ hiện tại ${Math.round(rate * 100)}%. Thất bại ${meta.awakenFails || 0} lần sẽ cộng dồn tỉ lệ.`}</p>
-              <p class="small">Lõi Trùm ${mat.bossCore} - Tia Thần ${mat.divineSpark}</p>
+              <p class="small">${materialLabel(gemId)} ${gemCount}/1 - Lõi Trùm ${mat.bossCore}/3 - Tia Thần ${mat.divineSpark}/1</p>
             </div>
             <div class="item-actions">
               ${meta.awakened
                 ? `<button class="btn primary" data-action="toggle-awakened-power" data-power="${power.id}">${activeAwakened ? "DÙNG BẢN THƯỜNG" : "DÙNG THỨC TỈNH"}</button>`
-                : `<button class="btn primary" data-action="awaken-power" data-power="${power.id}">THỨC TỈNH ${Math.round(rate * 100)}%</button>`}
+                : `<button class="btn primary" data-action="awaken-power" data-power="${power.id}">THỨC TỈNH ${Math.round(rate * 100)}%</button>
+                   <button class="btn" data-action="play-awakening-raid" data-power="${power.id}">RAID A</button>`}
             </div>
           </div>
         `;
@@ -6598,7 +6735,7 @@
             <div class="panel-header">
               <div>
                 <h2 class="panel-title">Thức Tỉnh</h2>
-                <p class="panel-subtitle">Chỉ hiện sức mạnh bạn sở hữu. Mỗi lần thức tỉnh thất bại sẽ tăng thêm tỉ lệ cho lần sau.</p>
+                <p class="panel-subtitle">Cần 1 ngọc riêng của power từ Raid A, 3 Lõi Trùm và 1 Tia Thần. Thất bại vẫn tăng tỉ lệ cho lần sau.</p>
               </div>
             </div>
             ${this.characterTabs("awakening")}
@@ -6858,10 +6995,16 @@
         this.toast("Sức mạnh này đã thức tỉnh");
         return;
       }
-      if (this.save.materials.bossCore < 3 || this.save.materials.divineSpark < 1) {
-        this.toast("Cần 3 Lõi Trùm và 1 Tia Thần");
+      const gemId = awakeningGemMaterial(powerId);
+      if (Math.floor(Number(this.save.materials[gemId] || 0)) < 1) {
+        this.toast(`Cần 1 ${materialLabel(gemId)} từ Raid A`);
         return;
       }
+      if (this.save.materials.bossCore < 3 || this.save.materials.divineSpark < 1) {
+        this.toast(`Cần 3 Lõi Trùm, 1 Tia Thần và 1 ${materialLabel(gemId)}`);
+        return;
+      }
+      this.save.materials[gemId] -= 1;
       this.save.materials.bossCore -= 3;
       this.save.materials.divineSpark -= 1;
       const rate = this.awakeningRate(powerId);
@@ -6946,6 +7089,7 @@
         roomsCleared: 0,
         lastTreasureAt: -99,
         miniGame: options.miniGame || "",
+        raidPowerId: options.raidPowerId || "",
         playerBossId: options.bossPlayerId || "",
         playerBossStartedAt: 0,
         playerBossName: "",
@@ -7004,8 +7148,8 @@
       this.touchLayer.classList.toggle("hidden", !this.isMobileDevice());
       this.startRoom(training
         ? { type: "training", label: "Phòng Huấn Luyện", icon: "T", color: "#82ffd3" }
-        : options.miniGame === "bossRush" || options.miniGame === "playerBoss"
-          ? { type: "boss", label: options.miniGame === "playerBoss" ? "Hóa Trùm" : "Đại Chiến Boss", icon: "B", color: startBiome.accent }
+        : options.miniGame === "bossRush" || options.miniGame === "playerBoss" || options.miniGame === "awakeningRaid"
+          ? { type: "boss", label: options.miniGame === "playerBoss" ? "Hóa Trùm" : options.miniGame === "awakeningRaid" ? `Raid ${power.name}` : "Đại Chiến Boss", icon: options.miniGame === "awakeningRaid" ? "A" : "B", color: power.color || startBiome.accent }
           : { type: "normal", label: "Phòng Thường", icon: "X", color: "#c9d0db" });
       if (this.isMultiplayerClient()) {
         this.run.enemies = [];
@@ -7036,6 +7180,10 @@
 
     isBossRushRun() {
       return this.run?.miniGame === "bossRush";
+    }
+
+    isAwakeningRaidRun() {
+      return this.run?.miniGame === "awakeningRaid";
     }
 
     isPlayerBossRun() {
@@ -7346,6 +7494,7 @@
         roomClearTimer: this.run.roomClearTimer,
         lastTreasureAt: Number.isFinite(this.run.lastTreasureAt) ? this.run.lastTreasureAt : -99,
         miniGame: this.run.miniGame || "",
+        raidPowerId: this.run.raidPowerId || "",
         playerBossId: this.run.playerBossId || "",
         playerBossStartedAt: this.run.playerBossStartedAt || 0,
         playerBossName: this.run.playerBossName || "",
@@ -7425,6 +7574,7 @@
       this.run.roomClearTimer = Number.isFinite(snapshot.roomClearTimer) ? snapshot.roomClearTimer : this.run.roomClearTimer;
       if (Number.isFinite(snapshot.lastTreasureAt)) this.run.lastTreasureAt = snapshot.lastTreasureAt;
       if (snapshot.miniGame != null) this.run.miniGame = snapshot.miniGame || "";
+      if (snapshot.raidPowerId != null) this.run.raidPowerId = snapshot.raidPowerId || "";
       if (snapshot.playerBossId != null) this.run.playerBossId = snapshot.playerBossId || "";
       if (snapshot.playerBossStartedAt != null) this.run.playerBossStartedAt = Number(snapshot.playerBossStartedAt) || 0;
       if (snapshot.playerBossName != null) this.run.playerBossName = snapshot.playerBossName || "";
@@ -11432,6 +11582,10 @@
     }
 
     onBossDefeated(enemy = null) {
+      if (this.isAwakeningRaidRun()) {
+        this.completeAwakeningRaid(enemy);
+        return;
+      }
       this.save.progression.bossesDefeated += 1;
       this.save.materials.bossCore += 1;
       if (chance(0.35)) this.save.materials.divineSpark += 1;
@@ -11448,6 +11602,37 @@
       this.claimBossExitReward(x, y);
       this.addShockwave(x, y, 520, "#f2bf63", 88);
       this.toast("Boss gục xuống. Rương vàng đã rơi.");
+    }
+
+    completeAwakeningRaid(enemy = null) {
+      const powerId = this.run?.raidPowerId || this.run?.power?.id || this.save.account.selectedPower || "fire";
+      const power = powerById(powerId);
+      const gemId = awakeningGemMaterial(power.id);
+      this.save.materials[gemId] = Math.floor(Number(this.save.materials[gemId] || 0)) + 1;
+      this.save.progression.bossesDefeated += 1;
+      this.save.achievements.bossBreaker = true;
+      if (this.run.currentRoom) {
+        this.run.currentRoom.bossDefeated = true;
+        this.run.currentRoom.cleared = true;
+        this.run.currentRoom.rewardDropped = true;
+        this.run.currentRoom.rewardClaimed = true;
+        this.run.currentRoom.nextOpened = true;
+      }
+      this.run.enemies = [];
+      this.run.projectiles = [];
+      this.run.hazards = [];
+      this.run.roomObjects = [];
+      this.run.pickups = [];
+      this.clearRoomHazards();
+      const x = enemy?.x ?? WORLD_W / 2;
+      const y = enemy?.y ?? WORLD_H / 2;
+      this.addShockwave(x, y, 520, power.color || "#f2bf63", 88);
+      for (let i = 0; i < this.particleCount(34, { important: true }); i++) {
+        const a = rand(0, TAU);
+        this.addParticle(x + rand(-32, 32), y + rand(-28, 28), i % 3 ? power.color : "#ffffff", rand(9, 26), rand(0.36, 0.9), i % 4 === 0 ? "ring" : "spark", a, rand(130, 340));
+      }
+      this.persist();
+      this.showAwakeningRaidVictory(power, gemId);
     }
 
     claimBossExitReward(x = this.run.player.x, y = this.run.player.y) {
@@ -12598,6 +12783,38 @@
           <div class="grid cols-2">
             <button class="btn primary" data-action="play-boss-rush">ĐÁNH BOSS TIẾP</button>
             <button class="btn" data-action="play">CHƠI</button>
+          </div>
+        </section>
+      `);
+    }
+
+    showAwakeningRaidVictory(power = this.run?.power || powerById("fire"), gemId = awakeningGemMaterial(power.id)) {
+      this.mode = "victory";
+      this.pauseOverlay = false;
+      this.hud.classList.add("hidden");
+      this.touchLayer.classList.add("hidden");
+      const gemCount = Math.floor(Number(this.save.materials?.[gemId] || 0));
+      this.setScreen(`
+        <section class="wide-panel">
+          <div class="panel-header">
+            <div>
+              <h2 class="panel-title">Raid A hoàn tất</h2>
+              <p class="panel-subtitle">${power.name} đã nhận 1 ${materialLabel(gemId)}. Dùng ngọc này cùng 3 Lõi Trùm và 1 Tia Thần để thức tỉnh.</p>
+            </div>
+          </div>
+          <div class="grid cols-2">
+            <div class="reward-card material-card" style="border-color:${power.color}">
+              <div class="mini-ill material-ill" style="--ill:${power.color}"><span>A</span></div>
+              <h3>${materialLabel(gemId)}</h3>
+              <p>Đang có ${gemCount}</p>
+              <p class="small">Ngọc thức tỉnh riêng của ${power.name}.</p>
+            </div>
+            <div class="grid">
+              <button class="btn primary" data-action="awakening">THỨC TỈNH</button>
+              <button class="btn" data-action="play-awakening-raid">RAID LẠI</button>
+              <button class="btn" data-action="play-gauntlet">VƯỢT ẢI</button>
+              <button class="btn" data-action="menu">TRÌNH ĐƠN</button>
+            </div>
           </div>
         </section>
       `);

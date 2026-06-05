@@ -1,11 +1,11 @@
-const SOULRIFT_CACHE = "soulrift-pwa-20260605-door-rewards-174";
+const SOULRIFT_CACHE = "soulrift-pwa-20260605-awakening-raid-175";
 const SOULRIFT_ASSETS = [
   "./",
   "./index.html",
-  "./styles.css?v=20260605-door-rewards-174",
-  "./src/pwa.js?v=20260605-door-rewards-174",
-  "./src/game.js?v=20260605-door-rewards-174",
-  "./manifest.webmanifest?v=20260605-door-rewards-174",
+  "./styles.css?v=20260605-awakening-raid-175",
+  "./src/pwa.js?v=20260605-awakening-raid-175",
+  "./src/game.js?v=20260605-awakening-raid-175",
+  "./manifest.webmanifest?v=20260605-awakening-raid-175",
   "./version.json",
   "./assets/icons/app-icon-20260605-logo-xl-149.svg",
   "./assets/icons/app-icon-20260605-logo-xl-149-192.png",

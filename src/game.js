@@ -7,7 +7,7 @@
   const ROOM_PAD = 86;
   const SAVE_KEY = "soulrift-save-v1";
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
-  const APP_VERSION = "20260605-balance-network-167";
+  const APP_VERSION = "20260605-player-boss-normal-168";
   const CHANGELOG_ENTRIES = [
     {
       version: APP_VERSION,
@@ -15,6 +15,7 @@
       items: [
         "Cân lại sát thương, nhịp đánh, điểm nâng và độ khó để đỡ phá game hơn.",
         "Hóa Trùm có thông báo chọn boss, skill boss theo khu và màn kết quả rõ hơn.",
+        "Hóa Trùm dùng nhịp cân bằng riêng và không còn nút chỉnh độ khó trong phòng.",
         "Thêm trạng thái mạng gọn trong trận và tự xin đồng bộ nhanh hơn khi client bị lệch.",
         "Thêm bảng cập nhật để biết bản mới vừa thay đổi gì."
       ]
@@ -6613,6 +6614,10 @@
       const difficultyVotes = DIFFICULTIES.map((difficulty) => `
         <button class="tab ${this.lobby.difficultyVote === difficulty.id ? "active" : ""}" data-action="vote-difficulty" data-difficulty="${difficulty.id}" ${isHost ? "" : "disabled"}>${difficulty.label}</button>
       `).join("");
+      const difficultySection = playerBoss ? "" : `
+            <p class="small">Chủ phòng chọn độ khó ải</p>
+            <div class="tabs">${difficultyVotes}</div>
+      `;
       const allReady = this.lobby.slots.every((slot) => slot.host || slot.ready);
       const connectedPeers = this.lobby.openPeerCount();
       const hasGuest = this.lobby.slots.some((slot) => slot && !slot.host);
@@ -6639,7 +6644,7 @@
             <div class="panel-header">
               <div>
                 <h2 class="panel-title">${playerBoss ? "Phòng hóa trùm" : bossRush ? "Phòng đại chiến boss" : "Phòng vượt ải"}</h2>
-                <p class="panel-subtitle">${playerBoss ? (isHost ? "Chủ phòng chọn khu, độ khó rồi bắt đầu để random một người làm boss." : "Bạn sẵn sàng, khi bắt đầu sẽ random một người làm boss.") : bossRush ? (isHost ? "Chủ phòng chọn boss/khu, độ khó và bắt đầu boss-only khi mọi người sẵn sàng." : "Bạn chỉ cần sẵn sàng, chủ phòng sẽ bắt đầu trận boss-only.") : (isHost ? "Chủ phòng chọn khu, độ khó và bắt đầu khi mọi người sẵn sàng." : "Bạn chỉ cần sẵn sàng, chủ phòng sẽ chọn khu, độ khó và bắt đầu.")}</p>
+                <p class="panel-subtitle">${playerBoss ? (isHost ? "Chủ phòng chọn khu rồi bắt đầu để random một người làm boss." : "Bạn sẵn sàng, khi bắt đầu sẽ random một người làm boss.") : bossRush ? (isHost ? "Chủ phòng chọn boss/khu, độ khó và bắt đầu boss-only khi mọi người sẵn sàng." : "Bạn chỉ cần sẵn sàng, chủ phòng sẽ bắt đầu trận boss-only.") : (isHost ? "Chủ phòng chọn khu, độ khó và bắt đầu khi mọi người sẵn sàng." : "Bạn chỉ cần sẵn sàng, chủ phòng sẽ chọn khu, độ khó và bắt đầu.")}</p>
               </div>
             </div>
             <div class="grid cols-2 ${this.lobby.code ? "hidden" : ""}">
@@ -6654,8 +6659,7 @@
             ${friendInvites}
             <p class="small">Chủ phòng chọn khu</p>
             <div class="tabs">${votes}</div>
-            <p class="small">Chủ phòng chọn độ khó ải</p>
-            <div class="tabs">${difficultyVotes}</div>
+            ${difficultySection}
             <p class="small">${startHint}</p>
             <div class="grid ${isHost ? "" : "cols-2"}">${lobbyControls}</div>
           </div>
@@ -6692,8 +6696,8 @@
       }
       const selectedPower = powerById(powerId);
       const biomeId = this.lobby.mapVote || "forest";
-      const difficultyId = this.lobby.difficultyVote || "normal";
       const runMode = this.lobby.runMode || "gauntlet";
+      const difficultyId = runMode === "playerBoss" ? "normal" : (this.lobby.difficultyVote || "normal");
       const bossPlayerId = runMode === "playerBoss" ? pick(this.lobby.slots.filter(Boolean)).id : "";
       const seed = Math.random();
       this.lobby.publishDirectoryPresence(false);

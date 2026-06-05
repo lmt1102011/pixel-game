@@ -7,7 +7,7 @@
   const ROOM_PAD = 86;
   const SAVE_KEY = "soulrift-save-v1";
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
-  const APP_VERSION = "20260605-logo-xl-149";
+  const APP_VERSION = "20260605-sharp-render-150";
   const VERSION_CHECK_INTERVAL = 15000;
   const UPDATE_ATTEMPT_KEY = "soulrift-update-attempt-v1";
   const CLOUD_MIGRATION_KEY = "soulrift-cloud-migrated-v1";
@@ -3759,13 +3759,13 @@
       const quality = this.perf?.quality ?? 1;
       const lag = this.performancePressure();
       const weakBias = this.devicePerformanceBias();
-      const base = (this.isMobileDevice() ? 0.62 : 0.68) - lag * (this.isMobileDevice() ? 0.34 : 0.3) - weakBias * (this.isMobileDevice() ? 0.085 : 0.065);
-      const range = (this.isMobileDevice() ? 0.34 : 0.3) - weakBias * 0.08;
+      const base = (this.isMobileDevice() ? 0.68 : 0.74) - lag * (this.isMobileDevice() ? 0.28 : 0.24) - weakBias * (this.isMobileDevice() ? 0.07 : 0.055);
+      const range = (this.isMobileDevice() ? 0.3 : 0.26) - weakBias * 0.06;
       const floor = this.performancePanic()
-        ? (this.isMobileDevice() ? 0.44 : 0.5)
+        ? (this.isMobileDevice() ? 0.56 : 0.62)
         : this.performanceEmergency()
-          ? (this.isMobileDevice() ? 0.52 : 0.58)
-          : (this.isMobileDevice() ? 0.58 : 0.64);
+          ? (this.isMobileDevice() ? 0.64 : 0.7)
+          : (this.isMobileDevice() ? 0.72 : 0.78);
       const rawScale = clamp(base + quality * range, floor, 1);
       const step = this.isMobileDevice() ? 0.05 : 0.04;
       return clamp(Math.round(rawScale / step) * step, floor, 1);
@@ -3869,7 +3869,7 @@
       const quality = this.perf?.quality ?? 1;
       const weakBias = this.devicePerformanceBias();
       if (quality < 0.5 || (weakBias > 0.55 && this.performanceEmergency())) return 0;
-      return value * clamp(quality * (this.isMobileDevice() ? 0.34 : 0.58) * (1 - weakBias * 0.35), 0.08, 0.68);
+      return value * clamp(quality * (this.isMobileDevice() ? 0.24 : 0.46) * (1 - weakBias * 0.38), 0.04, 0.54);
     }
 
     trimVisualList(list, limit) {
@@ -4123,12 +4123,12 @@
       window.SoulriftPwaGate?.syncViewport?.();
       const maxDpr = Math.min(window.devicePixelRatio || 1, this.isMobileDevice() ? 1 : 1.25);
       const renderScale = Number.isFinite(this.perf?.appliedRenderScale) ? this.perf.appliedRenderScale : 1;
-      this.dpr = Math.max(this.isMobileDevice() ? 0.62 : 0.72, maxDpr * renderScale);
+      this.dpr = Math.max(this.isMobileDevice() ? 0.72 : 0.8, maxDpr * renderScale);
       const viewport = window.visualViewport;
       this.width = Math.round(viewport?.width || window.innerWidth);
       this.height = Math.round(viewport?.height || window.innerHeight);
-      this.canvas.width = Math.floor(this.width * this.dpr);
-      this.canvas.height = Math.floor(this.height * this.dpr);
+      this.canvas.width = Math.ceil(this.width * this.dpr);
+      this.canvas.height = Math.ceil(this.height * this.dpr);
       this.canvas.style.width = `${this.width}px`;
       this.canvas.style.height = `${this.height}px`;
       this.ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);

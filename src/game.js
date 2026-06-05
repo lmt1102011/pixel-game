@@ -7,7 +7,7 @@
   const ROOM_PAD = 86;
   const SAVE_KEY = "soulrift-save-v1";
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
-  const APP_VERSION = "20260605-domain-invuln-163";
+  const APP_VERSION = "20260605-lite-awakened-aura-164";
   const VERSION_CHECK_INTERVAL = 15000;
   const UPDATE_ATTEMPT_KEY = "soulrift-update-attempt-v1";
   const CLOUD_MIGRATION_KEY = "soulrift-cloud-migrated-v1";
@@ -14793,297 +14793,140 @@
     }
 
     drawAwakenedPowerAura(ctx, power, t, layer = "back") {
+      if (layer !== "front") return;
       const kind = power?.id || "fire";
       const color = power?.color || "#f2bf63";
       const accent = power?.accent || "#ffffff";
       const quality = this.perf?.quality ?? 1;
-      const emergency = this.performanceEmergency();
-      const lowDetail = emergency || this.performancePanic() || quality < 0.7;
-      const seedRand = (seed) => {
-        const value = Math.sin(seed * 12.9898 + 78.233) * 43758.5453;
-        return value - Math.floor(value);
-      };
-      if (layer === "front") {
-        ctx.save();
-        ctx.globalCompositeOperation = emergency ? "source-over" : "lighter";
-        ctx.shadowColor = accent;
-        ctx.shadowBlur = emergency || lowDetail ? 0 : this.glow(7);
-        ctx.lineCap = "round";
-        ctx.lineJoin = "round";
-        ctx.strokeStyle = hexToRgba(accent, emergency ? 0.28 : 0.52);
-        ctx.lineWidth = lowDetail ? 1.05 : 1.35;
-        ctx.globalAlpha = emergency ? 0.34 : 0.52;
-        ctx.beginPath();
-        ctx.moveTo(-10, -24);
-        ctx.quadraticCurveTo(-3 + Math.sin(t * 3.1) * 2, -12, -9, 7);
-        ctx.moveTo(10, -23);
-        ctx.quadraticCurveTo(3 + Math.cos(t * 3.4) * 2, -10, 8, 8);
-        ctx.stroke();
-        if (!lowDetail) {
-          ctx.save();
-          ctx.translate(0, -15 + Math.sin(t * 4) * 0.8);
-          ctx.rotate(Math.sin(t * 2.6) * 0.12);
-          ctx.globalAlpha = 0.28;
-          this.drawPowerIconShape(ctx, kind, 3.1, color, accent);
-          ctx.restore();
-        }
-        if (kind === "lightning") {
-          const slot = Math.floor(t * 3.4);
-          const age = t * 3.4 - slot;
-          if (age < 0.22 && seedRand(slot) > (lowDetail ? 0.58 : 0.34)) {
-            ctx.strokeStyle = accent;
-            ctx.lineWidth = lowDetail ? 1.5 : 2;
-            ctx.globalAlpha = (1 - age / 0.22) * 0.82;
-            const x0 = seedRand(slot + 2) > 0.5 ? -12 : 12;
-            const x1 = -x0 * (0.55 + seedRand(slot + 3) * 0.45);
-            ctx.beginPath();
-            ctx.moveTo(x0, -24 + seedRand(slot + 4) * 6);
-            ctx.lineTo((x0 + x1) * 0.5 + (seedRand(slot + 5) - 0.5) * 8, -11);
-            ctx.lineTo(x1, 2 + seedRand(slot + 6) * 8);
-            ctx.stroke();
-          }
-        } else if (kind === "fire") {
-          ctx.fillStyle = color;
-          for (let i = 0; i < (lowDetail ? 1 : 3); i++) {
-            const x = -9 + i * 9 + Math.sin(t * 5 + i) * 1.5;
-            const y = -18 + Math.cos(t * 4 + i) * 3;
-            ctx.globalAlpha = 0.24 + i * 0.04;
-            ctx.beginPath();
-            ctx.moveTo(x, y - 5);
-            ctx.quadraticCurveTo(x + 3, y, x, y + 6);
-            ctx.quadraticCurveTo(x - 3, y, x, y - 5);
-            ctx.fill();
-          }
-        } else if (kind === "ice") {
-          ctx.strokeStyle = accent;
-          ctx.globalAlpha = 0.48;
-          for (let i = 0; i < (lowDetail ? 1 : 2); i++) {
-            const x = i ? 10 : -10;
-            const y = -15 + Math.sin(t * 3 + i) * 4;
-            ctx.beginPath();
-            ctx.moveTo(x - 4, y);
-            ctx.lineTo(x + 4, y);
-            ctx.moveTo(x, y - 4);
-            ctx.lineTo(x, y + 4);
-            ctx.stroke();
-          }
-        } else if (kind === "nature") {
-          ctx.strokeStyle = color;
-          ctx.globalAlpha = 0.42;
-          ctx.beginPath();
-          ctx.moveTo(-12, 4);
-          ctx.quadraticCurveTo(-4, -12 + Math.sin(t * 3) * 2, 10, -18);
-          ctx.stroke();
-          if (!lowDetail) {
-            ctx.fillStyle = accent;
-            ctx.globalAlpha = 0.34;
-            ctx.beginPath();
-            ctx.ellipse(9, -18, 2.3, 5, 0.75, 0, TAU);
-            ctx.fill();
-          }
-        } else if (kind === "gravity") {
-          ctx.strokeStyle = accent;
-          ctx.globalAlpha = 0.42;
-          ctx.save();
-          ctx.rotate(Math.sin(t * 2.2) * 0.24);
-          ctx.scale(1, 0.38);
-          ctx.beginPath();
-          ctx.arc(0, -18, 16, 0.2, Math.PI * 1.65);
-          ctx.stroke();
-          ctx.restore();
-        } else if (kind === "shadow" || kind === "void") {
-          ctx.fillStyle = kind === "shadow" ? accent : color;
-          for (let i = 0; i < (lowDetail ? 1 : 3); i++) {
-            const a = t * 1.15 + i * TAU / 3;
-            ctx.save();
-            ctx.translate(Math.cos(a) * 10, -12 + Math.sin(a) * 14);
-            ctx.rotate(a);
-            ctx.globalAlpha = kind === "void" ? 0.28 : 0.34;
-            ctx.fillRect(-2, -2, 4, 4);
-            ctx.restore();
-          }
-        } else if (kind === "blood") {
-          ctx.fillStyle = color;
-          for (let i = 0; i < (lowDetail ? 1 : 2); i++) {
-            const x = i ? 8 : -8;
-            const y = -20 + Math.sin(t * 4 + i) * 4;
-            ctx.globalAlpha = 0.34;
-            ctx.beginPath();
-            ctx.moveTo(x, y - 4);
-            ctx.bezierCurveTo(x + 3, y - 1, x + 2, y + 4, x, y + 4);
-            ctx.bezierCurveTo(x - 2, y + 4, x - 3, y - 1, x, y - 4);
-            ctx.fill();
-          }
-        } else if (kind === "crystal") {
-          ctx.globalAlpha = 0.42;
-          this.drawPowerIconShape(ctx, "crystal", lowDetail ? 3.2 : 4.2, color, accent);
-        } else if (kind === "time") {
-          ctx.strokeStyle = accent;
-          ctx.globalAlpha = 0.46;
-          ctx.beginPath();
-          ctx.arc(0, -15, 13, t * 1.3, t * 1.3 + Math.PI * 1.35);
-          ctx.stroke();
-          if (!lowDetail) {
-            ctx.beginPath();
-            ctx.moveTo(0, -15);
-            ctx.lineTo(Math.cos(t * 2) * 8, -15 + Math.sin(t * 2) * 8);
-            ctx.stroke();
-          }
-        }
-        ctx.restore();
-        return;
-      }
+      const lowDetail = this.performanceEmergency() || this.performancePanic() || quality < 0.78 || this.isMobileDevice();
+      const pulse = lowDetail ? 0 : 0.5 + Math.sin(t * 3.2) * 0.5;
+
       ctx.save();
       ctx.globalCompositeOperation = "source-over";
-      ctx.shadowColor = accent;
-      ctx.shadowBlur = emergency || lowDetail ? 0 : this.glow(4);
+      ctx.globalAlpha = 1;
+      ctx.shadowBlur = 0;
       ctx.lineCap = "round";
       ctx.lineJoin = "round";
-      ctx.strokeStyle = hexToRgba(color, emergency ? 0.18 : 0.3);
-      ctx.lineWidth = 1;
-      ctx.globalAlpha = emergency ? 0.3 : 0.46;
-      ctx.beginPath();
-      ctx.ellipse(0, -3, 18 + Math.sin(t * 2.2) * 0.6, 24 + Math.cos(t * 1.9) * 0.6, 0, -0.2, Math.PI * 1.15);
-      ctx.stroke();
-      if (emergency) {
-        ctx.restore();
-        return;
-      }
 
-      if (kind === "lightning") {
-        const slot = Math.floor(t * 2.2);
-        const age = t * 2.2 - slot;
-        const active = age < 0.2 && seedRand(slot) > (lowDetail ? 0.72 : 0.48);
-        if (active) {
-          const flashes = lowDetail ? 1 : 1 + Math.floor(seedRand(slot + 4) * 2);
-          ctx.strokeStyle = accent;
-          ctx.lineWidth = lowDetail ? 1.5 : 1.9;
-          ctx.globalAlpha = (1 - age / 0.2) * 0.72;
-          for (let i = 0; i < flashes; i++) {
-            const a = seedRand(slot + i * 9) * TAU;
-            const r1 = 8 + seedRand(slot + i * 13) * 9;
-            const r2 = r1 + 7 + seedRand(slot + i * 17) * 6;
-            const sx = Math.cos(a) * r1;
-            const sy = -4 + Math.sin(a) * (r1 + 5);
-            const ex = Math.cos(a + 0.18) * r2;
-            const ey = -4 + Math.sin(a + 0.18) * (r2 + 5);
-            ctx.beginPath();
-            ctx.moveTo(sx, sy);
-            ctx.lineTo((sx + ex) * 0.5 + Math.cos(a + 1.7) * 3.5, (sy + ey) * 0.5 + Math.sin(a + 1.7) * 3.5);
-            ctx.lineTo(ex, ey);
-            ctx.stroke();
-          }
-        }
-      } else if (kind === "fire") {
-        ctx.fillStyle = color;
-        const flames = lowDetail ? 2 : 3;
-        for (let i = 0; i < flames; i++) {
-          const a = t * 0.85 + i * TAU / flames;
-          const fx = Math.cos(a) * 15;
-          const fy = 2 + Math.sin(a) * 18;
-          const h = 4.2 + Math.sin(t * 5 + i) * 1;
-          ctx.globalAlpha = 0.28;
-          ctx.beginPath();
-          ctx.moveTo(fx, fy - h);
-          ctx.quadraticCurveTo(fx + 3.5, fy - 1, fx, fy + h);
-          ctx.quadraticCurveTo(fx - 3.5, fy - 1, fx, fy - h);
-          ctx.fill();
-        }
+      ctx.strokeStyle = hexToRgba(color, lowDetail ? 0.26 : 0.36);
+      ctx.lineWidth = lowDetail ? 1.15 : 1.55;
+      ctx.beginPath();
+      ctx.ellipse(0, -3, 18 + pulse * 1.3, 23 + pulse * 1.1, 0, -0.2, Math.PI * 1.15);
+      ctx.stroke();
+
+      ctx.strokeStyle = hexToRgba(accent, lowDetail ? 0.38 : 0.58);
+      ctx.lineWidth = lowDetail ? 1.25 : 1.65;
+      ctx.beginPath();
+      ctx.moveTo(-12, -22);
+      ctx.lineTo(-8, -10);
+      ctx.moveTo(12, -22);
+      ctx.lineTo(8, -10);
+      ctx.stroke();
+
+      const badgeY = -34 + (lowDetail ? 0 : Math.sin(t * 2.4) * 0.8);
+      ctx.translate(0, badgeY);
+      ctx.fillStyle = "rgba(7, 10, 18, 0.78)";
+      ctx.beginPath();
+      ctx.arc(0, 0, lowDetail ? 7.6 : 8.8, 0, TAU);
+      ctx.fill();
+      ctx.strokeStyle = hexToRgba(color, lowDetail ? 0.72 : 0.95);
+      ctx.lineWidth = lowDetail ? 1.4 : 1.7;
+      ctx.beginPath();
+      ctx.arc(0, 0, lowDetail ? 7.6 : 8.8, -Math.PI * 0.12, Math.PI * 1.72);
+      ctx.stroke();
+      if (!lowDetail) {
+        ctx.strokeStyle = hexToRgba(accent, 0.42);
+        ctx.lineWidth = 0.9;
+        ctx.beginPath();
+        ctx.arc(0, 0, 5.3 + pulse * 0.5, Math.PI * 0.12, Math.PI * 1.28);
+        ctx.stroke();
+      }
+      this.drawAwakenedAuraGlyph(ctx, kind, lowDetail ? 4.3 : 5.1, color, accent);
+      ctx.restore();
+    }
+
+    drawAwakenedAuraGlyph(ctx, kind, size, color, accent) {
+      ctx.save();
+      ctx.shadowBlur = 0;
+      ctx.lineCap = "round";
+      ctx.lineJoin = "round";
+      ctx.strokeStyle = accent || color;
+      ctx.fillStyle = color;
+      ctx.lineWidth = Math.max(1.1, size * 0.24);
+      if (kind === "fire") {
+        ctx.beginPath();
+        ctx.moveTo(0, -size);
+        ctx.bezierCurveTo(size * 0.7, -size * 0.2, size * 0.46, size * 0.85, 0, size);
+        ctx.bezierCurveTo(-size * 0.46, size * 0.85, -size * 0.7, -size * 0.2, 0, -size);
+        ctx.fill();
+        ctx.stroke();
       } else if (kind === "ice") {
-        ctx.strokeStyle = accent;
-        ctx.lineWidth = 1.2;
-        for (let i = 0; i < (lowDetail ? 1 : 2); i++) {
-          const a = t * 0.55 + i * Math.PI;
-          const x = Math.cos(a) * 18;
-          const y = -4 + Math.sin(a) * 22;
-          ctx.globalAlpha = 0.42;
+        for (let i = 0; i < 3; i++) {
+          const a = i * Math.PI / 3;
           ctx.beginPath();
-          ctx.moveTo(x - Math.cos(a) * 4, y - Math.sin(a) * 4);
-          ctx.lineTo(x + Math.cos(a) * 5, y + Math.sin(a) * 5);
-          ctx.moveTo(x - Math.sin(a) * 3, y + Math.cos(a) * 3);
-          ctx.lineTo(x + Math.sin(a) * 3, y - Math.cos(a) * 3);
+          ctx.moveTo(Math.cos(a) * -size, Math.sin(a) * -size);
+          ctx.lineTo(Math.cos(a) * size, Math.sin(a) * size);
           ctx.stroke();
         }
-      } else if (kind === "nature") {
-        ctx.strokeStyle = color;
-        ctx.lineWidth = 1.2;
-        for (let i = 0; i < (lowDetail ? 1 : 2); i++) {
-          const a = t * 0.52 + i * Math.PI;
-          const x = Math.cos(a) * 16;
-          const y = -1 + Math.sin(a) * 21;
-          ctx.globalAlpha = 0.34;
-          ctx.beginPath();
-          ctx.ellipse(x, y, 2.6, 5.8, a + 0.8, 0, TAU);
-          ctx.fillStyle = i % 2 ? color : accent;
-          ctx.fill();
-          ctx.beginPath();
-          ctx.moveTo(x - Math.cos(a) * 4, y + Math.sin(a) * 3);
-          ctx.quadraticCurveTo(0, 11, -x * 0.2, 18);
-          ctx.stroke();
-        }
-      } else if (kind === "gravity") {
-        ctx.strokeStyle = accent;
-        ctx.lineWidth = 1.25;
-        ctx.globalAlpha = 0.38;
-        ctx.save();
-        ctx.rotate(t * 0.42);
-        ctx.scale(1, 0.56);
+      } else if (kind === "lightning") {
         ctx.beginPath();
-        ctx.arc(0, -5, 23, 0.35, Math.PI * 1.58);
+        ctx.moveTo(-size * 0.52, -size);
+        ctx.lineTo(size * 0.1, -size * 0.16);
+        ctx.lineTo(-size * 0.08, size * 0.08);
+        ctx.lineTo(size * 0.58, size);
         ctx.stroke();
-        ctx.restore();
-      } else if (kind === "shadow" || kind === "void") {
-        ctx.fillStyle = kind === "shadow" ? accent : color;
-        for (let i = 0; i < (lowDetail ? 1 : 3); i++) {
-          const a = -t * 0.75 + i * TAU / 3;
-          const x = Math.cos(a) * (15 + (i % 2) * 4);
-          const y = -4 + Math.sin(a) * (19 + (i % 3) * 2);
-          ctx.save();
-          ctx.translate(x, y);
-          ctx.rotate(a + t * 0.8);
-          ctx.globalAlpha = kind === "void" ? 0.24 : 0.3;
-          ctx.fillRect(-2.5, -2.5, 5, 5);
-          ctx.restore();
-        }
+      } else if (kind === "shadow") {
+        ctx.rotate(Math.PI / 4);
+        ctx.fillRect(-size * 0.58, -size * 0.58, size * 1.16, size * 1.16);
+        ctx.strokeRect(-size * 0.58, -size * 0.58, size * 1.16, size * 1.16);
       } else if (kind === "blood") {
-        ctx.fillStyle = color;
-        for (let i = 0; i < (lowDetail ? 1 : 2); i++) {
-          const a = t * 0.62 + i * Math.PI;
-          const x = Math.cos(a) * 17;
-          const y = -3 + Math.sin(a) * 22;
-          ctx.globalAlpha = 0.28;
-          ctx.beginPath();
-          ctx.moveTo(x, y - 5);
-          ctx.bezierCurveTo(x + 4, y - 1, x + 2.6, y + 5, x, y + 5);
-          ctx.bezierCurveTo(x - 2.6, y + 5, x - 4, y - 1, x, y - 5);
-          ctx.fill();
-        }
-      } else if (kind === "crystal") {
-        for (let i = 0; i < (lowDetail ? 1 : 2); i++) {
-          const a = t * 0.54 + i * Math.PI;
-          const x = Math.cos(a) * 18;
-          const y = -4 + Math.sin(a) * 22;
-          ctx.save();
-          ctx.translate(x, y);
-          ctx.rotate(a);
-          ctx.globalAlpha = 0.34;
-          this.drawPowerIconShape(ctx, "crystal", lowDetail ? 2.8 : 3.5, color, accent);
-          ctx.restore();
-        }
-      } else if (kind === "time") {
-        ctx.strokeStyle = accent;
-        ctx.lineWidth = 1.15;
-        ctx.globalAlpha = 0.36;
         ctx.beginPath();
-        ctx.arc(0, -4, 22, t * 0.8, t * 0.8 + Math.PI * 1.18);
+        ctx.moveTo(0, -size);
+        ctx.bezierCurveTo(size * 0.75, -size * 0.1, size * 0.5, size, 0, size);
+        ctx.bezierCurveTo(-size * 0.5, size, -size * 0.75, -size * 0.1, 0, -size);
+        ctx.fill();
         ctx.stroke();
-        for (let i = 0; i < (lowDetail ? 2 : 4); i++) {
-          const a = i * TAU / 4 - t * 0.7;
-          ctx.beginPath();
-          ctx.moveTo(Math.cos(a) * 18, -4 + Math.sin(a) * 23);
-          ctx.lineTo(Math.cos(a) * 20, -4 + Math.sin(a) * 25);
-          ctx.stroke();
-        }
+      } else if (kind === "gravity") {
+        ctx.strokeRect(-size * 0.7, -size * 0.7, size * 1.4, size * 1.4);
+        ctx.beginPath();
+        ctx.arc(0, 0, size * 0.36, 0, TAU);
+        ctx.stroke();
+      } else if (kind === "crystal") {
+        ctx.beginPath();
+        ctx.moveTo(0, -size);
+        ctx.lineTo(size * 0.72, 0);
+        ctx.lineTo(0, size);
+        ctx.lineTo(-size * 0.72, 0);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+      } else if (kind === "nature") {
+        ctx.beginPath();
+        ctx.ellipse(0, 0, size * 0.55, size, 0.7, 0, TAU);
+        ctx.fill();
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(-size * 0.2, size * 0.58);
+        ctx.lineTo(size * 0.32, -size * 0.6);
+        ctx.stroke();
+      } else if (kind === "void") {
+        ctx.beginPath();
+        ctx.arc(0, 0, size * 0.82, 0, TAU);
+        ctx.stroke();
+        ctx.rotate(Math.PI / 4);
+        ctx.strokeRect(-size * 0.4, -size * 0.4, size * 0.8, size * 0.8);
+      } else if (kind === "time") {
+        ctx.beginPath();
+        ctx.arc(0, 0, size * 0.82, 0, TAU);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.lineTo(0, -size * 0.55);
+        ctx.moveTo(0, 0);
+        ctx.lineTo(size * 0.46, size * 0.22);
+        ctx.stroke();
+      } else {
+        ctx.strokeRect(-size * 0.56, -size * 0.56, size * 1.12, size * 1.12);
       }
       ctx.restore();
     }

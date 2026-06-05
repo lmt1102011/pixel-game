@@ -1,17 +1,17 @@
-const SOULRIFT_CACHE = "soulrift-pwa-20260605-logo-gray-145";
+const SOULRIFT_CACHE = "soulrift-pwa-20260605-logo-refresh-146";
 const SOULRIFT_ASSETS = [
   "./",
   "./index.html",
-  "./styles.css?v=20260605-logo-gray-145",
-  "./src/pwa.js?v=20260605-logo-gray-145",
-  "./src/game.js?v=20260605-logo-gray-145",
+  "./styles.css?v=20260605-logo-refresh-146",
+  "./src/pwa.js?v=20260605-logo-refresh-146",
+  "./src/game.js?v=20260605-logo-refresh-146",
   "./manifest.webmanifest",
   "./version.json",
-  "./assets/icons/app-icon.svg?v=20260605-logo-gray-145",
-  "./assets/icons/app-icon-192.png?v=20260605-logo-gray-145",
-  "./assets/icons/app-icon-512.png?v=20260605-logo-gray-145",
-  "./assets/icons/app-icon-maskable-512.png?v=20260605-logo-gray-145",
-  "./assets/icons/apple-touch-icon.png?v=20260605-logo-gray-145"
+  "./assets/icons/app-icon-20260605-logo-refresh-146.svg",
+  "./assets/icons/app-icon-20260605-logo-refresh-146-192.png",
+  "./assets/icons/app-icon-20260605-logo-refresh-146-512.png",
+  "./assets/icons/app-icon-20260605-logo-refresh-146-maskable-512.png",
+  "./assets/icons/apple-touch-icon-20260605-logo-refresh-146.png"
 ];
 
 self.addEventListener("install", (event) => {

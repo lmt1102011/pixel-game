@@ -9,7 +9,7 @@
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
   const SIGNAL_REALTIME_RELAY_LIMIT = 2;
   const SIGNAL_REALTIME_TYPES = new Set(["state", "snapshot", "attack", "skill", "collect", "openChest", "dropItem", "damage", "chooseDoor"]);
-  const APP_VERSION = "20260605-multiplayer-raid-177";
+  const APP_VERSION = "20260605-power-signature-178";
   const CHANGELOG_ENTRIES = [
     {
       version: APP_VERSION,
@@ -288,6 +288,69 @@
     nature: "forest",
     void: "neon",
     time: "temple"
+  };
+
+  const POWER_SKILL_SIGNATURES = {
+    fire: {
+      q: { variant: "fireFang", anchor: "line", offset: 76, radius: 150, length: 340, width: 58, time: 0.34 },
+      e: { variant: "magmaWard", anchor: "caster", radius: 155, time: 0.46 },
+      r: { variant: "meteorCrown", anchor: "impact", radius: 225, time: 0.62 },
+      f: { variant: "domainFireSeal", anchor: "caster", radius: 210, time: 0.74 }
+    },
+    ice: {
+      q: { variant: "iceSpearline", anchor: "line", offset: 70, radius: 155, length: 380, width: 48, time: 0.38 },
+      e: { variant: "iceMirrorSigil", anchor: "caster", radius: 165, time: 0.48 },
+      r: { variant: "iceRuneField", anchor: "impact", radius: 220, time: 0.68 },
+      f: { variant: "domainIceSeal", anchor: "caster", radius: 215, time: 0.74 }
+    },
+    lightning: {
+      q: { variant: "lightningFork", anchor: "line", offset: 58, radius: 175, length: 520, width: 50, time: 0.3 },
+      e: { variant: "ionCoil", anchor: "caster", radius: 170, time: 0.42 },
+      r: { variant: "stormPillars", anchor: "impact", radius: 235, time: 0.58 },
+      f: { variant: "domainLightningSeal", anchor: "caster", radius: 220, time: 0.7 }
+    },
+    shadow: {
+      q: { variant: "shadowStepCut", anchor: "impact", radius: 165, length: 250, width: 54, time: 0.36 },
+      e: { variant: "shadowVeilSigil", anchor: "caster", radius: 175, time: 0.5 },
+      r: { variant: "shadowTwinCleave", anchor: "line", offset: 74, radius: 230, length: 430, width: 72, time: 0.58 },
+      f: { variant: "domainShadowSeal", anchor: "caster", radius: 220, time: 0.76 }
+    },
+    blood: {
+      q: { variant: "bloodCrescent", anchor: "caster", radius: 190, time: 0.42 },
+      e: { variant: "bloodPactSeal", anchor: "caster", radius: 165, time: 0.5 },
+      r: { variant: "bloodOrbitBlades", anchor: "caster", radius: 230, time: 0.68 },
+      f: { variant: "domainBloodSeal", anchor: "caster", radius: 215, time: 0.76 }
+    },
+    gravity: {
+      q: { variant: "gravityStamp", anchor: "line", offset: 130, radius: 180, length: 280, width: 70, time: 0.42 },
+      e: { variant: "gravityOrbitWard", anchor: "caster", radius: 190, time: 0.5 },
+      r: { variant: "gravityMeteorMark", anchor: "impact", radius: 240, time: 0.72 },
+      f: { variant: "domainGravitySeal", anchor: "caster", radius: 225, time: 0.76 }
+    },
+    crystal: {
+      q: { variant: "crystalSpearFan", anchor: "line", offset: 58, radius: 180, length: 330, width: 54, time: 0.42 },
+      e: { variant: "crystalAegis", anchor: "caster", radius: 180, time: 0.5 },
+      r: { variant: "crystalRainPrism", anchor: "impact", radius: 230, time: 0.66 },
+      f: { variant: "domainCrystalSeal", anchor: "caster", radius: 220, time: 0.76 }
+    },
+    nature: {
+      q: { variant: "rootSnare", anchor: "impact", radius: 170, time: 0.52 },
+      e: { variant: "flowerWard", anchor: "caster", radius: 170, time: 0.52 },
+      r: { variant: "thornPath", anchor: "line", offset: 55, radius: 225, length: 365, width: 74, time: 0.66 },
+      f: { variant: "domainNatureSeal", anchor: "caster", radius: 225, time: 0.76 }
+    },
+    void: {
+      q: { variant: "voidTearSigil", anchor: "impact", radius: 195, time: 0.5 },
+      e: { variant: "voidPhaseGate", anchor: "line", offset: 76, radius: 180, length: 260, width: 58, time: 0.46 },
+      r: { variant: "abyssMaw", anchor: "impact", radius: 245, time: 0.72 },
+      f: { variant: "domainVoidSeal", anchor: "caster", radius: 225, time: 0.76 }
+    },
+    time: {
+      q: { variant: "timeStopDial", anchor: "impact", radius: 175, time: 0.54 },
+      e: { variant: "rewindClock", anchor: "caster", radius: 165, time: 0.52 },
+      r: { variant: "timePrisonSeal", anchor: "impact", radius: 245, time: 0.72 },
+      f: { variant: "domainTimeSeal", anchor: "caster", radius: 225, time: 0.76 }
+    }
   };
 
   const BIOMES = [
@@ -10642,8 +10705,55 @@
       if (sourceId && !this.isMultiplayerClient()) enemy.lastBleedSourceId = sourceId;
     }
 
+    addPowerSignatureShape(kind, key, caster, angle, impact, awakened = false) {
+      const spec = POWER_SKILL_SIGNATURES[kind]?.[key];
+      if (!spec || !this.run || !caster) return;
+      const quality = this.perf?.quality ?? 1;
+      if (quality < 0.44 && key !== "r" && key !== "f") return;
+      const power = powerById(kind);
+      const scale = awakened ? 1.12 : 1;
+      let x = impact?.x ?? caster.x;
+      let y = impact?.y ?? caster.y;
+      if (spec.anchor === "caster") {
+        x = caster.x;
+        y = caster.y;
+      } else if (spec.anchor === "line") {
+        const offset = Number(spec.offset || 0);
+        x = caster.x + Math.cos(angle) * offset;
+        y = caster.y + Math.sin(angle) * offset;
+      }
+      this.addSkillShape(kind, spec.variant, x, y, angle + Number(spec.angle || 0), spec.radius * scale, spec.time * (awakened ? 1.08 : 1), {
+        length: spec.length ? spec.length * scale : undefined,
+        width: spec.width ? spec.width * scale : undefined,
+        signature: true,
+        awakened
+      });
+
+      const particleShape = this.powerDomainParticleKind(kind);
+      const count = this.particleCount((key === "f" ? 6 : key === "r" ? 4 : 3) * clamp(quality, 0.35, 1), { min: key === "f" ? 2 : 1 });
+      for (let i = 0; i < count; i++) {
+        const spread = spec.anchor === "line" ? rand(28, Math.max(72, (spec.length || spec.radius) * 0.34)) : rand(18, Math.max(42, spec.radius * 0.55));
+        const a = spec.anchor === "line" ? angle + rand(-0.34, 0.34) : rand(-Math.PI, Math.PI);
+        const px = x + Math.cos(a) * spread;
+        const py = y + Math.sin(a) * spread;
+        this.addParticle(px, py, i % 3 === 0 ? power.accent : power.color, rand(6, awakened ? 16 : 13), rand(0.24, 0.52), particleShape, a, rand(24, 120));
+      }
+
+      if (quality < 0.58) return;
+      if (kind === "lightning") {
+        this.run.slashes.push({ x, y, tx: x + Math.cos(angle) * Math.min(spec.length || 240, 340), ty: y + Math.sin(angle) * Math.min(spec.length || 240, 340), line: true, life: 0.11, maxLife: 0.11, color: power.accent });
+      } else if (kind === "shadow" || kind === "void") {
+        const side = kind === "shadow" ? 1 : -1;
+        this.run.slashes.push({ x: x - Math.sin(angle) * 24, y: y + Math.cos(angle) * 24, tx: x + Math.cos(angle) * Math.min(spec.length || 190, 320), ty: y + Math.sin(angle) * Math.min(spec.length || 190, 320) * side, line: true, life: 0.14, maxLife: 0.14, color: power.accent });
+      } else if (kind === "nature") {
+        this.run.slashes.push({ x: x - Math.cos(angle) * 26, y: y - Math.sin(angle) * 26, tx: x + Math.cos(angle) * 112, ty: y + Math.sin(angle) * 112, line: true, life: 0.18, maxLife: 0.18, color: power.color });
+      }
+      this.trimVisualList(this.run.slashes, this.isMobileDevice() ? 24 : 38);
+    }
+
     applyPowerIdentity(kind, key, caster, angle, impact, damage, owner = "player", casterId = "", remote = false, awakened = false) {
       if (!this.run || !caster || !impact) return;
+      this.addPowerSignatureShape(kind, key, caster, angle, impact, awakened);
       const radius = key === "f" ? 360 : key === "r" ? 280 : key === "e" ? 220 : 190;
       const power = powerById(kind);
       if (kind === "shadow") {
@@ -19088,6 +19198,10 @@
       const centerSize = Math.max(24, Math.min(48, radius * 0.14)) * (0.62 + growProgress * 0.38) * (0.78 + shrinkProgress * 0.22);
       ctx.save();
       ctx.translate(effect.x, effect.y);
+      this.drawDomainIdentityPattern(ctx, kind, radius, growProgress, shrinkProgress, power);
+      ctx.restore();
+      ctx.save();
+      ctx.translate(effect.x, effect.y);
       ctx.globalCompositeOperation = "lighter";
       ctx.globalAlpha = (0.46 + growProgress * 0.34) * Math.max(0.2, shrinkProgress);
       ctx.fillStyle = power.color;
@@ -19113,6 +19227,147 @@
         ctx.rotate(-spin + a * 0.35);
         this.drawPowerIconShape(ctx, kind, size, power.color, power.accent);
         ctx.restore();
+      }
+      ctx.restore();
+    }
+
+    drawDomainIdentityPattern(ctx, kind, radius, growProgress, shrinkProgress, power) {
+      const alpha = (0.18 + growProgress * 0.18) * Math.max(0.2, shrinkProgress);
+      const t = this.menuTime;
+      const color = power.color;
+      const accent = power.accent;
+      const lowDetail = this.isMobileDevice() || (this.perf?.quality ?? 1) < 0.72;
+      ctx.save();
+      ctx.globalCompositeOperation = "source-over";
+      ctx.globalAlpha = alpha;
+      ctx.strokeStyle = color;
+      ctx.fillStyle = hexToRgba(color, 0.18);
+      ctx.lineWidth = lowDetail ? 2 : 3;
+      ctx.lineCap = "round";
+      ctx.lineJoin = "round";
+      if (kind === "fire") {
+        for (let i = 0; i < 7; i++) {
+          const a = (i / 7) * TAU + t * 0.08;
+          const inner = radius * 0.2;
+          const outer = radius * (0.62 + (i % 2) * 0.1);
+          ctx.beginPath();
+          ctx.moveTo(Math.cos(a) * inner, Math.sin(a) * inner);
+          ctx.lineTo(Math.cos(a + 0.08) * outer, Math.sin(a + 0.08) * outer);
+          ctx.lineTo(Math.cos(a - 0.08) * radius * 0.48, Math.sin(a - 0.08) * radius * 0.48);
+          ctx.closePath();
+          ctx.stroke();
+        }
+      } else if (kind === "ice") {
+        const spokes = lowDetail ? 6 : 8;
+        for (let i = 0; i < spokes; i++) {
+          const a = (i / spokes) * TAU;
+          ctx.beginPath();
+          ctx.moveTo(Math.cos(a) * radius * 0.2, Math.sin(a) * radius * 0.2);
+          ctx.lineTo(Math.cos(a) * radius * 0.78, Math.sin(a) * radius * 0.78);
+          ctx.stroke();
+          const x = Math.cos(a) * radius * 0.5;
+          const y = Math.sin(a) * radius * 0.5;
+          ctx.strokeRect(x - 7, y - 7, 14, 14);
+        }
+      } else if (kind === "lightning") {
+        const bolts = lowDetail ? 5 : 8;
+        for (let i = 0; i < bolts; i++) {
+          const a = (i / bolts) * TAU + t * 0.18;
+          ctx.save();
+          ctx.rotate(a);
+          ctx.beginPath();
+          ctx.moveTo(radius * 0.18, 0);
+          ctx.lineTo(radius * 0.34, -14);
+          ctx.lineTo(radius * 0.48, 12);
+          ctx.lineTo(radius * 0.66, -10);
+          ctx.lineTo(radius * 0.82, 0);
+          ctx.stroke();
+          ctx.restore();
+        }
+      } else if (kind === "shadow") {
+        ctx.strokeStyle = accent;
+        for (let i = 0; i < (lowDetail ? 4 : 6); i++) {
+          const a = (i / (lowDetail ? 4 : 6)) * TAU + t * 0.06;
+          ctx.save();
+          ctx.translate(Math.cos(a) * radius * 0.46, Math.sin(a) * radius * 0.32);
+          ctx.rotate(a + Math.PI / 4);
+          ctx.strokeRect(-radius * 0.09, -radius * 0.09, radius * 0.18, radius * 0.18);
+          ctx.restore();
+        }
+      } else if (kind === "blood") {
+        ctx.strokeStyle = accent;
+        for (let i = 0; i < 3; i++) {
+          ctx.beginPath();
+          ctx.arc(0, 0, radius * (0.28 + i * 0.13), -0.95 + i * 0.35, 1.18 + i * 0.28);
+          ctx.stroke();
+        }
+        for (let i = 0; i < 8; i++) {
+          const a = (i / 8) * TAU;
+          ctx.beginPath();
+          ctx.arc(Math.cos(a) * radius * 0.6, Math.sin(a) * radius * 0.42, 5 + (i % 2) * 3, 0, TAU);
+          ctx.fill();
+        }
+      } else if (kind === "gravity") {
+        for (let i = 1; i <= 4; i++) {
+          ctx.save();
+          ctx.rotate(t * 0.08 + i * 0.24);
+          const s = radius * (0.12 + i * 0.09);
+          ctx.strokeRect(-s, -s, s * 2, s * 2);
+          ctx.restore();
+        }
+      } else if (kind === "crystal") {
+        const shards = lowDetail ? 6 : 10;
+        for (let i = 0; i < shards; i++) {
+          const a = (i / shards) * TAU;
+          ctx.save();
+          ctx.translate(Math.cos(a) * radius * 0.48, Math.sin(a) * radius * 0.48);
+          ctx.rotate(a + Math.PI / 2);
+          ctx.beginPath();
+          ctx.moveTo(0, -radius * 0.12);
+          ctx.lineTo(radius * 0.05, 0);
+          ctx.lineTo(0, radius * 0.16);
+          ctx.lineTo(-radius * 0.05, 0);
+          ctx.closePath();
+          ctx.stroke();
+          ctx.restore();
+        }
+      } else if (kind === "nature") {
+        const roots = lowDetail ? 5 : 8;
+        for (let i = 0; i < roots; i++) {
+          const a = (i / roots) * TAU;
+          ctx.beginPath();
+          ctx.moveTo(Math.cos(a) * radius * 0.78, Math.sin(a) * radius * 0.78);
+          ctx.bezierCurveTo(Math.cos(a + 0.2) * radius * 0.5, Math.sin(a + 0.2) * radius * 0.5, Math.cos(a - 0.15) * radius * 0.28, Math.sin(a - 0.15) * radius * 0.28, 0, 0);
+          ctx.stroke();
+        }
+      } else if (kind === "void") {
+        ctx.strokeStyle = accent;
+        for (let i = 0; i < (lowDetail ? 5 : 9); i++) {
+          const a = (i / (lowDetail ? 5 : 9)) * TAU + t * 0.04;
+          ctx.strokeRect(Math.cos(a) * radius * 0.55 - 8, Math.sin(a) * radius * 0.36 - 8, 16, 16);
+        }
+        ctx.beginPath();
+        ctx.ellipse(0, 0, radius * 0.36, radius * 0.18, t * 0.08, 0, TAU);
+        ctx.stroke();
+      } else if (kind === "time") {
+        ctx.strokeStyle = accent;
+        ctx.beginPath();
+        ctx.arc(0, 0, radius * 0.42, 0, TAU);
+        ctx.stroke();
+        const ticks = lowDetail ? 12 : 18;
+        for (let i = 0; i < ticks; i++) {
+          const a = (i / ticks) * TAU;
+          ctx.beginPath();
+          ctx.moveTo(Math.cos(a) * radius * 0.34, Math.sin(a) * radius * 0.34);
+          ctx.lineTo(Math.cos(a) * radius * 0.42, Math.sin(a) * radius * 0.42);
+          ctx.stroke();
+        }
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.lineTo(Math.cos(t) * radius * 0.3, Math.sin(t) * radius * 0.3);
+        ctx.moveTo(0, 0);
+        ctx.lineTo(Math.cos(-t * 1.6) * radius * 0.22, Math.sin(-t * 1.6) * radius * 0.22);
+        ctx.stroke();
       }
       ctx.restore();
     }
@@ -19213,6 +19468,7 @@
       const length = effect.length || r;
       const kind = effect.kind;
       const accent = effect.accent || effect.color;
+      const variant = String(effect.variant || "");
       const alpha = Math.min(0.9, fade * 0.92);
       const quality = this.perf?.quality ?? 1;
       const lowDetail = this.isMobileDevice() || quality < 0.74;
@@ -19250,10 +19506,134 @@
         ctx.stroke();
         ctx.restore();
       };
+      const polygon = (points, fill = false) => {
+        if (!points.length) return;
+        ctx.beginPath();
+        ctx.moveTo(points[0][0], points[0][1]);
+        for (let i = 1; i < points.length; i++) ctx.lineTo(points[i][0], points[i][1]);
+        ctx.closePath();
+        if (fill) ctx.fill();
+        ctx.stroke();
+      };
+      const sharpSlash = (len, width, lift = 0) => {
+        polygon([
+          [-len * 0.1, width * 0.32 + lift],
+          [len * 0.18, -width * 0.5 + lift],
+          [len * 0.88, -width * 0.22 + lift],
+          [len, 0 + lift],
+          [len * 0.72, width * 0.22 + lift],
+          [len * 0.1, width * 0.52 + lift]
+        ], true);
+        ctx.globalAlpha *= 0.72;
+        ctx.strokeStyle = "#ffffff";
+        ctx.lineWidth = Math.max(1.5, width * 0.08);
+        ctx.beginPath();
+        ctx.moveTo(len * 0.12, lift);
+        ctx.lineTo(len * 0.78, -width * 0.04 + lift);
+        ctx.stroke();
+      };
+      const jaggedLine = (len, amp, segments = 7) => {
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        for (let i = 1; i <= segments; i++) {
+          const px = (len / segments) * i;
+          const py = (i % 2 ? amp : -amp) * (0.75 + (i % 3) * 0.16);
+          ctx.lineTo(px, py);
+        }
+        ctx.stroke();
+      };
+      const hex = (x, y, size, fill = false) => {
+        const pts = [];
+        for (let i = 0; i < 6; i++) {
+          const a = Math.PI / 6 + (i / 6) * TAU;
+          pts.push([x + Math.cos(a) * size, y + Math.sin(a) * size]);
+        }
+        polygon(pts, fill);
+      };
+      const clock = (radius, ticks = 12) => {
+        ctx.beginPath();
+        ctx.arc(0, 0, radius, 0, TAU);
+        ctx.stroke();
+        for (let i = 0; i < ticks; i++) {
+          const a = (i / ticks) * TAU;
+          ctx.beginPath();
+          ctx.moveTo(Math.cos(a) * radius * 0.78, Math.sin(a) * radius * 0.78);
+          ctx.lineTo(Math.cos(a) * radius, Math.sin(a) * radius);
+          ctx.stroke();
+        }
+      };
+      const drawDomainSeal = () => {
+        ctx.globalCompositeOperation = "lighter";
+        ctx.globalAlpha = alpha * (effect.awakened ? 0.78 : 0.62);
+        ctx.lineWidth = effect.awakened ? 4 : 3;
+        ctx.strokeStyle = accent;
+        ctx.beginPath();
+        ctx.arc(0, 0, r * 0.52, 0, TAU);
+        ctx.stroke();
+        ctx.globalAlpha *= 0.86;
+        this.drawPowerIconShape(ctx, kind, r * 0.15, effect.color, accent);
+        ctx.globalAlpha *= 0.72;
+        const nodes = lowDetail ? 4 : 6;
+        for (let i = 0; i < nodes; i++) {
+          const a = (i / nodes) * TAU + progress * (kind === "time" ? -1.1 : 1.1);
+          ctx.save();
+          ctx.translate(Math.cos(a) * r * 0.42, Math.sin(a) * r * 0.42);
+          ctx.rotate(a);
+          this.drawPowerIconShape(ctx, kind, r * 0.048, effect.color, accent);
+          ctx.restore();
+        }
+        ctx.globalCompositeOperation = "source-over";
+      };
+
+      if (variant.startsWith("domain")) {
+        drawDomainSeal();
+        return;
+      }
 
       if (kind === "fire") {
         ctx.lineWidth = 3 + progress * 4;
-        if (effect.variant === "fireballBurst") {
+        if (variant === "fireFang") {
+          ctx.globalCompositeOperation = "lighter";
+          ctx.lineWidth = 3;
+          ctx.globalAlpha = alpha * 0.9;
+          ctx.fillStyle = effect.color;
+          sharpSlash(length * 0.72, effect.width || 56);
+          ctx.globalAlpha = alpha * 0.52;
+          ctx.strokeStyle = accent;
+          for (let i = 0; i < (lowDetail ? 2 : 4); i++) {
+            const px = length * (0.18 + i * 0.13);
+            polygon([[px, -18], [px + 22, 0], [px, 18], [px + 8, 0]], i % 2 === 0);
+          }
+        } else if (variant === "magmaWard") {
+          ctx.lineWidth = 4;
+          ctx.globalAlpha = alpha * 0.75;
+          for (let i = 0; i < 5; i++) {
+            const a = (i / 5) * TAU + progress * 0.4;
+            polygon([
+              [Math.cos(a) * r * 0.28, Math.sin(a) * r * 0.28],
+              [Math.cos(a + 0.16) * r * 0.72, Math.sin(a + 0.16) * r * 0.72],
+              [Math.cos(a - 0.16) * r * 0.72, Math.sin(a - 0.16) * r * 0.72]
+            ], true);
+          }
+          ctx.strokeStyle = accent;
+          ctx.globalAlpha = alpha * 0.52;
+          jaggedLine(r * 0.75, 14, 6);
+        } else if (variant === "meteorCrown") {
+          ctx.globalAlpha = alpha * 0.8;
+          ctx.lineWidth = 5;
+          for (let i = -2; i <= 2; i++) {
+            ctx.save();
+            ctx.translate(i * r * 0.17, -r * 0.18 + Math.abs(i) * 10);
+            ctx.rotate(0.3 * i);
+            polygon([[0, -r * 0.42], [r * 0.14, r * 0.02], [0, r * 0.22], [-r * 0.14, r * 0.02]], true);
+            ctx.restore();
+          }
+          ctx.strokeStyle = accent;
+          ctx.globalAlpha = alpha * 0.42;
+          ctx.beginPath();
+          ctx.arc(0, 0, r * (0.48 + progress * 0.12), 0, TAU);
+          ctx.stroke();
+        } else if (effect.variant === "fireballBurst") {
           ctx.globalAlpha = alpha * 0.78;
           ctx.beginPath();
           ctx.arc(0, 0, r * (0.25 + progress * 0.45), 0, TAU);
@@ -19312,7 +19692,45 @@
         }
       } else if (kind === "ice") {
         ctx.lineWidth = 3;
-        if (effect.variant === "iceLance") {
+        if (variant === "iceSpearline") {
+          ctx.globalAlpha = alpha * 0.9;
+          ctx.strokeStyle = effect.color;
+          ctx.lineWidth = 5;
+          ctx.beginPath();
+          ctx.moveTo(0, 0);
+          ctx.lineTo(length * 0.82, 0);
+          ctx.stroke();
+          ctx.fillStyle = accent;
+          polygon([[length * 0.94, 0], [length * 0.74, -24], [length * 0.8, 0], [length * 0.74, 24]], true);
+          ctx.globalAlpha = alpha * 0.55;
+          for (let i = 1; i <= (lowDetail ? 3 : 5); i++) {
+            const px = length * (0.13 + i * 0.11);
+            hex(px, i % 2 ? -18 : 18, 10, i % 2 === 0);
+          }
+        } else if (variant === "iceMirrorSigil") {
+          ctx.globalAlpha = alpha * 0.76;
+          for (let i = -2; i <= 2; i++) {
+            ctx.save();
+            ctx.translate(i * 26, 0);
+            ctx.rotate(i * 0.08);
+            polygon([[0, -r * 0.46], [18, -r * 0.12], [12, r * 0.42], [-12, r * 0.42], [-18, -r * 0.12]], true);
+            ctx.restore();
+          }
+          ctx.strokeStyle = accent;
+          clock(r * 0.62, lowDetail ? 6 : 8);
+        } else if (variant === "iceRuneField") {
+          ctx.globalAlpha = alpha * 0.72;
+          ctx.lineWidth = 3;
+          hex(0, 0, r * 0.58, false);
+          for (let i = 0; i < 6; i++) {
+            const a = (i / 6) * TAU;
+            ctx.beginPath();
+            ctx.moveTo(Math.cos(a) * r * 0.14, Math.sin(a) * r * 0.14);
+            ctx.lineTo(Math.cos(a) * r * 0.68, Math.sin(a) * r * 0.68);
+            ctx.stroke();
+            hex(Math.cos(a) * r * 0.42, Math.sin(a) * r * 0.42, 10, i % 2 === 0);
+          }
+        } else if (effect.variant === "iceLance") {
           ctx.globalAlpha = alpha * 0.86;
           ctx.strokeStyle = effect.color;
           ctx.lineWidth = 7;
@@ -19369,17 +19787,65 @@
         }
       } else if (kind === "lightning") {
         ctx.lineWidth = 5;
-        for (let rail = lowDetail ? 0 : -1; rail <= (lowDetail ? 0 : 1); rail++) {
-          const y = rail * 18;
-          ctx.globalAlpha = alpha * (rail === 0 ? 1 : 0.55);
-          ctx.beginPath();
-          ctx.moveTo(0, y);
-          for (let i = 1; i <= 8; i++) {
-            const x = (length / 8) * i;
-            const zig = (i % 2 === 0 ? -1 : 1) * (26 + rail * 6);
-            ctx.lineTo(x, y + zig);
+        if (variant === "lightningFork") {
+          ctx.globalCompositeOperation = "lighter";
+          ctx.strokeStyle = accent;
+          ctx.lineWidth = 6;
+          jaggedLine(length, 24, lowDetail ? 6 : 9);
+          ctx.globalAlpha = alpha * 0.5;
+          ctx.lineWidth = 3;
+          for (let i = 2; i <= (lowDetail ? 4 : 8); i += 2) {
+            const bx = (length / 9) * i;
+            ctx.beginPath();
+            ctx.moveTo(bx, i % 4 ? 16 : -16);
+            ctx.lineTo(bx + 48, i % 4 ? 66 : -66);
+            ctx.stroke();
           }
+        } else if (variant === "ionCoil") {
+          ctx.globalAlpha = alpha * 0.78;
+          ctx.lineWidth = 4;
+          for (let i = 0; i < (lowDetail ? 2 : 3); i++) {
+            ctx.beginPath();
+            ctx.arc(0, 0, r * (0.28 + i * 0.16), progress * 1.5 + i, progress * 1.5 + i + Math.PI * 1.35);
+            ctx.stroke();
+          }
+          ctx.strokeStyle = accent;
+          for (let i = 0; i < 5; i++) {
+            const a = (i / 5) * TAU + progress;
+            ctx.save();
+            ctx.rotate(a);
+            jaggedLine(r * 0.55, 10, 4);
+            ctx.restore();
+          }
+        } else if (variant === "stormPillars") {
+          ctx.globalAlpha = alpha * 0.8;
+          const pillars = lowDetail ? 5 : 8;
+          for (let i = 0; i < pillars; i++) {
+            const a = (i / pillars) * TAU;
+            ctx.save();
+            ctx.translate(Math.cos(a) * r * 0.48, Math.sin(a) * r * 0.48);
+            ctx.rotate(a + Math.PI / 2);
+            ctx.lineWidth = i % 2 ? 4 : 6;
+            jaggedLine(r * 0.34, 12, 4);
+            ctx.restore();
+          }
+          ctx.globalAlpha = alpha * 0.38;
+          ctx.beginPath();
+          ctx.arc(0, 0, r * 0.62, 0, TAU);
           ctx.stroke();
+        } else {
+          for (let rail = lowDetail ? 0 : -1; rail <= (lowDetail ? 0 : 1); rail++) {
+            const y = rail * 18;
+            ctx.globalAlpha = alpha * (rail === 0 ? 1 : 0.55);
+            ctx.beginPath();
+            ctx.moveTo(0, y);
+            for (let i = 1; i <= 8; i++) {
+              const x = (length / 8) * i;
+              const zig = (i % 2 === 0 ? -1 : 1) * (26 + rail * 6);
+              ctx.lineTo(x, y + zig);
+            }
+            ctx.stroke();
+          }
         }
         if (effect.variant === "stormCage") {
           const bolts = lowDetail ? 5 : 7;
@@ -19392,6 +19858,45 @@
           }
         }
       } else if (kind === "shadow") {
+        if (variant === "shadowStepCut") {
+          ctx.globalCompositeOperation = "source-over";
+          ctx.globalAlpha = alpha * 0.82;
+          ctx.fillStyle = "#05030d";
+          ctx.strokeStyle = accent;
+          ctx.lineWidth = 3;
+          sharpSlash(length || r * 1.4, effect.width || 62);
+          ctx.globalAlpha = alpha * 0.34;
+          ctx.fillStyle = "#11101f";
+          polygon([[r * 0.12, -r * 0.48], [r * 0.34, -r * 0.12], [r * 0.12, r * 0.18], [-r * 0.08, -r * 0.1]], true);
+        } else if (variant === "shadowVeilSigil") {
+          ctx.globalAlpha = alpha * 0.58;
+          ctx.fillStyle = "#05030d";
+          for (let i = 0; i < (lowDetail ? 3 : 5); i++) {
+            ctx.save();
+            ctx.rotate(i * 0.54 + progress * 0.2);
+            ctx.fillRect(-r * 0.1, -r * 0.62, r * 0.2, r * 0.42);
+            ctx.strokeRect(-r * 0.1, -r * 0.62, r * 0.2, r * 0.42);
+            ctx.restore();
+          }
+          ctx.globalAlpha = alpha * 0.5;
+          ctx.strokeStyle = accent;
+          ctx.lineWidth = 4;
+          ctx.beginPath();
+          ctx.arc(0, 0, r * 0.46, 0.4, Math.PI * 1.75);
+          ctx.stroke();
+        } else if (variant === "shadowTwinCleave") {
+          ctx.globalCompositeOperation = "lighter";
+          for (let side = -1; side <= 1; side += 2) {
+            ctx.save();
+            ctx.translate(0, side * 34);
+            ctx.rotate(side * -0.14);
+            ctx.globalAlpha = alpha * 0.78;
+            ctx.fillStyle = "#05030d";
+            ctx.strokeStyle = side < 0 ? "#b9a5ff" : "#7b5cff";
+            sharpSlash(length || r * 1.6, 52, side * 4);
+            ctx.restore();
+          }
+        } else {
         ctx.lineCap = "round";
         const bands = lowDetail ? 3 : 5;
         for (let i = 0; i < bands; i++) {
@@ -19437,8 +19942,54 @@
             ctx.globalCompositeOperation = "lighter";
           }
         }
+        }
       } else if (kind === "blood") {
         ctx.lineWidth = 6;
+        if (variant === "bloodCrescent") {
+          ctx.globalAlpha = alpha * 0.86;
+          ctx.strokeStyle = accent;
+          ctx.lineWidth = 8;
+          ctx.beginPath();
+          ctx.arc(0, 0, r * 0.58, -0.95, 0.88);
+          ctx.stroke();
+          ctx.globalAlpha = alpha * 0.52;
+          ctx.lineWidth = 3;
+          ctx.beginPath();
+          ctx.arc(0, 0, r * 0.38, -0.82, 0.72);
+          ctx.stroke();
+          for (let i = 0; i < 5; i++) {
+            const a = -0.78 + i * 0.36;
+            polygon([[Math.cos(a) * r * 0.58, Math.sin(a) * r * 0.58], [Math.cos(a) * r * 0.72, Math.sin(a) * r * 0.72 - 8], [Math.cos(a) * r * 0.62, Math.sin(a) * r * 0.82]], true);
+          }
+        } else if (variant === "bloodPactSeal") {
+          ctx.globalAlpha = alpha * 0.72;
+          ctx.lineWidth = 4;
+          ctx.beginPath();
+          ctx.arc(0, 0, r * 0.42, 0, TAU);
+          ctx.stroke();
+          ctx.globalAlpha = alpha * 0.56;
+          polygon([[0, -r * 0.54], [r * 0.46, r * 0.28], [-r * 0.46, r * 0.28]], false);
+          for (let i = 0; i < 6; i++) {
+            const a = (i / 6) * TAU;
+            ctx.beginPath();
+            ctx.arc(Math.cos(a) * r * 0.48, Math.sin(a) * r * 0.48, 7 + (i % 2) * 3, 0, TAU);
+            ctx.fill();
+          }
+        } else if (variant === "bloodOrbitBlades") {
+          ctx.globalAlpha = alpha * 0.82;
+          for (let i = 0; i < (lowDetail ? 4 : 7); i++) {
+            const a = (i / (lowDetail ? 4 : 7)) * TAU + progress * 0.8;
+            ctx.save();
+            ctx.rotate(a);
+            ctx.translate(r * 0.5, 0);
+            sharpSlash(r * 0.38, 22);
+            ctx.restore();
+          }
+          ctx.globalAlpha = alpha * 0.38;
+          ctx.beginPath();
+          ctx.arc(0, 0, r * 0.52, 0, TAU);
+          ctx.stroke();
+        } else {
         for (let i = 0; i < (lowDetail ? 2 : 3); i++) {
           const rr = r * (0.26 + i * 0.14 + progress * 0.08);
           ctx.globalAlpha = alpha * (0.86 - i * 0.18);
@@ -19456,9 +20007,54 @@
           ctx.arc(px, py, 7 + (i % 2) * 4, 0, TAU);
           ctx.fill();
         }
+        }
       } else if (kind === "gravity") {
         ctx.lineWidth = 4;
-        if (effect.variant === "gravityMeteor") {
+        if (variant === "gravityStamp") {
+          ctx.globalAlpha = alpha * 0.78;
+          for (let i = 0; i < 3; i++) {
+            ctx.save();
+            ctx.rotate(progress * 0.7 + i * 0.22);
+            const s = r * (0.24 + i * 0.12);
+            ctx.strokeRect(-s, -s, s * 2, s * 2);
+            ctx.restore();
+          }
+          ctx.globalAlpha = alpha * 0.48;
+          ctx.fillStyle = effect.color;
+          for (let i = -1; i <= 1; i++) {
+            ctx.save();
+            ctx.translate(r * (0.25 + Math.abs(i) * 0.08), i * r * 0.24);
+            ctx.rotate(Math.PI / 4);
+            ctx.fillRect(-12, -12, 24, 24);
+            ctx.restore();
+          }
+        } else if (variant === "gravityOrbitWard") {
+          ctx.globalAlpha = alpha * 0.76;
+          for (let i = 0; i < 4; i++) {
+            ctx.save();
+            ctx.rotate((i / 4) * TAU + progress);
+            ctx.strokeRect(r * 0.24, -r * 0.1, r * 0.34, r * 0.2);
+            ctx.restore();
+          }
+          ctx.globalAlpha = alpha * 0.32;
+          ctx.fillStyle = "#171225";
+          ctx.beginPath();
+          ctx.arc(0, 0, r * 0.38, 0, TAU);
+          ctx.fill();
+          ctx.stroke();
+        } else if (variant === "gravityMeteorMark") {
+          ctx.globalAlpha = alpha * 0.84;
+          ctx.strokeStyle = accent;
+          ctx.lineWidth = 4;
+          for (let i = -1; i <= 1; i++) {
+            ctx.save();
+            ctx.translate(i * r * 0.18, -r * 0.12);
+            polygon([[0, -r * 0.42], [r * 0.26, -r * 0.06], [r * 0.12, r * 0.26], [-r * 0.22, r * 0.18], [-r * 0.3, -r * 0.08]], true);
+            ctx.restore();
+          }
+          ctx.globalAlpha = alpha * 0.4;
+          ctx.strokeRect(-r * 0.42, -r * 0.42, r * 0.84, r * 0.84);
+        } else if (effect.variant === "gravityMeteor") {
           ctx.globalAlpha = alpha * 0.82;
           ctx.strokeStyle = effect.accent || "#59ffd4";
           ctx.lineWidth = 5;
@@ -19510,7 +20106,47 @@
         }
       } else if (kind === "crystal") {
         ctx.lineWidth = 3;
-        if (effect.variant === "crystalRain") {
+        if (variant === "crystalSpearFan") {
+          ctx.globalAlpha = alpha * 0.86;
+          const shards = lowDetail ? 3 : 5;
+          for (let i = -shards; i <= shards; i++) {
+            const a = i * 0.11;
+            ctx.save();
+            ctx.rotate(a);
+            ctx.translate(length * (0.28 + (shards - Math.abs(i)) * 0.022), 0);
+            polygon([[r * 0.16, 0], [-r * 0.04, -r * 0.07], [-r * 0.16, 0], [-r * 0.04, r * 0.07]], true);
+            ctx.restore();
+          }
+          ctx.strokeStyle = accent;
+          ctx.globalAlpha = alpha * 0.5;
+          sharpSlash(length * 0.7, effect.width || 44);
+        } else if (variant === "crystalAegis") {
+          ctx.globalAlpha = alpha * 0.78;
+          for (let i = 0; i < 6; i++) {
+            const a = (i / 6) * TAU + progress * 0.18;
+            ctx.save();
+            ctx.translate(Math.cos(a) * r * 0.4, Math.sin(a) * r * 0.4);
+            ctx.rotate(a + Math.PI / 2);
+            polygon([[0, -r * 0.2], [r * 0.11, 0], [0, r * 0.24], [-r * 0.11, 0]], true);
+            ctx.restore();
+          }
+          ctx.globalAlpha = alpha * 0.38;
+          hex(0, 0, r * 0.56, false);
+        } else if (variant === "crystalRainPrism") {
+          ctx.globalAlpha = alpha * 0.84;
+          const rain = lowDetail ? 3 : 6;
+          for (let i = -rain; i <= rain; i++) {
+            const x = i * r * 0.08;
+            ctx.save();
+            ctx.translate(x, -r * 0.42 + Math.abs(i) * 5);
+            polygon([[0, -r * 0.2], [r * 0.08, 0], [0, r * 0.28], [-r * 0.08, 0]], true);
+            ctx.restore();
+            ctx.beginPath();
+            ctx.moveTo(x, -r * 0.1);
+            ctx.lineTo(x + i * 3, r * 0.36);
+            ctx.stroke();
+          }
+        } else if (effect.variant === "crystalRain") {
           const rain = lowDetail ? 2 : 3;
           for (let i = -rain; i <= rain; i++) {
             const x = i * 38;
@@ -19533,6 +20169,43 @@
         }
       } else if (kind === "nature") {
         ctx.lineWidth = 5;
+        if (variant === "rootSnare") {
+          ctx.globalAlpha = alpha * 0.8;
+          ctx.strokeStyle = effect.color;
+          ctx.lineWidth = 5;
+          for (let i = 0; i < (lowDetail ? 4 : 7); i++) {
+            const a = (i / (lowDetail ? 4 : 7)) * TAU;
+            ctx.beginPath();
+            ctx.moveTo(Math.cos(a) * r * 0.68, Math.sin(a) * r * 0.68);
+            ctx.bezierCurveTo(Math.cos(a + 0.28) * r * 0.42, Math.sin(a + 0.28) * r * 0.42, Math.cos(a - 0.18) * r * 0.18, Math.sin(a - 0.18) * r * 0.18, 0, 0);
+            ctx.stroke();
+          }
+          ctx.globalAlpha = alpha * 0.55;
+          for (let i = 0; i < 4; i++) leaf(Math.cos(i * TAU / 4) * r * 0.42, Math.sin(i * TAU / 4) * r * 0.42, 12, i * 0.6);
+        } else if (variant === "flowerWard") {
+          ctx.globalAlpha = alpha * 0.76;
+          for (let i = 0; i < 6; i++) {
+            const a = (i / 6) * TAU;
+            leaf(Math.cos(a) * r * 0.26, Math.sin(a) * r * 0.2, r * 0.16, a);
+          }
+          ctx.globalAlpha = alpha * 0.42;
+          ctx.beginPath();
+          ctx.arc(0, 0, r * 0.48, 0, TAU);
+          ctx.stroke();
+        } else if (variant === "thornPath") {
+          ctx.globalAlpha = alpha * 0.84;
+          ctx.lineWidth = 6;
+          for (let i = lowDetail ? 0 : -1; i <= (lowDetail ? 0 : 1); i++) {
+            ctx.beginPath();
+            ctx.moveTo(0, i * 20);
+            ctx.bezierCurveTo(length * 0.22, i * 38 - 24, length * 0.54, i * -34 + 22, length, i * 16);
+            ctx.stroke();
+          }
+          for (let i = 1; i <= (lowDetail ? 4 : 6); i++) {
+            const x = (length / 6) * i;
+            polygon([[x, 0], [x + 14, -26], [x + 28, 0], [x + 10, 10]], true);
+          }
+        } else {
         const line = effect.variant === "thornLine" ? length : r * 0.82;
         for (let i = lowDetail ? 0 : -1; i <= (lowDetail ? 0 : 1); i++) {
           ctx.globalAlpha = alpha * (i === 0 ? 0.95 : 0.62);
@@ -19547,9 +20220,42 @@
           leaf(x, (i % 2 === 0 ? -1 : 1) * 26, 13, (i % 2 === 0 ? -0.8 : 0.8));
           if (effect.variant === "thornLine") diamond(x, 0, 8, 18, true);
         }
+        }
       } else if (kind === "void") {
         ctx.lineWidth = 5;
-        if (effect.variant === "phaseSlash") {
+        if (variant === "voidTearSigil") {
+          ctx.globalAlpha = alpha * 0.86;
+          ctx.strokeStyle = accent;
+          ctx.lineWidth = 4;
+          polygon([[0, -r * 0.56], [r * 0.28, -r * 0.08], [r * 0.1, r * 0.12], [r * 0.34, r * 0.52], [-r * 0.06, r * 0.18], [-r * 0.28, r * 0.44], [-r * 0.12, 0]], false);
+          ctx.globalAlpha = alpha * 0.32;
+          ctx.fillStyle = "#020411";
+          polygon([[0, -r * 0.42], [r * 0.18, -r * 0.06], [0, r * 0.2], [-r * 0.18, -r * 0.04]], true);
+        } else if (variant === "voidPhaseGate") {
+          ctx.globalAlpha = alpha * 0.78;
+          ctx.strokeStyle = accent;
+          sharpSlash(length || r * 1.35, effect.width || 58);
+          ctx.globalAlpha = alpha * 0.42;
+          for (let i = 0; i < (lowDetail ? 3 : 5); i++) {
+            ctx.strokeRect(i * 34 + 8, (i % 2 ? -1 : 1) * 24, 18, 10);
+          }
+        } else if (variant === "abyssMaw") {
+          ctx.globalAlpha = alpha * 0.82;
+          ctx.save();
+          ctx.scale(1, 0.58);
+          ctx.beginPath();
+          ctx.arc(0, 0, r * 0.58, 0, TAU);
+          ctx.stroke();
+          ctx.globalAlpha = alpha * 0.28;
+          ctx.fillStyle = "#020411";
+          ctx.fill();
+          ctx.restore();
+          ctx.globalAlpha = alpha * 0.58;
+          for (let i = 0; i < (lowDetail ? 5 : 8); i++) {
+            const a = (i / (lowDetail ? 5 : 8)) * TAU + progress * 0.5;
+            ctx.strokeRect(Math.cos(a) * r * 0.5 - 8, Math.sin(a) * r * 0.32 - 8, 16, 16);
+          }
+        } else if (effect.variant === "phaseSlash") {
           ctx.globalAlpha = alpha * 0.78;
           ctx.strokeStyle = effect.color;
           ctx.lineWidth = 10;
@@ -19586,6 +20292,33 @@
         }
       } else if (kind === "time") {
         ctx.lineWidth = 3;
+        if (variant === "timeStopDial" || variant === "rewindClock" || variant === "timePrisonSeal") {
+          ctx.globalAlpha = alpha * 0.82;
+          clock(r * (variant === "timePrisonSeal" ? 0.62 : 0.5), variant === "timePrisonSeal" ? 16 : 12);
+          ctx.lineWidth = variant === "timePrisonSeal" ? 5 : 4;
+          ctx.beginPath();
+          ctx.moveTo(0, 0);
+          ctx.lineTo(Math.cos(-0.85 - progress * 1.7) * r * 0.38, Math.sin(-0.85 - progress * 1.7) * r * 0.38);
+          ctx.moveTo(0, 0);
+          ctx.lineTo(Math.cos(1.2 + progress * 2.5) * r * 0.28, Math.sin(1.2 + progress * 2.5) * r * 0.28);
+          ctx.stroke();
+          if (variant === "rewindClock") {
+            ctx.globalAlpha = alpha * 0.45;
+            ctx.beginPath();
+            ctx.arc(0, 0, r * 0.36, Math.PI * 0.25, Math.PI * 1.7, true);
+            ctx.stroke();
+            polygon([[-r * 0.38, -r * 0.12], [-r * 0.23, -r * 0.26], [-r * 0.22, -r * 0.04]], true);
+          } else if (variant === "timePrisonSeal") {
+            ctx.globalAlpha = alpha * 0.5;
+            for (let i = 0; i < 8; i++) {
+              const a = (i / 8) * TAU;
+              ctx.beginPath();
+              ctx.moveTo(Math.cos(a) * r * 0.42, Math.sin(a) * r * 0.42);
+              ctx.lineTo(Math.cos(a) * r * 0.74, Math.sin(a) * r * 0.74);
+              ctx.stroke();
+            }
+          }
+        } else {
         ctx.beginPath();
         ctx.arc(0, 0, r * 0.52, 0, TAU);
         ctx.stroke();
@@ -19630,6 +20363,22 @@
           ctx.arc(0, 0, r * (prison ? 0.66 : 0.5), 0, TAU);
           ctx.fill();
         }
+        }
+      }
+
+      if (variant.startsWith("awakened-") || effect.awakened) {
+        ctx.globalCompositeOperation = "lighter";
+        ctx.globalAlpha = alpha * (lowDetail ? 0.38 : 0.56);
+        ctx.strokeStyle = accent;
+        ctx.lineWidth = lowDetail ? 2 : 3;
+        ctx.beginPath();
+        ctx.arc(0, 0, r * 0.7, -progress * TAU, Math.PI * 1.3 - progress * TAU);
+        ctx.stroke();
+        ctx.save();
+        ctx.rotate(progress * (kind === "time" ? -2 : 2));
+        this.drawPowerIconShape(ctx, kind, Math.max(8, r * 0.07), effect.color, accent);
+        ctx.restore();
+        ctx.globalCompositeOperation = "source-over";
       }
 
       if (effect.variant === "ultimate") {

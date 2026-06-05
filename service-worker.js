@@ -1,11 +1,11 @@
-const SOULRIFT_CACHE = "soulrift-pwa-20260605-front-awakened-aura-162";
+const SOULRIFT_CACHE = "soulrift-pwa-20260605-domain-invuln-163";
 const SOULRIFT_ASSETS = [
   "./",
   "./index.html",
-  "./styles.css?v=20260605-front-awakened-aura-162",
-  "./src/pwa.js?v=20260605-front-awakened-aura-162",
-  "./src/game.js?v=20260605-front-awakened-aura-162",
-  "./manifest.webmanifest?v=20260605-front-awakened-aura-162",
+  "./styles.css?v=20260605-domain-invuln-163",
+  "./src/pwa.js?v=20260605-domain-invuln-163",
+  "./src/game.js?v=20260605-domain-invuln-163",
+  "./manifest.webmanifest?v=20260605-domain-invuln-163",
   "./version.json",
   "./assets/icons/app-icon-20260605-logo-xl-149.svg",
   "./assets/icons/app-icon-20260605-logo-xl-149-192.png",

@@ -7,7 +7,7 @@
   const ROOM_PAD = 86;
   const SAVE_KEY = "soulrift-save-v1";
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
-  const APP_VERSION = "20260605-front-awakened-aura-162";
+  const APP_VERSION = "20260605-domain-invuln-163";
   const VERSION_CHECK_INTERVAL = 15000;
   const UPDATE_ATTEMPT_KEY = "soulrift-update-attempt-v1";
   const CLOUD_MIGRATION_KEY = "soulrift-cloud-migrated-v1";
@@ -27,6 +27,7 @@
   const DOOR_ENTER_TIME = 1.0;
   const DOMAIN_CUTIN_TIME = 1.35;
   const DOMAIN_GROW_TIME = 1.55;
+  const DOMAIN_CAST_INVULN_TIME = 1.5;
   const DOMAIN_SHRINK_TIME = 0.95;
   const DOMAIN_DURATION = 10;
   const DOMAIN_ENERGY_COST_RATIO = 0.62;
@@ -2032,7 +2033,10 @@
       const previousDisplayY = Number.isFinite(previous.displayY) ? previous.displayY : (Number.isFinite(previous.y) ? previous.y : nextY);
       const snap = !sameRoom || !Number.isFinite(previousDisplayX) || !Number.isFinite(previousDisplayY) || Math.hypot(nextX - previousDisplayX, nextY - previousDisplayY) > 760;
       const mergedState = { ...state };
-      if (this.host) mergedState.ult = Number.isFinite(previous.ult) ? previous.ult : Math.max(0, Number(state.ult) || 0);
+      if (this.host) {
+        mergedState.ult = Number.isFinite(previous.ult) ? previous.ult : Math.max(0, Number(state.ult) || 0);
+        mergedState.invuln = Math.max(Number(previous.invuln || 0), Number(state.invuln || 0));
+      }
       this.game.remotePlayers.set(remoteId, {
         ...previous,
         ...mergedState,
@@ -6776,6 +6780,7 @@
         animTime: player.animTime,
         actionTime: player.actionTime,
         actionTotal: player.actionTotal,
+        invuln: player.invuln || 0,
         guardianParry: player.guardianParry || 0,
         shadowWeapon: player.shadowWeapon || 0,
         shadowWeaponDamageMult: player.shadowWeaponDamageMult || 1,
@@ -8832,6 +8837,7 @@
         animation: skill.key === "f" ? "ultimate" : "skill",
         actionTotal: skill.key === "f" ? DOMAIN_CUTIN_TIME + DOMAIN_GROW_TIME + 0.15 : 0.42,
         actionTime: skill.key === "f" ? DOMAIN_CUTIN_TIME + DOMAIN_GROW_TIME + 0.15 : 0.42,
+        invuln: skill.key === "f" ? Math.max(Number(remote.invuln || 0), DOMAIN_CAST_INVULN_TIME) : (remote.invuln || 0),
         ult: skill.key === "f" ? 0 : (Number.isFinite(remote.ult) ? remote.ult : 0),
         facing: angle,
         t: performance.now()
@@ -8878,7 +8884,10 @@
       p.animation = key === "f" ? "ultimate" : "skill";
       p.actionTotal = key === "f" ? DOMAIN_CUTIN_TIME + DOMAIN_GROW_TIME + 0.15 : key === "r" ? 0.48 : 0.38;
       p.actionTime = p.actionTotal;
-      if (key === "f") p.domainLock = Math.max(p.domainLock || 0, DOMAIN_CUTIN_TIME + DOMAIN_GROW_TIME + 0.15);
+      if (key === "f") {
+        p.domainLock = Math.max(p.domainLock || 0, DOMAIN_CUTIN_TIME + DOMAIN_GROW_TIME + 0.15);
+        p.invuln = Math.max(p.invuln || 0, DOMAIN_CAST_INVULN_TIME);
+      }
       const power = this.run.power;
       const aim = this.skillAimAngle(p);
       const target = this.skillTargetPoint(p, aim, 250);
@@ -9921,6 +9930,10 @@
       if (key === "f") {
         const awakened = Boolean(options.awakened ?? this.powerAwakeningActive(power.id));
         const radius = awakened ? 330 : 280;
+        const domainCaster = owner === "ally" && casterId ? (this.remotePlayers.get(casterId) || caster) : caster;
+        if (domainCaster && !domainCaster.dead) {
+          domainCaster.invuln = Math.max(Number(domainCaster.invuln || 0), DOMAIN_CAST_INVULN_TIME);
+        }
         this.startDomainCinematic(power, caster, angle, options);
         this.freezeEnemiesForDomain(DOMAIN_CUTIN_TIME + 0.28, power.accent);
         if (kind === "blood") healFromSkill(36);
@@ -11618,6 +11631,7 @@
       }
       const remote = this.remotePlayers.get(target.id);
       if (remote && this.tryGuardianReflect(remote, amount, source)) return;
+      if (remote && Number(remote.invuln || 0) > 0) return;
       if (remote) {
         remote.hp = Math.max(0, (remote.hp ?? target.maxHp ?? 1) - amount);
         if (remote.hp <= 0) {
@@ -13485,6 +13499,7 @@
       if (state.power !== previous.power || state.powerAwakened !== previous.powerAwakened) return true;
       if (state.dead !== previous.dead || state.spectating !== previous.spectating || state.spectateId !== previous.spectateId) return true;
       if (state.animation !== previous.animation || Math.abs((state.actionTime || 0) - (previous.actionTime || 0)) > 0.08) return true;
+      if (Math.abs((state.invuln || 0) - (previous.invuln || 0)) > 0.18) return true;
       if (Math.abs((state.ult || 0) - (previous.ult || 0)) > 0.5) return true;
       if (Math.abs((state.hp || 0) - (previous.hp || 0)) > 0.5 || Math.abs((state.energy || 0) - (previous.energy || 0)) > 1.2) return true;
       if (Math.abs(angleDelta(state.facing || 0, previous.facing || 0)) > 0.08) return true;
@@ -13569,6 +13584,7 @@
       const now = performance.now();
       const remoteBlend = clamp(dt * 22, 0, 1);
       for (const remote of this.remotePlayers.values()) {
+        remote.invuln = Math.max(0, Number(remote.invuln || 0) - dt);
         const age = clamp((now - (remote.t || now)) / 1000, 0, 0.12);
         const targetX = Number(remote.x) + (Number(remote.vx) || 0) * age;
         const targetY = Number(remote.y) + (Number(remote.vy) || 0) * age;
@@ -13822,6 +13838,7 @@
           animTime: remote.animTime || this.menuTime,
           actionTime: remote.actionTime || 0,
           actionTotal: remote.actionTotal || 0,
+          invuln: remote.invuln || 0,
           hp: remote.hp,
           dead: remote.dead,
           characterId: remote.characterId,

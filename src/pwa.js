@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const APP_VERSION = "20260606-domain-flash-once-189";
+  const APP_VERSION = "20260606-domain-cutin-fix-188";
   const APP_ICON = "assets/icons/app-icon-20260605-logo-xl-149.svg";
   let deferredInstallPrompt = null;
   let startGame = null;

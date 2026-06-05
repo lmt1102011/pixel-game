@@ -9,7 +9,7 @@
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
   const SIGNAL_REALTIME_RELAY_LIMIT = 2;
   const SIGNAL_REALTIME_TYPES = new Set(["state", "snapshot", "attack", "skill", "collect", "openChest", "dropItem", "damage", "chooseDoor"]);
-  const APP_VERSION = "20260606-domain-flash-once-189";
+  const APP_VERSION = "20260606-domain-cutin-fix-188";
   const CHANGELOG_ENTRIES = [
     {
       version: APP_VERSION,
@@ -25210,13 +25210,6 @@
       ctx.globalAlpha = alpha * 0.18;
       ctx.fillStyle = effect.color || power.color;
       ctx.fillRect(0, panelY + panelH - 10, this.width * sweep, 10);
-      const flashPulse = clamp(1 - Math.abs(progress - 0.82) / 0.045, 0, 1);
-      if (flashPulse > 0) {
-        ctx.globalCompositeOperation = "source-over";
-        ctx.globalAlpha = Math.pow(flashPulse, 1.7) * 0.86;
-        ctx.fillStyle = "#ffffff";
-        ctx.fillRect(0, 0, this.width, this.height);
-      }
       ctx.restore();
     }
   }

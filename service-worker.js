@@ -1,11 +1,11 @@
-const SOULRIFT_CACHE = "soulrift-pwa-20260605-secret-puzzle-176";
+const SOULRIFT_CACHE = "soulrift-pwa-20260605-multiplayer-raid-177";
 const SOULRIFT_ASSETS = [
   "./",
   "./index.html",
-  "./styles.css?v=20260605-secret-puzzle-176",
-  "./src/pwa.js?v=20260605-secret-puzzle-176",
-  "./src/game.js?v=20260605-secret-puzzle-176",
-  "./manifest.webmanifest?v=20260605-secret-puzzle-176",
+  "./styles.css?v=20260605-multiplayer-raid-177",
+  "./src/pwa.js?v=20260605-multiplayer-raid-177",
+  "./src/game.js?v=20260605-multiplayer-raid-177",
+  "./manifest.webmanifest?v=20260605-multiplayer-raid-177",
   "./version.json",
   "./assets/icons/app-icon-20260605-logo-xl-149.svg",
   "./assets/icons/app-icon-20260605-logo-xl-149-192.png",

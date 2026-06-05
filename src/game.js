@@ -9,12 +9,13 @@
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
   const SIGNAL_REALTIME_RELAY_LIMIT = 2;
   const SIGNAL_REALTIME_TYPES = new Set(["state", "snapshot", "attack", "skill", "collect", "openChest", "dropItem", "damage", "chooseDoor"]);
-  const APP_VERSION = "20260605-secret-puzzle-176";
+  const APP_VERSION = "20260605-multiplayer-raid-177";
   const CHANGELOG_ENTRIES = [
     {
       version: APP_VERSION,
       title: "Cân bằng, Hóa Trùm và mạng",
       items: [
+        "Raid A có thể tạo phòng chơi nhiều người; boss raid trâu hơn và dùng bộ chiêu riêng theo power raid.",
         "Đổi Cổng Bí Mật sang puzzle xoay hình: bấm từng mảnh để ghép đúng ấn, không còn nhập câu trả lời.",
         "Cân lại sát thương, nhịp đánh, điểm nâng và độ khó để đỡ phá game hơn.",
         "Hóa Trùm có thông báo chọn boss, skill boss theo khu và màn kết quả rõ hơn.",
@@ -1833,6 +1834,7 @@
         open: Boolean(open),
         running: !open || this.game.mode === "game",
         runMode: this.runMode || "gauntlet",
+        raidPowerId: this.runMode === "awakeningRaid" ? (this.game.save?.account?.selectedPower || "") : "",
         emptySince: this.emptySince || 0,
         emptyFor: this.emptySince ? now - this.emptySince : 0,
         players: this.slots.filter(Boolean).length,
@@ -2304,8 +2306,9 @@
         host: false,
         seed: message.seed,
         difficulty: message.difficultyId || this.difficultyVote || "normal",
-        miniGame: message.miniGame || (message.runMode === "bossRush" ? "bossRush" : message.runMode === "playerBoss" ? "playerBoss" : ""),
-        bossPlayerId: message.bossPlayerId || ""
+        miniGame: message.miniGame || (message.runMode === "bossRush" ? "bossRush" : message.runMode === "playerBoss" ? "playerBoss" : message.runMode === "awakeningRaid" ? "awakeningRaid" : ""),
+        bossPlayerId: message.bossPlayerId || "",
+        raidPowerId: message.raidPowerId || (message.runMode === "awakeningRaid" ? message.powerId : "")
       });
     }
 
@@ -2438,11 +2441,11 @@
       }
     }
 
-    broadcastStart(powerId, biomeId, seed, slots = this.slots, difficultyId = this.difficultyVote, runMode = this.runMode, bossPlayerId = "") {
+    broadcastStart(powerId, biomeId, seed, slots = this.slots, difficultyId = this.difficultyVote, runMode = this.runMode, bossPlayerId = "", raidPowerId = "") {
       for (const timer of this.startRetryTimers) clearTimeout(timer);
       this.startRetryTimers = [];
-      const miniGame = runMode === "bossRush" ? "bossRush" : runMode === "playerBoss" ? "playerBoss" : "";
-      const message = { type: "start", powerId, biomeId, seed, slots, difficultyId, runMode, miniGame, bossPlayerId, roomSession: this.roomSession };
+      const miniGame = runMode === "bossRush" ? "bossRush" : runMode === "playerBoss" ? "playerBoss" : runMode === "awakeningRaid" ? "awakeningRaid" : "";
+      const message = { type: "start", powerId, biomeId, seed, slots, difficultyId, runMode, miniGame, bossPlayerId, raidPowerId: raidPowerId || (runMode === "awakeningRaid" ? powerId : ""), roomSession: this.roomSession };
       this.lastStartMessage = message;
       this.lastStartAt = Date.now();
       const send = () => {
@@ -4960,6 +4963,7 @@
         this.showAwakeningRaidMenu();
       }
       if (action === "start-awakening-raid") this.startAwakeningRaid();
+      if (action === "play-awakening-raid-multiplayer") this.showMultiplayerHub("awakeningRaid");
       if (action === "play-solo") this.showSoloMenu();
       if (action === "play-minigames") this.showMiniGameMenu();
       if (action === "play-boss-rush") this.showBossRushMenu();
@@ -5355,7 +5359,7 @@
               </div>
               <button class="btn" data-action="play-gauntlet">VƯỢT ẢI</button>
             </div>
-            <div class="grid cols-2">
+            <div class="grid cols-3">
               <div class="choice-card locked" style="border-color:${selected.color}">
                 ${this.powerIllustration(selected)}
                 <h3 style="color:${selected.color}">Raid ${selected.name}</h3>
@@ -5363,10 +5367,16 @@
                 <p class="small">${materialLabel(gemId)} đang có: ${ownedGem}</p>
               </div>
               <button class="choice-card" data-action="start-awakening-raid" style="border-color:${selected.color}">
-                <div class="card-icon">A</div>
-                <h3>Bắt đầu Raid A</h3>
+                <div class="card-icon">1</div>
+                <h3>Chơi đơn</h3>
                 <p>Solo boss raid để lấy ngọc thức tỉnh của power đang chọn.</p>
                 <p class="small">Cần thêm 3 Lõi Trùm + 1 Tia Thần khi bấm thức tỉnh.</p>
+              </button>
+              <button class="choice-card" data-action="play-awakening-raid-multiplayer" style="border-color:${selected.color}">
+                <div class="card-icon">4</div>
+                <h3>Chơi nhiều người</h3>
+                <p>Tạo phòng Raid A. Boss dùng đúng bộ chiêu của ${selected.name} và trâu hơn boss thường.</p>
+                <p class="small">Mọi người clear raid sẽ nhận ngọc ${selected.name}.</p>
               </button>
             </div>
           </div>
@@ -5442,14 +5452,19 @@
       this.lobby.runMode = runMode;
       const bossRush = runMode === "bossRush";
       const playerBoss = runMode === "playerBoss";
-      const title = playerBoss ? "Hóa Trùm cùng bạn" : bossRush ? "Đại chiến boss cùng bạn" : "Vượt ải cùng bạn";
+      const awakeningRaid = runMode === "awakeningRaid";
+      const selected = this.save.account.selectedPower ? powerById(this.save.account.selectedPower) : null;
+      const raidGem = selected ? materialLabel(awakeningGemMaterial(selected.id)) : "Ngọc power";
+      const title = awakeningRaid ? "Raid A cùng bạn" : playerBoss ? "Hóa Trùm cùng bạn" : bossRush ? "Đại chiến boss cùng bạn" : "Vượt ải cùng bạn";
       const subtitle = playerBoss
         ? "Tạo phòng hoặc tìm phòng. Khi bắt đầu, hệ thống random một người làm boss."
+        : awakeningRaid
+          ? (selected ? `Tạo phòng Raid ${selected.name}. Boss chỉ dùng hệ ${selected.name}, clear nhận ${raidGem}.` : "Hãy chọn power trước khi tạo phòng Raid A.")
         : bossRush
           ? "Tạo phòng boss-only hoặc tìm phòng để cùng nhau đánh trùm."
           : "Tạo phòng mới hoặc tìm phòng để cùng nhau vượt ải.";
-      const backAction = playerBoss ? "play-minigames" : bossRush ? "play-boss-rush" : "play-gauntlet";
-      const backLabel = playerBoss ? "MINI GAME" : bossRush ? "BOSS" : "VƯỢT ẢI";
+      const backAction = awakeningRaid ? "play-awakening-raid" : playerBoss ? "play-minigames" : bossRush ? "play-boss-rush" : "play-gauntlet";
+      const backLabel = awakeningRaid ? "RAID A" : playerBoss ? "MINI GAME" : bossRush ? "BOSS" : "VƯỢT ẢI";
       this.setScreen(`
         <section class="shell">
           ${this.navHtml("play")}
@@ -5463,11 +5478,12 @@
             </div>
             ${bossRush ? `<p class="small">Chế độ phòng: Đại chiến boss. Khi bắt đầu sẽ vào thẳng boss, không có phòng quái thường.</p>` : ""}
             ${playerBoss ? `<p class="small">Chế độ phòng: Hóa Trùm. Một người ngẫu nhiên thành boss, những người còn lại phải hạ boss.</p>` : ""}
+            ${awakeningRaid ? `<p class="small">Chế độ phòng: Raid A. Chủ phòng dùng power đang chọn để quyết định boss, khu raid và ngọc thức tỉnh.</p>` : ""}
             <div class="grid cols-2">
               <button class="choice-card" data-action="create-room-from-play" data-run-mode="${runMode}">
                 <div class="card-icon">+</div>
                 <h3>Tạo phòng</h3>
-                <p>${playerBoss ? "Chủ phòng bắt đầu, game sẽ random boss trong phòng." : bossRush ? "Bạn là chủ phòng và bắt đầu trận đại chiến boss." : "Bạn là chủ phòng và là người duy nhất được bắt đầu."}</p>
+                <p>${awakeningRaid ? "Bạn là chủ phòng Raid A, chọn power trước rồi bắt đầu khi mọi người sẵn sàng." : playerBoss ? "Chủ phòng bắt đầu, game sẽ random boss trong phòng." : bossRush ? "Bạn là chủ phòng và bắt đầu trận đại chiến boss." : "Bạn là chủ phòng và là người duy nhất được bắt đầu."}</p>
               </button>
               <button class="choice-card" data-action="find-room">
                 <div class="card-icon">ID</div>
@@ -5502,6 +5518,7 @@
     }
 
     roomModeLabel(runMode = this.lobby.runMode || "gauntlet") {
+      if (runMode === "awakeningRaid") return "Raid A";
       if (runMode === "playerBoss") return "Hóa Trùm";
       if (runMode === "bossRush") return "Đại Chiến Boss";
       return "Vượt Ải";
@@ -5579,6 +5596,7 @@
               players,
               maxPlayers: Number(payload.maxPlayers) || 4,
               runMode: payload.runMode || "gauntlet",
+              raidPowerId: payload.raidPowerId || "",
               sentAt: seenAt,
               emptySince,
               emptyFor
@@ -5600,7 +5618,7 @@
       this.roomFinderOpen = true;
       const desiredRunMode = this.lobby.runMode || "gauntlet";
       const modeLabel = this.roomModeLabel(desiredRunMode);
-      const backAction = desiredRunMode === "playerBoss" ? "play-player-boss" : desiredRunMode === "bossRush" ? "play-boss-rush-multiplayer" : "play-multiplayer";
+      const backAction = desiredRunMode === "awakeningRaid" ? "play-awakening-raid-multiplayer" : desiredRunMode === "playerBoss" ? "play-player-boss" : desiredRunMode === "bossRush" ? "play-boss-rush-multiplayer" : "play-multiplayer";
       const pendingCode = this.lobby.joinPending && this.lobby.code ? this.lobby.code : "";
       const joinedCode = this.lobby.code && !this.lobby.joinPending ? this.lobby.code : "";
       const current = joinedCode ? [joinedCode] : [];
@@ -5620,9 +5638,10 @@
       const roomList = rooms.length ? rooms.map((code) => {
         const roomMeta = this.publicRooms.find((room) => room.code === code) || { runMode: desiredRunMode };
         const runMode = roomMeta.runMode || desiredRunMode;
+        const raidPower = runMode === "awakeningRaid" && roomMeta.raidPowerId ? powerById(roomMeta.raidPowerId) : null;
         const description = code === joinedCode
           ? (this.lobby.host ? "Phòng bạn đang tạo" : "Phòng đang tham gia")
-          : `${this.roomModeLabel(runMode)} online`;
+          : raidPower ? `Raid ${raidPower.name} online` : `${this.roomModeLabel(runMode)} online`;
         return `
           <button class="choice-card" data-action="${code === joinedCode ? "multiplayer" : "join-room"}" data-room-code="${code}" data-run-mode="${runMode}">
             <div class="card-icon">${code.slice(0, 2)}</div>
@@ -6837,6 +6856,11 @@
       const isHost = this.lobby.host;
       const bossRush = this.lobby.runMode === "bossRush";
       const playerBoss = this.lobby.runMode === "playerBoss";
+      const awakeningRaid = this.lobby.runMode === "awakeningRaid";
+      const hostSlot = this.lobby.slots.find((slot) => slot?.host) || this.lobby.slots[0] || null;
+      const raidPower = powerById((isHost ? this.save.account.selectedPower : hostSlot?.powerId) || hostSlot?.powerId || this.save.account.selectedPower || "fire");
+      const raidBiome = BIOMES.find((entry) => entry.id === awakeningRaidBiomeId(raidPower.id)) || BIOMES[0];
+      const raidGem = materialLabel(awakeningGemMaterial(raidPower.id));
       if (!this.lobby.code || !isHost) this.lobbyFriendInviteOpen = false;
       const slots = Array.from({ length: 4 }, (_, index) => {
         const slot = this.lobby.slots[index];
@@ -6857,9 +6881,21 @@
       const difficultyVotes = DIFFICULTIES.map((difficulty) => `
         <button class="tab ${this.lobby.difficultyVote === difficulty.id ? "active" : ""}" data-action="vote-difficulty" data-difficulty="${difficulty.id}" ${isHost ? "" : "disabled"}>${difficulty.label}</button>
       `).join("");
-      const difficultySection = playerBoss ? "" : `
+      const difficultySection = (playerBoss || awakeningRaid) ? "" : `
             <p class="small">Chủ phòng chọn độ khó ải</p>
             <div class="tabs">${difficultyVotes}</div>
+      `;
+      const mapSection = awakeningRaid ? `
+            <p class="small">Raid đang chọn</p>
+            <div class="choice-card locked" style="border-color:${raidPower.color}">
+              <div class="card-icon" style="color:${raidPower.color}">A</div>
+              <h3>Raid ${raidPower.name}</h3>
+              <p>Khu ${raidBiome.name}. Boss chỉ dùng kỹ năng hệ ${raidPower.name}, bản raid bự hơn và nhiều biến thể hơn.</p>
+              <p class="small">Thưởng clear: ${raidGem}</p>
+            </div>
+      ` : `
+            <p class="small">Chủ phòng chọn khu</p>
+            <div class="tabs">${votes}</div>
       `;
       const allReady = this.lobby.slots.every((slot) => slot.host || slot.ready);
       const connectedPeers = this.lobby.openPeerCount();
@@ -6886,8 +6922,8 @@
           <div class="panel">
             <div class="panel-header">
               <div>
-                <h2 class="panel-title">${playerBoss ? "Phòng hóa trùm" : bossRush ? "Phòng đại chiến boss" : "Phòng vượt ải"}</h2>
-                <p class="panel-subtitle">${playerBoss ? (isHost ? "Chủ phòng chọn khu rồi bắt đầu để random một người làm boss." : "Bạn sẵn sàng, khi bắt đầu sẽ random một người làm boss.") : bossRush ? (isHost ? "Chủ phòng chọn boss/khu, độ khó và bắt đầu boss-only khi mọi người sẵn sàng." : "Bạn chỉ cần sẵn sàng, chủ phòng sẽ bắt đầu trận boss-only.") : (isHost ? "Chủ phòng chọn khu, độ khó và bắt đầu khi mọi người sẵn sàng." : "Bạn chỉ cần sẵn sàng, chủ phòng sẽ chọn khu, độ khó và bắt đầu.")}</p>
+                <h2 class="panel-title">${awakeningRaid ? "Phòng Raid A" : playerBoss ? "Phòng hóa trùm" : bossRush ? "Phòng đại chiến boss" : "Phòng vượt ải"}</h2>
+                <p class="panel-subtitle">${awakeningRaid ? (isHost ? `Chủ phòng bắt đầu Raid ${raidPower.name}; boss trâu hơn và chỉ dùng chiêu hệ ${raidPower.name}.` : `Sẵn sàng để vào Raid ${raidPower.name} cùng chủ phòng.`) : playerBoss ? (isHost ? "Chủ phòng chọn khu rồi bắt đầu để random một người làm boss." : "Bạn sẵn sàng, khi bắt đầu sẽ random một người làm boss.") : bossRush ? (isHost ? "Chủ phòng chọn boss/khu, độ khó và bắt đầu boss-only khi mọi người sẵn sàng." : "Bạn chỉ cần sẵn sàng, chủ phòng sẽ bắt đầu trận boss-only.") : (isHost ? "Chủ phòng chọn khu, độ khó và bắt đầu khi mọi người sẵn sàng." : "Bạn chỉ cần sẵn sàng, chủ phòng sẽ chọn khu, độ khó và bắt đầu.")}</p>
               </div>
             </div>
             <div class="grid cols-2 ${this.lobby.code ? "hidden" : ""}">
@@ -6900,8 +6936,7 @@
             <p class="code-box">${this.lobby.code || "CHƯA CÓ PHÒNG"}</p>
             <div class="grid cols-2">${slots}</div>
             ${friendInvites}
-            <p class="small">Chủ phòng chọn khu</p>
-            <div class="tabs">${votes}</div>
+            ${mapSection}
             ${difficultySection}
             <p class="small">${startHint}</p>
             <div class="grid ${isHost ? "" : "cols-2"}">${lobbyControls}</div>
@@ -6938,21 +6973,24 @@
         return;
       }
       const selectedPower = powerById(powerId);
-      const biomeId = this.lobby.mapVote || "forest";
       const runMode = this.lobby.runMode || "gauntlet";
-      const difficultyId = runMode === "playerBoss" ? "normal" : (this.lobby.difficultyVote || "normal");
+      const awakeningRaid = runMode === "awakeningRaid";
+      const raidPowerId = awakeningRaid ? selectedPower.id : "";
+      const biomeId = awakeningRaid ? awakeningRaidBiomeId(raidPowerId) : (this.lobby.mapVote || "forest");
+      const difficultyId = runMode === "playerBoss" ? "normal" : awakeningRaid ? "hard" : (this.lobby.difficultyVote || "normal");
       const bossPlayerId = runMode === "playerBoss" ? pick(this.lobby.slots.filter(Boolean)).id : "";
       const seed = Math.random();
       this.lobby.publishDirectoryPresence(false);
       this.publicRooms = (this.publicRooms || []).filter((room) => room?.code !== this.lobby.code);
-      this.lobby.broadcastStart(selectedPower.id, biomeId, seed, this.lobby.slots, difficultyId, runMode, bossPlayerId);
+      this.lobby.broadcastStart(selectedPower.id, biomeId, seed, this.lobby.slots, difficultyId, runMode, bossPlayerId, raidPowerId);
       this.startRun(selectedPower, biomeId, {
         multiplayer: true,
         host: true,
         seed,
         difficulty: difficultyId,
-        miniGame: runMode === "bossRush" ? "bossRush" : runMode === "playerBoss" ? "playerBoss" : "",
-        bossPlayerId
+        miniGame: runMode === "bossRush" ? "bossRush" : runMode === "playerBoss" ? "playerBoss" : awakeningRaid ? "awakeningRaid" : "",
+        bossPlayerId,
+        raidPowerId
       });
     }
 
@@ -7073,6 +7111,7 @@
         lastTreasureAt: -99,
         miniGame: options.miniGame || "",
         raidPowerId: options.raidPowerId || "",
+        awakeningRaidRewardClaimed: false,
         playerBossId: options.bossPlayerId || "",
         playerBossStartedAt: 0,
         playerBossName: "",
@@ -7129,10 +7168,11 @@
       this.setScreen("");
       this.hud.classList.remove("hidden");
       this.touchLayer.classList.toggle("hidden", !this.isMobileDevice());
+      const raidPower = options.miniGame === "awakeningRaid" ? powerById(options.raidPowerId || power.id) : power;
       this.startRoom(training
         ? { type: "training", label: "Phòng Huấn Luyện", icon: "T", color: "#82ffd3" }
         : options.miniGame === "bossRush" || options.miniGame === "playerBoss" || options.miniGame === "awakeningRaid"
-          ? { type: "boss", label: options.miniGame === "playerBoss" ? "Hóa Trùm" : options.miniGame === "awakeningRaid" ? `Raid ${power.name}` : "Đại Chiến Boss", icon: options.miniGame === "awakeningRaid" ? "A" : "B", color: power.color || startBiome.accent }
+          ? { type: "boss", label: options.miniGame === "playerBoss" ? "Hóa Trùm" : options.miniGame === "awakeningRaid" ? `Raid ${raidPower.name}` : "Đại Chiến Boss", icon: options.miniGame === "awakeningRaid" ? "A" : "B", color: raidPower.color || startBiome.accent }
           : { type: "normal", label: "Phòng Thường", icon: "X", color: "#c9d0db" });
       if (this.isMultiplayerClient()) {
         this.run.enemies = [];
@@ -7386,7 +7426,7 @@
     compactEnemy(enemy) {
       return this.compactFields(enemy, [
         "id", "kind", "x", "y", "vx", "vy", "radius", "hp", "maxHp", "speed", "damage",
-        "role", "specialSkill", "ranged", "bulky", "elite", "boss", "playerBoss", "playerBossId", "attackCd", "skillCd", "windupType",
+        "role", "specialSkill", "ranged", "bulky", "elite", "boss", "playerBoss", "playerBossId", "raidPowerId", "attackCd", "skillCd", "windupType",
         "windupTime", "windupTotal", "windupAngle", "windupX", "windupY", "chargeTime",
         "chargeHit", "chargeDir", "chargeSpeed", "chargeDamage", "attackAnim", "attackDir", "facingDir",
         "launch", "flash", "stun", "domainFreeze", "domainBound", "burn", "chill", "mark", "bleed", "bleedTick", "bleedDamage", "phase", "phaseLock", "fatigueTime", "fatigueMax", "fatigueCounter", "bossDebuff", "aiTimer", "trainingDummy", "anchorX", "anchorY"
@@ -7576,6 +7616,9 @@
       }
       if (this.isPlayerBossRun() && snapshot.currentRoom?.playerBossResult && this.mode === "game") {
         this.showPlayerBossVictory(snapshot.currentRoom.playerBossResult);
+      }
+      if (this.isAwakeningRaidRun() && snapshot.currentRoom?.bossDefeated && !this.run.awakeningRaidRewardClaimed && this.mode === "game") {
+        this.completeAwakeningRaid(null, { fromNetwork: true });
       }
       if (this.run.roomNumber !== previousRoomNumber && this.run.currentRoom && !this.run.currentRoom.cleared) {
         this.mode = "game";
@@ -8305,6 +8348,10 @@
       });
     }
 
+    raidBossPower() {
+      return powerById(this.run?.raidPowerId || this.run?.power?.id || this.save?.account?.selectedPower || "fire");
+    }
+
     spawnMerchantStall() {
       this.run.merchantOffers = this.rollMerchantOffers();
       this.addRoomObject("merchantStall", {
@@ -8441,26 +8488,30 @@
       this.run.enemies = this.run.enemies.filter((enemy) => enemy.boss);
       if (this.run.enemies.some((enemy) => enemy.boss)) return;
       const partySize = this.isMultiplayerRun() ? Math.max(1, (this.lobby.slots || []).filter(Boolean).length) : 1;
-      const rushMult = this.isBossRushRun() ? 1.22 : 1;
-      const hp = (1180 + this.run.stage * 360) * (this.run.difficulty?.enemyHp || 1) * (1 + (partySize - 1) * 0.34) * rushMult;
+      const raid = this.isAwakeningRaidRun();
+      const raidPower = raid ? this.raidBossPower() : null;
+      const rushMult = raid ? 1.72 : this.isBossRushRun() ? 1.22 : 1;
+      const partyScale = 1 + (partySize - 1) * (raid ? 0.46 : 0.34);
+      const hp = (1180 + this.run.stage * 360) * (this.run.difficulty?.enemyHp || 1) * partyScale * rushMult;
       const bossDebuff = pick(BOSS_DEBUFFS);
       this.run.enemies.push({
         id: uid("boss"),
-        kind: biome.boss,
+        kind: raid ? `Raid ${raidPower.name} - ${biome.boss}` : biome.boss,
         x: WORLD_W / 2,
         y: ROOM_PAD + 210,
         vx: 0,
         vy: 0,
-        radius: 58,
+        radius: raid ? 66 : 58,
         hp,
         maxHp: hp,
-        speed: (62 + this.run.stage * 5) * (this.isBossRushRun() ? 1.08 : 1),
-        damage: (30 + this.run.stage * 6.8) * (this.run.difficulty?.enemyDamage || 1),
+        speed: (62 + this.run.stage * 5) * (raid ? 0.98 : this.isBossRushRun() ? 1.08 : 1),
+        damage: (30 + this.run.stage * 6.8) * (this.run.difficulty?.enemyDamage || 1) * (raid ? 1.08 : 1),
         ranged: true,
         bulky: true,
         elite: true,
         boss: true,
-        attackCd: this.isBossRushRun() ? 0.85 : 1.2,
+        raidPowerId: raid ? raidPower.id : "",
+        attackCd: raid ? 1.05 : this.isBossRushRun() ? 0.85 : 1.2,
         attackAnim: 0,
         attackDir: 0,
         facingDir: 1,
@@ -8482,7 +8533,7 @@
         aiTimer: 0
       });
       this.camera.shake = 18;
-      this.addShockwave(WORLD_W / 2, ROOM_PAD + 210, 220, this.run.biome.accent);
+      this.addShockwave(WORLD_W / 2, ROOM_PAD + 210, raid ? 280 : 220, raidPower?.color || this.run.biome.accent);
     }
 
     spawnPlayerBossProxy() {
@@ -11627,13 +11678,17 @@
       this.toast("Boss gục xuống. Rương vàng đã rơi.");
     }
 
-    completeAwakeningRaid(enemy = null) {
+    completeAwakeningRaid(enemy = null, options = {}) {
+      if (!this.run) return;
       const powerId = this.run?.raidPowerId || this.run?.power?.id || this.save.account.selectedPower || "fire";
       const power = powerById(powerId);
       const gemId = awakeningGemMaterial(power.id);
-      this.save.materials[gemId] = Math.floor(Number(this.save.materials[gemId] || 0)) + 1;
-      this.save.progression.bossesDefeated += 1;
-      this.save.achievements.bossBreaker = true;
+      if (!this.run.awakeningRaidRewardClaimed) {
+        this.save.materials[gemId] = Math.floor(Number(this.save.materials[gemId] || 0)) + 1;
+        this.save.progression.bossesDefeated += 1;
+        this.save.achievements.bossBreaker = true;
+        this.run.awakeningRaidRewardClaimed = true;
+      }
       if (this.run.currentRoom) {
         this.run.currentRoom.bossDefeated = true;
         this.run.currentRoom.cleared = true;
@@ -11655,6 +11710,7 @@
         this.addParticle(x + rand(-32, 32), y + rand(-28, 28), i % 3 ? power.color : "#ffffff", rand(9, 26), rand(0.36, 0.9), i % 4 === 0 ? "ring" : "spark", a, rand(130, 340));
       }
       this.persist();
+      if (this.isMultiplayerHost() && !options.fromNetwork) this.broadcastFastSnapshot(0.02);
       this.showAwakeningRaidVictory(power, gemId);
     }
 
@@ -13434,7 +13490,51 @@
       }
     }
 
+    raidBossPatterns(powerId = this.raidBossPower().id, phase = 1) {
+      const base = {
+        fire: ["raidFireOrbs", "raidFireMeteors", "raidFireWave"],
+        ice: ["raidIceLances", "raidIcePrison", "raidIceBloom"],
+        lightning: ["raidLightningChain", "raidLightningGrid", "raidLightningStorm"],
+        shadow: ["raidShadowMarks", "raidShadowCross", "raidShadowCage"],
+        blood: ["raidBloodWave", "raidBloodRain", "raidBloodSiphon"],
+        gravity: ["raidGravityWell", "raidGravityMeteor", "raidGravityCrush"],
+        crystal: ["raidCrystalFan", "raidCrystalPrism", "raidCrystalBloom"],
+        nature: ["raidNatureRoots", "raidNatureThorns", "raidNatureBloom"],
+        void: ["raidVoidRifts", "raidVoidCollapse", "raidVoidBox"],
+        time: ["raidTimeHands", "raidTimeStop", "raidTimeRewind"]
+      }[powerId] || ["raidFireOrbs", "raidFireMeteors", "raidFireWave"];
+      const extra = {
+        fire: ["raidFireCross", "raidFireHell"],
+        ice: ["raidIceMirror", "raidIceStorm"],
+        lightning: ["raidLightningScanner", "raidLightningNova"],
+        shadow: ["raidShadowRain", "raidShadowSiphon"],
+        blood: ["raidBloodLances", "raidBloodBloom"],
+        gravity: ["raidGravityOrbit", "raidGravityRows"],
+        crystal: ["raidCrystalRain", "raidCrystalCage"],
+        nature: ["raidNatureWall", "raidNatureDrain"],
+        void: ["raidVoidRain", "raidVoidGate"],
+        time: ["raidTimeClock", "raidTimeRows"]
+      }[powerId] || [];
+      const final = {
+        fire: ["raidFireHell", "raidFireMeteors"],
+        ice: ["raidIceStorm", "raidIceMirror"],
+        lightning: ["raidLightningNova", "raidLightningGrid"],
+        shadow: ["raidShadowCage", "raidShadowSiphon"],
+        blood: ["raidBloodBloom", "raidBloodSiphon"],
+        gravity: ["raidGravityMeteor", "raidGravityCrush"],
+        crystal: ["raidCrystalBloom", "raidCrystalRain"],
+        nature: ["raidNatureDrain", "raidNatureWall"],
+        void: ["raidVoidCollapse", "raidVoidGate"],
+        time: ["raidTimeClock", "raidTimeStop"]
+      }[powerId] || [];
+      return base.concat(phase >= 2 ? extra : [], phase >= 3 ? final : []);
+    }
+
     pickBossPattern(enemy) {
+      if (this.isAwakeningRaidRun()) {
+        const powerId = enemy.raidPowerId || this.raidBossPower().id;
+        return this.pickUniqueBossPattern(enemy, this.raidBossPatterns(powerId, enemy.phase || 1));
+      }
       const phase = enemy.phase || 1;
       const patterns = [
         "ring", "slam", "line", "splitFan", "needleMaze", "pincer", "stairShots",
@@ -13527,7 +13627,270 @@
       });
     }
 
+    castRaidBossPattern(enemy, pattern, angle, target) {
+      const power = powerById(enemy.raidPowerId || this.raidBossPower().id);
+      const color = power.color || this.run.biome.accent;
+      const accent = power.accent || color;
+      const phase = enemy.phase || 1;
+      const p = target || this.run.player;
+      const aim = p ? Math.atan2(p.y - enemy.y, p.x - enemy.x) : angle;
+      const spreadCount = 6 + phase * 2;
+
+      if (pattern === "raidFireOrbs") {
+        for (let i = 0; i < spreadCount + 2; i++) this.spawnBossProjectile(enemy, aim + (i - spreadCount / 2) * 0.13, 290 + phase * 30, 0.48, 10, 3.4, i % 2 ? color : accent);
+        this.addShockwave(enemy.x, enemy.y, 210, color, 0, { owner: "enemy" });
+        return 1.55;
+      }
+      if (pattern === "raidFireMeteors" || pattern === "raidFireHell") {
+        const count = pattern === "raidFireHell" ? 8 + phase * 2 : 5 + phase;
+        for (let i = 0; i < count; i++) {
+          const x = clamp((p?.x || WORLD_W / 2) + rand(-280, 280), ROOM_PAD + 80, WORLD_W - ROOM_PAD - 80);
+          const y = clamp((p?.y || WORLD_H / 2) + rand(-210, 210), ROOM_PAD + 80, WORLD_H - ROOM_PAD - 80);
+          this.bossDanger(enemy, x, y, 92 + phase * 14, 0.62 + i * 0.045, 0.56, color);
+        }
+        return pattern === "raidFireHell" ? 2.15 : 1.9;
+      }
+      if (pattern === "raidFireWave" || pattern === "raidFireCross") {
+        const lines = pattern === "raidFireCross" ? [-0.55, 0, 0.55] : [-0.28, 0, 0.28];
+        for (const offset of lines) this.bossLineDanger(enemy, enemy.x - Math.cos(aim + offset) * 280, enemy.y - Math.sin(aim + offset) * 280, aim + offset, 760, 34 + phase * 4, 0.74 + Math.abs(offset) * 0.2, 0.58, color);
+        return 1.78;
+      }
+
+      if (pattern === "raidIceLances" || pattern === "raidIceStorm") {
+        const count = pattern === "raidIceStorm" ? 9 + phase * 2 : 6 + phase;
+        for (let i = 0; i < count; i++) {
+          const a = aim + (i - (count - 1) / 2) * 0.11;
+          this.spawnBossProjectile(enemy, a, 330 + phase * 28, 0.42, 9, 3.4, i % 2 ? color : accent);
+        }
+        if (pattern === "raidIceStorm" && p) this.bossDanger(enemy, p.x, p.y, 118 + phase * 16, 0.82, 0.46, color);
+        return pattern === "raidIceStorm" ? 1.95 : 1.55;
+      }
+      if (pattern === "raidIcePrison" || pattern === "raidIceMirror") {
+        const center = p || enemy;
+        const size = 260 + phase * 26;
+        const x = clamp(center.x - size / 2, ROOM_PAD + 70, WORLD_W - ROOM_PAD - 70 - size);
+        const y = clamp(center.y - size / 2, ROOM_PAD + 70, WORLD_H - ROOM_PAD - 70 - size);
+        this.bossLineDanger(enemy, x, y, 0, size, 26, 0.9, 0.44, color);
+        this.bossLineDanger(enemy, x, y + size, 0, size, 26, 1.02, 0.44, color);
+        this.bossLineDanger(enemy, x, y, Math.PI / 2, size, 26, 1.14, 0.44, accent);
+        this.bossLineDanger(enemy, x + size, y, Math.PI / 2, size, 26, 1.26, 0.44, accent);
+        if (pattern === "raidIceMirror") this.bossMirrorShots(enemy, p);
+        return 2.05;
+      }
+      if (pattern === "raidIceBloom") {
+        for (let i = 0; i < 6 + phase; i++) {
+          const a = i * TAU / (6 + phase);
+          this.bossDanger(enemy, enemy.x + Math.cos(a) * (130 + phase * 18), enemy.y + Math.sin(a) * (105 + phase * 16), 58 + phase * 8, 0.72 + i * 0.05, 0.44, color);
+        }
+        return 1.82;
+      }
+
+      if (pattern === "raidLightningChain" || pattern === "raidLightningNova") {
+        const count = pattern === "raidLightningNova" ? 12 + phase * 3 : 7 + phase * 2;
+        for (let i = 0; i < count; i++) {
+          const a = aim + (i / count) * TAU;
+          this.spawnBossProjectile(enemy, a, 360 + phase * 34, 0.34, 7, 2.4, i % 2 ? color : accent);
+        }
+        if (p) this.bossLineDanger(enemy, enemy.x, enemy.y, aim, 780, 20 + phase * 3, 0.66, 0.5, accent);
+        return pattern === "raidLightningNova" ? 1.72 : 1.48;
+      }
+      if (pattern === "raidLightningGrid" || pattern === "raidLightningScanner") {
+        const lanes = pattern === "raidLightningScanner" ? 6 : 4 + phase;
+        for (let i = 0; i < lanes; i++) {
+          const x = ROOM_PAD + 120 + i * ((WORLD_W - ROOM_PAD * 2 - 240) / Math.max(1, lanes - 1));
+          this.bossLineDanger(enemy, x, ROOM_PAD + 80, Math.PI / 2, WORLD_H - ROOM_PAD * 2 - 160, 18 + phase * 3, 0.62 + i * 0.07, 0.38, i % 2 ? color : accent);
+        }
+        if (p) this.bossLineDanger(enemy, ROOM_PAD + 80, p.y, 0, WORLD_W - ROOM_PAD * 2 - 160, 26, 1.02, 0.5, accent);
+        return 1.92;
+      }
+      if (pattern === "raidLightningStorm") {
+        for (let i = 0; i < 5 + phase * 2; i++) this.bossDanger(enemy, rand(ROOM_PAD + 90, WORLD_W - ROOM_PAD - 90), rand(ROOM_PAD + 90, WORLD_H - ROOM_PAD - 90), 52 + phase * 6, 0.5 + i * 0.08, 0.44, i % 2 ? color : accent);
+        return 1.88;
+      }
+
+      if (pattern === "raidShadowMarks" || pattern === "raidShadowRain" || pattern === "raidShadowSiphon") {
+        const count = pattern === "raidShadowRain" ? 8 + phase * 2 : 5 + phase;
+        for (let i = 0; i < count; i++) {
+          const x = clamp((p?.x || enemy.x) + rand(-240, 240), ROOM_PAD + 80, WORLD_W - ROOM_PAD - 80);
+          const y = clamp((p?.y || enemy.y) + rand(-180, 180), ROOM_PAD + 80, WORLD_H - ROOM_PAD - 80);
+          this.bossDanger(enemy, x, y, 50 + phase * 8, 0.58 + i * 0.06, 0.42, color);
+        }
+        if (pattern === "raidShadowSiphon") enemy.hp = Math.min(enemy.maxHp, enemy.hp + enemy.maxHp * 0.012);
+        return pattern === "raidShadowSiphon" ? 2.05 : 1.82;
+      }
+      if (pattern === "raidShadowCross" || pattern === "raidShadowCage") {
+        for (let i = 0; i < 4; i++) {
+          const a = aim + i * Math.PI / 2;
+          this.bossLineDanger(enemy, enemy.x - Math.cos(a) * 350, enemy.y - Math.sin(a) * 350, a, 700, 30 + phase * 4, 0.72 + i * 0.06, 0.48, i % 2 ? color : accent);
+        }
+        if (pattern === "raidShadowCage" && p) this.bossSoulBox(enemy, p);
+        return pattern === "raidShadowCage" ? 2.24 : 1.72;
+      }
+
+      if (pattern === "raidBloodWave" || pattern === "raidBloodLances") {
+        const count = pattern === "raidBloodLances" ? 5 + phase : 4 + phase;
+        for (let i = 0; i < count; i++) {
+          const offset = (i - (count - 1) / 2) * (pattern === "raidBloodLances" ? 0.16 : 0.22);
+          this.bossLineDanger(enemy, enemy.x - Math.cos(aim + offset) * 180, enemy.y - Math.sin(aim + offset) * 180, aim + offset, 620 + phase * 70, 24 + phase * 4, 0.72 + Math.abs(offset) * 0.35, 0.5, color);
+        }
+        return 1.82;
+      }
+      if (pattern === "raidBloodRain" || pattern === "raidBloodBloom") {
+        const count = pattern === "raidBloodBloom" ? 9 + phase * 2 : 6 + phase;
+        for (let i = 0; i < count; i++) {
+          const a = i * TAU / count + this.menuTime * 0.12;
+          const center = pattern === "raidBloodBloom" ? enemy : (p || enemy);
+          const x = clamp(center.x + Math.cos(a) * rand(70, 250), ROOM_PAD + 80, WORLD_W - ROOM_PAD - 80);
+          const y = clamp(center.y + Math.sin(a) * rand(55, 200), ROOM_PAD + 80, WORLD_H - ROOM_PAD - 80);
+          this.bossDanger(enemy, x, y, 58 + phase * 8, 0.58 + i * 0.045, 0.46, color);
+        }
+        return 1.95;
+      }
+      if (pattern === "raidBloodSiphon") {
+        const center = p || enemy;
+        this.bossDanger(enemy, center.x, center.y, 148 + phase * 24, 0.86, 0.64, color);
+        const count = 8 + phase * 3;
+        for (let i = 0; i < count; i++) {
+          const a = i * TAU / count + this.menuTime * 0.18;
+          this.spawnBossProjectile(enemy, a, 220 + phase * 24, 0.36, 9, 3.2, i % 2 ? color : accent);
+        }
+        enemy.hp = Math.min(enemy.maxHp, enemy.hp + enemy.maxHp * 0.018);
+        return 2.18;
+      }
+
+      if (pattern === "raidGravityWell" || pattern === "raidGravityCrush") {
+        const center = p || enemy;
+        this.bossDanger(enemy, center.x, center.y, 150 + phase * 24, 0.88, 0.62, color);
+        const lines = pattern === "raidGravityCrush" ? 6 : 4;
+        for (let i = 0; i < lines; i++) {
+          const a = i * TAU / lines + this.menuTime * 0.18;
+          this.bossLineDanger(enemy, center.x - Math.cos(a) * 330, center.y - Math.sin(a) * 330, a, 660, 26 + phase * 3, 0.98 + i * 0.04, 0.48, accent);
+        }
+        return 2.08;
+      }
+      if (pattern === "raidGravityMeteor" || pattern === "raidGravityOrbit" || pattern === "raidGravityRows") {
+        if (pattern === "raidGravityRows") {
+          const rows = 5;
+          const safe = randi(0, rows - 1);
+          for (let row = 0; row < rows; row++) {
+            if (row === safe) continue;
+            const y = ROOM_PAD + 120 + row * ((WORLD_H - ROOM_PAD * 2 - 240) / Math.max(1, rows - 1));
+            this.bossLineDanger(enemy, ROOM_PAD + 82, y, 0, WORLD_W - ROOM_PAD * 2 - 164, 24, 0.78 + row * 0.05, 0.42, row % 2 ? color : accent);
+          }
+        } else if (pattern === "raidGravityOrbit") {
+          const count = 8 + phase * 3;
+          for (let i = 0; i < count; i++) {
+            const a = i * TAU / count + this.menuTime * 0.4;
+            this.bossProjectileAt(enemy, enemy.x + Math.cos(a) * 106, enemy.y + Math.sin(a) * 86, a + Math.PI / 2, 220 + phase * 20, 0.34, 8, 3.4, i % 2 ? color : accent, "raidGravity");
+          }
+        }
+        for (let i = 0; i < 4 + phase; i++) this.bossDanger(enemy, rand(ROOM_PAD + 90, WORLD_W - ROOM_PAD - 90), rand(ROOM_PAD + 90, WORLD_H - ROOM_PAD - 90), 76 + phase * 10, 0.68 + i * 0.07, 0.54, color);
+        return 2.0;
+      }
+
+      if (pattern === "raidCrystalFan" || pattern === "raidCrystalRain") {
+        const count = pattern === "raidCrystalRain" ? 14 + phase * 3 : 8 + phase * 2;
+        for (let i = 0; i < count; i++) this.spawnBossProjectile(enemy, aim + (i - count / 2) * 0.09, 315 + phase * 24, 0.36, 7, 3.2, i % 2 ? color : accent);
+        return pattern === "raidCrystalRain" ? 1.9 : 1.55;
+      }
+      if (pattern === "raidCrystalPrism" || pattern === "raidCrystalBloom" || pattern === "raidCrystalCage") {
+        if (pattern === "raidCrystalCage") this.bossSoulBox(enemy, p);
+        else if (pattern === "raidCrystalPrism") this.bossPrismSplit(enemy, p);
+        const count = 6 + phase * 2;
+        for (let i = 0; i < count; i++) {
+          const a = i * TAU / count;
+          this.bossProjectileAt(enemy, enemy.x + Math.cos(a) * 92, enemy.y + Math.sin(a) * 92, a, 245 + phase * 22, 0.34, 8, 3.3, i % 2 ? color : accent, "raidCrystal");
+        }
+        return 1.95;
+      }
+
+      if (pattern === "raidNatureRoots" || pattern === "raidNatureDrain") {
+        const center = p || enemy;
+        const count = pattern === "raidNatureDrain" ? 8 + phase : 5 + phase;
+        for (let i = 0; i < count; i++) {
+          const a = i * TAU / count;
+          this.bossDanger(enemy, clamp(center.x + Math.cos(a) * (90 + i * 14), ROOM_PAD + 80, WORLD_W - ROOM_PAD - 80), clamp(center.y + Math.sin(a) * (70 + i * 10), ROOM_PAD + 80, WORLD_H - ROOM_PAD - 80), 56 + phase * 8, 0.64 + i * 0.06, 0.44, color);
+        }
+        if (pattern === "raidNatureDrain") enemy.hp = Math.min(enemy.maxHp, enemy.hp + enemy.maxHp * 0.01);
+        return pattern === "raidNatureDrain" ? 2.05 : 1.78;
+      }
+      if (pattern === "raidNatureThorns" || pattern === "raidNatureBloom" || pattern === "raidNatureWall") {
+        if (pattern === "raidNatureWall") {
+          const lanes = 5 + Math.min(2, phase);
+          const safe = randi(0, lanes - 1);
+          for (let i = 0; i < lanes; i++) {
+            if (i === safe) continue;
+            const y = ROOM_PAD + 130 + i * ((WORLD_H - ROOM_PAD * 2 - 260) / Math.max(1, lanes - 1));
+            this.bossLineDanger(enemy, ROOM_PAD + 70, y, 0, WORLD_W - ROOM_PAD * 2 - 140, 26 + phase * 3, 0.76 + i * 0.06, 0.44, i % 2 ? color : accent);
+          }
+        } else {
+          const center = p || enemy;
+          for (let i = 0; i < 8 + phase * 2; i++) {
+            const a = i * TAU / (8 + phase * 2);
+            const radius = i % 2 ? 128 : 78;
+            this.bossDanger(enemy, clamp(center.x + Math.cos(a) * radius, ROOM_PAD + 70, WORLD_W - ROOM_PAD - 70), clamp(center.y + Math.sin(a) * radius, ROOM_PAD + 70, WORLD_H - ROOM_PAD - 70), 42 + phase * 5, 0.7 + (i % 4) * 0.06, 0.38, i % 2 ? color : accent);
+          }
+        }
+        return pattern === "raidNatureWall" ? 2.12 : 1.92;
+      }
+
+      if (pattern === "raidVoidRifts" || pattern === "raidVoidGate") {
+        const count = pattern === "raidVoidGate" ? 7 + phase : 5 + phase;
+        for (let i = 0; i < count; i++) {
+          const x = clamp((p?.x || enemy.x) + rand(-260, 260), ROOM_PAD + 80, WORLD_W - ROOM_PAD - 80);
+          const y = clamp((p?.y || enemy.y) + rand(-200, 200), ROOM_PAD + 80, WORLD_H - ROOM_PAD - 80);
+          this.bossDanger(enemy, x, y, 64 + phase * 9, 0.62 + i * 0.055, 0.5, i % 2 ? color : accent);
+          this.bossProjectileAt(enemy, x, y, Math.atan2((p?.y || enemy.y) - y, (p?.x || enemy.x) - x), 230 + phase * 24, 0.3, 8, 3.1, accent, "raidVoid");
+        }
+        return pattern === "raidVoidGate" ? 2.12 : 1.9;
+      }
+      if (pattern === "raidVoidCollapse" || pattern === "raidVoidBox" || pattern === "raidVoidRain") {
+        if (pattern === "raidVoidBox") this.bossSoulBox(enemy, p);
+        else if (pattern === "raidVoidRain") this.bossSpiralRain(enemy, p);
+        this.bossDanger(enemy, p?.x || enemy.x, p?.y || enemy.y, 132 + phase * 24, 0.92, 0.58, color);
+        return 2.08;
+      }
+
+      if (pattern === "raidTimeHands" || pattern === "raidTimeClock") {
+        const hands = pattern === "raidTimeClock" ? 7 + phase : 5 + phase;
+        for (let i = 0; i < hands; i++) {
+          const a = aim + i * TAU / hands + this.menuTime * 0.22;
+          this.bossLineDanger(enemy, enemy.x - Math.cos(a) * 340, enemy.y - Math.sin(a) * 340, a, 680, 22 + phase * 3, 0.74 + i * 0.045, 0.46, i % 2 ? color : accent);
+        }
+        return pattern === "raidTimeClock" ? 2.05 : 1.82;
+      }
+      if (pattern === "raidTimeStop" || pattern === "raidTimeRewind" || pattern === "raidTimeRows") {
+        if (pattern === "raidTimeRows") {
+          const rows = 5;
+          const cols = 5;
+          const safeRow = randi(0, rows - 1);
+          const safeCol = randi(0, cols - 1);
+          for (let row = 0; row < rows; row++) {
+            if (row === safeRow) continue;
+            const y = ROOM_PAD + 120 + row * ((WORLD_H - ROOM_PAD * 2 - 240) / Math.max(1, rows - 1));
+            this.bossLineDanger(enemy, ROOM_PAD + 82, y, 0, WORLD_W - ROOM_PAD * 2 - 164, 18, 0.76 + row * 0.04, 0.34, color);
+          }
+          for (let col = 0; col < cols; col++) {
+            if (col === safeCol) continue;
+            const x = ROOM_PAD + 120 + col * ((WORLD_W - ROOM_PAD * 2 - 240) / Math.max(1, cols - 1));
+            this.bossLineDanger(enemy, x, ROOM_PAD + 90, Math.PI / 2, WORLD_H - ROOM_PAD * 2 - 180, 16, 1.02 + col * 0.03, 0.3, accent);
+          }
+        }
+        const center = p || enemy;
+        this.bossDanger(enemy, center.x, center.y, 128 + phase * 18, 0.82, 0.46, color);
+        for (let i = 0; i < 4 + phase; i++) {
+          const a = i * TAU / (4 + phase);
+          this.bossProjectileAt(enemy, center.x + Math.cos(a) * 160, center.y + Math.sin(a) * 120, a + Math.PI, 185 + phase * 20, 0.32, 8, 3.0, accent, "raidTime");
+        }
+        return 2.0;
+      }
+
+      this.bossLine(enemy, aim);
+      return 1.6;
+    }
+
     castBossPattern(enemy, pattern, angle, target) {
+      if (String(pattern || "").startsWith("raid")) return this.castRaidBossPattern(enemy, pattern, angle, target);
       if (pattern === "ring") {
         this.bossRing(enemy, 10 + enemy.phase * 4);
         return 1.55;
@@ -14345,9 +14708,17 @@
       enemy.phase = phase;
       enemy.phaseLock = 1.2;
       enemy.attackCd = 1.4;
+      const raid = this.isAwakeningRaidRun();
+      const raidPower = raid ? powerById(enemy.raidPowerId || this.raidBossPower().id) : null;
       this.camera.shake = Math.max(this.camera.shake, 20);
-      this.addShockwave(enemy.x, enemy.y, 280 + phase * 70, this.run.biome.accent, 0, { owner: "enemy" });
-      this.bossCallMinions(enemy);
+      this.addShockwave(enemy.x, enemy.y, 280 + phase * 70, raidPower?.color || this.run.biome.accent, 0, { owner: "enemy" });
+      if (raid) {
+        const target = this.nearestCombatTarget(enemy.x, enemy.y) || this.run.player;
+        const angle = target ? Math.atan2(target.y - enemy.y, target.x - enemy.x) : rand(0, TAU);
+        this.castRaidBossPattern(enemy, pick(this.raidBossPatterns(raidPower.id, phase)), angle, target);
+      } else {
+        this.bossCallMinions(enemy);
+      }
       this.toast(`Trùm chuyển pha ${phase}`);
     }
 

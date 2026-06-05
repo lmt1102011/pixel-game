@@ -7,7 +7,7 @@
   const ROOM_PAD = 86;
   const SAVE_KEY = "soulrift-save-v1";
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
-  const APP_VERSION = "20260605-pwa-app-gate-143";
+  const APP_VERSION = "20260605-mobile-ui-polish-144";
   const VERSION_CHECK_INTERVAL = 15000;
   const UPDATE_ATTEMPT_KEY = "soulrift-update-attempt-v1";
   const CLOUD_MIGRATION_KEY = "soulrift-cloud-migrated-v1";
@@ -2980,7 +2980,7 @@
       this.store.save(this.save);
       this.lastCloudAccountSignature = this.accountCloudSignature(normalized);
       this.applyCloudProfileToCurrentRun(previousPower, previousCharacter);
-      const socialNotice = this.notifyNewSocialActivity(previous, normalized);
+      this.notifyNewSocialActivity(previous, normalized);
       if (this.lobby?.syncOwnSlot) this.lobby.syncOwnSlot();
       if (this.mode === "lobby") this.renderLobby();
       if (this.mode === "friends") this.showFriends();
@@ -2991,7 +2991,6 @@
       else if (this.mode === "character") this.showCharacter();
       else if (this.mode === "custom") this.showCustomization(true);
       else if (this.mode === "menu") this.showMainMenu();
-      if (!socialNotice) this.toast("Tài khoản đã được cập nhật");
     }
 
     notifyNewSocialActivity(previous = {}, current = {}) {
@@ -4061,6 +4060,9 @@
         this.input.touch.active = false;
         this.joystickTouchId = null;
         stick.classList.remove("active");
+        stick.style.left = "";
+        stick.style.top = "";
+        stick.style.bottom = "";
         nub.style.transform = "translate(0, 0)";
       };
       const maybeResetStick = (event) => {
@@ -6279,9 +6281,11 @@
     }
 
     toast(message) {
+      const compactCombatToast = this.mode === "game" && this.isMobileDevice();
       this.toastEl.textContent = message;
+      this.toastEl.classList.toggle("combat-toast", compactCombatToast);
       this.toastEl.classList.remove("hidden");
-      this.toastTimer = 2.2;
+      this.toastTimer = compactCombatToast ? 1.45 : 2.2;
     }
 
     startRun(power, forcedBiomeId = "", options = {}) {

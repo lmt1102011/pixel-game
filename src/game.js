@@ -9,7 +9,7 @@
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
   const SIGNAL_REALTIME_RELAY_LIMIT = 2;
   const SIGNAL_REALTIME_TYPES = new Set(["state", "snapshot", "attack", "skill", "collect", "openChest", "dropItem", "damage", "chooseDoor"]);
-  const APP_VERSION = "20260607-pixel-monster-walk-237";
+  const APP_VERSION = "20260607-correct-monster-weapons-238";
   const CHANGELOG_ENTRIES = [
     {
       version: APP_VERSION,
@@ -22247,18 +22247,25 @@
         b(6, -25, 6, 8, palette.baseDark);
         eyes(-7, 3, -16);
         b(-11, -2, 22, 21, palette.armor);
-        b(12, -7, 24, 5, palette.metal);
-        b(31, -10, 6, 11, palette.bone);
+        b(6, -9, 15, 6, palette.base);
+        b(17, -13, 9, 9, palette.base);
+        b(20, -15, 6, 12, palette.armor);
+        b(24, -17, 16, 6, palette.outline);
+        b(28, -16, 10, 3, palette.metal);
+        b(39, -19, 5, 8, palette.bone);
         legs(14);
       } else if (kind === "goblinBomber") {
         b(-14, -23, 28, 22, palette.outline);
         b(-11, -20, 22, 18, palette.base);
         eyes(-7, 3, -15, palette.eye);
         b(-12, -2, 24, 21, palette.armor);
-        b(12, -19, 22, 22, palette.outline);
-        b(15, -16, 17, 17, palette.metal);
-        b(20, -23, 5, 8, palette.accent);
-        b(24, -26, 5, 5, "#ffd166");
+        b(2, -10, 17, 6, palette.base);
+        b(17, -13, 9, 9, palette.base);
+        b(11, -20, 26, 26, palette.outline);
+        b(15, -16, 18, 18, palette.metal);
+        b(21, -23, 5, 8, palette.accent);
+        b(25, -27, 6, 6, "#ffd166");
+        b(15, -5, 8, 7, palette.base);
         legs(14);
       } else if (kind === "batDemon") {
         b(-38, -15, 28, 26, palette.outline);
@@ -22447,20 +22454,21 @@
         b(13, -22, 9, 5, palette.base);
         b(4, -10, 18, 6, palette.base);
         b(17, -13, 9, 9, palette.base);
-        b(19, -17, 33, 7, palette.outline);
-        b(24, -15, 24, 3, palette.metal);
-        b(20, -20, 5, 14, palette.armor);
-        b(43, -20, 8, 12, palette.bone);
+        b(20, -16, 6, 13, palette.armor);
+        b(24, -18, 17, 7, palette.outline);
+        b(28, -17, 11, 3, palette.metal);
+        b(39, -20, 5, 8, palette.bone);
         b(-17, 2, 7, 15, palette.metal);
       } else if (kind === "goblinBomber") {
         b(0, -10, 17, 6, palette.base);
         b(14, -13, 10, 9, palette.base);
-        b(9, -25, 36, 36, palette.outline);
-        b(14, -20, 26, 26, "#151820");
-        b(22, -13, 8, 8, "#4b5260");
-        b(27, -31, 7, 12, palette.accent);
-        b(32, -36, 9, 7, "#ffd166");
-        b(36, -40, 5, 5, "#ffffff");
+        b(10, -22, 30, 30, palette.outline);
+        b(15, -17, 20, 20, "#151820");
+        b(22, -11, 8, 8, "#4b5260");
+        b(25, -28, 6, 12, palette.accent);
+        b(30, -34, 8, 7, "#ffd166");
+        b(35, -38, 5, 5, "#ffffff");
+        b(14, -6, 10, 8, palette.base);
         b(-25, 0, 12, 5, palette.accent);
       } else if (kind === "batDemon") {
         b(-48, -24, 30, 36, palette.outline);
@@ -22608,12 +22616,19 @@
         } else if (kind === "goblinScout") {
           b(-16 - stepSign * 5, 15, 8, 12, palette.baseDark);
           b(8 + stepSign * 5, 15, 8, 12, palette.baseDark);
-          b(24 + stepSign * 3, -18, 28, 4, palette.metal);
+          b(17 + stepSign * 2, -13, 9, 9, palette.base);
+          b(20 + stepSign * 2, -16, 6, 13, palette.armor);
+          b(24 + stepSign * 2, -18, 17, 6, palette.outline);
+          b(28 + stepSign * 2, -17, 10, 3, palette.metal);
+          b(39 + stepSign * 2, -20, 5, 8, palette.bone);
           b(-27, 20, 18, 3, palette.shadow, 0.48);
         } else if (kind === "goblinBomber") {
-          b(12, -25 + (walkFrame % 2 ? -3 : 2), 36, 35, palette.outline);
-          b(17, -20 + (walkFrame % 2 ? -3 : 2), 25, 25, "#151820");
-          b(31, -36 + (walkFrame === 2 ? -2 : 0), 8, 7, "#ffd166");
+          const bombY = -22 + (walkFrame % 2 ? -3 : 2);
+          b(4, -10, 16, 6, palette.base);
+          b(17, bombY + 9, 9, 9, palette.base);
+          b(10, bombY, 30, 30, palette.outline);
+          b(15, bombY + 5, 20, 20, "#151820");
+          b(30, bombY - 12 + (walkFrame === 2 ? -2 : 0), 8, 7, "#ffd166");
           b(-14 - stepSign * 3, 15, 9, 11, palette.baseDark);
         } else if (kind === "batDemon") {
           const up = walkFrame === 1 || walkFrame === 2;

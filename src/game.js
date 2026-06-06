@@ -9,7 +9,7 @@
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
   const SIGNAL_REALTIME_RELAY_LIMIT = 2;
   const SIGNAL_REALTIME_TYPES = new Set(["state", "snapshot", "attack", "skill", "collect", "openChest", "dropItem", "damage", "chooseDoor"]);
-  const APP_VERSION = "20260606-valorant-no-reload-195";
+  const APP_VERSION = "20260606-valorant-clean-196";
   const CHANGELOG_ENTRIES = [
     {
       version: APP_VERSION,
@@ -2920,8 +2920,6 @@
       this.seenFriendRequests = new Set();
       this.roomInviteCooldowns = new Map();
       this.roomInviteCooldownTimers = new Map();
-      this.squadChat = [];
-      this.squadChatSeq = 0;
       this.lobbyFriendInviteOpen = false;
       this.roomFinderOpen = false;
       this.roomDirectoryTimer = 0;
@@ -4008,11 +4006,6 @@
         this.handleAction(target.dataset.action, target);
       });
       this.screen.addEventListener("input", (event) => this.handleInput(event));
-      this.screen.addEventListener("keydown", (event) => {
-        if (event.target?.id !== "squadChatInput" || event.key !== "Enter") return;
-        event.preventDefault();
-        this.sendSquadChat();
-      });
       this.bindTouchControls();
       this.updateMobileGate();
     }
@@ -5274,10 +5267,6 @@
       if (action === "updates") this.showChangelog();
       if (action === "missions") this.showMissions();
       if (action === "claim-mission") this.claimMissionReward(target.dataset.mission);
-      if (action === "send-squad-chat") {
-        this.sendSquadChat();
-        return;
-      }
       if (action === "squad-voice-settings") {
         this.toast("Voice settings: micro party đang bật");
         return;
@@ -5620,16 +5609,6 @@
       `;
     }
 
-    refreshValorantChat() {
-      const feed = this.screen?.querySelector(".chat-feed");
-      if (!feed) return false;
-      feed.innerHTML = this.squadChatHtml();
-      requestAnimationFrame(() => {
-        feed.scrollTop = feed.scrollHeight;
-      });
-      return true;
-    }
-
     refreshValorantInvitePanel() {
       const mount = this.screen?.querySelector(".lobby-invite-mount");
       if (!mount) return false;
@@ -5653,52 +5632,8 @@
       if (grid) grid.innerHTML = data.slotsHtml;
       if (controls) controls.innerHTML = data.controlsHtml;
       if (stats) stats.innerHTML = this.valorantTeamStatsHtml(data.stats);
-      this.refreshValorantChat();
       this.refreshValorantInvitePanel();
       return true;
-    }
-
-    squadChatEntries() {
-      if (!this.squadChat.length) {
-        const now = Date.now();
-        this.squadChat = [
-          { id: "sys-1", name: "SYSTEM", text: "Party channel opened.", time: now - 1000 * 60 * 6, avatar: "S" },
-          { id: "bot-1", name: "Vanguard", text: "Pick mode, invite friends, then ready up.", time: now - 1000 * 60 * 4, avatar: "V" },
-          { id: "bot-2", name: "Striker", text: "Comms clear. Waiting for squad.", time: now - 1000 * 90, avatar: "ST" }
-        ];
-      }
-      return this.squadChat.slice(-18);
-    }
-
-    squadChatHtml() {
-      return this.squadChatEntries().map((entry) => {
-        const mins = Math.max(0, Math.floor((Date.now() - Number(entry.time || Date.now())) / 60000));
-        return `
-          <div class="chat-line">
-            <div class="chat-avatar">${escapeHtml(entry.avatar || entry.name.slice(0, 2).toUpperCase())}</div>
-            <div>
-              <div class="chat-head"><b>${escapeHtml(entry.name)}</b><span>${mins <= 0 ? "now" : `${mins}m`}</span></div>
-              <p>${escapeHtml(entry.text)}</p>
-            </div>
-          </div>
-        `;
-      }).join("");
-    }
-
-    sendSquadChat() {
-      const input = document.getElementById("squadChatInput");
-      const text = String(input?.value || "").trim().slice(0, 140);
-      if (!text) return;
-      const name = this.save.account.username || "Bạn";
-      this.squadChat.push({
-        id: `local-${++this.squadChatSeq}`,
-        name,
-        text,
-        time: Date.now(),
-        avatar: name.slice(0, 2).toUpperCase()
-      });
-      if (input) input.value = "";
-      if (!this.refreshValorantChat()) this.showPlayMenu();
     }
 
     showPlayMenu() {
@@ -5715,13 +5650,6 @@
             <div class="valorant-brand">
               <span>SOULRIFT</span>
               <b>PARTY LOBBY</b>
-            </div>
-            <div class="valorant-tabs">
-              <button class="active" data-action="play">PLAY</button>
-              <button data-action="character">LOADOUT</button>
-              <button data-action="friends">SOCIAL</button>
-              <button data-action="settings">SETTINGS</button>
-              <button data-action="menu">MENU</button>
             </div>
           </div>
 
@@ -5740,18 +5668,6 @@
 
             <aside class="valorant-side">
               <div class="team-stats">${this.valorantTeamStatsHtml(data.stats)}</div>
-
-              <div class="squad-chat">
-                <div class="side-title">
-                  <p class="eyebrow">PARTY COMMS</p>
-                  <h3>Team Chat</h3>
-                </div>
-                <div class="chat-feed">${this.squadChatHtml()}</div>
-                <div class="chat-input-row">
-                  <input id="squadChatInput" class="field" autocomplete="off" maxlength="140" placeholder="Type party message..." />
-                  <button class="valorant-btn primary" data-action="send-squad-chat">SEND</button>
-                </div>
-              </div>
             </div>
           </div>
           <div class="lobby-invite-mount">${friendInvitePanel}</div>

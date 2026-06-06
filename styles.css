@@ -4813,7 +4813,7 @@ body.is-mobile-ui .touch-actions [data-touch="dash"] {
   z-index: 2;
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-start;
   gap: 18px;
   height: 76px;
   padding: 0 28px;
@@ -4841,12 +4841,6 @@ body.is-mobile-ui .touch-actions [data-touch="dash"] {
   letter-spacing: 0.03em;
 }
 
-.valorant-tabs {
-  display: flex;
-  gap: 8px;
-}
-
-.valorant-tabs button,
 .valorant-mode-bar button,
 .valorant-btn {
   position: relative;
@@ -4864,7 +4858,6 @@ body.is-mobile-ui .touch-actions [data-touch="dash"] {
   transition: transform 150ms ease, border-color 150ms ease, background 150ms ease, box-shadow 150ms ease;
 }
 
-.valorant-tabs button::after,
 .valorant-mode-bar button::after,
 .valorant-btn::after {
   content: "";
@@ -4875,8 +4868,6 @@ body.is-mobile-ui .touch-actions [data-touch="dash"] {
   transition: transform 260ms ease;
 }
 
-.valorant-tabs button:hover,
-.valorant-tabs button.active,
 .valorant-mode-bar button:hover,
 .valorant-btn:hover {
   transform: translateY(-1px);
@@ -4885,7 +4876,6 @@ body.is-mobile-ui .touch-actions [data-touch="dash"] {
   box-shadow: 0 0 20px rgba(255, 70, 85, 0.18);
 }
 
-.valorant-tabs button:hover::after,
 .valorant-mode-bar button:hover::after,
 .valorant-btn:hover::after {
   transform: translateX(120%) skewX(-18deg);
@@ -4916,8 +4906,7 @@ body.is-mobile-ui .touch-actions [data-touch="dash"] {
 
 .valorant-party,
 .valorant-side,
-.team-stats,
-.squad-chat {
+.team-stats {
   min-height: 0;
 }
 
@@ -4930,7 +4919,6 @@ body.is-mobile-ui .touch-actions [data-touch="dash"] {
 .party-header,
 .valorant-member,
 .team-stats,
-.squad-chat,
 .valorant-controls,
 .valorant-mode-bar {
   background: rgba(31, 39, 49, 0.76);
@@ -5223,12 +5211,11 @@ body.is-mobile-ui .touch-actions [data-touch="dash"] {
 
 .valorant-side {
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr);
+  grid-template-rows: auto;
   gap: 14px;
 }
 
-.team-stats,
-.squad-chat {
+.team-stats {
   display: grid;
   gap: 10px;
   padding: 14px;
@@ -5265,72 +5252,6 @@ body.is-mobile-ui .touch-actions [data-touch="dash"] {
   line-height: 1;
 }
 
-.squad-chat {
-  min-height: 0;
-}
-
-.chat-feed {
-  min-height: 0;
-  overflow-y: auto;
-  display: grid;
-  align-content: start;
-  gap: 10px;
-  padding-right: 4px;
-  scrollbar-width: thin;
-  scrollbar-color: #ff4655 rgba(236, 232, 225, 0.08);
-}
-
-.chat-line {
-  display: grid;
-  grid-template-columns: 34px minmax(0, 1fr);
-  gap: 9px;
-  animation: squadJoin 240ms ease both;
-}
-
-.chat-avatar {
-  display: grid;
-  place-items: center;
-  width: 34px;
-  height: 34px;
-  border: 1px solid rgba(255, 70, 85, 0.42);
-  background: rgba(255, 70, 85, 0.12);
-  color: #ff4655;
-  font-size: 10px;
-  font-weight: 950;
-}
-
-.chat-head {
-  display: flex;
-  justify-content: space-between;
-  gap: 8px;
-  color: #ece8e1;
-  font-size: 12px;
-}
-
-.chat-head span,
-.chat-line p {
-  color: rgba(236, 232, 225, 0.52);
-}
-
-.chat-line p {
-  margin: 3px 0 0;
-  font-size: 12px;
-  line-height: 1.35;
-}
-
-.chat-input-row {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 82px;
-  gap: 8px;
-}
-
-.chat-input-row .field {
-  min-height: 42px;
-  border-color: rgba(236, 232, 225, 0.16);
-  background: rgba(15, 25, 35, 0.68);
-  color: #ece8e1;
-}
-
 @keyframes squadJoin {
   from {
     opacity: 0;
@@ -5349,7 +5270,7 @@ body.is-mobile-ui .touch-actions [data-touch="dash"] {
   }
 
   .valorant-side {
-    grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+    grid-template-columns: 1fr;
     grid-template-rows: auto;
   }
 
@@ -5373,11 +5294,6 @@ body.is-mobile-ui .touch-actions [data-touch="dash"] {
     align-items: stretch;
     flex-direction: column;
     padding: 12px;
-  }
-
-  .valorant-tabs {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
   .valorant-main {
@@ -5423,7 +5339,4 @@ body.is-mobile-ui .touch-actions [data-touch="dash"] {
     display: grid;
   }
 
-  .squad-chat {
-    min-height: 360px;
-  }
 }

@@ -1,11 +1,11 @@
-const SOULRIFT_CACHE = "soulrift-pwa-20260606-valorant-no-reload-195";
+const SOULRIFT_CACHE = "soulrift-pwa-20260606-valorant-clean-196";
 const SOULRIFT_ASSETS = [
   "./",
   "./index.html",
-  "./styles.css?v=20260606-valorant-no-reload-195",
-  "./src/pwa.js?v=20260606-valorant-no-reload-195",
-  "./src/game.js?v=20260606-valorant-no-reload-195",
-  "./manifest.webmanifest?v=20260606-valorant-no-reload-195",
+  "./styles.css?v=20260606-valorant-clean-196",
+  "./src/pwa.js?v=20260606-valorant-clean-196",
+  "./src/game.js?v=20260606-valorant-clean-196",
+  "./manifest.webmanifest?v=20260606-valorant-clean-196",
   "./version.json",
   "./assets/icons/app-icon-20260605-logo-xl-149.svg",
   "./assets/icons/app-icon-20260605-logo-xl-149-192.png",

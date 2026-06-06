@@ -9,7 +9,7 @@
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
   const SIGNAL_REALTIME_RELAY_LIMIT = 2;
   const SIGNAL_REALTIME_TYPES = new Set(["state", "snapshot", "attack", "skill", "collect", "openChest", "dropItem", "damage", "chooseDoor"]);
-  const APP_VERSION = "20260606-menu-update-button-191";
+  const APP_VERSION = "20260606-core-upgrades-192";
   const CHANGELOG_ENTRIES = [
     {
       version: APP_VERSION,
@@ -56,12 +56,12 @@
   const DIRECTORY_HISTORY = "75s";
   const RUN_ITEM_LIMIT = 10;
   const RUN_EQUIP_LIMIT = 6;
-  const NET_STATE_PEER_INTERVAL = 1 / 30;
-  const NET_STATE_RELAY_INTERVAL = 0.12;
-  const NET_SNAPSHOT_PEER_INTERVAL = 0.12;
-  const NET_SNAPSHOT_RELAY_INTERVAL = 0.22;
+  const NET_STATE_PEER_INTERVAL = 1 / 36;
+  const NET_STATE_RELAY_INTERVAL = 0.095;
+  const NET_SNAPSHOT_PEER_INTERVAL = 0.1;
+  const NET_SNAPSHOT_RELAY_INTERVAL = 0.18;
   const NET_REALTIME_BUFFER_LIMIT = 128 * 1024;
-  const NET_SNAPSHOT_STALE_MS = 1100;
+  const NET_SNAPSHOT_STALE_MS = 1500;
   const DEFAULT_ICE_SERVERS = [
     { urls: "stun:stun.l.google.com:19302" },
     { urls: "stun:stun1.l.google.com:19302" },
@@ -486,9 +486,9 @@
   ];
 
   const DIFFICULTIES = [
-    { id: "easy", label: "Dễ", text: "Quái yếu hơn, phù hợp để thử nhân vật và power.", enemyHp: 0.78, enemyDamage: 0.78, countBonus: -1, rewardBonus: -0.06 },
-    { id: "normal", label: "Thường", text: "Nhịp chuẩn của Soulrift.", enemyHp: 1, enemyDamage: 1, countBonus: 0, rewardBonus: 0 },
-    { id: "hard", label: "Khó", text: "Quái dai và đau hơn, đổi lại rương, tiền và nguyên liệu tốt hơn.", enemyHp: 1.18, enemyDamage: 1.12, countBonus: 1, rewardBonus: 0.14 }
+    { id: "easy", label: "Dễ", text: "Quái yếu hơn, phù hợp để thử nhân vật và power.", enemyHp: 0.74, enemyDamage: 0.7, countBonus: -1, rewardBonus: -0.08 },
+    { id: "normal", label: "Thường", text: "Nhịp chuẩn của Soulrift.", enemyHp: 1.06, enemyDamage: 0.94, countBonus: 0, rewardBonus: 0 },
+    { id: "hard", label: "Khó", text: "Quái dai và đau hơn, đổi lại rương, tiền và nguyên liệu tốt hơn.", enemyHp: 1.28, enemyDamage: 1.08, countBonus: 1, rewardBonus: 0.16 }
   ];
 
   const CURSES = [
@@ -1068,7 +1068,13 @@
         roomsCleared: 0,
         runs: 0,
         statPoints: 0,
-        statUpgrades: Object.fromEntries(STAT_POINT_UPGRADES.map((upgrade) => [upgrade.id, 0]))
+        statUpgrades: Object.fromEntries(STAT_POINT_UPGRADES.map((upgrade) => [upgrade.id, 0])),
+        missions: {
+          dailyKey: "",
+          weeklyKey: "",
+          daily: [],
+          weekly: []
+        }
       }
     };
   }
@@ -3270,6 +3276,7 @@
       this.save.materials.gold = Math.max(0, Math.floor(Number(this.save.materials.gold || 0)));
       this.normalizeSettings();
       this.normalizeStatPoints();
+      this.normalizeMissions();
       if (this.save.account.created && this.save.account.username && !this.save.auth.currentUser) {
         const key = accountKey(this.save.account.username);
         this.save.auth.currentUser = key;
@@ -3555,6 +3562,7 @@
       this.save.materials.gold = Math.max(0, Math.floor(Number(this.save.materials.gold || 0)));
       this.normalizeSettings();
       this.normalizeStatPoints();
+      this.normalizeMissions();
     }
 
     normalizePowerMeta(meta, power) {
@@ -3600,6 +3608,129 @@
         const value = Number(this.save.progression.statUpgrades[upgrade.id] || 0);
         this.save.progression.statUpgrades[upgrade.id] = Math.max(0, Math.floor(value));
       }
+    }
+
+    missionDayKey(date = new Date()) {
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, "0");
+      const day = String(date.getDate()).padStart(2, "0");
+      return `${year}-${month}-${day}`;
+    }
+
+    missionWeekKey(date = new Date()) {
+      const d = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+      const day = d.getDay() || 7;
+      d.setDate(d.getDate() + 4 - day);
+      const yearStart = new Date(d.getFullYear(), 0, 1);
+      const week = Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+      return `${d.getFullYear()}-W${String(week).padStart(2, "0")}`;
+    }
+
+    missionMetricValue(metric) {
+      const progress = this.save.progression || {};
+      if (metric === "roomsCleared") return Math.floor(Number(progress.roomsCleared || 0));
+      if (metric === "bossesDefeated") return Math.floor(Number(progress.bossesDefeated || 0));
+      if (metric === "runs") return Math.floor(Number(progress.runs || 0));
+      if (metric === "totalXp") return Math.floor(Number(progress.totalXp || 0));
+      return 0;
+    }
+
+    buildMission(type, id, metric, label, target, reward) {
+      return {
+        id: `${type}-${id}`,
+        type,
+        metric,
+        label,
+        target,
+        reward,
+        start: this.missionMetricValue(metric),
+        claimed: false
+      };
+    }
+
+    generateMissions(type) {
+      if (type === "weekly") {
+        return [
+          this.buildMission("weekly", "rooms", "roomsCleared", "Vượt 20 phòng", 20, { gold: 120, material: "bossCore", materialAmount: 1 }),
+          this.buildMission("weekly", "boss", "bossesDefeated", "Hạ 4 boss", 4, { gold: 90, material: "divineSpark", materialAmount: 1 }),
+          this.buildMission("weekly", "xp", "totalXp", "Nhận 1800 kinh nghiệm", 1800, { powerSpins: 2, xp: 120 })
+        ];
+      }
+      return [
+        this.buildMission("daily", "rooms", "roomsCleared", "Vượt 3 phòng", 3, { gold: 30, xp: 60 }),
+        this.buildMission("daily", "run", "runs", "Bắt đầu 1 lượt vượt ải", 1, { gold: 20, xp: 40 }),
+        this.buildMission("daily", "xp", "totalXp", "Nhận 250 kinh nghiệm", 250, { powerSpins: 1 })
+      ];
+    }
+
+    normalizeMissions() {
+      this.save.progression ||= {};
+      this.save.progression.missions ||= {};
+      const missions = this.save.progression.missions;
+      const today = this.missionDayKey();
+      const week = this.missionWeekKey();
+      if (missions.dailyKey !== today || !Array.isArray(missions.daily)) {
+        missions.dailyKey = today;
+        missions.daily = this.generateMissions("daily");
+      }
+      if (missions.weeklyKey !== week || !Array.isArray(missions.weekly)) {
+        missions.weeklyKey = week;
+        missions.weekly = this.generateMissions("weekly");
+      }
+      for (const group of ["daily", "weekly"]) {
+        missions[group] = (missions[group] || []).map((mission) => ({
+          ...mission,
+          start: Math.max(0, Math.floor(Number(mission.start || 0))),
+          target: Math.max(1, Math.floor(Number(mission.target || 1))),
+          claimed: Boolean(mission.claimed)
+        }));
+      }
+    }
+
+    missionProgress(mission) {
+      return clamp(this.missionMetricValue(mission.metric) - Number(mission.start || 0), 0, Number(mission.target || 1));
+    }
+
+    missionRewardText(reward = {}) {
+      const parts = [];
+      if (reward.gold) parts.push(`${reward.gold} vàng`);
+      if (reward.xp) parts.push(`${reward.xp} XP`);
+      if (reward.powerSpins) parts.push(`${reward.powerSpins} lượt quay`);
+      if (reward.material) {
+        const label = materialLabel(reward.material);
+        parts.push(`${reward.materialAmount || 1} ${label}`);
+      }
+      return parts.join(" + ") || "Thưởng";
+    }
+
+    applyMissionReward(reward = {}) {
+      this.save.materials.gold = Math.max(0, Math.floor(Number(this.save.materials.gold || 0) + Number(reward.gold || 0)));
+      this.save.account.powerSpins = Math.max(0, Math.floor(Number(this.save.account.powerSpins || 0) + Number(reward.powerSpins || 0)));
+      if (reward.material) {
+        this.save.materials[reward.material] = Math.max(0, Math.floor(Number(this.save.materials[reward.material] || 0) + Number(reward.materialAmount || 1)));
+      }
+      if (reward.xp) this.awardXp(Number(reward.xp || 0), { silent: true });
+    }
+
+    claimMissionReward(missionId) {
+      this.normalizeMissions();
+      const missions = this.save.progression.missions;
+      const mission = [...missions.daily, ...missions.weekly].find((entry) => entry.id === missionId);
+      if (!mission) return;
+      if (mission.claimed) {
+        this.toast("Nhiệm vụ này đã nhận thưởng");
+        return;
+      }
+      if (this.missionProgress(mission) < mission.target) {
+        this.toast("Nhiệm vụ chưa hoàn thành");
+        return;
+      }
+      mission.claimed = true;
+      const rewardText = this.missionRewardText(mission.reward);
+      this.applyMissionReward(mission.reward);
+      this.persist();
+      this.toast(`Đã nhận ${rewardText}`);
+      this.showMissions();
     }
 
     validateAccountForm(username, password, confirm = password, registering = true) {
@@ -4949,6 +5080,7 @@
           <div class="logo">
             <h1>SOULRIFT</h1>
             <button class="menu-tool-btn" data-action="updates">C&#7852;P NH&#7852;T</button>
+            <button class="menu-tool-btn" data-action="missions">NHIỆM VỤ</button>
             <p>Roguelike hành động thời gian thực</p>
           </div>
           <div class="account-strip">
@@ -4991,6 +5123,56 @@
             <button class="btn primary" data-action="close-changelog">ĐÃ HIỂU</button>
             <button class="btn" data-action="close-changelog-play">CHƠI</button>
           </div>
+        </section>
+      `);
+    }
+
+    showMissions() {
+      if (!this.hasAccount()) return;
+      this.normalizeMissions();
+      this.mode = "missions";
+      const renderGroup = (title, resetText, missions) => `
+        <div class="mission-group">
+          <div class="mission-group-title">
+            <h3>${title}</h3>
+            <span>${resetText}</span>
+          </div>
+          <div class="grid">
+            ${missions.map((mission) => {
+              const progress = this.missionProgress(mission);
+              const done = progress >= mission.target;
+              const pct = clamp(progress / mission.target, 0, 1) * 100;
+              return `
+                <div class="mission-card ${done ? "done" : ""}">
+                  <div>
+                    <div class="mission-title">${mission.label}</div>
+                    <p>${this.missionRewardText(mission.reward)}</p>
+                  </div>
+                  <div class="mission-progress">
+                    <span>${Math.floor(progress)} / ${mission.target}</span>
+                    <div><i style="width:${pct}%"></i></div>
+                  </div>
+                  <button class="btn ${done && !mission.claimed ? "primary" : ""}" data-action="claim-mission" data-mission="${mission.id}" ${done && !mission.claimed ? "" : "disabled"}>
+                    ${mission.claimed ? "ĐÃ NHẬN" : done ? "NHẬN" : "CHƯA XONG"}
+                  </button>
+                </div>
+              `;
+            }).join("")}
+          </div>
+        </div>
+      `;
+      const missions = this.save.progression.missions;
+      this.setScreen(`
+        <section class="wide-panel missions-panel">
+          <div class="panel-header">
+            <div>
+              <h2 class="panel-title">Nhiệm Vụ</h2>
+              <p class="panel-subtitle">Hoàn thành mục tiêu ngày và tuần để lấy vàng, XP, lượt quay và vật liệu thức tỉnh.</p>
+            </div>
+            <button class="btn" data-action="menu">MENU</button>
+          </div>
+          ${renderGroup("Hằng ngày", missions.dailyKey, missions.daily)}
+          ${renderGroup("Hằng tuần", missions.weeklyKey, missions.weekly)}
         </section>
       `);
     }
@@ -5055,6 +5237,7 @@
       if (action === "play-boss-rush-solo") this.showBossRushSoloMenu();
       if (action === "play-boss-rush-multiplayer") this.showMultiplayerHub("bossRush");
       if (action === "play-player-boss") this.showMultiplayerHub("playerBoss");
+      if (action === "play-tutorial") this.startTutorialRun();
       if (action === "play-training") this.showTrainingSetup();
       if (action === "play-multiplayer") this.showMultiplayerHub();
       if (action === "find-room") this.showRoomFinder();
@@ -5076,6 +5259,8 @@
       if (action === "character") this.showCharacter();
       if (action === "friends") this.showFriends();
       if (action === "updates") this.showChangelog();
+      if (action === "missions") this.showMissions();
+      if (action === "claim-mission") this.claimMissionReward(target.dataset.mission);
       if (action === "close-changelog") this.closeChangelog();
       if (action === "close-changelog-play") this.closeChangelogAndPlay();
       if (action === "open-lobby-invites") {
@@ -5208,6 +5393,11 @@
                 <div class="card-icon">ẢI</div>
                 <h3>Vượt ải</h3>
                 <p>Vào ải một mình hoặc cùng bạn trong phòng.</p>
+              </button>
+              <button class="choice-card" data-action="play-tutorial">
+                <div class="card-icon">HD</div>
+                <h3>Hướng dẫn</h3>
+                <p>Làm quen di chuyển, đánh thường và dùng skill trong một phòng an toàn.</p>
               </button>
               <button class="choice-card" data-action="play-minigames">
                 <div class="card-icon">B</div>
@@ -6273,6 +6463,20 @@
       });
     }
 
+    startTutorialRun() {
+      this.trainingOptions = {
+        damage: true,
+        freeEnergy: false,
+        noCooldown: false
+      };
+      this.startSelectedRun("", {
+        training: true,
+        tutorial: true,
+        trainingOptions: this.trainingOptions,
+        difficulty: "easy"
+      });
+    }
+
     selectPower(powerId) {
       if (!this.save.account.ownedPowers.includes(powerId)) {
         this.toast("Bạn chưa sở hữu sức mạnh này");
@@ -7178,6 +7382,7 @@
       this.audio.start();
       if (this.isMobileDevice()) this.enterMobilePlayMode();
       const training = Boolean(options.training);
+      const tutorial = Boolean(options.tutorial);
       const trainingOptions = { ...this.defaultTrainingOptions(), ...(options.trainingOptions || {}) };
       if (!training) this.save.progression.runs += 1;
       const biomeIndex = Math.max(0, BIOMES.findIndex((biome) => biome.id === forcedBiomeId));
@@ -7203,6 +7408,13 @@
         multiplayer: Boolean(options.multiplayer),
         netHost: options.multiplayer ? Boolean(options.host) : true,
         training,
+        tutorial,
+        tutorialStartX: 0,
+        tutorialStartY: 0,
+        tutorialMoved: false,
+        tutorialAttacked: false,
+        tutorialSkilled: false,
+        tutorialDone: false,
         trainingOptions,
         flawless: true,
         biome: startBiome,
@@ -7236,6 +7448,8 @@
         intro: 0,
         roomClearTimer: 0
       };
+      this.run.tutorialStartX = this.run.player.x;
+      this.run.tutorialStartY = this.run.player.y;
       this.audio.setBiome(this.run.biome);
       this.applyEquippedItems();
       this.networkSeq = 0;
@@ -7255,7 +7469,7 @@
       this.touchLayer.classList.toggle("hidden", !this.isMobileDevice());
       const raidPower = options.miniGame === "awakeningRaid" ? powerById(options.raidPowerId || power.id) : power;
       this.startRoom(training
-        ? { type: "training", label: "Phòng Huấn Luyện", icon: "T", color: "#82ffd3" }
+        ? { type: "training", label: tutorial ? "Hướng Dẫn" : "Phòng Huấn Luyện", icon: tutorial ? "HD" : "T", color: tutorial ? "#f2bf63" : "#82ffd3" }
         : options.miniGame === "bossRush" || options.miniGame === "playerBoss" || options.miniGame === "awakeningRaid"
           ? { type: "boss", label: options.miniGame === "playerBoss" ? "Hóa Trùm" : options.miniGame === "awakeningRaid" ? `Raid ${raidPower.name}` : "Đại Chiến Boss", icon: options.miniGame === "awakeningRaid" ? "A" : "B", color: raidPower.color || startBiome.accent }
           : { type: "normal", label: "Phòng Thường", icon: "X", color: "#c9d0db" });
@@ -7284,6 +7498,10 @@
 
     isTrainingRun() {
       return Boolean(this.run?.training || this.run?.currentRoom?.type === "training");
+    }
+
+    isTutorialRun() {
+      return Boolean(this.run?.tutorial);
     }
 
     isBossRushRun() {
@@ -7371,6 +7589,35 @@
         p.cooldowns.f = 0;
         p.dashCd = 0;
         p.ult = 100;
+      }
+    }
+
+    updateTutorialProgress() {
+      if (!this.isTutorialRun()) return;
+      const p = this.run?.player;
+      if (!p) return;
+      if (!this.run.tutorialMoved) {
+        const moved = Math.hypot(p.x - (this.run.tutorialStartX || p.x), p.y - (this.run.tutorialStartY || p.y));
+        if (moved > 80) {
+          this.run.tutorialMoved = true;
+          this.toast("Tốt. Giờ thử đánh thường vào dummy.");
+        }
+        return;
+      }
+      if (!this.run.tutorialAttacked) {
+        if ((p.attackCd || 0) > 0 || (p.combo || 0) > 0) {
+          this.run.tutorialAttacked = true;
+          this.toast("Ổn rồi. Dùng Q, E, R hoặc tuyệt kỹ để thử skill.");
+        }
+        return;
+      }
+      if (!this.run.tutorialSkilled) {
+        const usedSkill = Object.values(p.cooldowns || {}).some((cd) => Number(cd || 0) > 0);
+        if (usedSkill || (p.domainCastTime || 0) > 0) {
+          this.run.tutorialSkilled = true;
+          this.run.tutorialDone = true;
+          this.toast("Hoàn thành hướng dẫn. Có thể thoát hoặc vào Vượt ải.");
+        }
       }
     }
 
@@ -7781,11 +8028,11 @@
       const speed = upgrades.speed || 0;
       const crit = upgrades.crit || 0;
       return {
-        hp: Math.round(character.stats.hp + hp * 6),
-        energy: Math.round(character.stats.energy + energy * 4),
-        speed: Math.round(character.stats.speed + Math.sqrt(speed) * 4.2 + speed * 0.32),
-        damage: Number((character.stats.damage + Math.sqrt(damage) * 0.92 + damage * 0.045).toFixed(1)),
-        crit: Math.min(0.5, character.stats.crit + Math.sqrt(crit) * 0.005 + crit * 0.00055),
+        hp: Math.round(character.stats.hp + hp * 7),
+        energy: Math.round(character.stats.energy + energy * 4.5),
+        speed: Math.round(character.stats.speed + Math.sqrt(speed) * 3.6 + speed * 0.24),
+        damage: Number((character.stats.damage + Math.sqrt(damage) * 0.72 + damage * 0.032).toFixed(1)),
+        crit: Math.min(0.42, character.stats.crit + Math.sqrt(crit) * 0.0045 + crit * 0.0004),
         attackCd: character.stats.attackCd
       };
     }
@@ -8393,8 +8640,8 @@
       });
       this.run.player.ult = 100;
       if (this.trainingRule("freeEnergy")) this.run.player.energy = this.run.player.maxEnergy;
-      this.addShockwave(WORLD_W / 2, WORLD_H / 2, 180, "#82ffd3", 0);
-      this.toast("Phòng huấn luyện: 5 dummy đã sẵn sàng");
+      this.addShockwave(WORLD_W / 2, WORLD_H / 2, 180, this.isTutorialRun() ? "#f2bf63" : "#82ffd3", 0);
+      this.toast(this.isTutorialRun() ? "Hướng dẫn: hãy thử di chuyển trước" : "Phòng huấn luyện: 5 dummy đã sẵn sàng");
     }
 
     addRoomObject(type, data = {}) {
@@ -8541,10 +8788,10 @@
         vx: 0,
         vy: 0,
         radius: elite ? size + 7 : size,
-        hp: (hpBase + this.run.stage * 20) * (elite ? 2.25 : 1) * (this.run.difficulty?.enemyHp || 1),
-        maxHp: (hpBase + this.run.stage * 20) * (elite ? 2.25 : 1) * (this.run.difficulty?.enemyHp || 1),
+        hp: (hpBase + this.run.stage * 18) * (elite ? 2.25 : 1) * (this.run.difficulty?.enemyHp || 1),
+        maxHp: (hpBase + this.run.stage * 18) * (elite ? 2.25 : 1) * (this.run.difficulty?.enemyHp || 1),
         speed: speedBase * (elite ? 1.04 : 1),
-        damage: (damageBase + this.run.stage * 3.4) * (this.run.difficulty?.enemyDamage || 1),
+        damage: (damageBase + this.run.stage * 3.0) * (this.run.difficulty?.enemyDamage || 1),
         role,
         specialSkill: this.enemySpecialSkill(role),
         ranged,
@@ -8608,7 +8855,7 @@
       const raidPower = raid ? this.raidBossPower() : null;
       const rushMult = raid ? 1.72 : this.isBossRushRun() ? 1.22 : 1;
       const partyScale = 1 + (partySize - 1) * (raid ? 0.46 : 0.34);
-      const hp = (1180 + this.run.stage * 360) * (this.run.difficulty?.enemyHp || 1) * partyScale * rushMult;
+      const hp = (1120 + this.run.stage * 330) * (this.run.difficulty?.enemyHp || 1) * partyScale * rushMult;
       const bossDebuff = pick(BOSS_DEBUFFS);
       this.run.enemies.push({
         id: uid("boss"),
@@ -8621,7 +8868,7 @@
         hp,
         maxHp: hp,
         speed: (62 + this.run.stage * 5) * (raid ? 0.98 : this.isBossRushRun() ? 1.08 : 1),
-        damage: (30 + this.run.stage * 6.8) * (this.run.difficulty?.enemyDamage || 1) * (raid ? 1.08 : 1),
+        damage: (28 + this.run.stage * 6.0) * (this.run.difficulty?.enemyDamage || 1) * (raid ? 1.08 : 1),
         ranged: true,
         bulky: true,
         elite: true,
@@ -8808,6 +9055,7 @@
       if (this.input.mouse.left && !this.pauseOverlay && !player.dead) this.attackBasic();
       if (player.comboTimer > 0) player.comboTimer -= worldDt;
       else player.combo = 0;
+      this.updateTutorialProgress();
       if (!this.isMultiplayerClient()) {
         this.ensureRoomClearState(worldDt);
         this.ensureNextDoorRecovery();
@@ -13446,7 +13694,7 @@
       return Math.round(base * (1 + this.run.stage * 0.18));
     }
 
-    awardXp(amount) {
+    awardXp(amount, options = {}) {
       if (!amount) return;
       this.normalizeStatPoints();
       const progress = this.save.progression;
@@ -13459,6 +13707,7 @@
         progress.statPoints += 1;
         levels++;
       }
+      if (options.silent) return;
       if (levels > 0) this.toast(`Lên cấp ${progress.level}! +${levels} điểm nâng`);
       else this.toast(`Nhận ${amount} kinh nghiệm`);
     }
@@ -17785,8 +18034,13 @@
       if (!this.run || !this.isMultiplayerRun()) return;
       this.warnIfUsingSlowRelay();
       if (this.networkTimer <= 0) {
-        this.networkTimer = this.lobby.hasOpenPeers() ? NET_STATE_PEER_INTERVAL : NET_STATE_RELAY_INTERVAL;
+        const relay = !this.lobby.hasOpenPeers();
         const p = this.run.player;
+        const moving = Math.hypot(p.vx || 0, p.vy || 0) > 18;
+        const acting = (p.attackCd || 0) > 0 || Object.values(p.cooldowns || {}).some((cd) => Number(cd || 0) > 0);
+        this.networkTimer = relay
+          ? (moving || acting ? NET_STATE_RELAY_INTERVAL * 0.78 : NET_STATE_RELAY_INTERVAL)
+          : (moving || acting ? NET_STATE_PEER_INTERVAL * 0.82 : NET_STATE_PEER_INTERVAL);
         const state = this.networkPlayerState(this.lobby.id, p);
         if (state && this.shouldSendNetworkState(state)) {
           p.netSeq = (p.netSeq || 0) + 1;
@@ -17808,7 +18062,7 @@
       this.maybeRequestNetworkResync(dt);
       for (const [id, remote] of [...this.remotePlayers]) {
         const stillInRoom = this.lobby.slots.some((slot) => slot?.id === id);
-        if (!stillInRoom && performance.now() - remote.t > 4000) this.remotePlayers.delete(id);
+        if (!stillInRoom && performance.now() - remote.t > 6500) this.remotePlayers.delete(id);
       }
       this.ensureRemotePlayersFromLobby();
     }
@@ -17930,10 +18184,9 @@
     updateNetworkInterpolation(dt) {
       if (!this.run || !this.isMultiplayerRun()) return;
       const now = performance.now();
-      const remoteBlend = clamp(dt * 22, 0, 1);
       for (const remote of this.remotePlayers.values()) {
         remote.invuln = Math.max(0, Number(remote.invuln || 0) - dt);
-        const age = clamp((now - (remote.t || now)) / 1000, 0, 0.12);
+        const age = clamp((now - (remote.t || now)) / 1000, 0, 0.2);
         const targetX = Number(remote.x) + (Number(remote.vx) || 0) * age;
         const targetY = Number(remote.y) + (Number(remote.vy) || 0) * age;
         if (!Number.isFinite(targetX) || !Number.isFinite(targetY)) continue;
@@ -17941,12 +18194,21 @@
           remote.displayX = targetX;
           remote.displayY = targetY;
         } else {
-          remote.displayX += (targetX - remote.displayX) * remoteBlend;
-          remote.displayY += (targetY - remote.displayY) * remoteBlend;
+          const dx = targetX - remote.displayX;
+          const dy = targetY - remote.displayY;
+          const dist = Math.hypot(dx, dy);
+          if (dist > 900) {
+            remote.displayX = targetX;
+            remote.displayY = targetY;
+          } else {
+            const base = this.lobby.hasOpenPeers() ? 24 : 16;
+            const remoteBlend = clamp(dt * (base + clamp(dist / 120, 0, 5) * 6), 0, 1);
+            remote.displayX += dx * remoteBlend;
+            remote.displayY += dy * remoteBlend;
+          }
         }
       }
       if (!this.isMultiplayerClient()) return;
-      const enemyBlend = clamp(dt * 18, 0, 1);
       for (const enemy of this.run.enemies) {
         enemy.flash = Math.max(0, (enemy.flash || 0) - dt);
         enemy.attackAnim = Math.max(0, (enemy.attackAnim || 0) - dt);
@@ -17959,11 +18221,12 @@
           enemy.displayX = targetX;
           enemy.displayY = targetY;
         } else {
+          const dist = Math.hypot(targetX - enemy.displayX, targetY - enemy.displayY);
+          const enemyBlend = clamp(dt * (14 + clamp(dist / 150, 0, 6) * 4), 0, 1);
           enemy.displayX += (targetX - enemy.displayX) * enemyBlend;
           enemy.displayY += (targetY - enemy.displayY) * enemyBlend;
         }
       }
-      const projectileBlend = clamp(dt * 24, 0, 1);
       for (const projectile of this.run.projectiles) {
         const targetX = Number(projectile.x) + (Number(projectile.vx) || 0) * 0.045;
         const targetY = Number(projectile.y) + (Number(projectile.vy) || 0) * 0.045;
@@ -17972,6 +18235,8 @@
           projectile.displayX = targetX;
           projectile.displayY = targetY;
         } else {
+          const dist = Math.hypot(targetX - projectile.displayX, targetY - projectile.displayY);
+          const projectileBlend = clamp(dt * (22 + clamp(dist / 180, 0, 8) * 5), 0, 1);
           projectile.displayX += (targetX - projectile.displayX) * projectileBlend;
           projectile.displayY += (targetY - projectile.displayY) * projectileBlend;
         }
@@ -18116,6 +18381,7 @@
 
     compactObjectiveText() {
       const enemies = this.run?.enemies.length || 0;
+      if (this.isTutorialRun()) return this.tutorialObjectiveText(true);
       if (this.isTrainingRun()) return `${enemies} dummy`;
       if (enemies > 0) return `${enemies} quái`;
       const pending = this.run?.pendingDoor;
@@ -18129,6 +18395,7 @@
     roomObjectiveText() {
       const room = this.run?.currentRoom;
       const enemies = this.run?.enemies.length || 0;
+      if (this.isTutorialRun()) return this.tutorialObjectiveText(false);
       if (this.isTrainingRun()) return `Test chiêu với ${enemies} dummy - ESC để thoát`;
       if (enemies > 0) return `Hạ ${enemies} quái`;
       const activeObject = this.run?.roomObjects?.find((object) => !object.opened && object.type !== "nextDoor");
@@ -18143,6 +18410,13 @@
       if (this.run?.roomObjects?.some((object) => object.type === "nextDoor")) return "Đi vào một cánh cửa";
       if (room.nextOpened) return "Chờ cửa khu tiếp theo";
       return "Đã dọn phòng";
+    }
+
+    tutorialObjectiveText(compact = false) {
+      if (!this.run?.tutorialMoved) return compact ? "Di chuyển" : "Di chuyển bằng WASD hoặc joystick";
+      if (!this.run?.tutorialAttacked) return compact ? "Đánh thường" : "Đánh thường vào dummy";
+      if (!this.run?.tutorialSkilled) return compact ? "Dùng skill" : "Dùng Q, E, R hoặc tuyệt kỹ để thử skill";
+      return compact ? "Hoàn thành" : "Hoàn thành hướng dẫn - ESC để thoát";
     }
 
     render() {

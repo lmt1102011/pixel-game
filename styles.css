@@ -426,6 +426,7 @@ body.pwa-landing-active .screen {
 .menu-tool-btn {
   min-height: 30px;
   margin-top: 10px;
+  margin-right: 6px;
   padding: 6px 10px;
   border: 1px solid rgba(242, 191, 99, 0.36);
   background: rgba(0, 0, 0, 0.22);
@@ -433,6 +434,85 @@ body.pwa-landing-active .screen {
   font-size: 11px;
   font-weight: 900;
   text-align: center;
+}
+
+.mission-group {
+  display: grid;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.mission-group-title {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.mission-group-title h3 {
+  margin: 0;
+  color: var(--text);
+  font-size: 17px;
+}
+
+.mission-group-title span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.mission-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(150px, 220px) auto;
+  gap: 12px;
+  align-items: center;
+  min-height: 96px;
+  padding: 13px;
+  border: 1px solid rgba(255, 255, 255, 0.13);
+  background: rgba(255, 255, 255, 0.055);
+}
+
+.mission-card.done {
+  border-color: rgba(242, 191, 99, 0.42);
+  background: rgba(242, 191, 99, 0.09);
+}
+
+.mission-title {
+  margin-bottom: 6px;
+  color: var(--text);
+  font-size: 15px;
+  font-weight: 900;
+}
+
+.mission-card p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.mission-progress {
+  display: grid;
+  gap: 6px;
+}
+
+.mission-progress span {
+  color: var(--gold);
+  font-size: 12px;
+  font-weight: 900;
+  text-align: right;
+}
+
+.mission-progress div {
+  height: 9px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(0, 0, 0, 0.25);
+}
+
+.mission-progress i {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, #35d6c9, #f2bf63);
 }
 
 .menu-tool-btn:hover {
@@ -3036,6 +3116,14 @@ body.pwa-landing-active .screen {
   box-shadow: 0 10px 24px rgba(0, 0, 0, 0.38);
 }
 
+body.is-mobile-ui .toast.combat-toast {
+  top: calc(82px + env(safe-area-inset-top));
+  max-width: min(280px, 42vw);
+  padding: 5px 9px;
+  font-size: 10px;
+  opacity: 0.92;
+}
+
 .invite-notifications {
   position: fixed;
   top: calc(16px + env(safe-area-inset-top));
@@ -4133,6 +4221,21 @@ body.is-mobile-ui .icon-btn {
   text-align: center;
 }
 
+body.is-mobile-ui .mission-card {
+  grid-template-columns: 1fr;
+  gap: 10px;
+}
+
+body.is-mobile-ui .mission-progress span {
+  text-align: left;
+}
+
+body.is-mobile-ui .mission-group-title {
+  align-items: start;
+  flex-direction: column;
+  gap: 4px;
+}
+
 body.is-mobile-ui .grid.cols-2,
 body.is-mobile-ui .grid.cols-3,
 body.is-mobile-ui .friend-layout,
@@ -4274,43 +4377,43 @@ body.is-mobile-ui .bag-icon {
 }
 
 body.is-mobile-ui .stick {
-  left: calc(24px + env(safe-area-inset-left));
-  bottom: calc(22px + env(safe-area-inset-bottom));
-  width: 116px;
-  height: 116px;
+  left: calc(38px + env(safe-area-inset-left));
+  bottom: calc(30px + env(safe-area-inset-bottom));
+  width: 112px;
+  height: 112px;
   border-width: 2px;
   background: rgba(8, 10, 16, 0.19);
   box-shadow: inset 0 0 0 12px rgba(255, 255, 255, 0.026), 0 6px 16px rgba(0, 0, 0, 0.2);
 }
 
 body.is-mobile-ui .stick span {
-  left: 38px;
-  top: 38px;
+  left: 36px;
+  top: 36px;
   width: 40px;
   height: 40px;
 }
 
 body.is-mobile-ui .touch-actions {
-  right: calc(6px + env(safe-area-inset-right));
-  bottom: calc(6px + env(safe-area-inset-bottom));
-  grid-template-columns: repeat(4, 56px);
-  gap: 7px;
+  right: calc(18px + env(safe-area-inset-right));
+  bottom: calc(18px + env(safe-area-inset-bottom));
+  grid-template-columns: repeat(3, 58px);
+  gap: 8px;
 }
 
 body.is-mobile-ui .touch-actions button {
-  width: 56px;
-  height: 48px;
-  border-radius: 16px;
+  width: 58px;
+  height: 50px;
+  border-radius: 18px;
   font-size: 10.5px;
-  background: linear-gradient(180deg, rgba(30, 36, 48, 0.72), rgba(8, 10, 16, 0.52));
-  box-shadow: 0 7px 15px rgba(0, 0, 0, 0.22), inset 0 0 0 1px rgba(255, 255, 255, 0.055);
+  background: linear-gradient(180deg, rgba(35, 42, 55, 0.76), rgba(8, 10, 16, 0.54));
+  box-shadow: 0 8px 17px rgba(0, 0, 0, 0.24), inset 0 0 0 1px rgba(255, 255, 255, 0.065);
 }
 
 body.is-mobile-ui .touch-actions [data-touch="attack"],
 body.is-mobile-ui .touch-actions [data-touch="dash"] {
   width: auto;
-  height: 54px;
-  border-radius: 18px;
+  height: 56px;
+  border-radius: 20px;
   font-size: 12px;
 }
 
@@ -4339,23 +4442,23 @@ body.is-mobile-ui .touch-actions [data-touch="dash"] {
   }
 
   body.is-mobile-ui .stick {
-    left: calc(18px + env(safe-area-inset-left));
-    bottom: calc(14px + env(safe-area-inset-bottom));
-    width: 108px;
-    height: 108px;
+    left: calc(30px + env(safe-area-inset-left));
+    bottom: calc(20px + env(safe-area-inset-bottom));
+    width: 104px;
+    height: 104px;
   }
 
   body.is-mobile-ui .stick span {
-    left: 36px;
-    top: 36px;
+    left: 34px;
+    top: 34px;
     width: 36px;
     height: 36px;
   }
 
   body.is-mobile-ui .touch-actions {
-    right: calc(5px + env(safe-area-inset-right));
-    bottom: calc(4px + env(safe-area-inset-bottom));
-    grid-template-columns: repeat(4, 52px);
+    right: calc(12px + env(safe-area-inset-right));
+    bottom: calc(12px + env(safe-area-inset-bottom));
+    grid-template-columns: repeat(3, 54px);
     gap: 6px;
   }
 

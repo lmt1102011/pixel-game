@@ -9,7 +9,7 @@
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
   const SIGNAL_REALTIME_RELAY_LIMIT = 2;
   const SIGNAL_REALTIME_TYPES = new Set(["state", "snapshot", "attack", "skill", "collect", "openChest", "dropItem", "damage", "chooseDoor"]);
-  const APP_VERSION = "20260606-mode-difficulty-gate-230";
+  const APP_VERSION = "20260606-shadow-goblin-only-231";
   const CHANGELOG_ENTRIES = [
     {
       version: APP_VERSION,
@@ -384,7 +384,7 @@
       haze: "rgba(45, 110, 66, 0.18)",
       music: [110, 146.83, 164.81, 196],
       hazards: ["thorn"],
-      enemies: ["shadowGoblin", "rotArcher", "mossKnight", "thornSkirmisher", "rotBomber"],
+      enemies: ["shadowGoblin"],
       boss: "Hộ Vệ Vương Miện Rễ"
     },
     {
@@ -396,7 +396,7 @@
       haze: "rgba(80, 180, 230, 0.15)",
       music: [82.41, 123.47, 164.81, 220],
       hazards: ["ice"],
-      enemies: ["shadowGoblin", "graveMarksman", "iceBulwark", "frostSkirmisher", "graveShaman"],
+      enemies: ["shadowGoblin"],
       boss: "Thánh Đen Mùa Đông"
     },
     {
@@ -408,7 +408,7 @@
       haze: "rgba(210, 70, 25, 0.15)",
       music: [98, 130.81, 185, 246.94],
       hazards: ["lava"],
-      enemies: ["shadowGoblin", "slagCaster", "chainBrute", "emberBomber", "ashSkirmisher"],
+      enemies: ["shadowGoblin"],
       boss: "Varkul, Bạo Chúa Lò Lửa"
     },
     {
@@ -420,7 +420,7 @@
       haze: "rgba(80, 80, 220, 0.16)",
       music: [123.47, 155.56, 207.65, 311.13],
       hazards: ["voltage"],
-      enemies: ["shadowGoblin", "pulseAcolyte", "chromeOgre", "pulseBomber", "riftSkirmisher"],
+      enemies: ["shadowGoblin"],
       boss: "Tín Hiệu Săn Mồi"
     },
     {
@@ -432,7 +432,7 @@
       haze: "rgba(210, 180, 85, 0.14)",
       music: [73.42, 110, 146.83, 196],
       hazards: ["blade"],
-      enemies: ["shadowGoblin", "idolSeer", "obsidianGuard", "sunShaman", "obsidianSkirmisher"],
+      enemies: ["shadowGoblin"],
       boss: "Astrax, Thần Tượng Cuối"
     }
   ];
@@ -10103,16 +10103,17 @@
     }
 
     createEnemy(kind, x, y, elite = false) {
-      const ranged = /Archer|Marksman|Caster|Acolyte|Seer|Shaman|Bomber/.test(kind);
-      const bulky = /Knight|Bulwark|Brute|Guard|Ogre|Warden/.test(kind);
-      const role = this.enemyRole(kind, ranged, bulky);
-      const hpBase = role === "guard" ? 104 : role === "brute" ? 94 : role === "bomber" ? 68 : role === "skirmisher" ? 64 : ranged ? 60 : 74;
-      const size = bulky ? 28 : role === "bomber" ? 22 : ranged ? 20 : role === "duelist" || role === "skirmisher" ? 22 : 23;
-      const speedBase = role === "skirmisher" ? 102 : role === "duelist" ? 94 : role === "bomber" ? 58 : role === "caster" ? 66 : role === "marksman" ? 72 : role === "guard" ? 56 : role === "brute" ? 64 : 84;
-      const damageBase = role === "caster" ? 15 : role === "bomber" ? 17 : role === "marksman" ? 16 : role === "guard" ? 22 : role === "brute" ? 24 : role === "skirmisher" ? 17 : 19;
+      const designedGoblin = /shadowGoblin/i.test(kind);
+      const ranged = !designedGoblin && /Archer|Marksman|Caster|Acolyte|Seer|Shaman|Bomber/.test(kind);
+      const bulky = !designedGoblin && /Knight|Bulwark|Brute|Guard|Ogre|Warden/.test(kind);
+      const role = designedGoblin ? "stalker" : this.enemyRole(kind, ranged, bulky);
+      const hpBase = designedGoblin ? 82 : role === "guard" ? 104 : role === "brute" ? 94 : role === "bomber" ? 68 : role === "skirmisher" ? 64 : ranged ? 60 : 74;
+      const size = designedGoblin ? 23 : bulky ? 28 : role === "bomber" ? 22 : ranged ? 20 : role === "duelist" || role === "skirmisher" ? 22 : 23;
+      const speedBase = designedGoblin ? 88 : role === "skirmisher" ? 102 : role === "duelist" ? 94 : role === "bomber" ? 58 : role === "caster" ? 66 : role === "marksman" ? 72 : role === "guard" ? 56 : role === "brute" ? 64 : 84;
+      const damageBase = designedGoblin ? 22 : role === "caster" ? 15 : role === "bomber" ? 17 : role === "marksman" ? 16 : role === "guard" ? 22 : role === "brute" ? 24 : role === "skirmisher" ? 17 : 19;
       return {
         id: uid("enemy"),
-        kind,
+        kind: designedGoblin ? "shadowGoblin" : kind,
         x,
         y,
         vx: 0,
@@ -10123,13 +10124,13 @@
         speed: speedBase * (elite ? 1.04 : 1),
         damage: (damageBase + this.run.stage * 3.0) * (this.run.difficulty?.enemyDamage || 1),
         role,
-        specialSkill: this.enemySpecialSkill(role),
+        specialSkill: designedGoblin ? "melee" : this.enemySpecialSkill(role),
         ranged,
         bulky,
         elite,
         boss: false,
-        attackCd: rand(0.4, 1.4),
-        skillCd: rand(1.2, 2.8),
+        attackCd: designedGoblin ? rand(0.12, 0.62) : rand(0.4, 1.4),
+        skillCd: designedGoblin ? 999 : rand(1.2, 2.8),
         windupType: "",
         windupTime: 0,
         windupTotal: 0,
@@ -16419,6 +16420,7 @@
       const d = Math.hypot(p.x - enemy.x, p.y - enemy.y);
       const a = Math.atan2(p.y - enemy.y, p.x - enemy.x);
       enemy.facingDir = p.x >= enemy.x ? 1 : -1;
+      const designedGoblin = /shadowGoblin/i.test(enemy.kind || "");
       const slow = (enemy.chill > 0 ? 0.48 : 1) * (enemy.weighted > 0 ? 0.82 : 1);
       enemy.attackCd -= dt;
       enemy.skillCd = Math.max(0, (enemy.skillCd || 0) - dt);
@@ -16460,7 +16462,7 @@
         }
       } else {
         const contact = enemy.radius + p.radius;
-        const desired = contact + (enemy.role === "guard" ? 62 : enemy.role === "duelist" ? 58 : enemy.role === "skirmisher" ? 72 : 42);
+        const desired = contact + (designedGoblin ? 18 : enemy.role === "guard" ? 62 : enemy.role === "duelist" ? 58 : enemy.role === "skirmisher" ? 72 : 42);
         if (d > desired + 8) {
           this.steerEnemy(enemy, Math.cos(a) * enemy.speed * slow, Math.sin(a) * enemy.speed * slow, dt, 8);
         } else if (d < desired - 8) {
@@ -16493,13 +16495,29 @@
             return;
           }
         }
-        if (d < contact + 22 && enemy.attackCd <= 0) {
-          enemy.attackCd = enemy.role === "skirmisher" ? (enemy.elite ? 0.78 : 1.0) : enemy.role === "duelist" ? (enemy.elite ? 0.82 : 1.08) : enemy.elite ? 0.82 : 1.1;
-          enemy.attackAnim = 0.32;
+        const basicReach = designedGoblin ? 38 : 22;
+        if (d < contact + basicReach && enemy.attackCd <= 0) {
+          enemy.attackCd = designedGoblin ? (enemy.elite ? 0.92 : 1.18) : enemy.role === "skirmisher" ? (enemy.elite ? 0.78 : 1.0) : enemy.role === "duelist" ? (enemy.elite ? 0.82 : 1.08) : enemy.elite ? 0.82 : 1.1;
+          enemy.attackAnim = designedGoblin ? 0.36 : 0.32;
           enemy.attackDir = a;
-          this.damageCombatTarget(p, enemy.damage * (enemy.role === "brute" ? 1.05 : enemy.role === "skirmisher" ? 0.76 : 0.92), enemy);
-          enemy.vx -= Math.cos(a) * 120;
-          enemy.vy -= Math.sin(a) * 120;
+          this.damageCombatTarget(p, enemy.damage * (designedGoblin ? 0.9 : enemy.role === "brute" ? 1.05 : enemy.role === "skirmisher" ? 0.76 : 0.92), enemy);
+          if (designedGoblin) {
+            this.addEffect({
+              type: "lineTell",
+              x: enemy.x,
+              y: enemy.y,
+              angle: a,
+              length: enemy.radius + p.radius + basicReach,
+              width: enemy.elite ? 34 : 28,
+              time: 0.08,
+              maxTime: 0.08,
+              color: enemy.elite ? "#ffbd5e" : "#ff2338",
+              damage: 0,
+              owner: "enemy"
+            });
+          }
+          enemy.vx -= Math.cos(a) * (designedGoblin ? 92 : 120);
+          enemy.vy -= Math.sin(a) * (designedGoblin ? 92 : 120);
         }
       }
     }
@@ -22042,6 +22060,42 @@
     }
 
     drawPixelMonsterSprite(ctx, enemy, palette, variant = 0) {
+      if (/shadowGoblin/i.test(enemy.kind || "")) {
+        const pulse = Math.round(Math.sin(this.menuTime * 5 + variant * 1.7) * 1);
+        const lunge = enemy.attackAnim > 0 ? Math.round(Math.sin(clamp(enemy.attackAnim / 0.36, 0, 1) * Math.PI) * 3) : 0;
+        ctx.save();
+        ctx.translate(lunge, pulse);
+        this.spriteBlock(ctx, -20, 17, 40, 6, palette.shadow, 0.44);
+        this.spriteBlock(ctx, -18, -17, 36, 35, palette.outline);
+        this.spriteBlock(ctx, -14, -25, 28, 43, palette.baseDark);
+        this.spriteBlock(ctx, -18, -10, 36, 25, palette.base);
+        this.spriteBlock(ctx, -14, -33, 8, 14, palette.outline);
+        this.spriteBlock(ctx, 6, -33, 8, 14, palette.outline);
+        this.spriteBlock(ctx, -11, -37, 6, 9, palette.bone);
+        this.spriteBlock(ctx, 5, -37, 6, 9, palette.bone);
+        this.spriteBlock(ctx, -16, -24, 32, 11, palette.armor);
+        this.spriteBlock(ctx, -9, -20, 5, 6, palette.eye);
+        this.spriteBlock(ctx, 4, -20, 5, 6, palette.eye);
+        this.spriteBlock(ctx, -11, -23, 7, 2, palette.outline);
+        this.spriteBlock(ctx, 4, -23, 7, 2, palette.outline);
+        this.spriteBlock(ctx, -5, -8, 10, 2, palette.outline, 0.9);
+        const clawReach = enemy.attackAnim > 0 ? 7 : 0;
+        this.spriteBlock(ctx, -25 - clawReach, -6, 12, 5, palette.outline);
+        this.spriteBlock(ctx, -29 - clawReach, -5, 8, 2, palette.bone);
+        this.spriteBlock(ctx, 13 + clawReach, -6, 12, 5, palette.outline);
+        this.spriteBlock(ctx, 21 + clawReach, -5, 8, 2, palette.bone);
+        this.spriteBlock(ctx, -12, 13, 8, 8, palette.outline);
+        this.spriteBlock(ctx, 4, 13, 8, 8, palette.outline);
+        this.spriteBlock(ctx, -9, 16, 5, 4, palette.baseDark);
+        this.spriteBlock(ctx, 4, 16, 5, 4, palette.baseDark);
+        if (enemy.elite && !enemy.boss) {
+          this.spriteBlock(ctx, -18, -35, 5, 5, palette.glow);
+          this.spriteBlock(ctx, 13, -35, 5, 5, palette.glow);
+          this.spriteBlock(ctx, -5, -41, 10, 4, palette.glow);
+        }
+        ctx.restore();
+        return;
+      }
       const role = enemy.role || "stalker";
       const pulse = Math.round(Math.sin(this.menuTime * 5 + variant * 1.7) * 1);
       ctx.save();

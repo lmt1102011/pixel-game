@@ -9,7 +9,7 @@
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
   const SIGNAL_REALTIME_RELAY_LIMIT = 2;
   const SIGNAL_REALTIME_TYPES = new Set(["state", "snapshot", "attack", "skill", "collect", "openChest", "dropItem", "damage", "chooseDoor"]);
-  const APP_VERSION = "20260606-squad-play-193";
+  const APP_VERSION = "20260606-valorant-party-194";
   const CHANGELOG_ENTRIES = [
     {
       version: APP_VERSION,
@@ -2920,6 +2920,8 @@
       this.seenFriendRequests = new Set();
       this.roomInviteCooldowns = new Map();
       this.roomInviteCooldownTimers = new Map();
+      this.squadChat = [];
+      this.squadChatSeq = 0;
       this.lobbyFriendInviteOpen = false;
       this.roomFinderOpen = false;
       this.roomDirectoryTimer = 0;
@@ -4006,6 +4008,11 @@
         this.handleAction(target.dataset.action, target);
       });
       this.screen.addEventListener("input", (event) => this.handleInput(event));
+      this.screen.addEventListener("keydown", (event) => {
+        if (event.target?.id !== "squadChatInput" || event.key !== "Enter") return;
+        event.preventDefault();
+        this.sendSquadChat();
+      });
       this.bindTouchControls();
       this.updateMobileGate();
     }
@@ -4926,6 +4933,7 @@
     setScreen(html = "") {
       this.screen.innerHTML = html;
       this.screen.classList.toggle("hidden", !html);
+      this.screen.classList.toggle("valorant-screen", html.includes("valorant-lobby"));
     }
 
     updateAccountCloudCheck(dt) {
@@ -5263,6 +5271,14 @@
       if (action === "updates") this.showChangelog();
       if (action === "missions") this.showMissions();
       if (action === "claim-mission") this.claimMissionReward(target.dataset.mission);
+      if (action === "send-squad-chat") {
+        this.sendSquadChat();
+        return;
+      }
+      if (action === "squad-voice-settings") {
+        this.toast("Voice settings: micro party đang bật");
+        return;
+      }
       if (action === "close-changelog") this.closeChangelog();
       if (action === "close-changelog-play") this.closeChangelogAndPlay();
       if (action === "open-lobby-invites") {
@@ -5394,78 +5410,187 @@
     playSquadSlotData() {
       const ownId = this.lobby?.id || "self";
       const selectedPower = this.save.account.selectedPower || "fire";
+      const now = Date.now();
       const ownFallback = {
         id: ownId,
         name: this.save.account.username || "Bạn",
         powerId: selectedPower,
         characterId: this.save.account.selectedCharacter || "swordsman",
         powerAwakened: this.powerAwakeningActive(selectedPower),
-        host: Boolean(this.lobby?.host),
+        host: Boolean(this.lobby?.host || !this.lobby?.code),
         ready: Boolean(this.lobby?.host || this.lobby?.ready),
-        joinedAt: Date.now()
+        joinedAt: now,
+        seenAt: now
       };
       const slots = Array.isArray(this.lobby?.slots) ? this.lobby.slots.filter(Boolean) : [];
       const ownSlot = slots.find((slot) => slot.id === ownId) || ownFallback;
+      const hostSlot = slots.find((slot) => slot?.host) || ownSlot;
       const others = slots
         .filter((slot) => slot.id !== ownId)
         .sort((a, b) => Number(a.joinedAt || 0) - Number(b.joinedAt || 0));
       return [
-        { key: "left-2", side: "left", slot: others[1] || null, index: 1 },
-        { key: "left-1", side: "left", slot: others[0] || null, index: 0 },
-        { key: "center", side: "center", slot: ownSlot, self: true, index: 2 },
-        { key: "right-1", side: "right", slot: others[2] || null, index: 3 },
-        { key: "right-2", side: "right", slot: others[3] || null, index: 4 }
+        { key: "left-2", slot: others[1] || null, index: 0, leader: hostSlot?.id === others[1]?.id },
+        { key: "left-1", slot: others[0] || null, index: 1, leader: hostSlot?.id === others[0]?.id },
+        { key: "center", slot: ownSlot, index: 2, self: true, leader: hostSlot?.id === ownSlot?.id },
+        { key: "right-1", slot: others[2] || null, index: 3, leader: hostSlot?.id === others[2]?.id },
+        { key: "right-2", slot: others[3] || null, index: 4, leader: hostSlot?.id === others[3]?.id }
       ];
     }
 
-    squadAvatarHtml(slot, options = {}) {
-      const self = Boolean(options.self);
+    squadMockStats(slot, index = 0) {
+      const ranks = [
+        { name: "IRON", short: "IR", score: 1, color: "#9aa1aa" },
+        { name: "BRONZE", short: "BR", score: 2, color: "#b8784f" },
+        { name: "SILVER", short: "SV", score: 3, color: "#c8d2df" },
+        { name: "GOLD", short: "GD", score: 4, color: "#f4c35d" },
+        { name: "PLATINUM", short: "PL", score: 5, color: "#57d7c5" },
+        { name: "DIAMOND", short: "DM", score: 6, color: "#c783ff" },
+        { name: "IMMORTAL", short: "IM", score: 7, color: "#ff4655" }
+      ];
+      const key = `${slot?.id || "empty"}:${slot?.name || ""}:${index}`;
+      const seed = parseInt(hashText(key).slice(0, 8), 16) || (index + 1) * 997;
+      const rank = ranks[(seed + index * 2) % ranks.length];
+      return {
+        tag: String((seed % 9000) + 1000),
+        level: 12 + (seed % 88),
+        rank,
+        mmr: 820 + (rank.score * 185) + (seed % 130),
+        winRate: 43 + (seed % 22),
+        recent: 6 + (seed % 8),
+        status: slot?.ready ? "Online" : slot?.host ? "Online" : (seed % 4 === 0 ? "Away" : seed % 5 === 0 ? "In Match" : "Online"),
+        mic: seed % 5 === 0 ? "muted" : "on"
+      };
+    }
+
+    squadStatusClass(status = "") {
+      return String(status).toLowerCase().replace(/\s+/g, "-");
+    }
+
+    squadReady(slot) {
+      if (!slot) return false;
+      return Boolean(slot.ready || slot.host);
+    }
+
+    squadMemberCardHtml(slot, options = {}) {
       const empty = !slot;
+      const self = Boolean(options.self);
+      const leader = Boolean(options.leader || slot?.host);
       const character = characterById(slot?.characterId || this.save.account.selectedCharacter || "swordsman");
       const power = powerById(slot?.powerId || this.save.account.selectedPower || "fire");
       const custom = self ? this.save.customization : {};
-      const hero = custom.color || character.color || "#d8b46a";
-      const aura = slot?.powerAwakened ? (power.accent || power.color) : power.color;
-      const status = empty
-        ? "Đang trống"
-        : slot.host
-          ? "Chủ phòng"
-          : slot.ready
-            ? "Sẵn sàng"
-            : "Chưa sẵn sàng";
-      const name = empty ? "Mời bạn" : this.lobby.slotName(slot, self ? "Bạn" : "Người chơi");
-      const inviteButton = empty && this.lobby?.code && this.lobby.host
-        ? `<button class="squad-invite-btn" data-action="open-lobby-invites" data-view="play">+</button>`
-        : "";
+      const stats = this.squadMockStats(slot, options.index || 0);
+      const ready = this.squadReady(slot);
+      const name = empty ? "OPEN SLOT" : this.lobby.slotName(slot, self ? "Bạn" : "Player");
+      const tag = empty ? "INVITE" : `#${stats.tag}`;
+      const statusClass = this.squadStatusClass(stats.status);
+      const inviteAction = this.lobby?.code && this.lobby.host ? "open-lobby-invites" : "play-create-room";
       return `
-        <div class="squad-slot ${options.key || ""} ${self ? "self" : ""} ${empty ? "empty" : "filled"}" style="--hero:${hero}; --power:${power.color}; --aura:${aura}; --char:${character.color}">
-          <div class="squad-pedestal"></div>
-          <div class="squad-avatar char-${character.id}">
-            ${empty ? `<div class="squad-empty-mark">${inviteButton || "+"}</div>` : `
-              <div class="preview-hero">
-                <span class="preview-cloak ${self ? `preview-${custom.accessory}` : ""}"></span>
-                <span class="preview-leg left"></span>
-                <span class="preview-leg right"></span>
-                <span class="preview-body"></span>
-                <span class="preview-armor"></span>
-                <span class="preview-helmet"></span>
-                <span class="preview-face"></span>
-                <span class="preview-eye left ${self ? `preview-${custom.eyes}` : ""}"></span>
-                <span class="preview-eye right ${self ? `preview-${custom.eyes}` : ""}"></span>
-                <span class="preview-mouth ${self ? `preview-${custom.mouth}` : ""}"></span>
-                <span class="preview-accessory ${self ? `preview-${custom.accessory}` : ""}"></span>
-                <span class="preview-weapon"></span>
-                <span class="preview-hand main"></span>
-                <span class="preview-hand off"></span>
+        <article class="valorant-member ${options.key || ""} ${self ? "self" : ""} ${leader ? "leader" : ""} ${ready ? "ready" : "not-ready"} ${empty ? "empty" : "filled"}" style="--hero:${custom.color || character.color}; --power:${power.color}; --rank:${stats.rank.color}; --char:${character.color}">
+          ${leader && !empty ? `<div class="leader-crown">♛</div>` : ""}
+          ${ready && !empty ? `<div class="ready-check">✓</div>` : ""}
+          <div class="member-frame">
+            ${empty ? `
+              <button class="empty-invite" data-action="${inviteAction}" data-view="play">+</button>
+            ` : `
+              <div class="member-avatar char-${character.id}">
+                <div class="preview-hero">
+                  <span class="preview-cloak ${self ? `preview-${custom.accessory}` : ""}"></span>
+                  <span class="preview-leg left"></span>
+                  <span class="preview-leg right"></span>
+                  <span class="preview-body"></span>
+                  <span class="preview-armor"></span>
+                  <span class="preview-helmet"></span>
+                  <span class="preview-face"></span>
+                  <span class="preview-eye left ${self ? `preview-${custom.eyes}` : ""}"></span>
+                  <span class="preview-eye right ${self ? `preview-${custom.eyes}` : ""}"></span>
+                  <span class="preview-mouth ${self ? `preview-${custom.mouth}` : ""}"></span>
+                  <span class="preview-accessory ${self ? `preview-${custom.accessory}` : ""}"></span>
+                  <span class="preview-weapon"></span>
+                  <span class="preview-hand main"></span>
+                  <span class="preview-hand off"></span>
+                </div>
               </div>
             `}
           </div>
-          <div class="squad-nameplate">
-            <b>${escapeHtml(name)}</b>
-            <span>${empty ? status : `${status} - ${character.name} - ${power.name}`}</span>
+          <div class="member-info">
+            <div class="member-title">
+              <b>${escapeHtml(name)}</b>
+              <span>${escapeHtml(tag)}</span>
+            </div>
+            <div class="member-meta">
+              <span>LV ${empty ? "--" : stats.level}</span>
+              <span class="rank-chip">${empty ? "UNRANKED" : stats.rank.name}</span>
+            </div>
+            <div class="member-state">
+              <span class="mic ${stats.mic}">${stats.mic === "muted" ? "MIC OFF" : "MIC"}</span>
+              <span class="presence ${statusClass}">${empty ? "Empty" : stats.status}</span>
+            </div>
           </div>
-        </div>
+        </article>
       `;
+    }
+
+    squadMembers() {
+      return this.playSquadSlotData().map((entry) => ({
+        ...entry,
+        stats: entry.slot ? this.squadMockStats(entry.slot, entry.index) : null
+      }));
+    }
+
+    squadTeamStats(members = this.squadMembers()) {
+      const active = members.filter((entry) => entry.slot && entry.stats);
+      if (!active.length) return { rank: "UNRANKED", mmr: 0, winRate: 0, recent: 0 };
+      const rankScore = active.reduce((sum, entry) => sum + entry.stats.rank.score, 0) / active.length;
+      const rank = active.reduce((best, entry) => Math.abs(entry.stats.rank.score - rankScore) < Math.abs(best.score - rankScore) ? entry.stats.rank : best, active[0].stats.rank);
+      return {
+        rank: rank.name,
+        mmr: Math.round(active.reduce((sum, entry) => sum + entry.stats.mmr, 0) / active.length),
+        winRate: Math.round(active.reduce((sum, entry) => sum + entry.stats.winRate, 0) / active.length),
+        recent: active.reduce((sum, entry) => sum + entry.stats.recent, 0)
+      };
+    }
+
+    squadChatEntries() {
+      if (!this.squadChat.length) {
+        const now = Date.now();
+        this.squadChat = [
+          { id: "sys-1", name: "SYSTEM", text: "Party channel opened.", time: now - 1000 * 60 * 6, avatar: "S" },
+          { id: "bot-1", name: "Vanguard", text: "Pick mode, invite friends, then ready up.", time: now - 1000 * 60 * 4, avatar: "V" },
+          { id: "bot-2", name: "Striker", text: "Comms clear. Waiting for squad.", time: now - 1000 * 90, avatar: "ST" }
+        ];
+      }
+      return this.squadChat.slice(-18);
+    }
+
+    squadChatHtml() {
+      return this.squadChatEntries().map((entry) => {
+        const mins = Math.max(0, Math.floor((Date.now() - Number(entry.time || Date.now())) / 60000));
+        return `
+          <div class="chat-line">
+            <div class="chat-avatar">${escapeHtml(entry.avatar || entry.name.slice(0, 2).toUpperCase())}</div>
+            <div>
+              <div class="chat-head"><b>${escapeHtml(entry.name)}</b><span>${mins <= 0 ? "now" : `${mins}m`}</span></div>
+              <p>${escapeHtml(entry.text)}</p>
+            </div>
+          </div>
+        `;
+      }).join("");
+    }
+
+    sendSquadChat() {
+      const input = document.getElementById("squadChatInput");
+      const text = String(input?.value || "").trim().slice(0, 140);
+      if (!text) return;
+      const name = this.save.account.username || "Bạn";
+      this.squadChat.push({
+        id: `local-${++this.squadChatSeq}`,
+        name,
+        text,
+        time: Date.now(),
+        avatar: name.slice(0, 2).toUpperCase()
+      });
+      if (input) input.value = "";
+      this.showPlayMenu();
     }
 
     showPlayMenu() {
@@ -5474,51 +5599,98 @@
       this.hud.classList.add("hidden");
       this.touchLayer.classList.add("hidden");
       if (this.lobby?.code) this.lobby.syncOwnSlot();
-      const slots = this.playSquadSlotData().map((entry) => this.squadAvatarHtml(entry.slot, entry)).join("");
+      const members = this.squadMembers();
+      const slots = members.map((entry) => this.squadMemberCardHtml(entry.slot, entry)).join("");
+      const stats = this.squadTeamStats(members);
       const inRoom = Boolean(this.lobby?.code);
       const isHost = Boolean(this.lobby?.host);
-      const roomLabel = inRoom ? `Phòng ${escapeHtml(this.lobby.code)}` : "Chưa tạo phòng";
-      const readyLabel = this.lobby.ready ? "BỎ SẴN SÀNG" : "SẴN SÀNG";
-      const roomActions = inRoom
+      const leaderVisible = isHost || !inRoom;
+      const roomLabel = inRoom ? `PARTY ${escapeHtml(this.lobby.code)}` : "SOLO PARTY";
+      const readyLabel = this.lobby.ready ? "CANCEL READY" : "READY";
+      const leaderActions = leaderVisible
         ? `
-          ${isHost ? `<button class="btn primary" data-action="start-room">BẮT ĐẦU</button>` : `<button class="btn primary" data-action="ready-room">${readyLabel}</button>`}
-          ${isHost ? `<button class="btn" data-action="open-lobby-invites" data-view="play">MỜI BẠN</button>` : ""}
-          <button class="btn" data-action="multiplayer">THIẾT LẬP</button>
-          <button class="btn danger" data-action="play-leave-room">RỜI PHÒNG</button>
+          <button class="valorant-btn primary" data-action="${inRoom ? "start-room" : "play-gauntlet"}">START MATCH</button>
+          <button class="valorant-btn" data-action="multiplayer">CHANGE MODE</button>
+          <button class="valorant-btn" data-action="${inRoom ? "open-lobby-invites" : "play-create-room"}" data-view="play">INVITE FRIEND</button>
         `
-        : `
-          <button class="btn primary" data-action="play-create-room">TẠO PHÒNG</button>
-          <button class="btn" data-action="find-room">TÌM PHÒNG</button>
-        `;
+        : "";
+      const memberActions = inRoom && !isHost
+        ? `<button class="valorant-btn primary" data-action="ready-room">${readyLabel}</button>`
+        : !inRoom
+          ? `<button class="valorant-btn" data-action="play-create-room">CREATE PARTY</button>`
+          : "";
+      const secondaryActions = `
+        ${leaderActions}
+        ${memberActions}
+        <button class="valorant-btn" data-action="find-room">FIND PARTY</button>
+        <button class="valorant-btn" data-action="squad-voice-settings">VOICE SETTINGS</button>
+        ${inRoom ? `<button class="valorant-btn danger" data-action="play-leave-room">LEAVE PARTY</button>` : ""}
+      `;
+      const modePill = this.roomModeLabel(this.lobby.runMode || "gauntlet");
       const friendInvitePanel = this.lobbyFriendInvitePanel();
       this.setScreen(`
-        <section class="shell play-shell">
-          ${this.navHtml("play")}
-          <div class="panel play-squad-panel">
-            <div class="panel-header">
-              <div>
-                <h2 class="panel-title">Chơi</h2>
-                <p class="panel-subtitle">${roomLabel}. Đội hình tối đa ${LOBBY_MAX_PLAYERS} người, bạn luôn đứng ở vị trí trung tâm.</p>
-              </div>
-              <span class="squad-room-code">${roomLabel}</span>
+        <section class="valorant-lobby">
+          <div class="valorant-topbar">
+            <div class="valorant-brand">
+              <span>SOULRIFT</span>
+              <b>PARTY LOBBY</b>
             </div>
-            <div class="squad-stage">
-              <div class="squad-backlight"></div>
-              <div class="squad-grid">${slots}</div>
+            <div class="valorant-tabs">
+              <button class="active" data-action="play">PLAY</button>
+              <button data-action="character">LOADOUT</button>
+              <button data-action="friends">SOCIAL</button>
+              <button data-action="settings">SETTINGS</button>
+              <button data-action="menu">MENU</button>
             </div>
-            <div class="squad-command">
-              <div>
-                <h3>Chọn chế độ</h3>
-                <p>Vào vượt ải, mini game, hướng dẫn hoặc phòng test chiêu.</p>
+          </div>
+
+          <div class="valorant-main">
+            <div class="valorant-party">
+              <div class="party-header">
+                <div>
+                  <p class="eyebrow">TACTICAL PARTY</p>
+                  <h2>${roomLabel}</h2>
+                  <span>${modePill} / ${LOBBY_MAX_PLAYERS} PLAYER SLOTS / LEADER CONTROLS ENABLED</span>
+                </div>
+                <div class="party-status-block">
+                  <b>${inRoom ? escapeHtml(this.lobby.code) : "LOCAL"}</b>
+                  <span>${leaderVisible ? "PARTY LEADER" : "MEMBER"}</span>
+                </div>
               </div>
-              <div class="squad-mode-grid">
-                <button class="btn primary" data-action="play-gauntlet">VƯỢT ẢI</button>
-                <button class="btn" data-action="play-minigames">MINI GAME</button>
-                <button class="btn" data-action="play-tutorial">HƯỚNG DẪN</button>
-                <button class="btn" data-action="play-training">HUẤN LUYỆN</button>
+              <div class="valorant-squad-grid">${slots}</div>
+              <div class="valorant-controls">${secondaryActions}</div>
+              <div class="valorant-mode-bar">
+                <button data-action="play-gauntlet">VƯỢT ẢI</button>
+                <button data-action="play-minigames">MINI GAME</button>
+                <button data-action="play-tutorial">HƯỚNG DẪN</button>
+                <button data-action="play-training">HUẤN LUYỆN</button>
               </div>
             </div>
-            <div class="squad-room-actions">${roomActions}</div>
+
+            <aside class="valorant-side">
+              <div class="team-stats">
+                <div class="side-title">
+                  <p class="eyebrow">TEAM OVERVIEW</p>
+                  <h3>Combat Rating</h3>
+                </div>
+                <div class="stat-card hot"><span>AVG RANK</span><b>${stats.rank}</b></div>
+                <div class="stat-card"><span>AVG MMR</span><b>${stats.mmr || "----"}</b></div>
+                <div class="stat-card"><span>WIN RATE</span><b>${stats.winRate || 0}%</b></div>
+                <div class="stat-card"><span>RECENT MATCHES</span><b>${stats.recent || 0}</b></div>
+              </div>
+
+              <div class="squad-chat">
+                <div class="side-title">
+                  <p class="eyebrow">PARTY COMMS</p>
+                  <h3>Team Chat</h3>
+                </div>
+                <div class="chat-feed">${this.squadChatHtml()}</div>
+                <div class="chat-input-row">
+                  <input id="squadChatInput" class="field" autocomplete="off" maxlength="140" placeholder="Type party message..." />
+                  <button class="valorant-btn primary" data-action="send-squad-chat">SEND</button>
+                </div>
+              </div>
+            </div>
           </div>
           ${friendInvitePanel}
         </section>

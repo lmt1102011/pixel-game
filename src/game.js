@@ -9,7 +9,7 @@
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
   const SIGNAL_REALTIME_RELAY_LIMIT = 2;
   const SIGNAL_REALTIME_TYPES = new Set(["state", "snapshot", "attack", "skill", "collect", "openChest", "dropItem", "damage", "chooseDoor"]);
-  const APP_VERSION = "20260606-squad-hero-scale-210";
+  const APP_VERSION = "20260606-clean-empty-slots-211";
   const CHANGELOG_ENTRIES = [
     {
       version: APP_VERSION,
@@ -5551,6 +5551,15 @@
       const stats = this.squadMockStats(slot, options.index || 0);
       const ready = this.squadReady(slot);
       const inviteAction = "open-lobby-invites";
+      if (empty) {
+        return `
+          <article class="valorant-member ${options.key || ""} empty">
+            <div class="member-frame empty-frame">
+              <button class="empty-invite" data-action="${inviteAction}" data-view="play">+</button>
+            </div>
+          </article>
+        `;
+      }
       return `
         <article class="valorant-member ${options.key || ""} ${self ? "self" : ""} ${leader ? "leader" : ""} ${ready ? "ready" : "not-ready"} ${empty ? "empty" : "filled"}" style="--hero:${custom.color || character.color}; --power:${power.color}; --rank:${stats.rank.color}; --char:${character.color}">
           ${leader && !empty ? `<div class="leader-crown">♛</div>` : ""}

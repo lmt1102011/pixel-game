@@ -9,7 +9,7 @@
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
   const SIGNAL_REALTIME_RELAY_LIMIT = 2;
   const SIGNAL_REALTIME_TYPES = new Set(["state", "snapshot", "attack", "skill", "collect", "openChest", "dropItem", "damage", "chooseDoor"]);
-  const APP_VERSION = "20260607-combat-render-cache-244";
+  const APP_VERSION = "20260607-mobile-ultra-fps-245";
   const CHANGELOG_ENTRIES = [
     {
       version: APP_VERSION,
@@ -3072,6 +3072,7 @@
       this.enemySpriteCache = new Map();
       this.hudElements = {};
       this.touchButtons = [];
+      this.nextHudAt = 0;
       this.frameIndex = 0;
       this.updateTimer = null;
       this.updateInProgress = false;
@@ -4488,6 +4489,15 @@
         || (this.graphicsActiveCombat() && (load > 0.65 || quality < 0.66));
     }
 
+    ultraPerformanceMode() {
+      if (!this.run || this.mode !== "game") return false;
+      return this.isMobileDevice()
+        || this.renderPressure() > 0.12
+        || this.performancePressure() > 0.22
+        || (this.graphicsActiveCombat() && this.graphicsCombatLoad() > 0.72)
+        || this.devicePerformanceBias() > 0.5;
+    }
+
     prettyVisualScale(min = 0.18) {
       const quality = this.perf?.quality ?? 1;
       const stress = this.visualStress();
@@ -4517,7 +4527,8 @@
     projectileLimit() {
       const quality = this.perf?.quality ?? 1;
       const weakBias = this.devicePerformanceBias();
-      const base = this.isMobileDevice() ? 18 : 34;
+      const ultra = this.ultraPerformanceMode();
+      const base = ultra ? (this.isMobileDevice() ? 12 : 22) : (this.isMobileDevice() ? 18 : 34);
       const renderTrim = 1 - this.renderPressure() * 0.28;
       return Math.max(this.performancePanic() ? 6 : 10, Math.round(base * (1 - weakBias * 0.24) * renderTrim * (0.34 + quality * 0.66) * this.visualBudgetScale()));
     }
@@ -4537,17 +4548,21 @@
       const lag = this.performancePressure();
       const renderLag = this.renderPressure();
       const weakBias = this.devicePerformanceBias();
-      const base = (this.isMobileDevice() ? 0.68 : 0.74)
+      const ultra = this.ultraPerformanceMode();
+      const base = (this.isMobileDevice() ? 0.62 : 0.74)
         - lag * (this.isMobileDevice() ? 0.26 : 0.22)
         - renderLag * (this.isMobileDevice() ? 0.12 : 0.1)
         - weakBias * (this.isMobileDevice() ? 0.06 : 0.05);
-      const range = (this.isMobileDevice() ? 0.3 : 0.26) - weakBias * 0.06;
+      const range = (this.isMobileDevice() ? 0.24 : 0.26) - weakBias * 0.06;
       const floor = this.performancePanic()
-        ? (this.isMobileDevice() ? 0.5 : 0.56)
+        ? (this.isMobileDevice() ? 0.38 : 0.52)
         : this.performanceEmergency()
-          ? (this.isMobileDevice() ? 0.58 : 0.64)
-          : (this.isMobileDevice() ? 0.7 : 0.76);
-      const rawScale = clamp(base + quality * range, floor, 1);
+          ? (this.isMobileDevice() ? 0.46 : 0.6)
+          : ultra
+            ? (this.isMobileDevice() ? 0.54 : 0.68)
+            : (this.isMobileDevice() ? 0.68 : 0.76);
+      const cap = ultra ? (this.isMobileDevice() ? 0.82 : 0.92) : 1;
+      const rawScale = clamp(base + quality * range, floor, cap);
       const step = this.performanceEmergency() ? 0.025 : this.isMobileDevice() ? 0.05 : 0.04;
       return clamp(Math.round(rawScale / step) * step, floor, 1);
     }
@@ -4635,7 +4650,8 @@
     particleLimit() {
       const quality = this.perf?.quality ?? 1;
       const weakBias = this.devicePerformanceBias();
-      const base = this.isMobileDevice() ? 42 : 82;
+      const ultra = this.ultraPerformanceMode();
+      const base = ultra ? (this.isMobileDevice() ? 18 : 38) : (this.isMobileDevice() ? 42 : 82);
       const renderTrim = 1 - this.renderPressure() * 0.42;
       return Math.max(this.performancePanic() ? 3 : 10, Math.round(base * (1 - weakBias * 0.38) * renderTrim * (0.2 + quality * 0.8) * this.visualBudgetScale()));
     }
@@ -4643,7 +4659,8 @@
     effectLimit() {
       const quality = this.perf?.quality ?? 1;
       const weakBias = this.devicePerformanceBias();
-      const base = this.isMobileDevice() ? 22 : 40;
+      const ultra = this.ultraPerformanceMode();
+      const base = ultra ? (this.isMobileDevice() ? 10 : 20) : (this.isMobileDevice() ? 22 : 40);
       const renderTrim = 1 - this.renderPressure() * 0.36;
       return Math.max(this.performancePanic() ? 4 : 8, Math.round(base * (1 - weakBias * 0.28) * renderTrim * (0.3 + quality * 0.7) * this.visualBudgetScale()));
     }
@@ -4709,6 +4726,28 @@
           : -1;
         if (fallbackIndex < 0) break;
         this.run.effects.splice(fallbackIndex, 1);
+      }
+      if (this.ultraPerformanceMode()) this.trimTelegraphEffects(this.isMobileDevice() ? 10 : 16);
+    }
+
+    trimTelegraphEffects(limit) {
+      if (!this.run?.effects?.length) return;
+      let count = this.run.effects.reduce((total, effect) => total + (effect.type === "danger" || effect.type === "lineTell" ? 1 : 0), 0);
+      while (count > limit) {
+        let removeIndex = -1;
+        let longestTime = -1;
+        for (let i = 0; i < this.run.effects.length; i++) {
+          const effect = this.run.effects[i];
+          if (effect.type !== "danger" && effect.type !== "lineTell") continue;
+          const time = Number(effect.time || 0);
+          if (time > longestTime) {
+            longestTime = time;
+            removeIndex = i;
+          }
+        }
+        if (removeIndex < 0) break;
+        this.run.effects.splice(removeIndex, 1);
+        count--;
       }
     }
 
@@ -4946,7 +4985,8 @@
       window.SoulriftPwaGate?.syncViewport?.();
       const maxDpr = Math.min(window.devicePixelRatio || 1, this.isMobileDevice() ? 1 : 1.25);
       const renderScale = Number.isFinite(this.perf?.appliedRenderScale) ? this.perf.appliedRenderScale : 1;
-      this.dpr = Math.max(this.isMobileDevice() ? 0.72 : 0.8, maxDpr * renderScale);
+      const minDpr = this.ultraPerformanceMode() ? (this.isMobileDevice() ? 0.42 : 0.62) : (this.isMobileDevice() ? 0.68 : 0.8);
+      this.dpr = Math.max(minDpr, maxDpr * renderScale);
       const viewport = window.visualViewport;
       this.width = Math.round(viewport?.width || window.innerWidth);
       this.height = Math.round(viewport?.height || window.innerHeight);
@@ -19230,6 +19270,9 @@
         next.radius *= scale;
         next.domainBoosted = true;
       }
+      if (this.ultraPerformanceMode() && (next.type === "danger" || next.type === "lineTell")) {
+        this.trimTelegraphEffects(this.isMobileDevice() ? 9 : 15);
+      }
       this.run.effects.push(next);
       this.trimEffectList();
     }
@@ -19804,6 +19847,10 @@
     updateHud() {
       if (!this.run) return;
       const p = this.run.player;
+      const hudNow = performance.now();
+      const hudInterval = this.ultraPerformanceMode() ? 82 : this.fastVisualMode() ? 48 : 28;
+      if (hudNow < this.nextHudAt) return;
+      this.nextHudAt = hudNow + hudInterval;
       const hpBar = this.hudElement("hpBar");
       const energyBar = this.hudElement("energyBar");
       const hpText = this.hudElement("hpText");
@@ -19848,9 +19895,8 @@
           networkPill.dataset.net = net.quality;
         }
       }
-      const now = performance.now();
-      if (now < this.nextHudSkillAt) return;
-      this.nextHudSkillAt = now + (this.perf.quality < 0.7 ? 150 : 95);
+      if (hudNow < this.nextHudSkillAt) return;
+      this.nextHudSkillAt = hudNow + (this.perf.quality < 0.7 ? 150 : 95);
       const ultimateCost = this.ultimateEnergyCost(p);
       const bossLabels = this.isLocalPlayerBoss() ? this.playerBossSkillLabels() : null;
       const skills = this.isLocalPlayerBoss() ? [
@@ -19996,6 +20042,7 @@
       const emergency = this.performanceEmergency();
       const panic = this.performancePanic();
       const fastVisual = this.fastVisualMode();
+      const ultra = this.ultraPerformanceMode();
       ctx.save();
       ctx.scale(scale, scale);
       ctx.translate(-camX, -camY);
@@ -20006,7 +20053,7 @@
       this.drawRoomObjects(ctx);
       this.drawEffects(ctx);
       this.drawProjectiles(ctx);
-      if (!panic) for (const drone of this.run.drones) this.drawDrone(ctx, drone);
+      if (!panic && !ultra) for (const drone of this.run.drones) this.drawDrone(ctx, drone);
       const actorY = (actor) => Number.isFinite(actor.displayY) ? actor.displayY : actor.y;
       const localGhost = this.run.player.dead && this.run.spectating;
       const bossProxyVisible = Boolean(this.playerBossEnemy());
@@ -20022,7 +20069,8 @@
       actors.sort((a, b) => actorY(a) - actorY(b));
       for (const actor of actors) {
         if (actor === this.run.player) {
-          this.drawHero(ctx, actor.x, actor.y, 2.2, actor, this.run.power, this.save.customization);
+          if (ultra) this.drawHeroLite(ctx, actor.x, actor.y, 2.2, actor, this.run.power, this.save.customization);
+          else this.drawHero(ctx, actor.x, actor.y, 2.2, actor, this.run.power, this.save.customization);
           if (this.isMultiplayerRun()) this.drawNameTag(ctx, actor.x, actor.y - 58, actor.name || this.save.account.username || "Bạn", true, actor.hp, actor.maxHp);
         } else {
           const enemyX = Number.isFinite(actor.displayX) ? actor.displayX : actor.x;
@@ -20041,6 +20089,25 @@
           continue;
         }
         if (!this.inView(remoteX, remoteY, 120)) continue;
+        if (ultra) {
+          this.drawHeroLite(ctx, remoteX, remoteY, 2.0, {
+            facing: remote.facing,
+            animation: remote.dead ? "death" : remote.animation || "run",
+            animTime: remote.animTime || this.menuTime,
+            actionTime: remote.actionTime || 0,
+            actionTotal: remote.actionTotal || 0,
+            skillCastStyle: remote.skillCastStyle || null,
+            invuln: remote.invuln || 0,
+            hp: remote.hp,
+            dead: remote.dead,
+            characterId: remote.characterId,
+            powerAwakened: Boolean(remote.powerAwakened),
+            shadowWeapon: remote.shadowWeapon || 0,
+            shadowWeaponDamageMult: remote.shadowWeaponDamageMult || 1
+          }, powerById(remote.power), { ...this.save.customization, color: remote.color });
+          this.drawNameTagLite(ctx, remoteX, remoteY - 54, remote.name || "NgÆ°á»i chÆ¡i", false, remote.hp, remote.maxHp);
+          continue;
+        }
         this.drawHero(ctx, remoteX, remoteY, 2.0, {
           facing: remote.facing,
           animation: remote.dead ? "death" : remote.animation || "run",
@@ -20081,7 +20148,7 @@
       ctx.restore();
       this.renderViewW = 0;
       this.renderViewH = 0;
-      this.drawVignette(ctx);
+      if (!ultra) this.drawVignette(ctx);
       this.drawDomainCutinOverlay(ctx);
     }
 
@@ -20169,6 +20236,24 @@
       const viewBottom = Math.min(WORLD_H, bounds.bottom);
       const viewW = Math.max(1, viewRight - viewLeft);
       const viewH = Math.max(1, viewBottom - viewTop);
+      if (this.ultraPerformanceMode()) {
+        ctx.fillStyle = "#05070b";
+        ctx.fillRect(viewLeft, viewTop, viewW, viewH);
+        ctx.fillStyle = biome.floor;
+        ctx.fillRect(viewLeft, viewTop, viewW, viewH);
+        ctx.fillStyle = "rgba(255,255,255,0.025)";
+        const grid = 128;
+        const sx = Math.floor(viewLeft / grid) * grid;
+        const sy = Math.floor(viewTop / grid) * grid;
+        for (let x = sx; x < viewRight; x += grid) ctx.fillRect(x, viewTop, 2, viewH);
+        for (let y = sy; y < viewBottom; y += grid) ctx.fillRect(viewLeft, y, viewW, 2);
+        ctx.fillStyle = biome.wall;
+        if (viewTop < ROOM_PAD) ctx.fillRect(viewLeft, viewTop, viewW, Math.min(ROOM_PAD, viewBottom) - viewTop);
+        if (viewBottom > WORLD_H - ROOM_PAD) ctx.fillRect(viewLeft, Math.max(viewTop, WORLD_H - ROOM_PAD), viewW, viewBottom - Math.max(viewTop, WORLD_H - ROOM_PAD));
+        if (viewLeft < ROOM_PAD) ctx.fillRect(viewLeft, viewTop, Math.min(ROOM_PAD, viewRight) - viewLeft, viewH);
+        if (viewRight > WORLD_W - ROOM_PAD) ctx.fillRect(Math.max(viewLeft, WORLD_W - ROOM_PAD), viewTop, viewRight - Math.max(viewLeft, WORLD_W - ROOM_PAD), viewH);
+        return;
+      }
       const background = this.getRoomBackgroundCanvas(lowDetail);
       if (background) {
         const smoothing = ctx.imageSmoothingEnabled;
@@ -20207,6 +20292,21 @@
           blade: "#f4d26f"
         }[hazard.type] || this.run.biome.accent;
         const r = hazard.radius + Math.sin(hazard.pulse * 3) * 6;
+        if (this.ultraPerformanceMode()) {
+          ctx.save();
+          ctx.translate(hazard.x, hazard.y);
+          ctx.globalAlpha = 0.72;
+          ctx.fillStyle = "rgba(8,10,15,0.82)";
+          ctx.fillRect(-r, -r, r * 2, r * 2);
+          ctx.strokeStyle = color;
+          ctx.lineWidth = 3;
+          ctx.strokeRect(-r, -r, r * 2, r * 2);
+          ctx.fillStyle = color;
+          ctx.globalAlpha = 0.28;
+          ctx.fillRect(-r * 0.64, -r * 0.64, r * 1.28, r * 1.28);
+          ctx.restore();
+          continue;
+        }
         ctx.save();
         ctx.translate(hazard.x, hazard.y);
         ctx.rotate(hazard.pulse * (hazard.type === "blade" ? 1.8 : 0.18));
@@ -21169,6 +21269,29 @@
       ctx.restore();
     }
 
+    drawNameTagLite(ctx, x, y, name, self = false, hp = null, maxHp = null) {
+      const label = String(name || "").slice(0, 14);
+      const showHp = Number.isFinite(Number(hp)) && Number.isFinite(Number(maxHp)) && Number(maxHp) > 0;
+      ctx.save();
+      ctx.font = "800 11px Arial, sans-serif";
+      ctx.textAlign = "center";
+      const w = Math.max(42, Math.min(92, label.length * 7 + 14));
+      ctx.fillStyle = self ? "rgba(242,191,99,0.82)" : "rgba(8,10,16,0.72)";
+      ctx.fillRect(Math.round(x - w / 2), Math.round(y - 15), w, showHp ? 22 : 16);
+      ctx.fillStyle = self ? "#111521" : "#ece8e1";
+      ctx.fillText(label, Math.round(x), Math.round(y - 4));
+      if (showHp) {
+        const barW = w - 8;
+        const barX = Math.round(x - barW / 2);
+        const barY = Math.round(y + 2);
+        ctx.fillStyle = "rgba(0,0,0,0.42)";
+        ctx.fillRect(barX, barY, barW, 4);
+        ctx.fillStyle = self ? "#ff8d3d" : "#ff4b55";
+        ctx.fillRect(barX, barY, Math.round(barW * clamp(Number(hp) / Number(maxHp), 0, 1)), 4);
+      }
+      ctx.restore();
+    }
+
     drawSoulGhost(ctx, targetX, targetY, name, self = false, color = "#d9fbff") {
       const t = this.menuTime * (self ? 2.6 : 2.2) + String(name || "").length * 0.17;
       const x = targetX + Math.cos(t) * 46;
@@ -21382,6 +21505,155 @@
         ctx.stroke();
       } else {
         ctx.strokeRect(-size * 0.56, -size * 0.56, size * 1.12, size * 1.12);
+      }
+      ctx.restore();
+    }
+
+    drawHeroLite(ctx, x, y, scale, actor, power, custom = {}) {
+      power = power || powerById("fire");
+      const t = this.menuTime;
+      const character = characterById(actor.characterId || this.save.account?.selectedCharacter || "swordsman");
+      const facing = Number.isFinite(actor.facing) ? actor.facing : 0;
+      const dir = Math.cos(facing) >= 0 ? 1 : -1;
+      const anim = actor.animation || "idle";
+      const actionTotal = actor.actionTotal || (anim === "ultimate" ? 0.72 : anim === "skill" ? 0.38 : 0.28);
+      const actionProgress = actor.actionTime > 0 ? 1 - clamp(actor.actionTime / actionTotal, 0, 1) : 0;
+      const hit = anim === "attack" && actionProgress >= 0.2 && actionProgress < 0.58;
+      const cast = anim === "skill" || anim === "ultimate";
+      const moving = anim === "walk" || anim === "run";
+      const walk = moving ? Math.floor((actor.animTime ?? t) * 7) % 4 : 0;
+      const bob = moving ? [0, -1, 0, 1][walk] : 0;
+      const death = anim === "death" ? (actor.actionTime > 0 ? 1 - clamp(actor.actionTime / Math.max(0.1, actionTotal), 0, 1) : 1) : 0;
+      const skin = custom.color || "#d8b46a";
+      const trim = character.color || power.color || "#ff4655";
+      const armor = character.id === "guardian" ? "#303846" : character.id === "assassin" ? "#1c2433" : "#273142";
+      const dark = "#0d111a";
+      const awakened = Boolean(actor.powerAwakened ?? (actor === this.run?.player && this.run?.power?.id === power.id && this.powerAwakeningActive(power.id)));
+      const block = (bx, by, bw, bh, color, alpha = 1) => {
+        if (alpha <= 0) return;
+        const old = ctx.globalAlpha;
+        if (alpha < 1) ctx.globalAlpha = old * alpha;
+        ctx.fillStyle = color;
+        ctx.fillRect(Math.round(bx), Math.round(by), Math.round(bw), Math.round(bh));
+        ctx.globalAlpha = old;
+      };
+      const poly = (points, color, alpha = 1) => {
+        const old = ctx.globalAlpha;
+        if (alpha < 1) ctx.globalAlpha = old * alpha;
+        ctx.fillStyle = color;
+        ctx.beginPath();
+        ctx.moveTo(points[0][0], points[0][1]);
+        for (let i = 1; i < points.length; i++) ctx.lineTo(points[i][0], points[i][1]);
+        ctx.closePath();
+        ctx.fill();
+        ctx.globalAlpha = old;
+      };
+      ctx.save();
+      ctx.translate(Math.round(x), Math.round(y + bob));
+      ctx.scale(scale, scale);
+      if (death > 0) {
+        ctx.translate(-dir * death * 5, death * 11);
+        ctx.rotate(dir * death * 1.1);
+        ctx.scale(1, 1 - death * 0.22);
+      }
+      if (actor.invuln > 0 && Math.floor(t * 16) % 2 === 0) ctx.globalAlpha = 0.55;
+      block(-18, 18, 36, 5, "rgba(0,0,0,0.26)");
+      if (awakened && death <= 0) {
+        const kind = power.id || "fire";
+        const color = power.color || "#ff4655";
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 2;
+        ctx.globalAlpha *= 0.72;
+        ctx.beginPath();
+        ctx.arc(0, -3, 24, 0, TAU);
+        ctx.stroke();
+        for (let i = 0; i < 3; i++) {
+          const a = t * 2.2 + i * TAU / 3;
+          ctx.save();
+          ctx.translate(Math.cos(a) * 22, -3 + Math.sin(a) * 16);
+          this.drawAwakenedAuraGlyph(ctx, kind, 3.7, color, power.accent || "#ffffff");
+          ctx.restore();
+        }
+        ctx.globalAlpha = 1;
+      }
+      const legOffset = moving ? (walk % 2 ? 2 : -2) : 0;
+      block(-9 + legOffset, 7, 7, 13, dark);
+      block(2 - legOffset, 7, 7, 13, dark);
+      block(-7 + legOffset, 9, 4, 9, armor);
+      block(4 - legOffset, 9, 4, 9, armor);
+      block(-11, -14, 22, 25, dark);
+      block(-8, -11, 16, 21, armor);
+      block(-7, -2, 14, 3, power.color || trim);
+      block(-2, 4, 4, 6, trim);
+      block(-9, -28, 18, 19, dark);
+      block(-7, -26, 14, 16, skin);
+      block(-8, -28, 16, 7, dark);
+      block(dir > 0 ? 3 : -6, -17, 3, 2, custom.eyes === "void" ? "#101521" : "#ffdf73");
+      block(-3, -11, 6, 1, "#4b1622");
+      if (cast) {
+        ctx.strokeStyle = power.accent || power.color || "#ffffff";
+        ctx.lineWidth = anim === "ultimate" ? 3 : 2;
+        ctx.globalAlpha = anim === "ultimate" ? 0.72 : 0.48;
+        ctx.beginPath();
+        ctx.arc(0, -2, anim === "ultimate" ? 30 : 23, 0, TAU);
+        ctx.stroke();
+        ctx.globalAlpha = 0.85;
+        this.drawPowerIconShape(ctx, power.id || "fire", anim === "ultimate" ? 8 : 5, power.color || "#ff4655", power.accent || "#ffffff");
+        ctx.globalAlpha = 1;
+      }
+      const reach = hit ? 12 : 0;
+      ctx.save();
+      ctx.translate(dir * (8 + reach), -4);
+      ctx.scale(dir, 1);
+      if (character.id === "guardian") {
+        block(-5, -6, 7, 8, skin);
+        poly([[5, -18], [22, -13], [20, 10], [10, 22], [0, 10], [-2, -13]], dark);
+        poly([[6, -13], [18, -9], [16, 7], [10, 16], [4, 7], [2, -9]], trim);
+        block(8, -3, 10, 4, power.accent || "#ffffff", hit ? 0.9 : 0.55);
+      } else if (character.id === "mage") {
+        block(-2, -36, 5, 64, dark);
+        block(0, -32, 2, 55, "#c8d2df");
+        poly([[0, -46], [10, -31], [0, -17], [-10, -31]], trim);
+        block(-7, -33, 14, 4, power.accent || "#ffffff", cast ? 0.95 : 0.55);
+        block(-8, -4, 6, 6, skin);
+      } else if (character.id === "ranger") {
+        block(-24, -4, 48, 8, dark);
+        block(-18, -2, 38, 4, "#8a6138");
+        block(7, -16, 5, 32, trim);
+        block(20, -1, hit ? 32 : 22, 2, "#f3ead7");
+        poly([[hit ? 56 : 44, 0], [hit ? 44 : 34, -5], [hit ? 44 : 34, 5]], power.accent || "#ffffff");
+        block(-7, 5, 6, 6, skin);
+      } else if (character.id === "martial") {
+        block(-5, -12, 7, 7, skin);
+        block(10 + reach, 2, 9, 8, skin);
+        block(18 + reach, 4, 10, 4, power.accent || "#ffffff", hit ? 0.8 : 0.35);
+      } else if (character.id === "spearman") {
+        block(-31, -2, 86 + reach, 4, "#9a6a39");
+        block(-18, -1, 64 + reach, 1, "#f3ead7");
+        poly([[48 + reach, -7], [68 + reach, 0], [48 + reach, 7], [54 + reach, 0]], "#dfe8ef");
+        block(-8, -5, 6, 6, skin);
+        block(8, -4, 6, 6, skin);
+      } else if (character.id === "assassin") {
+        for (const side of [-1, 1]) {
+          ctx.save();
+          ctx.translate(3, side * (6 + (hit ? 5 : 0)));
+          ctx.rotate(side * (hit ? 0.82 : 0.42));
+          block(-5, -3, 8, 6, skin);
+          poly([[3, -3], [22 + reach, -2], [30 + reach, 0], [22 + reach, 3], [3, 3]], "#dfe8ef");
+          block(4, -1, 12 + reach, 1, "#ffffff", 0.75);
+          ctx.restore();
+        }
+      } else {
+        ctx.rotate(hit ? -0.62 : -0.18);
+        block(-4, -3, 10, 6, skin);
+        block(4, -6, 4, 12, trim);
+        poly([[8, -5], [42 + reach, -3], [52 + reach, 0], [42 + reach, 4], [8, 5]], "#dfe8ef");
+        block(13, -1, 26 + reach, 2, "#ffffff", 0.7);
+      }
+      ctx.restore();
+      if ((actor.shadowWeapon || 0) > 0 || (actor.shadowWeaponDamageMult || 1) > 1.01) {
+        block(dir * 17 - 4, -24, 8, 8, "#8f72ff", 0.55);
+        block(dir * 24 - 3, -8, 6, 6, "#d7c4ff", 0.45);
       }
       ctx.restore();
     }
@@ -23701,21 +23973,26 @@
     drawEffects(ctx, foreground = false) {
       const emergency = this.performanceEmergency();
       const fast = this.fastVisualMode();
-      const budget = fast ? (foreground ? (this.isMobileDevice() ? 5 : 8) : (this.isMobileDevice() ? 14 : 22)) : Infinity;
+      const ultra = this.ultraPerformanceMode();
+      const budget = ultra
+        ? (foreground ? (this.isMobileDevice() ? 2 : 4) : (this.isMobileDevice() ? 7 : 12))
+        : fast ? (foreground ? (this.isMobileDevice() ? 5 : 8) : (this.isMobileDevice() ? 14 : 22)) : Infinity;
       let drawn = 0;
       for (const effect of this.run.effects) {
         if (emergency && this.optionalVisualEffect(effect.type)) continue;
         const combatFlash = effect.type === "attackBurst" || effect.type === "hitSpark";
         if (foreground !== combatFlash) continue;
         if (Number.isFinite(effect.x) && Number.isFinite(effect.y) && !this.inView(effect.x, effect.y, (effect.radius || effect.reach || 180) + 80)) continue;
-        const important = effect.type === "danger"
-          || effect.type === "lineTell"
+        const telegraph = effect.type === "danger" || effect.type === "lineTell";
+        const urgentTelegraph = telegraph && (!ultra || Number(effect.time || 0) < 0.55 || drawn < Math.max(2, budget * 0.45));
+        const important = urgentTelegraph
           || effect.type === "ultimate"
           || effect.type === "domainCutin"
           || effect.type === "crystalPrism"
           || effect.type === "playerBossReveal"
           || (effect.type === "skillShape" && (effect.variant === "ultimate" || effect.awakened));
         if (drawn >= budget && !important) continue;
+        if (ultra && !important && ["attackBurst", "hitSpark", "castBurst", "castCone", "powerGlyph", "shadowShard", "powerBolt"].includes(effect.type)) continue;
         if (fast && !important && this.optionalVisualEffect(effect.type) && drawn > budget * 0.55) continue;
         drawn++;
         ctx.save();
@@ -27291,8 +27568,11 @@
 
     drawParticles(ctx) {
       const stress = this.visualStress();
-      const simple = this.fastVisualMode() || stress > 0.42 || (this.perf?.quality ?? 1) < 0.66;
-      const drawLimit = simple ? Math.max(4, Math.round(this.particleLimit() * 0.62)) : this.run.particles.length;
+      const ultra = this.ultraPerformanceMode();
+      const simple = ultra || this.fastVisualMode() || stress > 0.42 || (this.perf?.quality ?? 1) < 0.66;
+      const drawLimit = ultra
+        ? Math.max(2, Math.round(this.particleLimit() * 0.28))
+        : simple ? Math.max(4, Math.round(this.particleLimit() * 0.62)) : this.run.particles.length;
       const startIndex = Math.max(0, this.run.particles.length - drawLimit);
       ctx.save();
       ctx.globalCompositeOperation = simple ? "source-over" : "lighter";

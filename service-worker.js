@@ -1,18 +1,18 @@
-const SOULRIFT_CACHE = "soulrift-pwa-20260607-combat-render-cache-244";
+const SOULRIFT_CACHE = "soulrift-pwa-20260607-mobile-ultra-fps-245";
 const SOULRIFT_ASSETS = [
   "./",
   "./index.html",
-  "./styles.css?v=20260607-combat-render-cache-244",
-  "./src/pwa.js?v=20260607-combat-render-cache-244",
-  "./src/game.js?v=20260607-combat-render-cache-244",
-  "./manifest.webmanifest?v=20260607-combat-render-cache-244",
+  "./styles.css?v=20260607-mobile-ultra-fps-245",
+  "./src/pwa.js?v=20260607-mobile-ultra-fps-245",
+  "./src/game.js?v=20260607-mobile-ultra-fps-245",
+  "./manifest.webmanifest?v=20260607-mobile-ultra-fps-245",
   "./version.json",
   "./assets/icons/app-icon-20260605-logo-xl-149.svg",
   "./assets/icons/app-icon-20260605-logo-xl-149-192.png",
   "./assets/icons/app-icon-20260605-logo-xl-149-512.png",
   "./assets/icons/app-icon-20260605-logo-xl-149-maskable-512.png",
   "./assets/icons/apple-touch-icon-20260605-logo-xl-149.png",
-  "./assets/sprites/monsters/shadow-goblin.png?v=20260607-combat-render-cache-244"
+  "./assets/sprites/monsters/shadow-goblin.png?v=20260607-mobile-ultra-fps-245"
 ];
 
 self.addEventListener("install", (event) => {

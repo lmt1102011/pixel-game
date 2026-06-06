@@ -9,7 +9,7 @@
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
   const SIGNAL_REALTIME_RELAY_LIMIT = 2;
   const SIGNAL_REALTIME_TYPES = new Set(["state", "snapshot", "attack", "skill", "collect", "openChest", "dropItem", "damage", "chooseDoor"]);
-  const APP_VERSION = "20260606-squad-character-fit-208";
+  const APP_VERSION = "20260606-squad-loadout-info-209";
   const CHANGELOG_ENTRIES = [
     {
       version: APP_VERSION,
@@ -5550,9 +5550,6 @@
       const custom = this.squadSlotCustomization(slot, self);
       const stats = this.squadMockStats(slot, options.index || 0);
       const ready = this.squadReady(slot);
-      const name = empty ? "OPEN SLOT" : this.lobby.slotName(slot, self ? "Bạn" : "Player");
-      const tag = empty ? "INVITE" : `#${stats.tag}`;
-      const statusClass = this.squadStatusClass(stats.status);
       const inviteAction = "open-lobby-invites";
       return `
         <article class="valorant-member ${options.key || ""} ${self ? "self" : ""} ${leader ? "leader" : ""} ${ready ? "ready" : "not-ready"} ${empty ? "empty" : "filled"}" style="--hero:${custom.color || character.color}; --power:${power.color}; --rank:${stats.rank.color}; --char:${character.color}">
@@ -5584,17 +5581,10 @@
             `}
           </div>
           <div class="member-info">
-            <div class="member-title">
-              <b>${escapeHtml(name)}</b>
-              <span>${escapeHtml(tag)}</span>
-            </div>
-            <div class="member-meta">
-              <span>LV ${empty ? "--" : stats.level}</span>
-              <span class="rank-chip">${empty ? "UNRANKED" : stats.rank.name}</span>
-            </div>
-            <div class="member-state">
-              <span class="mic ${stats.mic}">${stats.mic === "muted" ? "MIC OFF" : "MIC"}</span>
-              <span class="presence ${statusClass}">${empty ? "Empty" : stats.status}</span>
+            <div class="member-loadout">
+              <span class="member-loadout-chip level"><b>LV</b><small>${empty ? "--" : stats.level}</small></span>
+              <span class="member-loadout-chip power"><b>POWER</b><small>${empty ? "--" : escapeHtml(power.name)}</small></span>
+              <span class="member-loadout-chip character"><b>NHÂN VẬT</b><small>${empty ? "--" : escapeHtml(character.name)}</small></span>
             </div>
           </div>
         </article>

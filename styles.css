@@ -9194,7 +9194,7 @@ body.is-mobile-ui .friends-big-btn {
   }
 }
 
-@media (orientation: landscape) and (max-height: 640px) {
+@media (orientation: landscape) {
   body.is-mobile-ui .screen.aaa-menu-screen,
   body.is-mobile-ui .screen.friends-screen,
   body.is-mobile-ui .screen.valorant-screen {
@@ -9207,11 +9207,11 @@ body.is-mobile-ui .friends-big-btn {
     height: var(--app-height);
     min-height: var(--app-height);
     max-height: var(--app-height);
-    grid-template-columns: clamp(236px, 30vw, 330px) minmax(0, 1fr);
+    grid-template-columns: clamp(210px, 28vw, 300px) minmax(0, 1fr);
     grid-template-rows: minmax(0, 1fr);
     grid-template-areas: "left hero";
-    gap: clamp(10px, 1.5vw, 16px);
-    padding: max(10px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) max(10px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left));
+    gap: clamp(8px, 1.25vw, 14px);
+    padding: max(7px, env(safe-area-inset-top)) max(9px, env(safe-area-inset-right)) max(7px, env(safe-area-inset-bottom)) max(9px, env(safe-area-inset-left));
     overflow: hidden;
   }
 
@@ -9228,106 +9228,106 @@ body.is-mobile-ui .friends-big-btn {
 
   body.is-mobile-ui .aaa-account-card {
     position: absolute;
-    right: max(12px, env(safe-area-inset-right));
-    top: max(10px, env(safe-area-inset-top));
+    right: max(9px, env(safe-area-inset-right));
+    top: max(7px, env(safe-area-inset-top));
     z-index: 8;
     grid-area: auto;
-    width: min(310px, 34vw);
-    min-height: 52px;
-    grid-template-columns: 40px minmax(0, 1fr) auto;
-    gap: 9px;
-    padding: 7px 9px;
+    width: min(286px, 32vw);
+    min-height: 46px;
+    grid-template-columns: 36px minmax(0, 1fr) auto;
+    gap: 8px;
+    padding: 6px 8px;
   }
 
   body.is-mobile-ui .aaa-account-avatar {
-    width: 38px;
-    height: 38px;
-    font-size: 17px;
+    width: 34px;
+    height: 34px;
+    font-size: 15px;
   }
 
   body.is-mobile-ui .aaa-account-main b,
   body.is-mobile-ui .aaa-account-meta b {
-    font-size: 12px;
+    font-size: 11px;
   }
 
   body.is-mobile-ui .aaa-account-main span,
   body.is-mobile-ui .aaa-account-meta span {
-    font-size: 9px;
+    font-size: 8px;
   }
 
   body.is-mobile-ui .aaa-menu-left {
     grid-area: left;
     align-self: stretch;
     align-content: center;
-    gap: clamp(8px, 1.7vh, 14px);
+    gap: clamp(6px, 1.35vh, 11px);
     max-width: none;
     min-width: 0;
     overflow: hidden;
   }
 
   body.is-mobile-ui .aaa-brand {
-    gap: 6px;
+    gap: 4px;
   }
 
   body.is-mobile-ui .aaa-brand span {
     width: fit-content;
     padding: 4px 7px;
-    font-size: 9px;
+    font-size: 8px;
     letter-spacing: 1px;
   }
 
   body.is-mobile-ui .aaa-brand h1 {
-    font-size: clamp(36px, 6vw, 60px);
+    font-size: clamp(31px, 5.4vw, 52px);
     line-height: 0.88;
     letter-spacing: 2px;
   }
 
   body.is-mobile-ui .aaa-brand p {
     max-width: 100%;
-    font-size: clamp(10px, 1.45vw, 12px);
-    line-height: 1.28;
+    font-size: clamp(9px, 1.25vw, 11px);
+    line-height: 1.22;
   }
 
   body.is-mobile-ui .aaa-play-cta {
-    min-height: clamp(56px, 11vh, 76px);
-    grid-template-columns: 38px minmax(0, 1fr);
-    padding: 9px 14px;
-    column-gap: 12px;
+    min-height: clamp(48px, 9.5vh, 66px);
+    grid-template-columns: 32px minmax(0, 1fr);
+    padding: 7px 11px;
+    column-gap: 9px;
   }
 
   body.is-mobile-ui .aaa-play-icon {
-    width: 34px;
-    height: 34px;
+    width: 30px;
+    height: 30px;
   }
 
   body.is-mobile-ui .aaa-play-icon::before {
-    left: 12px;
-    top: 9px;
-    border-top-width: 8px;
-    border-bottom-width: 8px;
-    border-left-width: 12px;
+    left: 11px;
+    top: 8px;
+    border-top-width: 7px;
+    border-bottom-width: 7px;
+    border-left-width: 11px;
   }
 
   body.is-mobile-ui .aaa-play-cta span:not(.aaa-play-icon) {
-    font-size: clamp(18px, 2.6vw, 24px);
-    letter-spacing: 1.6px;
+    font-size: clamp(16px, 2.25vw, 22px);
+    letter-spacing: 1.3px;
   }
 
   body.is-mobile-ui .aaa-play-cta small {
-    font-size: clamp(8px, 1.25vw, 10px);
+    font-size: clamp(7px, 1.05vw, 9px);
   }
 
   body.is-mobile-ui .aaa-main-nav {
     grid-template-columns: 1fr;
-    gap: 7px;
+    gap: 6px;
   }
 
   body.is-mobile-ui .aaa-nav-btn {
-    min-height: clamp(40px, 7.6vh, 52px);
-    grid-template-columns: 34px minmax(0, 1fr);
+    min-height: clamp(34px, 6.6vh, 46px);
+    grid-template-columns: 30px minmax(0, 1fr);
     justify-items: stretch;
-    gap: 10px;
-    padding: 6px 12px;
+    gap: 8px;
+    padding: 5px 10px;
     text-align: left;
   }
 
@@ -9336,40 +9336,40 @@ body.is-mobile-ui .friends-big-btn {
   }
 
   body.is-mobile-ui .aaa-nav-icon {
-    width: 30px;
-    height: 30px;
+    width: 26px;
+    height: 26px;
   }
 
   body.is-mobile-ui .aaa-nav-btn span:last-child {
-    font-size: clamp(11px, 1.55vw, 14px);
+    font-size: clamp(10px, 1.35vw, 13px);
     letter-spacing: 1px;
     text-align: left;
   }
 
   body.is-mobile-ui .aaa-event-stack {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 7px;
+    gap: 6px;
   }
 
   body.is-mobile-ui .aaa-event-card {
-    min-height: clamp(46px, 8.5vh, 62px);
-    grid-template-columns: 46px minmax(0, 1fr);
-    gap: 3px 8px;
-    padding: 8px;
+    min-height: clamp(38px, 7.2vh, 52px);
+    grid-template-columns: 38px minmax(0, 1fr);
+    gap: 2px 7px;
+    padding: 6px;
   }
 
   body.is-mobile-ui .aaa-event-card span {
-    width: 40px;
-    height: 30px;
-    font-size: 8px;
+    width: 34px;
+    height: 26px;
+    font-size: 7px;
   }
 
   body.is-mobile-ui .aaa-event-card b {
-    font-size: 11px;
+    font-size: 10px;
   }
 
   body.is-mobile-ui .aaa-event-card small {
-    font-size: 8px;
+    font-size: 7px;
     line-height: 1.25;
   }
 
@@ -9390,20 +9390,20 @@ body.is-mobile-ui .friends-big-btn {
   }
 
   body.is-mobile-ui .aaa-hero-canvas {
-    right: 7%;
+    right: 4%;
     bottom: 0;
-    width: min(560px, 58vw);
-    height: calc(var(--app-height) - 14px);
+    width: min(520px, 54vw);
+    height: calc(var(--app-height) - 8px);
     max-height: none;
     transform: none;
   }
 
   body.is-mobile-ui .aaa-hero-info {
     left: 3%;
-    bottom: 10px;
-    max-width: min(330px, 48%);
-    gap: 7px;
-    padding: 11px 13px;
+    bottom: max(7px, env(safe-area-inset-bottom));
+    max-width: min(300px, 45%);
+    gap: 5px;
+    padding: 9px 11px;
   }
 
   body.is-mobile-ui .aaa-hero-info span {
@@ -9412,25 +9412,25 @@ body.is-mobile-ui .friends-big-btn {
   }
 
   body.is-mobile-ui .aaa-hero-info h2 {
-    font-size: clamp(21px, 3vw, 30px);
+    font-size: clamp(18px, 2.7vw, 26px);
     letter-spacing: 1px;
   }
 
   body.is-mobile-ui .aaa-hero-tags b {
-    padding: 5px 7px;
-    font-size: 9px;
+    padding: 4px 6px;
+    font-size: 8px;
   }
 
   body.is-mobile-ui .aaa-power-score {
     top: auto;
-    right: max(12px, env(safe-area-inset-right));
-    bottom: max(12px, env(safe-area-inset-bottom));
-    width: 130px;
-    padding: 10px 11px;
+    right: max(9px, env(safe-area-inset-right));
+    bottom: max(9px, env(safe-area-inset-bottom));
+    width: 112px;
+    padding: 8px 9px;
   }
 
   body.is-mobile-ui .aaa-power-score b {
-    font-size: 24px;
+    font-size: 20px;
   }
 
   body.is-mobile-ui .valorant-lobby {
@@ -9440,13 +9440,13 @@ body.is-mobile-ui .friends-big-btn {
 
   body.is-mobile-ui .squad-only-lobby {
     place-items: center;
-    padding: max(8px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) max(9px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left));
+    padding: max(5px, env(safe-area-inset-top)) max(8px, env(safe-area-inset-right)) max(6px, env(safe-area-inset-bottom)) max(8px, env(safe-area-inset-left));
   }
 
   body.is-mobile-ui .squad-only-stage {
-    width: min(1120px, calc(100vw - 24px));
-    max-height: calc(var(--app-height) - 16px);
-    gap: clamp(8px, 2vh, 16px);
+    width: min(1120px, calc(100vw - 16px));
+    max-height: calc(var(--app-height) - 10px);
+    gap: clamp(6px, 1.5vh, 12px);
   }
 
   body.is-mobile-ui .squad-only-grid {
@@ -9462,35 +9462,35 @@ body.is-mobile-ui .friends-big-btn {
 
   body.is-mobile-ui .squad-only-grid .valorant-member,
   body.is-mobile-ui .valorant-member {
-    grid-template-rows: minmax(142px, 1fr) auto;
-    min-height: min(316px, calc(var(--app-height) - 78px));
+    grid-template-rows: minmax(120px, 1fr) auto;
+    min-height: min(278px, calc(var(--app-height) - 68px));
   }
 
   body.is-mobile-ui .member-avatar {
-    width: min(118%, 160px);
-    height: min(190px, 44vh);
+    width: min(114%, 142px);
+    height: min(166px, 41vh);
   }
 
   body.is-mobile-ui .member-avatar .preview-hero,
   body.is-mobile-ui .valorant-member.self .member-avatar .preview-hero {
-    transform: translate(-50%, -50%) scale(0.92);
+    transform: translate(-50%, -50%) scale(0.82);
   }
 
   body.is-mobile-ui .squad-action-bar {
-    grid-template-columns: minmax(80px, 110px) minmax(280px, 430px) minmax(90px, 116px);
-    width: min(720px, 92vw);
-    gap: 10px;
+    grid-template-columns: minmax(68px, 96px) minmax(240px, 390px) minmax(76px, 104px);
+    width: min(660px, 94vw);
+    gap: 7px;
   }
 
   body.is-mobile-ui .valorant-exit-btn,
   body.is-mobile-ui .valorant-mode-btn {
-    min-height: 50px;
-    padding: 0 10px;
+    min-height: 44px;
+    padding: 0 8px;
   }
 
   body.is-mobile-ui .valorant-start-btn {
-    min-height: 60px;
-    padding: 0 28px;
+    min-height: 52px;
+    padding: 0 22px;
   }
 
   body.is-mobile-ui .squad-mode-panel {
@@ -9515,15 +9515,15 @@ body.is-mobile-ui .friends-big-btn {
     height: var(--app-height);
     min-height: var(--app-height);
     max-height: var(--app-height);
-    grid-template-columns: minmax(164px, 210px) minmax(0, 1fr) minmax(220px, 300px);
-    grid-template-rows: 66px 74px minmax(0, 1fr) minmax(88px, 112px);
+    grid-template-columns: minmax(138px, 184px) minmax(0, 1fr) minmax(194px, 266px);
+    grid-template-rows: 56px 62px minmax(0, 1fr) minmax(70px, 92px);
     grid-template-areas:
       "top top top"
       "search search detail"
       "controls list detail"
       "queue queue detail";
-    gap: 9px;
-    padding: max(9px, env(safe-area-inset-top)) max(11px, env(safe-area-inset-right)) max(9px, env(safe-area-inset-bottom)) max(11px, env(safe-area-inset-left));
+    gap: 7px;
+    padding: max(6px, env(safe-area-inset-top)) max(8px, env(safe-area-inset-right)) max(6px, env(safe-area-inset-bottom)) max(8px, env(safe-area-inset-left));
     overflow: hidden;
     border: 1px solid rgba(236, 232, 225, 0.12);
     box-shadow: 0 18px 48px rgba(0, 0, 0, 0.42);
@@ -9536,7 +9536,7 @@ body.is-mobile-ui .friends-big-btn {
   body.is-mobile-ui .friends-queue-panel,
   body.is-mobile-ui .friend-detail-panel {
     clip-path: polygon(11px 0, 100% 0, 100% calc(100% - 11px), calc(100% - 11px) 100%, 0 100%, 0 11px);
-    padding: 9px;
+    padding: 7px;
     overflow: hidden;
   }
 
@@ -9549,19 +9549,19 @@ body.is-mobile-ui .friends-big-btn {
   }
 
   body.is-mobile-ui .friends-topbar h2 {
-    font-size: clamp(24px, 3.4vw, 32px);
+    font-size: clamp(20px, 3vw, 28px);
   }
 
   body.is-mobile-ui .friends-topbar p {
     display: block;
     max-width: 520px;
-    font-size: 10px;
+    font-size: 9px;
   }
 
   body.is-mobile-ui .friends-top-actions {
     display: flex;
     width: auto;
-    min-width: min(340px, 42vw);
+    min-width: min(300px, 38vw);
     justify-content: flex-end;
   }
 
@@ -9596,9 +9596,9 @@ body.is-mobile-ui .friends-big-btn {
   }
 
   body.is-mobile-ui .friend-player-card {
-    grid-template-columns: 50px minmax(0, 1fr) auto;
-    min-height: 70px;
-    padding: 8px;
+    grid-template-columns: 44px minmax(0, 1fr) auto;
+    min-height: 58px;
+    padding: 7px;
   }
 
   body.is-mobile-ui .friend-card-actions {
@@ -9615,5 +9615,133 @@ body.is-mobile-ui .friends-big-btn {
   body.is-mobile-ui .friend-profile-stats {
     grid-template-columns: 1fr;
     overflow: auto;
+  }
+}
+
+@media (orientation: landscape) and (max-height: 430px) {
+  body.is-mobile-ui .aaa-brand p,
+  body.is-mobile-ui .aaa-event-stack,
+  body.is-mobile-ui .aaa-power-score,
+  body.is-mobile-ui .friends-topbar p {
+    display: none;
+  }
+
+  body.is-mobile-ui .aaa-main-menu {
+    grid-template-columns: clamp(190px, 27vw, 260px) minmax(0, 1fr);
+    padding: max(5px, env(safe-area-inset-top)) max(7px, env(safe-area-inset-right)) max(5px, env(safe-area-inset-bottom)) max(7px, env(safe-area-inset-left));
+  }
+
+  body.is-mobile-ui .aaa-menu-left {
+    gap: 5px;
+  }
+
+  body.is-mobile-ui .aaa-brand h1 {
+    font-size: clamp(28px, 5vw, 42px);
+  }
+
+  body.is-mobile-ui .aaa-play-cta {
+    min-height: 44px;
+  }
+
+  body.is-mobile-ui .aaa-main-nav {
+    gap: 5px;
+  }
+
+  body.is-mobile-ui .aaa-nav-btn {
+    min-height: 32px;
+  }
+
+  body.is-mobile-ui .aaa-hero-canvas {
+    height: calc(var(--app-height) - 6px);
+    width: min(440px, 52vw);
+  }
+
+  body.is-mobile-ui .aaa-hero-info {
+    max-width: min(260px, 44%);
+    padding: 7px 9px;
+  }
+
+  body.is-mobile-ui .aaa-hero-info h2 {
+    font-size: clamp(16px, 2.45vw, 22px);
+  }
+
+  body.is-mobile-ui .squad-only-grid {
+    gap: 6px;
+  }
+
+  body.is-mobile-ui .squad-only-grid .valorant-member,
+  body.is-mobile-ui .valorant-member {
+    grid-template-rows: minmax(106px, 1fr) auto;
+    min-height: min(238px, calc(var(--app-height) - 58px));
+  }
+
+  body.is-mobile-ui .member-frame,
+  body.is-mobile-ui .empty-frame {
+    margin: 6px;
+  }
+
+  body.is-mobile-ui .member-avatar {
+    width: min(112%, 124px);
+    height: min(142px, 38vh);
+  }
+
+  body.is-mobile-ui .member-info {
+    padding: 6px;
+  }
+
+  body.is-mobile-ui .member-loadout-chip {
+    min-height: 18px;
+    padding: 3px 5px;
+  }
+
+  body.is-mobile-ui .squad-action-bar {
+    grid-template-columns: minmax(58px, 82px) minmax(220px, 350px) minmax(64px, 90px);
+  }
+
+  body.is-mobile-ui .valorant-exit-btn,
+  body.is-mobile-ui .valorant-mode-btn {
+    min-height: 38px;
+  }
+
+  body.is-mobile-ui .valorant-start-btn {
+    min-height: 44px;
+  }
+
+  body.is-mobile-ui .friends-arena {
+    grid-template-columns: minmax(122px, 160px) minmax(0, 1fr) minmax(178px, 238px);
+    grid-template-rows: 48px 54px minmax(0, 1fr) 66px;
+    gap: 6px;
+    padding: max(5px, env(safe-area-inset-top)) max(6px, env(safe-area-inset-right)) max(5px, env(safe-area-inset-bottom)) max(6px, env(safe-area-inset-left));
+  }
+
+  body.is-mobile-ui .friends-topbar,
+  body.is-mobile-ui .friends-search-panel,
+  body.is-mobile-ui .friends-control-panel,
+  body.is-mobile-ui .friends-list-panel,
+  body.is-mobile-ui .friends-queue-panel,
+  body.is-mobile-ui .friend-detail-panel {
+    padding: 6px;
+  }
+
+  body.is-mobile-ui .friends-topbar h2 {
+    font-size: 20px;
+  }
+
+  body.is-mobile-ui .friends-top-actions {
+    min-width: min(250px, 35vw);
+  }
+
+  body.is-mobile-ui .friends-search-box input,
+  body.is-mobile-ui .friends-search-box button,
+  body.is-mobile-ui .friends-sort-box select {
+    min-height: 32px;
+  }
+
+  body.is-mobile-ui .friend-player-card {
+    min-height: 50px;
+  }
+
+  body.is-mobile-ui .friend-detail-panel {
+    grid-template-rows: 48px auto auto minmax(0, 1fr) auto;
   }
 }

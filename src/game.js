@@ -9,7 +9,7 @@
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
   const SIGNAL_REALTIME_RELAY_LIMIT = 2;
   const SIGNAL_REALTIME_TYPES = new Set(["state", "snapshot", "attack", "skill", "collect", "openChest", "dropItem", "damage", "chooseDoor"]);
-  const APP_VERSION = "20260607-single-monster-weapons-242";
+  const APP_VERSION = "20260607-combat-fps-budget-243";
   const CHANGELOG_ENTRIES = [
     {
       version: APP_VERSION,
@@ -3066,6 +3066,8 @@
       this.nextHudSkillAt = 0;
       this.hudSkillMarkup = "";
       this.hudStatusMarkup = "";
+      this.quickActionSignature = "";
+      this.renderActorBuffer = [];
       this.updateTimer = null;
       this.updateInProgress = false;
       this.bootReady = false;
@@ -3089,6 +3091,8 @@
         renderScale: 1,
         renderScaleTarget: 1,
         appliedRenderScale: 1,
+        renderMs: 0,
+        avgRenderMs: 0,
         resizeAt: 0
       };
       this.updateDeviceUiMode();
@@ -4265,11 +4269,15 @@
       const idle = !this.run || this.mode !== "game" || this.pauseOverlay || !stressActive;
       const avgDt = this.perf.avgDt || frame;
       const fastDt = this.perf.fastDt || frame;
+      const renderMs = Number(this.perf.avgRenderMs || this.perf.renderMs || 0);
+      const renderBudget = this.isMobileDevice() ? 11.5 : 10.5;
+      const renderLag = stressActive && renderMs > renderBudget;
+      const renderSevere = stressActive && renderMs > (this.isMobileDevice() ? 19 : 17);
       this.perf.skillQuietTime = skillActive ? 0 : Math.min(8, (this.perf.skillQuietTime || 0) + frame);
-      const heavyFrame = frame > (this.isMobileDevice() ? 0.04 : 0.034);
+      const heavyFrame = frame > (this.isMobileDevice() ? 0.04 : 0.034) || renderLag;
       const sustainedSlow = (this.perf.fastDt || frame) > targetDt + (this.isMobileDevice() ? 0.012 : 0.01)
         || this.perf.avgDt > targetDt + (this.isMobileDevice() ? 0.009 : 0.0075);
-      const severeFrame = frame > (this.isMobileDevice() ? 0.058 : 0.05);
+      const severeFrame = frame > (this.isMobileDevice() ? 0.058 : 0.05) || renderSevere;
       const severeSlow = fastDt > targetDt + (this.isMobileDevice() ? 0.014 : 0.012)
         || avgDt > targetDt + (this.isMobileDevice() ? 0.012 : 0.01);
       const instantLag = stressActive && (heavyFrame || sustainedSlow);
@@ -4396,13 +4404,13 @@
       const remote = this.isMultiplayerRun() ? Math.min(0.28, this.remotePlayers.size * 0.07) : 0;
       return clamp(
         boss +
-        enemies * 0.035 +
-        projectiles * 0.045 +
-        effects * 0.012 +
-        particles * 0.0032 +
-        shockwaves * 0.025 +
-        trails * 0.012 +
-        slashes * 0.012 +
+        enemies * 0.04 +
+        projectiles * 0.052 +
+        effects * 0.018 +
+        particles * 0.0046 +
+        shockwaves * 0.03 +
+        trails * 0.016 +
+        slashes * 0.016 +
         remote,
         0,
         2.4
@@ -4429,6 +4437,13 @@
       return clamp(bias, 0, 0.82);
     }
 
+    renderPressure() {
+      const ms = Number(this.perf?.avgRenderMs || this.perf?.renderMs || 0);
+      const start = this.isMobileDevice() ? 8.8 : 8.0;
+      const range = this.isMobileDevice() ? 15 : 13;
+      return clamp((ms - start) / range, 0, 1);
+    }
+
     performancePressure() {
       return clamp(Number(this.perf?.pressure || 0), 0, 1);
     }
@@ -4444,8 +4459,10 @@
     visualBudgetScale() {
       const pressure = this.performancePressure();
       const weakBias = this.devicePerformanceBias();
-      const loadTrim = clamp(this.graphicsCombatLoad() * (0.08 + weakBias * 0.12), 0, 0.22 + weakBias * 0.1);
-      return clamp(1 - pressure * 0.92 - weakBias * 0.24 - loadTrim, this.performancePanic() ? 0.08 : 0.16, 1);
+      const renderPressure = this.renderPressure();
+      const loadTrim = clamp(this.graphicsCombatLoad() * (0.09 + weakBias * 0.13), 0, 0.28 + weakBias * 0.12);
+      const floor = this.performancePanic() ? 0.05 : this.performanceEmergency() ? 0.09 : 0.14;
+      return clamp(1 - pressure * 0.86 - renderPressure * 0.5 - weakBias * 0.22 - loadTrim, floor, 1);
     }
 
     visualStress() {
@@ -4453,7 +4470,17 @@
       const weakBias = this.devicePerformanceBias();
       const load = this.graphicsCombatLoad();
       const hold = this.performancePanic() ? 0.22 : this.performanceEmergency() ? 0.12 : 0;
-      return clamp(pressure * 0.72 + weakBias * 0.3 + load * 0.12 + hold, 0, 1);
+      return clamp(pressure * 0.62 + this.renderPressure() * 0.34 + weakBias * 0.28 + load * 0.13 + hold, 0, 1);
+    }
+
+    fastVisualMode() {
+      if (!this.run || this.mode !== "game") return false;
+      const quality = this.perf?.quality ?? 1;
+      const load = this.graphicsCombatLoad();
+      return this.performancePanic()
+        || this.renderPressure() > 0.38
+        || this.performancePressure() > 0.34
+        || (this.graphicsActiveCombat() && (load > 0.95 || quality < 0.58));
     }
 
     prettyVisualScale(min = 0.18) {
@@ -4467,7 +4494,8 @@
       const important = Boolean(options.important);
       const min = Number.isFinite(options.min) ? options.min : important ? 1 : 0;
       const scale = this.prettyVisualScale(important ? 0.42 : 0.12);
-      const count = Math.round(base * this.save.settings.particles * scale);
+      const renderTrim = this.fastVisualMode() ? (important ? 0.62 : 0.42) : (1 - this.renderPressure() * (important ? 0.22 : 0.34));
+      const count = Math.round(base * this.save.settings.particles * scale * renderTrim);
       return Math.max(min, count);
     }
 
@@ -4484,8 +4512,9 @@
     projectileLimit() {
       const quality = this.perf?.quality ?? 1;
       const weakBias = this.devicePerformanceBias();
-      const base = this.isMobileDevice() ? 22 : 42;
-      return Math.max(this.performancePanic() ? 7 : 12, Math.round(base * (1 - weakBias * 0.24) * (0.34 + quality * 0.66) * this.visualBudgetScale()));
+      const base = this.isMobileDevice() ? 18 : 34;
+      const renderTrim = 1 - this.renderPressure() * 0.28;
+      return Math.max(this.performancePanic() ? 6 : 10, Math.round(base * (1 - weakBias * 0.24) * renderTrim * (0.34 + quality * 0.66) * this.visualBudgetScale()));
     }
 
     graphicsQualityFromLevel(level = 5) {
@@ -4501,16 +4530,20 @@
     graphicsRenderScale() {
       const quality = this.perf?.quality ?? 1;
       const lag = this.performancePressure();
+      const renderLag = this.renderPressure();
       const weakBias = this.devicePerformanceBias();
-      const base = (this.isMobileDevice() ? 0.68 : 0.74) - lag * (this.isMobileDevice() ? 0.28 : 0.24) - weakBias * (this.isMobileDevice() ? 0.07 : 0.055);
+      const base = (this.isMobileDevice() ? 0.68 : 0.74)
+        - lag * (this.isMobileDevice() ? 0.26 : 0.22)
+        - renderLag * (this.isMobileDevice() ? 0.12 : 0.1)
+        - weakBias * (this.isMobileDevice() ? 0.06 : 0.05);
       const range = (this.isMobileDevice() ? 0.3 : 0.26) - weakBias * 0.06;
       const floor = this.performancePanic()
-        ? (this.isMobileDevice() ? 0.56 : 0.62)
+        ? (this.isMobileDevice() ? 0.5 : 0.56)
         : this.performanceEmergency()
-          ? (this.isMobileDevice() ? 0.64 : 0.7)
-          : (this.isMobileDevice() ? 0.72 : 0.78);
+          ? (this.isMobileDevice() ? 0.58 : 0.64)
+          : (this.isMobileDevice() ? 0.7 : 0.76);
       const rawScale = clamp(base + quality * range, floor, 1);
-      const step = this.isMobileDevice() ? 0.05 : 0.04;
+      const step = this.performanceEmergency() ? 0.025 : this.isMobileDevice() ? 0.05 : 0.04;
       return clamp(Math.round(rawScale / step) * step, floor, 1);
     }
 
@@ -4550,12 +4583,12 @@
       const current = Number.isFinite(this.perf.appliedRenderScale) ? this.perf.appliedRenderScale : 1;
       const now = performance.now();
       const diff = Math.abs(next - current);
-      const resizeThreshold = manualScale ? 0.025 : next < current ? 0.025 : 0.14;
+      const resizeThreshold = manualScale ? 0.025 : next < current ? 0.02 : idle ? 0.08 : 0.12;
       if (diff < resizeThreshold) return;
       const urgentDrop = !manualScale && force && next < current && diff > 0.045 && (this.performancePanic() || this.performanceEmergency() || pressure > 0.28);
       if (!urgentDrop && now < (this.perf.resizeAt || 0)) return;
       this.perf.appliedRenderScale = next;
-      this.perf.resizeAt = now + (manualScale ? 140 : idle || skillQuietReady ? 320 : next < current ? urgentDrop ? 80 : 180 : 3200 + weakBias * 1800);
+      this.perf.resizeAt = now + (manualScale ? 140 : idle || skillQuietReady ? 260 : next < current ? urgentDrop ? 70 : 150 : 2200 + weakBias * 1500);
       this.resize();
       if (this.run && next < current) {
         this.trimEffectList();
@@ -4597,15 +4630,17 @@
     particleLimit() {
       const quality = this.perf?.quality ?? 1;
       const weakBias = this.devicePerformanceBias();
-      const base = this.isMobileDevice() ? 58 : 115;
-      return Math.max(this.performancePanic() ? 4 : 12, Math.round(base * (1 - weakBias * 0.38) * (0.22 + quality * 0.78) * this.visualBudgetScale()));
+      const base = this.isMobileDevice() ? 42 : 82;
+      const renderTrim = 1 - this.renderPressure() * 0.42;
+      return Math.max(this.performancePanic() ? 3 : 10, Math.round(base * (1 - weakBias * 0.38) * renderTrim * (0.2 + quality * 0.8) * this.visualBudgetScale()));
     }
 
     effectLimit() {
       const quality = this.perf?.quality ?? 1;
       const weakBias = this.devicePerformanceBias();
-      const base = this.isMobileDevice() ? 28 : 52;
-      return Math.max(this.performancePanic() ? 5 : 10, Math.round(base * (1 - weakBias * 0.28) * (0.32 + quality * 0.68) * this.visualBudgetScale()));
+      const base = this.isMobileDevice() ? 22 : 40;
+      const renderTrim = 1 - this.renderPressure() * 0.36;
+      return Math.max(this.performancePanic() ? 4 : 8, Math.round(base * (1 - weakBias * 0.28) * renderTrim * (0.3 + quality * 0.7) * this.visualBudgetScale()));
     }
 
     glow(value) {
@@ -4613,9 +4648,10 @@
       const quality = this.perf?.quality ?? 1;
       const weakBias = this.devicePerformanceBias();
       const stress = this.visualStress();
+      const renderStress = this.renderPressure();
       if (quality < 0.5 || (weakBias > 0.55 && this.performanceEmergency())) return 0;
-      if (stress > 0.62 && value < 18) return 0;
-      return value * clamp(quality * (this.isMobileDevice() ? 0.24 : 0.46) * (1 - weakBias * 0.38) * (1 - stress * 0.48), 0.02, 0.5);
+      if ((stress > 0.54 || renderStress > 0.32) && value < 18) return 0;
+      return value * clamp(quality * (this.isMobileDevice() ? 0.2 : 0.38) * (1 - weakBias * 0.38) * (1 - stress * 0.56) * (1 - renderStress * 0.62), 0, 0.46);
     }
 
     readableTextBoost() {
@@ -4702,13 +4738,18 @@
     applyEmergencyVisualBudget() {
       if (!this.run) return;
       const pressure = this.performancePressure();
-      if (pressure <= 0.08) return;
+      const renderPressure = this.renderPressure();
+      const loadPressure = clamp(this.graphicsCombatLoad() * 0.28, 0, 1);
+      const stress = Math.max(pressure, renderPressure, loadPressure);
+      if (stress <= 0.06) return;
+      const budget = this.visualBudgetScale();
+      const panic = this.performancePanic();
       this.trimEffectList();
       this.trimVisualList(this.run.particles, this.particleLimit());
-      this.trimVisualList(this.run.damageTexts, this.performancePanic() ? 0 : Math.round((this.isMobileDevice() ? 10 : 18) * this.visualBudgetScale()));
-      this.trimVisualList(this.run.slashes, Math.round((this.isMobileDevice() ? 9 : 16) * this.visualBudgetScale()));
-      this.trimOptionalList(this.run.shockwaves, Math.round((this.isMobileDevice() ? 5 : 9) * this.visualBudgetScale()), (wave) => !wave.damage, this.performancePanic());
-      this.trimOptionalList(this.run.trails, Math.round((this.isMobileDevice() ? 6 : 12) * this.visualBudgetScale()), (trail) => trail.damageTick === undefined, this.performancePanic());
+      this.trimVisualList(this.run.damageTexts, panic ? 0 : Math.round((this.isMobileDevice() ? 8 : 14) * budget));
+      this.trimVisualList(this.run.slashes, Math.round((this.isMobileDevice() ? 7 : 13) * budget));
+      this.trimOptionalList(this.run.shockwaves, Math.round((this.isMobileDevice() ? 4 : 7) * budget), (wave) => !wave.damage, panic || renderPressure > 0.65);
+      this.trimOptionalList(this.run.trails, Math.round((this.isMobileDevice() ? 4 : 9) * budget), (trail) => trail.damageTick === undefined, panic || renderPressure > 0.65);
       this.trimProjectilesForBudget();
     }
 
@@ -5040,7 +5081,13 @@
         this.updateQuickActions();
         if (this.mode === "game" && this.run) this.update(dt);
         this.audio.update(dt);
+        const renderStart = performance.now();
         this.render();
+        const renderMs = performance.now() - renderStart;
+        this.perf.renderMs = renderMs;
+        this.perf.avgRenderMs = this.perf.avgRenderMs
+          ? this.perf.avgRenderMs * 0.86 + renderMs * 0.14
+          : renderMs;
         if (this.mode === "menu" && this.screen?.classList.contains("aaa-menu-screen")) this.renderMainMenuHero();
         if (this.mode === "play" && this.screen?.classList.contains("valorant-screen")) this.renderSquadHeroCanvases();
       } catch (error) {
@@ -5109,6 +5156,10 @@
       if (!this.quickActions) return;
       const spectating = Boolean(this.run && this.mode === "game" && this.run.player.dead && this.run.spectating);
       const visible = Boolean(this.run && this.mode === "game" && !this.pauseOverlay && (!this.run.player.dead || spectating));
+      const touchVisible = Boolean(this.run && this.mode === "game" && this.isMobileDevice() && !this.run.player.dead);
+      const signature = `${spectating ? 1 : 0}|${visible ? 1 : 0}|${touchVisible ? 1 : 0}`;
+      if (signature === this.quickActionSignature) return;
+      this.quickActionSignature = signature;
       const buttons = this.quickActions.querySelectorAll("button");
       if (buttons.length >= 2) {
         if (spectating) {
@@ -5136,7 +5187,6 @@
       this.quickActions.classList.toggle("hidden", !visible);
       this.quickActions.setAttribute("aria-hidden", visible ? "false" : "true");
       if (this.touchLayer) {
-        const touchVisible = Boolean(this.run && this.mode === "game" && this.isMobileDevice() && !this.run.player.dead);
         this.touchLayer.classList.toggle("hidden", !touchVisible);
       }
     }
@@ -19919,22 +19969,25 @@
       this.renderViewH = this.height / scale;
       const emergency = this.performanceEmergency();
       const panic = this.performancePanic();
+      const fastVisual = this.fastVisualMode();
       ctx.save();
       ctx.scale(scale, scale);
       ctx.translate(-camX, -camY);
-      this.drawRoom(ctx, panic);
-      if (!emergency) this.drawTrails(ctx);
+      this.drawRoom(ctx, panic || (fastVisual && this.performancePressure() > 0.4));
+      if (!emergency && !fastVisual) this.drawTrails(ctx);
       this.drawHazards(ctx);
       this.drawPickups(ctx);
       this.drawRoomObjects(ctx);
       this.drawEffects(ctx);
-      for (const projectile of this.run.projectiles) this.drawProjectile(ctx, projectile);
-      for (const drone of this.run.drones) this.drawDrone(ctx, drone);
+      this.drawProjectiles(ctx);
+      if (!panic) for (const drone of this.run.drones) this.drawDrone(ctx, drone);
       const actorY = (actor) => Number.isFinite(actor.displayY) ? actor.displayY : actor.y;
       const localGhost = this.run.player.dead && this.run.spectating;
       const bossProxyVisible = Boolean(this.playerBossEnemy());
       const localHiddenBoss = this.isPlayerBossId(this.lobby.id) && bossProxyVisible;
-      const actors = [...this.run.enemies];
+      const actors = this.renderActorBuffer;
+      actors.length = 0;
+      for (const enemy of this.run.enemies) actors.push(enemy);
       if (!localGhost && !localHiddenBoss) actors.push(this.run.player);
       actors.sort((a, b) => actorY(a) - actorY(b));
       for (const actor of actors) {
@@ -19944,7 +19997,7 @@
         } else {
           const enemyX = Number.isFinite(actor.displayX) ? actor.displayX : actor.x;
           const enemyY = Number.isFinite(actor.displayY) ? actor.displayY : actor.y;
-          if (this.inView(enemyX, enemyY, actor.radius + 120)) this.drawEnemy(ctx, { ...actor, x: enemyX, y: enemyY });
+          if (this.inView(enemyX, enemyY, actor.radius + 120)) this.drawEnemy(ctx, actor);
         }
       }
       for (const remote of this.remotePlayers.values()) {
@@ -19982,12 +20035,14 @@
       }
       if (!panic) {
         this.drawSlashes(ctx);
-        this.drawShockwaves(ctx);
+        if (!fastVisual) this.drawShockwaves(ctx);
       }
       if (!emergency) {
         this.drawParticles(ctx);
-        this.drawEffects(ctx, true);
-        this.drawDamageTexts(ctx);
+        if (!fastVisual) {
+          this.drawEffects(ctx, true);
+          this.drawDamageTexts(ctx);
+        }
       } else if (!panic && this.performancePressure() < 0.62) {
         this.drawParticles(ctx);
       }
@@ -20003,10 +20058,20 @@
     drawRoom(ctx, lowDetail = false) {
       const biome = this.run.biome;
       const bounds = this.viewBounds(120);
+      const viewLeft = Math.max(0, bounds.left);
+      const viewTop = Math.max(0, bounds.top);
+      const viewRight = Math.min(WORLD_W, bounds.right);
+      const viewBottom = Math.min(WORLD_H, bounds.bottom);
+      const viewW = Math.max(1, viewRight - viewLeft);
+      const viewH = Math.max(1, viewBottom - viewTop);
       ctx.fillStyle = "#05070b";
-      ctx.fillRect(0, 0, WORLD_W, WORLD_H);
+      ctx.fillRect(viewLeft, viewTop, viewW, viewH);
       ctx.fillStyle = biome.floor;
-      ctx.fillRect(ROOM_PAD, ROOM_PAD, WORLD_W - ROOM_PAD * 2, WORLD_H - ROOM_PAD * 2);
+      const floorLeft = Math.max(ROOM_PAD, viewLeft);
+      const floorTop = Math.max(ROOM_PAD, viewTop);
+      const floorRight = Math.min(WORLD_W - ROOM_PAD, viewRight);
+      const floorBottom = Math.min(WORLD_H - ROOM_PAD, viewBottom);
+      if (floorRight > floorLeft && floorBottom > floorTop) ctx.fillRect(floorLeft, floorTop, floorRight - floorLeft, floorBottom - floorTop);
       if (lowDetail) {
         ctx.fillStyle = biome.wall;
         ctx.fillRect(0, 0, WORLD_W, ROOM_PAD);
@@ -20759,6 +20824,29 @@
         ctx.arc(trail.x, trail.y, trail.radius * (1 + (1 - alpha) * 0.5), 0, TAU);
         ctx.fill();
         ctx.restore();
+      }
+    }
+
+    drawProjectiles(ctx) {
+      const projectiles = this.run.projectiles || [];
+      if (!projectiles.length) return;
+      const fast = this.fastVisualMode();
+      if (!fast) {
+        for (const projectile of projectiles) this.drawProjectile(ctx, projectile);
+        return;
+      }
+      const pressure = Math.max(this.performancePressure(), this.renderPressure());
+      const limit = Math.max(this.isMobileDevice() ? 12 : 18, Math.round((this.isMobileDevice() ? 22 : 34) * (1 - pressure * 0.42)));
+      let drawn = 0;
+      for (let i = projectiles.length - 1; i >= 0; i--) {
+        const projectile = projectiles[i];
+        const drawX = Number.isFinite(projectile.displayX) ? projectile.displayX : projectile.x;
+        const drawY = Number.isFinite(projectile.displayY) ? projectile.displayY : projectile.y;
+        if (!this.inView(drawX, drawY, projectile.radius + 120)) continue;
+        const important = projectile.owner === "enemy" || projectile.kind === "rangerBasic" || projectile.kind === "mageBasic";
+        if (!important && drawn >= limit) continue;
+        this.drawProjectile(ctx, projectile);
+        drawn++;
       }
     }
 
@@ -23238,7 +23326,9 @@
     drawEnemy(ctx, enemy) {
       ctx.save();
       const lift = enemy.launch > 0 ? Math.sin((enemy.launch / (enemy.boss ? 0.12 : 0.45)) * Math.PI) * (enemy.boss ? 7 : 18) : 0;
-      ctx.translate(Math.round(enemy.x), Math.round(enemy.y - lift));
+      const drawX = Number.isFinite(enemy.displayX) ? enemy.displayX : enemy.x;
+      const drawY = Number.isFinite(enemy.displayY) ? enemy.displayY : enemy.y;
+      ctx.translate(Math.round(drawX), Math.round(drawY - lift));
       const scale = enemy.boss ? 2.6 : enemy.elite ? 1.35 : 1;
       ctx.scale(scale, scale);
       if (enemy.trainingDummy) {
@@ -23416,8 +23506,10 @@
     drawEnemyHp(ctx, enemy) {
       if (enemy.boss) return;
       const w = enemy.radius * 1.8;
-      const x = enemy.x - w / 2;
-      const y = enemy.y - enemy.radius - 16;
+      const drawX = Number.isFinite(enemy.displayX) ? enemy.displayX : enemy.x;
+      const drawY = Number.isFinite(enemy.displayY) ? enemy.displayY : enemy.y;
+      const x = drawX - w / 2;
+      const y = drawY - enemy.radius - 16;
       ctx.fillStyle = "rgba(0,0,0,0.55)";
       ctx.fillRect(x, y, w, 4);
       ctx.fillStyle = enemy.elite ? "#ffbd5e" : "#ff4b55";
@@ -23478,11 +23570,24 @@
 
     drawEffects(ctx, foreground = false) {
       const emergency = this.performanceEmergency();
+      const fast = this.fastVisualMode();
+      const budget = fast ? (foreground ? (this.isMobileDevice() ? 5 : 8) : (this.isMobileDevice() ? 14 : 22)) : Infinity;
+      let drawn = 0;
       for (const effect of this.run.effects) {
         if (emergency && this.optionalVisualEffect(effect.type)) continue;
         const combatFlash = effect.type === "attackBurst" || effect.type === "hitSpark";
         if (foreground !== combatFlash) continue;
         if (Number.isFinite(effect.x) && Number.isFinite(effect.y) && !this.inView(effect.x, effect.y, (effect.radius || effect.reach || 180) + 80)) continue;
+        const important = effect.type === "danger"
+          || effect.type === "lineTell"
+          || effect.type === "ultimate"
+          || effect.type === "domainCutin"
+          || effect.type === "crystalPrism"
+          || effect.type === "playerBossReveal"
+          || (effect.type === "skillShape" && (effect.variant === "ultimate" || effect.awakened));
+        if (drawn >= budget && !important) continue;
+        if (fast && !important && this.optionalVisualEffect(effect.type) && drawn > budget * 0.55) continue;
+        drawn++;
         ctx.save();
         ctx.globalAlpha = Math.min(0.42, effect.time);
         ctx.strokeStyle = effect.color;
@@ -24430,6 +24535,101 @@
       ctx.restore();
     }
 
+    drawFastSkillShape(ctx, effect, progress, alpha, radius, length, kind, accent) {
+      const r = Math.max(24, radius || 120);
+      const len = Math.max(r, length || r);
+      ctx.shadowBlur = 0;
+      ctx.globalCompositeOperation = "source-over";
+      ctx.globalAlpha = alpha * 0.72;
+      ctx.strokeStyle = accent || effect.color;
+      ctx.fillStyle = effect.color;
+      ctx.lineWidth = Math.max(2, r * 0.035);
+      ctx.lineCap = "round";
+      ctx.lineJoin = "round";
+      if (len > r * 1.18) {
+        const width = Math.max(18, r * 0.26);
+        ctx.globalAlpha = alpha * 0.22;
+        ctx.beginPath();
+        ctx.moveTo(0, -width * 0.34);
+        ctx.lineTo(len * (0.78 + progress * 0.12), -width * 0.16);
+        ctx.lineTo(len, 0);
+        ctx.lineTo(len * (0.78 + progress * 0.12), width * 0.16);
+        ctx.lineTo(0, width * 0.34);
+        ctx.closePath();
+        ctx.fill();
+        ctx.globalAlpha = alpha * 0.86;
+        if (kind === "lightning") {
+          ctx.beginPath();
+          ctx.moveTo(0, 0);
+          for (let i = 1; i <= 5; i++) {
+            const t = i / 5;
+            ctx.lineTo(len * t, (i % 2 ? -1 : 1) * width * (0.18 + t * 0.08));
+          }
+          ctx.stroke();
+        } else {
+          ctx.beginPath();
+          ctx.moveTo(0, 0);
+          ctx.lineTo(len * 0.92, 0);
+          ctx.stroke();
+        }
+        ctx.globalAlpha = alpha * 0.6;
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(len * 0.18, -1, len * 0.58, 2);
+        return;
+      }
+      ctx.globalAlpha = alpha * 0.2;
+      if (kind === "gravity" || kind === "void") {
+        ctx.save();
+        ctx.rotate(progress * 0.7);
+        ctx.fillRect(-r * 0.36, -r * 0.36, r * 0.72, r * 0.72);
+        ctx.restore();
+      } else {
+        ctx.beginPath();
+        ctx.arc(0, 0, r * 0.48, 0, TAU);
+        ctx.fill();
+      }
+      ctx.globalAlpha = alpha * 0.86;
+      if (kind === "fire") {
+        ctx.beginPath();
+        ctx.moveTo(0, -r * 0.48);
+        ctx.lineTo(r * 0.34, r * 0.28);
+        ctx.lineTo(0, r * 0.46);
+        ctx.lineTo(-r * 0.34, r * 0.28);
+        ctx.closePath();
+        ctx.stroke();
+      } else if (kind === "ice" || kind === "crystal") {
+        ctx.beginPath();
+        ctx.moveTo(0, -r * 0.52);
+        ctx.lineTo(r * 0.42, 0);
+        ctx.lineTo(0, r * 0.52);
+        ctx.lineTo(-r * 0.42, 0);
+        ctx.closePath();
+        ctx.stroke();
+      } else if (kind === "nature") {
+        ctx.beginPath();
+        ctx.ellipse(0, 0, r * 0.34, r * 0.52, 0.65, 0, TAU);
+        ctx.stroke();
+      } else if (kind === "time") {
+        ctx.beginPath();
+        ctx.arc(0, 0, r * 0.42, 0, TAU);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.lineTo(Math.cos(progress * TAU) * r * 0.34, Math.sin(progress * TAU) * r * 0.34);
+        ctx.stroke();
+      } else if (kind === "blood") {
+        ctx.beginPath();
+        ctx.moveTo(0, -r * 0.5);
+        ctx.bezierCurveTo(r * 0.42, -r * 0.08, r * 0.3, r * 0.45, 0, r * 0.45);
+        ctx.bezierCurveTo(-r * 0.3, r * 0.45, -r * 0.42, -r * 0.08, 0, -r * 0.5);
+        ctx.stroke();
+      } else {
+        ctx.beginPath();
+        ctx.arc(0, 0, r * 0.42, 0, TAU);
+        ctx.stroke();
+      }
+    }
+
     drawSkillShape(ctx, effect) {
       const progress = clamp(1 - effect.time / effect.maxTime, 0, 1);
       const fade = clamp(effect.time / effect.maxTime, 0, 1);
@@ -24452,6 +24652,10 @@
       ctx.fillStyle = effect.color;
       ctx.shadowColor = effect.color;
       ctx.shadowBlur = lowDetail ? 0 : this.glow(10);
+      if (this.fastVisualMode() && effect.variant !== "ultimate" && !effect.awakened && !variant.startsWith("awakened-")) {
+        this.drawFastSkillShape(ctx, effect, progress, alpha, r, length, kind, accent);
+        return;
+      }
 
       const diamond = (x, y, w, h, fill = false) => {
         ctx.beginPath();
@@ -26957,8 +27161,8 @@
 
     drawParticles(ctx) {
       const stress = this.visualStress();
-      const simple = stress > 0.46 || (this.perf?.quality ?? 1) < 0.66;
-      const drawLimit = simple ? Math.max(6, Math.round(this.particleLimit() * 0.72)) : this.run.particles.length;
+      const simple = this.fastVisualMode() || stress > 0.42 || (this.perf?.quality ?? 1) < 0.66;
+      const drawLimit = simple ? Math.max(4, Math.round(this.particleLimit() * 0.62)) : this.run.particles.length;
       const startIndex = Math.max(0, this.run.particles.length - drawLimit);
       ctx.save();
       ctx.globalCompositeOperation = simple ? "source-over" : "lighter";

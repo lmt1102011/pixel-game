@@ -1,18 +1,18 @@
-const SOULRIFT_CACHE = "soulrift-pwa-20260606-monster-roster-233";
+const SOULRIFT_CACHE = "soulrift-pwa-20260606-readable-monsters-234";
 const SOULRIFT_ASSETS = [
   "./",
   "./index.html",
-  "./styles.css?v=20260606-monster-roster-233",
-  "./src/pwa.js?v=20260606-monster-roster-233",
-  "./src/game.js?v=20260606-monster-roster-233",
-  "./manifest.webmanifest?v=20260606-monster-roster-233",
+  "./styles.css?v=20260606-readable-monsters-234",
+  "./src/pwa.js?v=20260606-readable-monsters-234",
+  "./src/game.js?v=20260606-readable-monsters-234",
+  "./manifest.webmanifest?v=20260606-readable-monsters-234",
   "./version.json",
   "./assets/icons/app-icon-20260605-logo-xl-149.svg",
   "./assets/icons/app-icon-20260605-logo-xl-149-192.png",
   "./assets/icons/app-icon-20260605-logo-xl-149-512.png",
   "./assets/icons/app-icon-20260605-logo-xl-149-maskable-512.png",
   "./assets/icons/apple-touch-icon-20260605-logo-xl-149.png",
-  "./assets/sprites/monsters/shadow-goblin.png?v=20260606-monster-roster-233"
+  "./assets/sprites/monsters/shadow-goblin.png?v=20260606-readable-monsters-234"
 ];
 
 self.addEventListener("install", (event) => {

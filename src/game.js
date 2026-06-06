@@ -9,7 +9,7 @@
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
   const SIGNAL_REALTIME_RELAY_LIMIT = 2;
   const SIGNAL_REALTIME_TYPES = new Set(["state", "snapshot", "attack", "skill", "collect", "openChest", "dropItem", "damage", "chooseDoor"]);
-  const APP_VERSION = "20260606-monster-roster-233";
+  const APP_VERSION = "20260606-readable-monsters-234";
   const CHANGELOG_ENTRIES = [
     {
       version: APP_VERSION,
@@ -22331,6 +22331,175 @@
         legs(13);
       }
 
+      if (kind === "skeletonArcher") {
+        b(20, -35, 6, 61, palette.outline);
+        b(24, -32, 8, 13, palette.armor);
+        b(24, 12, 8, 13, palette.armor);
+        b(29, -20, 3, 34, palette.bone);
+        b(5, -12, 39, 4, palette.outline);
+        b(9, -11, 30, 2, palette.bone);
+        b(38, -15, 8, 10, palette.accent);
+        b(-23, -21, 9, 30, palette.outline);
+        b(-20, -18, 5, 24, palette.armor);
+        b(-25, -25, 4, 16, palette.bone);
+        b(-17, -25, 4, 16, palette.bone);
+      } else if (kind === "skeletonWarrior") {
+        b(-37, -20, 25, 40, palette.outline);
+        b(-32, -16, 17, 32, palette.armor);
+        b(-28, -4, 10, 5, palette.accent);
+        b(-25, -12, 4, 23, palette.accent);
+        b(18, -39, 7, 65, palette.outline);
+        b(20, -34, 4, 52, palette.metal);
+        b(24, -47, 9, 23, palette.accent);
+        b(27, -38, 6, 10, palette.metal);
+      } else if (kind === "slime") {
+        b(-24, 8, 48, 10, palette.outline, 0.78);
+        b(-18, 4, 36, 13, palette.base, 0.72);
+        b(-12, -14, 10, 6, "#ffffff", 0.42);
+        b(4, 6, 10, 3, palette.accent, 0.58);
+      } else if (kind === "fireSlime") {
+        b(-10, -36, 20, 27, palette.outline);
+        b(-7, -34, 14, 23, palette.accent);
+        b(-1, -28, 8, 16, "#fff0a8");
+        b(5, -24, 6, 10, "#ff4655");
+        b(-18, 9, 36, 6, palette.accent, 0.55);
+      } else if (kind === "iceSlime") {
+        b(-6, -31, 12, 27, palette.outline);
+        b(-3, -29, 6, 23, "#ffffff");
+        b(-18, -17, 36, 5, palette.accent);
+        b(-15, -20, 6, 11, "#dffaff");
+        b(9, -20, 6, 11, "#dffaff");
+        b(-12, 5, 24, 4, "#ffffff", 0.72);
+      } else if (kind === "goblinScout") {
+        b(-25, -24, 13, 9, palette.outline);
+        b(12, -24, 13, 9, palette.outline);
+        b(-22, -22, 9, 5, palette.base);
+        b(13, -22, 9, 5, palette.base);
+        b(16, -17, 34, 7, palette.outline);
+        b(20, -15, 25, 3, palette.metal);
+        b(43, -20, 8, 12, palette.bone);
+        b(-17, 2, 7, 15, palette.metal);
+      } else if (kind === "goblinBomber") {
+        b(9, -25, 36, 36, palette.outline);
+        b(14, -20, 26, 26, "#151820");
+        b(22, -13, 8, 8, "#4b5260");
+        b(27, -31, 7, 12, palette.accent);
+        b(32, -36, 9, 7, "#ffd166");
+        b(36, -40, 5, 5, "#ffffff");
+        b(-25, 0, 12, 5, palette.accent);
+      } else if (kind === "batDemon") {
+        b(-48, -24, 30, 36, palette.outline);
+        b(18, -24, 30, 36, palette.outline);
+        b(-42, -17, 25, 24, palette.baseDark);
+        b(17, -17, 25, 24, palette.baseDark);
+        b(-8, -12, 5, 5, "#ffffff");
+        b(3, -12, 5, 5, "#ffffff");
+        b(-5, -4, 4, 10, palette.bone);
+        b(1, -4, 4, 10, palette.bone);
+      } else if (kind === "spiderMonster") {
+        for (let i = 0; i < 4; i++) {
+          b(-43 - i * 2, -14 + i * 8, 26, 4, palette.outline);
+          b(17 + i * 2, -14 + i * 8, 26, 4, palette.outline);
+          b(-49 - i * 3, -10 + i * 8, 18, 4, palette.baseDark);
+          b(31 + i * 3, -10 + i * 8, 18, 4, palette.baseDark);
+        }
+        b(-10, -17, 5, 5, palette.eye);
+        b(5, -17, 5, 5, palette.eye);
+        b(-7, -2, 14, 4, palette.accent);
+      } else if (kind === "mushroomMonster") {
+        b(-28, -38, 56, 21, palette.outline);
+        b(-24, -34, 48, 15, palette.accent);
+        b(-17, -39, 12, 9, "#ffd6df");
+        b(6, -38, 13, 8, "#ffd6df");
+        b(-3, -29, 7, 7, "#fff0d0");
+        b(-16, 13, 9, 8, palette.baseDark);
+        b(7, 13, 9, 8, palette.baseDark);
+      } else if (kind === "shadowSpirit") {
+        b(-21, -31, 42, 12, palette.accent, 0.24);
+        b(-24, -7, 48, 18, palette.base, 0.36);
+        b(-16, 9, 8, 17, palette.baseDark, 0.48);
+        b(-3, 7, 8, 22, palette.accent, 0.32);
+        b(10, 9, 8, 16, palette.baseDark, 0.45);
+        b(-9, -17, 6, 6, "#ffffff");
+        b(3, -17, 6, 6, "#ffffff");
+      } else if (kind === "zombie") {
+        b(-27, -8, 16, 7, palette.outline);
+        b(11, -8, 16, 7, palette.outline);
+        b(-25, -6, 13, 4, palette.base);
+        b(12, -6, 13, 4, palette.base);
+        b(-11, -2, 22, 8, "#3b2c33");
+        b(-13, 8, 7, 6, palette.accent);
+        b(6, 13, 8, 5, palette.accent);
+        b(-2, -26, 5, 6, palette.bone);
+      } else if (kind === "darkKnight") {
+        b(18, -48, 10, 75, palette.outline);
+        b(21, -42, 5, 61, palette.metal);
+        b(27, -56, 12, 25, palette.accent);
+        b(-16, -22, 32, 9, palette.eye);
+        b(-11, -19, 22, 3, "#ff8d3d");
+        b(-20, 0, 40, 6, palette.accent, 0.45);
+      } else if (kind === "stoneGolem") {
+        b(-40, -9, 18, 35, palette.outline);
+        b(22, -9, 18, 35, palette.outline);
+        b(-36, -5, 12, 26, palette.base);
+        b(24, -5, 12, 26, palette.base);
+        b(-10, -17, 20, 20, palette.outline);
+        b(-6, -13, 12, 12, palette.accent);
+        b(-18, -36, 12, 10, palette.base);
+        b(6, -36, 12, 10, palette.base);
+      } else if (kind === "iceGolem") {
+        b(-41, -10, 19, 37, palette.outline);
+        b(22, -10, 19, 37, palette.outline);
+        b(-36, -6, 12, 28, palette.base);
+        b(24, -6, 12, 28, palette.base);
+        b(-17, -44, 11, 20, "#ffffff");
+        b(6, -45, 12, 22, palette.accent);
+        b(-10, -16, 20, 20, palette.outline);
+        b(-6, -12, 12, 12, "#ffffff");
+      } else if (kind === "fireDemon") {
+        b(-18, -45, 12, 20, palette.outline);
+        b(6, -45, 12, 20, palette.outline);
+        b(-15, -41, 8, 14, palette.accent);
+        b(7, -41, 8, 14, palette.accent);
+        b(-9, -35, 18, 19, palette.accent);
+        b(-4, -31, 9, 14, "#fff0a8");
+        b(16, -2, 18, 5, palette.accent);
+        b(29, -4, 7, 8, "#ffd166");
+      } else if (kind === "necromancer") {
+        b(19, -45, 6, 66, palette.outline);
+        b(21, -42, 3, 59, palette.metal);
+        b(12, -53, 24, 20, palette.outline);
+        b(16, -49, 16, 13, palette.bone);
+        b(18, -45, 4, 4, palette.accent);
+        b(27, -45, 4, 4, palette.accent);
+        b(-18, -4, 36, 7, palette.accent, 0.52);
+      } else if (kind === "werewolf") {
+        b(-17, -41, 12, 17, palette.outline);
+        b(5, -41, 12, 17, palette.outline);
+        b(13, -24, 16, 11, palette.outline);
+        b(15, -21, 11, 6, palette.baseDark);
+        b(-34, 5, 18, 4, palette.bone);
+        b(16, 5, 18, 4, palette.bone);
+        b(-37, 10, 14, 4, palette.bone);
+        b(23, 10, 14, 4, palette.bone);
+      } else if (kind === "crystalBeast") {
+        b(-18, -41, 12, 22, palette.accent);
+        b(-2, -47, 13, 27, "#ffffff", 0.82);
+        b(11, -39, 11, 20, palette.armor);
+        b(-31, -4, 14, 10, palette.outline);
+        b(17, -4, 14, 10, palette.outline);
+        b(-11, -11, 22, 5, "#ffffff");
+      } else if (kind === "shadowGoblin") {
+        b(-20, -36, 10, 19, palette.outline);
+        b(10, -36, 10, 19, palette.outline);
+        b(-16, -32, 6, 12, palette.bone);
+        b(10, -32, 6, 12, palette.bone);
+        b(-13, -22, 8, 8, palette.eye);
+        b(5, -22, 8, 8, palette.eye);
+        b(-35 - lunge, -6, 18, 4, palette.bone);
+        b(17 + lunge, -6, 18, 4, palette.bone);
+      }
+
       if (enemy.elite && !enemy.boss) {
         b(-20, -38, 6, 6, palette.glow);
         b(14, -38, 6, 6, palette.glow);
@@ -22686,7 +22855,7 @@
       const variant = this.enemyVariant(enemy);
       const palette = this.enemySpritePalette(enemy, color, accent);
       if (enemy.boss) this.drawPixelBossSprite(ctx, enemy, palette, variant);
-      else if (!this.drawEnemyAssetSprite(ctx, enemy, palette, variant)) this.drawPixelMonsterSprite(ctx, enemy, palette, variant);
+      else if (!this.drawDesignedMonsterSprite(ctx, enemy, palette, variant) && !this.drawEnemyAssetSprite(ctx, enemy, palette, variant)) this.drawPixelMonsterSprite(ctx, enemy, palette, variant);
       if (enemy.windupTime > 0) {
         const pulse = clamp(enemy.windupTime / (enemy.windupTotal || 1), 0, 1);
         ctx.strokeStyle = "#ff4b55";

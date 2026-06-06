@@ -1,18 +1,18 @@
-const SOULRIFT_CACHE = "soulrift-pwa-20260607-asset-export-246";
+const SOULRIFT_CACHE = "soulrift-pwa-20260607-mobile-clarity-247";
 const SOULRIFT_ASSETS = [
   "./",
   "./index.html",
-  "./styles.css?v=20260607-asset-export-246",
-  "./src/pwa.js?v=20260607-asset-export-246",
-  "./src/game.js?v=20260607-asset-export-246",
-  "./manifest.webmanifest?v=20260607-asset-export-246",
+  "./styles.css?v=20260607-mobile-clarity-247",
+  "./src/pwa.js?v=20260607-mobile-clarity-247",
+  "./src/game.js?v=20260607-mobile-clarity-247",
+  "./manifest.webmanifest?v=20260607-mobile-clarity-247",
   "./version.json",
   "./assets/icons/app-icon-20260605-logo-xl-149.svg",
   "./assets/icons/app-icon-20260605-logo-xl-149-192.png",
   "./assets/icons/app-icon-20260605-logo-xl-149-512.png",
   "./assets/icons/app-icon-20260605-logo-xl-149-maskable-512.png",
   "./assets/icons/apple-touch-icon-20260605-logo-xl-149.png",
-  "./assets/sprites/monsters/shadow-goblin.png?v=20260607-asset-export-246"
+  "./assets/sprites/monsters/shadow-goblin.png?v=20260607-mobile-clarity-247"
 ];
 
 self.addEventListener("install", (event) => {

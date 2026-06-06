@@ -9,7 +9,7 @@
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
   const SIGNAL_REALTIME_RELAY_LIMIT = 2;
   const SIGNAL_REALTIME_TYPES = new Set(["state", "snapshot", "attack", "skill", "collect", "openChest", "dropItem", "damage", "chooseDoor"]);
-  const APP_VERSION = "20260607-asset-export-246";
+  const APP_VERSION = "20260607-mobile-clarity-247";
   const CHANGELOG_ENTRIES = [
     {
       version: APP_VERSION,
@@ -4558,21 +4558,22 @@
       const renderLag = this.renderPressure();
       const weakBias = this.devicePerformanceBias();
       const ultra = this.ultraPerformanceMode();
-      const base = (this.isMobileDevice() ? 0.62 : 0.74)
+      const mobile = this.isMobileDevice();
+      const base = (mobile ? 0.88 : 0.74)
         - lag * (this.isMobileDevice() ? 0.26 : 0.22)
         - renderLag * (this.isMobileDevice() ? 0.12 : 0.1)
-        - weakBias * (this.isMobileDevice() ? 0.06 : 0.05);
-      const range = (this.isMobileDevice() ? 0.24 : 0.26) - weakBias * 0.06;
+        - weakBias * (mobile ? 0.035 : 0.05);
+      const range = (mobile ? 0.18 : 0.26) - weakBias * (mobile ? 0.035 : 0.06);
       const floor = this.performancePanic()
-        ? (this.isMobileDevice() ? 0.38 : 0.52)
+        ? (mobile ? 0.78 : 0.52)
         : this.performanceEmergency()
-          ? (this.isMobileDevice() ? 0.46 : 0.6)
+          ? (mobile ? 0.88 : 0.6)
           : ultra
-            ? (this.isMobileDevice() ? 0.54 : 0.68)
-            : (this.isMobileDevice() ? 0.68 : 0.76);
-      const cap = ultra ? (this.isMobileDevice() ? 0.82 : 0.92) : 1;
+            ? (mobile ? 0.92 : 0.68)
+            : (mobile ? 1 : 0.76);
+      const cap = ultra ? (mobile ? 1 : 0.92) : (mobile ? 1.08 : 1);
       const rawScale = clamp(base + quality * range, floor, cap);
-      const step = this.performanceEmergency() ? 0.025 : this.isMobileDevice() ? 0.05 : 0.04;
+      const step = this.performanceEmergency() ? 0.025 : mobile ? 0.025 : 0.04;
       return clamp(Math.round(rawScale / step) * step, floor, 1);
     }
 
@@ -4992,9 +4993,10 @@
     resize() {
       this.updateDeviceUiMode();
       window.SoulriftPwaGate?.syncViewport?.();
-      const maxDpr = Math.min(window.devicePixelRatio || 1, this.isMobileDevice() ? 1 : 1.25);
+      const mobile = this.isMobileDevice();
+      const maxDpr = Math.min(window.devicePixelRatio || 1, mobile ? 1.35 : 1.25);
       const renderScale = Number.isFinite(this.perf?.appliedRenderScale) ? this.perf.appliedRenderScale : 1;
-      const minDpr = this.ultraPerformanceMode() ? (this.isMobileDevice() ? 0.42 : 0.62) : (this.isMobileDevice() ? 0.68 : 0.8);
+      const minDpr = this.ultraPerformanceMode() ? (mobile ? 0.92 : 0.62) : (mobile ? 1 : 0.8);
       this.dpr = Math.max(minDpr, maxDpr * renderScale);
       const viewport = window.visualViewport;
       this.width = Math.round(viewport?.width || window.innerWidth);

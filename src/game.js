@@ -9,7 +9,7 @@
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
   const SIGNAL_REALTIME_RELAY_LIMIT = 2;
   const SIGNAL_REALTIME_TYPES = new Set(["state", "snapshot", "attack", "skill", "collect", "openChest", "dropItem", "damage", "chooseDoor"]);
-  const APP_VERSION = "20260606-mobile-ui-stable-219";
+  const APP_VERSION = "20260606-mobile-landscape-game-220";
   const CHANGELOG_ENTRIES = [
     {
       version: APP_VERSION,
@@ -4951,6 +4951,7 @@
       this.screen.classList.toggle("hidden", !html);
       this.screen.classList.toggle("valorant-screen", html.includes("valorant-lobby"));
       this.screen.classList.toggle("aaa-menu-screen", html.includes("aaa-main-menu"));
+      this.screen.classList.toggle("friends-screen", html.includes("friends-arena"));
     }
 
     updateAccountCloudCheck(dt) {

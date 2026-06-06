@@ -1,11 +1,11 @@
-const SOULRIFT_CACHE = "soulrift-pwa-20260606-mobile-ui-stable-219";
+const SOULRIFT_CACHE = "soulrift-pwa-20260606-mobile-landscape-game-220";
 const SOULRIFT_ASSETS = [
   "./",
   "./index.html",
-  "./styles.css?v=20260606-mobile-ui-stable-219",
-  "./src/pwa.js?v=20260606-mobile-ui-stable-219",
-  "./src/game.js?v=20260606-mobile-ui-stable-219",
-  "./manifest.webmanifest?v=20260606-mobile-ui-stable-219",
+  "./styles.css?v=20260606-mobile-landscape-game-220",
+  "./src/pwa.js?v=20260606-mobile-landscape-game-220",
+  "./src/game.js?v=20260606-mobile-landscape-game-220",
+  "./manifest.webmanifest?v=20260606-mobile-landscape-game-220",
   "./version.json",
   "./assets/icons/app-icon-20260605-logo-xl-149.svg",
   "./assets/icons/app-icon-20260605-logo-xl-149-192.png",

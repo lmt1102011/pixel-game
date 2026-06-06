@@ -9,7 +9,7 @@
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
   const SIGNAL_REALTIME_RELAY_LIMIT = 2;
   const SIGNAL_REALTIME_TYPES = new Set(["state", "snapshot", "attack", "skill", "collect", "openChest", "dropItem", "damage", "chooseDoor"]);
-  const APP_VERSION = "20260606-squad-exit-button-201";
+  const APP_VERSION = "20260606-squad-mode-picker-202";
   const CHANGELOG_ENTRIES = [
     {
       version: APP_VERSION,
@@ -2922,6 +2922,7 @@
       this.roomInviteCooldowns = new Map();
       this.roomInviteCooldownTimers = new Map();
       this.lobbyFriendInviteOpen = false;
+      this.squadModePickerOpen = false;
       this.roomFinderOpen = false;
       this.roomDirectoryTimer = 0;
       this.roomDirectoryBusy = false;
@@ -5227,6 +5228,28 @@
         if (this.mode === "play" && this.screen?.querySelector(".valorant-lobby")) this.refreshValorantLobby();
         else this.showPlayMenu();
       }
+      if (action === "start-squad-mode") {
+        this.startSelectedSquadMode();
+        return;
+      }
+      if (action === "open-squad-modes") {
+        this.squadModePickerOpen = !this.squadModePickerOpen;
+        if (this.squadModePickerOpen) {
+          this.lobbyFriendInviteOpen = false;
+          this.refreshValorantInvitePanel();
+        }
+        this.refreshValorantActionButton();
+        return;
+      }
+      if (action === "close-squad-modes") {
+        this.squadModePickerOpen = false;
+        this.refreshValorantActionButton();
+        return;
+      }
+      if (action === "select-squad-mode") {
+        this.selectSquadMode(target.dataset.runMode);
+        return;
+      }
       if (action === "play-gauntlet") this.showGauntletMenu();
       if (action === "play-gauntlet-normal") this.showGauntletNormalMenu();
       if (action === "play-awakening-raid") {
@@ -5276,19 +5299,18 @@
       if (action === "close-changelog-play") this.closeChangelogAndPlay();
       if (action === "open-lobby-invites") {
         const playView = target?.dataset.view === "play" || this.mode === "play";
-        let createdForInvite = false;
         if (playView && (!this.lobby?.code || this.lobby.joinPending)) {
           this.lobby.runMode = this.lobby.runMode || "gauntlet";
           this.lobby.create({ quiet: true, skipRender: true });
-          createdForInvite = true;
         }
         if (!this.lobby?.code || this.lobby.joinPending || !this.lobby.host) {
           this.toast("Chỉ chủ phòng mới mời bạn bè");
           return;
         }
         this.lobbyFriendInviteOpen = true;
+        this.squadModePickerOpen = false;
         if (playView) {
-          if (createdForInvite) this.refreshValorantActionButton();
+          this.refreshValorantActionButton();
           this.refreshValorantInvitePanel();
         }
         else this.refreshValorantInvitePanel() || this.renderLobby();
@@ -5552,22 +5574,86 @@
       };
     }
 
+    squadModeOptions() {
+      const selected = this.save.account.selectedPower ? powerById(this.save.account.selectedPower) : null;
+      return [
+        {
+          id: "gauntlet",
+          title: "Vượt ải",
+          icon: "V",
+          color: "#70e083",
+          text: "Leo tầng, chọn cửa, nhặt rương và xây đội hình qua nhiều phòng."
+        },
+        {
+          id: "awakeningRaid",
+          title: selected ? `Raid ${selected.name}` : "Raid A",
+          icon: "A",
+          color: selected?.color || "#f2bf63",
+          text: selected ? `Boss raid hệ ${selected.name}, clear nhận ngọc thức tỉnh.` : "Raid thức tỉnh theo power đang chọn."
+        },
+        {
+          id: "bossRush",
+          title: "Đại chiến boss",
+          icon: "B",
+          color: "#ff4655",
+          text: "Vào thẳng trận boss, bỏ qua phòng quái thường."
+        },
+        {
+          id: "playerBoss",
+          title: "Hóa boss",
+          icon: "VS",
+          color: "#a169ff",
+          text: "Một người ngẫu nhiên hóa thành boss, cả nhóm đối đầu trực tiếp."
+        }
+      ];
+    }
+
+    squadModePickerHtml() {
+      if (!this.squadModePickerOpen) return "";
+      const current = this.lobby.runMode || "gauntlet";
+      const canChoose = Boolean(this.lobby?.host || !this.lobby?.code);
+      const cards = this.squadModeOptions().map((mode) => {
+        const selected = mode.id === current;
+        return `
+          <button class="squad-mode-card ${selected ? "selected" : ""}" style="--mode:${mode.color}" ${canChoose ? `data-action="select-squad-mode" data-run-mode="${mode.id}"` : "disabled"}>
+            <span class="squad-mode-icon">${mode.icon}</span>
+            <span class="squad-mode-copy">
+              <b>${mode.title}</b>
+              <small>${mode.text}</small>
+            </span>
+            ${selected ? `<span class="squad-mode-mark">Đang chọn</span>` : ""}
+          </button>
+        `;
+      }).join("");
+      return `
+        <div class="squad-mode-panel">
+          <div class="squad-mode-panel-head">
+            <b>Chế độ chơi</b>
+            <button class="squad-mode-close" data-action="close-squad-modes" aria-label="Đóng">×</button>
+          </div>
+          <div class="squad-mode-grid">${cards}</div>
+        </div>
+      `;
+    }
+
     squadActionButtonHtml() {
       const inRoom = Boolean(this.lobby?.code && !this.lobby.joinPending);
       const isHost = Boolean(this.lobby?.host || !inRoom);
       const slots = Array.isArray(this.lobby?.slots) ? this.lobby.slots.filter(Boolean) : [];
       const allReady = slots.every((slot) => slot.host || slot.ready);
       const hasGuest = slots.some((slot) => slot && !slot.host);
-      const hostCanStart = inRoom ? hasGuest && allReady : true;
+      const runMode = this.lobby.runMode || "gauntlet";
+      const hostCanStart = inRoom ? hasGuest && allReady : runMode !== "playerBoss";
       const label = isHost
         ? "BẮT ĐẦU"
         : this.lobby.ready ? "ĐÃ SẴN SÀNG" : "SẴN SÀNG";
       const action = isHost
-        ? inRoom ? "start-room" : "play-gauntlet"
+        ? inRoom ? "start-room" : "start-squad-mode"
         : "ready-room";
       const disabled = isHost && !hostCanStart;
       const stateClass = isHost ? "start-action" : this.lobby.ready ? "ready-action active" : "ready-action";
       const iconClass = isHost ? "play" : "ready";
+      const modePanel = this.squadModePickerHtml();
       return `
         <div class="squad-action-bar">
           <button class="valorant-exit-btn" data-action="menu">
@@ -5582,8 +5668,45 @@
             </span>
             <span class="start-btn-edge bottom" aria-hidden="true"></span>
           </button>
+          <button class="valorant-mode-btn ${this.squadModePickerOpen ? "active" : ""}" data-action="open-squad-modes">
+            <span class="mode-btn-icon" aria-hidden="true"></span>
+            <span>CHẾ ĐỘ</span>
+          </button>
         </div>
+        ${modePanel}
       `;
+    }
+
+    selectSquadMode(runMode = "gauntlet") {
+      const allowed = new Set(this.squadModeOptions().map((mode) => mode.id));
+      const nextMode = allowed.has(runMode) ? runMode : "gauntlet";
+      if (this.lobby?.code && !this.lobby.host) {
+        this.toast("Chỉ chủ phòng được chọn chế độ");
+        return;
+      }
+      this.lobby.runMode = nextMode;
+      this.squadModePickerOpen = false;
+      if (this.lobby?.host) this.lobby.broadcastLobby();
+      this.refreshValorantActionButton();
+    }
+
+    startSelectedSquadMode() {
+      const runMode = this.lobby.runMode || "gauntlet";
+      this.squadModePickerOpen = false;
+      if (runMode === "awakeningRaid") {
+        this.startAwakeningRaid();
+        return;
+      }
+      if (runMode === "bossRush") {
+        this.showBossRushSoloMenu();
+        return;
+      }
+      if (runMode === "playerBoss") {
+        this.toast("Hóa boss cần có người chơi trong phòng");
+        this.refreshValorantActionButton();
+        return;
+      }
+      this.showGauntletNormalMenu();
     }
 
     refreshValorantInvitePanel() {
@@ -5618,6 +5741,7 @@
     showPlayMenu() {
       this.mode = "play";
       this.roomFinderOpen = false;
+      this.squadModePickerOpen = false;
       this.hud.classList.add("hidden");
       this.touchLayer.classList.add("hidden");
       if (this.lobby?.code) this.lobby.syncOwnSlot();

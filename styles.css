@@ -4855,14 +4855,15 @@ body.is-mobile-ui .touch-actions [data-touch="dash"] {
 
 .squad-action-bar {
   display: grid;
-  grid-template-columns: 132px minmax(320px, 470px);
+  grid-template-columns: 132px minmax(320px, 470px) 132px;
   align-items: center;
   justify-content: center;
   gap: 14px;
-  width: min(640px, 92vw);
+  width: min(790px, 94vw);
 }
 
-.valorant-exit-btn {
+.valorant-exit-btn,
+.valorant-mode-btn {
   position: relative;
   display: inline-grid;
   grid-template-columns: auto auto;
@@ -4884,7 +4885,12 @@ body.is-mobile-ui .touch-actions [data-touch="dash"] {
   transition: transform 160ms ease, border-color 160ms ease, background 160ms ease, box-shadow 160ms ease;
 }
 
-.valorant-exit-btn::after {
+.valorant-mode-btn {
+  border-color: rgba(255, 70, 85, 0.28);
+}
+
+.valorant-exit-btn::after,
+.valorant-mode-btn::after {
   content: "";
   position: absolute;
   inset: 0;
@@ -4893,7 +4899,9 @@ body.is-mobile-ui .touch-actions [data-touch="dash"] {
   transition: transform 260ms ease;
 }
 
-.valorant-exit-btn:hover {
+.valorant-exit-btn:hover,
+.valorant-mode-btn:hover,
+.valorant-mode-btn.active {
   transform: translateY(-1px);
   border-color: rgba(255, 70, 85, 0.58);
   background:
@@ -4903,15 +4911,19 @@ body.is-mobile-ui .touch-actions [data-touch="dash"] {
   box-shadow: 0 16px 38px rgba(0, 0, 0, 0.52), 0 0 20px rgba(255, 70, 85, 0.18);
 }
 
-.valorant-exit-btn:hover::after {
+.valorant-exit-btn:hover::after,
+.valorant-mode-btn:hover::after,
+.valorant-mode-btn.active::after {
   transform: translateX(-120%) skewX(-18deg);
 }
 
-.valorant-exit-btn:active {
+.valorant-exit-btn:active,
+.valorant-mode-btn:active {
   transform: translateY(1px) scale(0.985);
 }
 
-.valorant-exit-btn span {
+.valorant-exit-btn span,
+.valorant-mode-btn span {
   position: relative;
   z-index: 1;
   font-size: 12px;
@@ -4921,13 +4933,23 @@ body.is-mobile-ui .touch-actions [data-touch="dash"] {
   text-transform: uppercase;
 }
 
-.exit-btn-icon {
+.exit-btn-icon,
+.mode-btn-icon {
   width: 13px;
   height: 13px;
+  filter: drop-shadow(0 0 7px rgba(236, 232, 225, 0.22));
+}
+
+.exit-btn-icon {
   border-left: 3px solid currentColor;
   border-bottom: 3px solid currentColor;
   transform: rotate(45deg);
-  filter: drop-shadow(0 0 7px rgba(236, 232, 225, 0.22));
+}
+
+.mode-btn-icon {
+  border: 2px solid currentColor;
+  transform: rotate(45deg);
+  box-shadow: inset 0 0 0 3px rgba(255, 70, 85, 0.12), 0 0 10px rgba(255, 70, 85, 0.18);
 }
 
 .valorant-start-btn {
@@ -5113,6 +5135,160 @@ body.is-mobile-ui .touch-actions [data-touch="dash"] {
     0 0 0 1px rgba(236, 232, 225, 0.2),
     0 18px 46px rgba(0, 0, 0, 0.58),
     0 0 30px rgba(236, 232, 225, 0.14);
+}
+
+.squad-mode-panel {
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 16px);
+  z-index: 8;
+  width: min(760px, calc(100vw - 28px));
+  padding: 14px;
+  transform: translateX(-50%);
+  color: #ece8e1;
+  background:
+    linear-gradient(135deg, rgba(255, 70, 85, 0.12), transparent 30%),
+    rgba(15, 25, 35, 0.96);
+  border: 1px solid rgba(236, 232, 225, 0.14);
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.62), 0 0 36px rgba(255, 70, 85, 0.15);
+  clip-path: polygon(18px 0, 100% 0, 100% calc(100% - 18px), calc(100% - 18px) 100%, 0 100%, 0 18px);
+  animation: squadModeIn 170ms ease both;
+}
+
+.squad-mode-panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 2px 2px 12px;
+}
+
+.squad-mode-panel-head b {
+  color: #ece8e1;
+  font-size: 13px;
+  font-weight: 950;
+  text-transform: uppercase;
+}
+
+.squad-mode-close {
+  width: 32px;
+  height: 32px;
+  border: 1px solid rgba(236, 232, 225, 0.18);
+  background: rgba(31, 39, 49, 0.8);
+  color: #ece8e1;
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.squad-mode-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.squad-mode-card {
+  --mode: #ff4655;
+  position: relative;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 10px;
+  min-height: 116px;
+  padding: 12px;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--mode), transparent 50%);
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--mode), transparent 82%), transparent 44%),
+    rgba(31, 39, 49, 0.78);
+  color: #ece8e1;
+  text-align: left;
+  clip-path: polygon(12px 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%, 0 12px);
+  cursor: pointer;
+  transition: transform 150ms ease, border-color 150ms ease, box-shadow 150ms ease, background 150ms ease;
+}
+
+.squad-mode-card::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-120%) skewX(-18deg);
+  background: linear-gradient(90deg, transparent, rgba(236, 232, 225, 0.18), transparent);
+  transition: transform 260ms ease;
+}
+
+.squad-mode-card:hover,
+.squad-mode-card.selected {
+  transform: translateY(-2px);
+  border-color: var(--mode);
+  box-shadow: 0 0 22px color-mix(in srgb, var(--mode), transparent 72%), 0 14px 34px rgba(0, 0, 0, 0.38);
+}
+
+.squad-mode-card:hover::after {
+  transform: translateX(120%) skewX(-18deg);
+}
+
+.squad-mode-card:disabled {
+  cursor: not-allowed;
+  opacity: 0.62;
+  transform: none;
+}
+
+.squad-mode-icon {
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  border: 1px solid color-mix(in srgb, var(--mode), transparent 24%);
+  color: var(--mode);
+  font-size: 17px;
+  font-weight: 1000;
+  background: rgba(15, 25, 35, 0.62);
+  clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
+}
+
+.squad-mode-copy {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.squad-mode-copy b {
+  color: #ece8e1;
+  font-size: 13px;
+  font-weight: 950;
+  text-transform: uppercase;
+}
+
+.squad-mode-copy small {
+  color: rgba(236, 232, 225, 0.64);
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1.35;
+}
+
+.squad-mode-mark {
+  position: absolute;
+  right: 8px;
+  top: 8px;
+  padding: 3px 6px;
+  border: 1px solid color-mix(in srgb, var(--mode), transparent 36%);
+  background: rgba(15, 25, 35, 0.76);
+  color: var(--mode);
+  font-size: 8px;
+  font-weight: 950;
+  text-transform: uppercase;
+}
+
+@keyframes squadModeIn {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 10px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0) scale(1);
+  }
 }
 
 @keyframes valorantStartIdle {
@@ -5441,23 +5617,30 @@ body.is-mobile-ui .touch-actions [data-touch="dash"] {
   }
 
   .squad-action-bar {
-    grid-template-columns: minmax(82px, 96px) minmax(0, 1fr);
-    gap: 8px;
-    width: min(390px, calc(100vw - 24px));
+    grid-template-columns: minmax(60px, 72px) minmax(0, 1fr) minmax(70px, 78px);
+    gap: 6px;
+    width: min(430px, calc(100vw - 24px));
   }
 
-  .valorant-exit-btn {
+  .valorant-exit-btn,
+  .valorant-mode-btn {
     min-height: 54px;
-    padding: 0 10px;
+    padding: 0 8px;
+    gap: 6px;
   }
 
-  .valorant-exit-btn span {
+  .valorant-exit-btn span,
+  .valorant-mode-btn span {
     font-size: 10px;
   }
 
-  .exit-btn-icon {
+  .exit-btn-icon,
+  .mode-btn-icon {
     width: 10px;
     height: 10px;
+  }
+
+  .exit-btn-icon {
     border-left-width: 2px;
     border-bottom-width: 2px;
   }
@@ -5479,6 +5662,37 @@ body.is-mobile-ui .touch-actions [data-touch="dash"] {
   .start-btn-icon {
     width: 26px;
     height: 26px;
+  }
+
+  .squad-mode-panel {
+    bottom: calc(100% + 10px);
+    width: min(430px, calc(100vw - 18px));
+    padding: 10px;
+  }
+
+  .squad-mode-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+
+  .squad-mode-card {
+    min-height: 96px;
+    padding: 10px;
+    grid-template-columns: 38px 1fr;
+  }
+
+  .squad-mode-icon {
+    width: 38px;
+    height: 38px;
+    font-size: 14px;
+  }
+
+  .squad-mode-copy b {
+    font-size: 11px;
+  }
+
+  .squad-mode-copy small {
+    font-size: 9px;
   }
 
   .valorant-member {
@@ -5602,24 +5816,31 @@ body.is-mobile-ui .touch-actions [data-touch="dash"] {
   }
 
   .squad-action-bar {
-    grid-template-columns: minmax(72px, 88px) minmax(0, 1fr);
-    gap: 7px;
-    width: min(430px, 78vw);
+    grid-template-columns: minmax(52px, 64px) minmax(0, 1fr) minmax(62px, 72px);
+    gap: 6px;
+    width: min(520px, 86vw);
   }
 
-  .valorant-exit-btn {
+  .valorant-exit-btn,
+  .valorant-mode-btn {
     min-height: 42px;
-    padding: 0 8px;
+    padding: 0 7px;
+    gap: 5px;
     clip-path: polygon(12px 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%, 0 12px);
   }
 
-  .valorant-exit-btn span {
+  .valorant-exit-btn span,
+  .valorant-mode-btn span {
     font-size: 9px;
   }
 
-  .exit-btn-icon {
+  .exit-btn-icon,
+  .mode-btn-icon {
     width: 9px;
     height: 9px;
+  }
+
+  .exit-btn-icon {
     border-left-width: 2px;
     border-bottom-width: 2px;
   }
@@ -5657,5 +5878,60 @@ body.is-mobile-ui .touch-actions [data-touch="dash"] {
   .start-btn-edge {
     left: 20px;
     right: 20px;
+  }
+
+  .squad-mode-panel {
+    bottom: calc(100% + 8px);
+    width: min(620px, calc(100vw - 20px));
+    padding: 9px;
+  }
+
+  .squad-mode-panel-head {
+    padding-bottom: 8px;
+  }
+
+  .squad-mode-panel-head b {
+    font-size: 11px;
+  }
+
+  .squad-mode-close {
+    width: 27px;
+    height: 27px;
+    font-size: 18px;
+  }
+
+  .squad-mode-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 7px;
+  }
+
+  .squad-mode-card {
+    min-height: 70px;
+    padding: 8px;
+    grid-template-columns: 30px 1fr;
+    gap: 7px;
+  }
+
+  .squad-mode-icon {
+    width: 30px;
+    height: 30px;
+    font-size: 11px;
+  }
+
+  .squad-mode-copy {
+    gap: 3px;
+  }
+
+  .squad-mode-copy b {
+    font-size: 9px;
+  }
+
+  .squad-mode-copy small {
+    font-size: 7px;
+    line-height: 1.25;
+  }
+
+  .squad-mode-mark {
+    display: none;
   }
 }

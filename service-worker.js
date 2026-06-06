@@ -1,11 +1,11 @@
-const SOULRIFT_CACHE = "soulrift-pwa-20260606-squad-exit-button-201";
+const SOULRIFT_CACHE = "soulrift-pwa-20260606-squad-mode-picker-202";
 const SOULRIFT_ASSETS = [
   "./",
   "./index.html",
-  "./styles.css?v=20260606-squad-exit-button-201",
-  "./src/pwa.js?v=20260606-squad-exit-button-201",
-  "./src/game.js?v=20260606-squad-exit-button-201",
-  "./manifest.webmanifest?v=20260606-squad-exit-button-201",
+  "./styles.css?v=20260606-squad-mode-picker-202",
+  "./src/pwa.js?v=20260606-squad-mode-picker-202",
+  "./src/game.js?v=20260606-squad-mode-picker-202",
+  "./manifest.webmanifest?v=20260606-squad-mode-picker-202",
   "./version.json",
   "./assets/icons/app-icon-20260605-logo-xl-149.svg",
   "./assets/icons/app-icon-20260605-logo-xl-149-192.png",

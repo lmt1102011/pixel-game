@@ -4808,179 +4808,37 @@ body.is-mobile-ui .touch-actions [data-touch="dash"] {
   transform: rotate(28deg);
 }
 
-.valorant-topbar {
-  position: relative;
-  z-index: 2;
-  display: flex;
-  align-items: center;
-  justify-content: flex-start;
-  gap: 18px;
-  height: 76px;
-  padding: 0 28px;
-  background: rgba(15, 25, 35, 0.92);
-  border-bottom: 1px solid rgba(236, 232, 225, 0.12);
-}
-
-.valorant-brand {
-  display: grid;
-  gap: 2px;
-  min-width: 180px;
-}
-
-.valorant-brand span {
-  color: #ff4655;
-  font-size: 12px;
-  font-weight: 950;
-  letter-spacing: 0.16em;
-}
-
-.valorant-brand b {
-  color: #ece8e1;
-  font-size: 23px;
-  line-height: 1;
-  letter-spacing: 0.03em;
-}
-
-.valorant-mode-bar button,
-.valorant-btn {
-  position: relative;
-  min-height: 42px;
-  padding: 10px 14px;
-  overflow: hidden;
-  border: 1px solid rgba(236, 232, 225, 0.16);
-  background: rgba(31, 39, 49, 0.78);
-  color: #ece8e1;
-  font-size: 12px;
-  font-weight: 950;
-  letter-spacing: 0.05em;
-  text-align: center;
-  text-transform: uppercase;
-  transition: transform 150ms ease, border-color 150ms ease, background 150ms ease, box-shadow 150ms ease;
-}
-
-.valorant-mode-bar button::after,
-.valorant-btn::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  transform: translateX(-120%) skewX(-18deg);
-  background: linear-gradient(90deg, transparent, rgba(236, 232, 225, 0.24), transparent);
-  transition: transform 260ms ease;
-}
-
-.valorant-mode-bar button:hover,
-.valorant-btn:hover {
-  transform: translateY(-1px);
-  border-color: rgba(255, 70, 85, 0.7);
-  background: rgba(255, 70, 85, 0.16);
-  box-shadow: 0 0 20px rgba(255, 70, 85, 0.18);
-}
-
-.valorant-mode-bar button:hover::after,
-.valorant-btn:hover::after {
-  transform: translateX(120%) skewX(-18deg);
-}
-
-.valorant-btn.primary {
-  border-color: rgba(255, 70, 85, 0.86);
-  background: #ff4655;
-  color: #0f1923;
-  box-shadow: 0 0 26px rgba(255, 70, 85, 0.32);
-}
-
-.valorant-btn.danger {
-  border-color: rgba(236, 232, 225, 0.18);
-  color: #ff8f99;
-}
-
-.valorant-main {
-  position: relative;
-  z-index: 2;
-  flex: 1;
-  min-height: 0;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(318px, 360px);
-  gap: 18px;
-  padding: 18px 22px 22px;
-}
-
-.valorant-party,
-.valorant-side,
-.team-stats {
-  min-height: 0;
-}
-
-.valorant-party {
-  display: grid;
-  grid-template-rows: auto minmax(360px, 1fr) auto auto;
-  gap: 12px;
-}
-
-.party-header,
-.valorant-member,
-.team-stats,
-.valorant-controls,
-.valorant-mode-bar {
-  background: rgba(31, 39, 49, 0.76);
-  border: 1px solid rgba(236, 232, 225, 0.12);
-  box-shadow: 0 18px 42px rgba(0, 0, 0, 0.34);
-}
-
-.party-header {
-  display: flex;
-  justify-content: space-between;
-  gap: 16px;
-  padding: 16px;
-}
-
-.eyebrow {
-  margin: 0 0 5px;
-  color: #ff4655;
-  font-size: 10px;
-  font-weight: 950;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-}
-
-.party-header h2,
-.side-title h3 {
-  margin: 0;
-  color: #ece8e1;
-  letter-spacing: 0.02em;
-  text-transform: uppercase;
-}
-
-.party-header h2 {
-  font-size: clamp(24px, 3vw, 42px);
-}
-
-.party-header span,
-.party-status-block span {
-  color: rgba(236, 232, 225, 0.58);
-  font-size: 11px;
-  font-weight: 850;
-  text-transform: uppercase;
-}
-
-.party-status-block {
-  display: grid;
-  align-content: center;
-  justify-items: end;
-  gap: 4px;
-  min-width: 128px;
-}
-
-.party-status-block b {
-  color: #ff4655;
-  font-size: 22px;
-  letter-spacing: 0.08em;
-}
-
 .valorant-squad-grid {
   display: grid;
   grid-template-columns: repeat(5, minmax(132px, 1fr));
   gap: 12px;
   min-height: 0;
+}
+
+.squad-only-lobby {
+  display: grid;
+  place-items: center;
+  padding: clamp(18px, 4vw, 56px);
+}
+
+.squad-only-lobby::before {
+  inset: 50% 8% auto;
+  opacity: 0.32;
+}
+
+.squad-only-stage {
+  position: relative;
+  z-index: 2;
+  width: min(1180px, calc(100vw - clamp(28px, 7vw, 112px)));
+}
+
+.squad-only-grid {
+  align-items: center;
+  min-height: min(72vh, 560px);
+}
+
+.squad-only-grid .valorant-member {
+  min-height: clamp(410px, 62vh, 540px);
 }
 
 .valorant-member {
@@ -4991,6 +4849,9 @@ body.is-mobile-ui .touch-actions [data-touch="dash"] {
   min-height: 430px;
   overflow: hidden;
   isolation: isolate;
+  background: rgba(31, 39, 49, 0.76);
+  border: 1px solid rgba(236, 232, 225, 0.12);
+  box-shadow: 0 18px 42px rgba(0, 0, 0, 0.34);
   clip-path: polygon(0 0, calc(100% - 18px) 0, 100% 18px, 100% 100%, 18px 100%, 0 calc(100% - 18px));
   animation: squadJoin 340ms ease both;
   transition: transform 170ms ease, border-color 170ms ease, box-shadow 170ms ease, background 170ms ease;
@@ -5196,62 +5057,6 @@ body.is-mobile-ui .touch-actions [data-touch="dash"] {
   color: rgba(236, 232, 225, 0.38);
 }
 
-.valorant-controls,
-.valorant-mode-bar {
-  display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
-  gap: 8px;
-  padding: 10px;
-}
-
-.valorant-mode-bar {
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  background: rgba(15, 25, 35, 0.54);
-}
-
-.valorant-side {
-  display: grid;
-  grid-template-rows: auto;
-  gap: 14px;
-}
-
-.team-stats {
-  display: grid;
-  gap: 10px;
-  padding: 14px;
-}
-
-.side-title h3 {
-  font-size: 20px;
-}
-
-.stat-card {
-  display: grid;
-  gap: 4px;
-  min-height: 72px;
-  padding: 12px;
-  border: 1px solid rgba(236, 232, 225, 0.11);
-  background: linear-gradient(135deg, rgba(236, 232, 225, 0.055), rgba(15, 25, 35, 0.5));
-}
-
-.stat-card.hot {
-  border-color: rgba(255, 70, 85, 0.62);
-  box-shadow: inset 3px 0 0 #ff4655;
-}
-
-.stat-card span {
-  color: rgba(236, 232, 225, 0.52);
-  font-size: 10px;
-  font-weight: 900;
-  letter-spacing: 0.12em;
-}
-
-.stat-card b {
-  color: #ece8e1;
-  font-size: 28px;
-  line-height: 1;
-}
-
 @keyframes squadJoin {
   from {
     opacity: 0;
@@ -5264,18 +5069,12 @@ body.is-mobile-ui .touch-actions [data-touch="dash"] {
 }
 
 @media (max-width: 1180px) {
-  .valorant-main {
-    grid-template-columns: 1fr;
-    overflow-y: auto;
-  }
-
-  .valorant-side {
-    grid-template-columns: 1fr;
-    grid-template-rows: auto;
-  }
-
   .valorant-squad-grid {
     min-height: 420px;
+  }
+
+  .squad-only-stage {
+    width: min(980px, calc(100vw - 32px));
   }
 }
 
@@ -5289,30 +5088,19 @@ body.is-mobile-ui .touch-actions [data-touch="dash"] {
     overflow: visible;
   }
 
-  .valorant-topbar {
-    height: auto;
-    align-items: stretch;
-    flex-direction: column;
+  .squad-only-lobby {
+    place-items: start center;
     padding: 12px;
+    overflow-y: auto;
   }
 
-  .valorant-main {
-    padding: 10px;
+  .squad-only-stage {
+    width: 100%;
+  }
+
+  .squad-only-grid {
     gap: 10px;
-  }
-
-  .party-header,
-  .valorant-side {
-    grid-template-columns: 1fr;
-    flex-direction: column;
-  }
-
-  .party-status-block {
-    justify-items: start;
-  }
-
-  .valorant-party {
-    grid-template-rows: auto auto auto auto;
+    min-height: auto;
   }
 
   .valorant-squad-grid {
@@ -5328,15 +5116,6 @@ body.is-mobile-ui .touch-actions [data-touch="dash"] {
   .member-avatar .preview-hero,
   .valorant-member.self .member-avatar .preview-hero {
     transform: translate(-50%, -50%) scale(1.14);
-  }
-
-  .valorant-controls,
-  .valorant-mode-bar {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .valorant-side {
-    display: grid;
   }
 
 }

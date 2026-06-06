@@ -9,7 +9,7 @@
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
   const SIGNAL_REALTIME_RELAY_LIMIT = 2;
   const SIGNAL_REALTIME_TYPES = new Set(["state", "snapshot", "attack", "skill", "collect", "openChest", "dropItem", "damage", "chooseDoor"]);
-  const APP_VERSION = "20260606-valorant-clean-196";
+  const APP_VERSION = "20260606-squad-only-197";
   const CHANGELOG_ENTRIES = [
     {
       version: APP_VERSION,
@@ -5529,84 +5529,12 @@
       }));
     }
 
-    squadTeamStats(members = this.squadMembers()) {
-      const active = members.filter((entry) => entry.slot && entry.stats);
-      if (!active.length) return { rank: "UNRANKED", mmr: 0, winRate: 0, recent: 0 };
-      const rankScore = active.reduce((sum, entry) => sum + entry.stats.rank.score, 0) / active.length;
-      const rank = active.reduce((best, entry) => Math.abs(entry.stats.rank.score - rankScore) < Math.abs(best.score - rankScore) ? entry.stats.rank : best, active[0].stats.rank);
-      return {
-        rank: rank.name,
-        mmr: Math.round(active.reduce((sum, entry) => sum + entry.stats.mmr, 0) / active.length),
-        winRate: Math.round(active.reduce((sum, entry) => sum + entry.stats.winRate, 0) / active.length),
-        recent: active.reduce((sum, entry) => sum + entry.stats.recent, 0)
-      };
-    }
-
     valorantLobbyData() {
       const members = this.squadMembers();
-      const stats = this.squadTeamStats(members);
-      const inRoom = Boolean(this.lobby?.code);
-      const isHost = Boolean(this.lobby?.host);
-      const leaderVisible = isHost || !inRoom;
-      const roomLabel = inRoom ? `PARTY ${escapeHtml(this.lobby.code)}` : "SOLO PARTY";
-      const readyLabel = this.lobby.ready ? "CANCEL READY" : "READY";
-      const leaderActions = leaderVisible
-        ? `
-          <button class="valorant-btn primary" data-action="${inRoom ? "start-room" : "play-gauntlet"}">START MATCH</button>
-          <button class="valorant-btn" data-action="multiplayer">CHANGE MODE</button>
-          <button class="valorant-btn" data-action="${inRoom ? "open-lobby-invites" : "play-create-room"}" data-view="play">INVITE FRIEND</button>
-        `
-        : "";
-      const memberActions = inRoom && !isHost
-        ? `<button class="valorant-btn primary" data-action="ready-room">${readyLabel}</button>`
-        : !inRoom
-          ? `<button class="valorant-btn" data-action="play-create-room">CREATE PARTY</button>`
-          : "";
-      const controlsHtml = `
-        ${leaderActions}
-        ${memberActions}
-        <button class="valorant-btn" data-action="find-room">FIND PARTY</button>
-        <button class="valorant-btn" data-action="squad-voice-settings">VOICE SETTINGS</button>
-        ${inRoom ? `<button class="valorant-btn danger" data-action="play-leave-room">LEAVE PARTY</button>` : ""}
-      `;
       return {
         members,
-        stats,
-        inRoom,
-        isHost,
-        leaderVisible,
-        roomLabel,
-        modePill: this.roomModeLabel(this.lobby.runMode || "gauntlet"),
-        slotsHtml: members.map((entry) => this.squadMemberCardHtml(entry.slot, entry)).join(""),
-        controlsHtml
+        slotsHtml: members.map((entry) => this.squadMemberCardHtml(entry.slot, entry)).join("")
       };
-    }
-
-    valorantPartyHeaderHtml(data = this.valorantLobbyData()) {
-      return `
-        <div>
-          <p class="eyebrow">TACTICAL PARTY</p>
-          <h2>${data.roomLabel}</h2>
-          <span>${data.modePill} / ${LOBBY_MAX_PLAYERS} PLAYER SLOTS / LEADER CONTROLS ENABLED</span>
-        </div>
-        <div class="party-status-block">
-          <b>${data.inRoom ? escapeHtml(this.lobby.code) : "LOCAL"}</b>
-          <span>${data.leaderVisible ? "PARTY LEADER" : "MEMBER"}</span>
-        </div>
-      `;
-    }
-
-    valorantTeamStatsHtml(stats = this.squadTeamStats()) {
-      return `
-        <div class="side-title">
-          <p class="eyebrow">TEAM OVERVIEW</p>
-          <h3>Combat Rating</h3>
-        </div>
-        <div class="stat-card hot"><span>AVG RANK</span><b>${stats.rank}</b></div>
-        <div class="stat-card"><span>AVG MMR</span><b>${stats.mmr || "----"}</b></div>
-        <div class="stat-card"><span>WIN RATE</span><b>${stats.winRate || 0}%</b></div>
-        <div class="stat-card"><span>RECENT MATCHES</span><b>${stats.recent || 0}</b></div>
-      `;
     }
 
     refreshValorantInvitePanel() {
@@ -5624,14 +5552,8 @@
       }
       if (this.lobby?.code) this.lobby.syncOwnSlot();
       const data = this.valorantLobbyData();
-      const header = root.querySelector(".party-header");
       const grid = root.querySelector(".valorant-squad-grid");
-      const controls = root.querySelector(".valorant-controls");
-      const stats = root.querySelector(".team-stats");
-      if (header) header.innerHTML = this.valorantPartyHeaderHtml(data);
       if (grid) grid.innerHTML = data.slotsHtml;
-      if (controls) controls.innerHTML = data.controlsHtml;
-      if (stats) stats.innerHTML = this.valorantTeamStatsHtml(data.stats);
       this.refreshValorantInvitePanel();
       return true;
     }
@@ -5645,30 +5567,9 @@
       const data = this.valorantLobbyData();
       const friendInvitePanel = this.lobbyFriendInvitePanel();
       this.setScreen(`
-        <section class="valorant-lobby">
-          <div class="valorant-topbar">
-            <div class="valorant-brand">
-              <span>SOULRIFT</span>
-              <b>PARTY LOBBY</b>
-            </div>
-          </div>
-
-          <div class="valorant-main">
-            <div class="valorant-party">
-              <div class="party-header">${this.valorantPartyHeaderHtml(data)}</div>
-              <div class="valorant-squad-grid">${data.slotsHtml}</div>
-              <div class="valorant-controls">${data.controlsHtml}</div>
-              <div class="valorant-mode-bar">
-                <button data-action="play-gauntlet">VƯỢT ẢI</button>
-                <button data-action="play-minigames">MINI GAME</button>
-                <button data-action="play-tutorial">HƯỚNG DẪN</button>
-                <button data-action="play-training">HUẤN LUYỆN</button>
-              </div>
-            </div>
-
-            <aside class="valorant-side">
-              <div class="team-stats">${this.valorantTeamStatsHtml(data.stats)}</div>
-            </div>
+        <section class="valorant-lobby squad-only-lobby">
+          <div class="squad-only-stage">
+            <div class="valorant-squad-grid squad-only-grid">${data.slotsHtml}</div>
           </div>
           <div class="lobby-invite-mount">${friendInvitePanel}</div>
         </section>

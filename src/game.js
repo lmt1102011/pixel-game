@@ -9,7 +9,7 @@
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
   const SIGNAL_REALTIME_RELAY_LIMIT = 2;
   const SIGNAL_REALTIME_TYPES = new Set(["state", "snapshot", "attack", "skill", "collect", "openChest", "dropItem", "damage", "chooseDoor"]);
-  const APP_VERSION = "20260607-correct-monster-weapons-238";
+  const APP_VERSION = "20260607-monster-attack-animations-239";
   const CHANGELOG_ENTRIES = [
     {
       version: APP_VERSION,
@@ -22130,6 +22130,8 @@
       const flyLift = MONSTER_TYPES[kind].flying ? (moving ? [-7, -11, -8, -5][walkFrame] : [-7, -8][idleFrame]) : 0;
       const bodyBob = MONSTER_TYPES[kind].flying ? flyLift : moving ? stepLift : 0;
       const lunge = enemy.attackAnim > 0 ? (enemy.attackAnim > 0.24 ? 3 : enemy.attackAnim > 0.12 ? 1 : 0) : 0;
+      const attacking = (enemy.attackAnim || 0) > 0;
+      const attackFrame = !attacking ? 0 : enemy.attackAnim > 0.42 ? 0 : enemy.attackAnim > 0.18 ? 1 : 2;
       const b = (x, y, w, h, color, alpha = 1) => this.spriteBlock(ctx, x, y, w, h, color, alpha);
       const eyes = (x1, x2, y, color = palette.eye) => {
         b(x1, y, 4, 4, palette.outline);
@@ -22696,6 +22698,152 @@
           b(13 + stepSign * 4, 15, 10, 11, palette.baseDark);
           b(-39 - lunge, -6, 20, 4, palette.bone);
           b(19 + lunge, -6, 20, 4, palette.bone);
+        }
+      }
+
+      if (attacking) {
+        const strike = attackFrame === 1;
+        const recover = attackFrame === 2;
+        const tell = enemy.elite ? "#ffbd5e" : palette.accent;
+        if (kind === "skeletonArcher") {
+          const drawPull = attackFrame === 0;
+          b(22, -13, 12, 11, palette.bone);
+          b(-38, -13, drawPull ? 64 : 72, 5, palette.outline);
+          b(-33, -11, drawPull ? 54 : 61, 2, "#fff0c0");
+          b(-38, -16, 9, 9, palette.bone);
+          b(28, -39, 8, 74, palette.outline);
+          b(25, -13, 10, 19, palette.armor);
+          if (strike || recover) {
+            b(35, -15, 36, 5, palette.outline);
+            b(40, -14, 27, 2, palette.bone);
+            b(68, -18, 8, 10, tell);
+          }
+        } else if (kind === "skeletonWarrior") {
+          if (attackFrame === 0) {
+            b(16, -46, 9, 58, palette.outline);
+            b(19, -42, 4, 47, palette.metal);
+            b(23, -55, 11, 24, palette.accent);
+          } else {
+            b(18, -19, 48, 9, palette.outline);
+            b(25, -17, 35, 4, palette.metal);
+            b(61, -24, 10, 18, palette.accent);
+            b(-43, -12, 34, 39, palette.outline);
+            b(-38, -7, 24, 30, palette.metal);
+          }
+        } else if (kind === "slime" || kind === "fireSlime" || kind === "iceSlime") {
+          b(-22, strike ? 1 : 6, 44 + (strike ? 12 : 0), strike ? 27 : 21, palette.outline, 0.82);
+          b(-15, strike ? 0 : 4, 36 + (strike ? 10 : 0), strike ? 21 : 16, palette.base, 0.68);
+          if (kind === "fireSlime") b(18, -12, 24, 9, "#ff6b2e", 0.72);
+          if (kind === "iceSlime") b(18, -13, 23, 8, "#dffaff", 0.72);
+        } else if (kind === "goblinScout") {
+          b(11, -11, 17, 7, palette.base);
+          b(24, -17, 8, 13, palette.armor);
+          if (attackFrame === 0) {
+            b(23, -28, 15, 7, palette.outline);
+            b(28, -27, 9, 3, palette.metal);
+            b(38, -31, 6, 8, palette.bone);
+          } else {
+            b(27, -9, 31, 7, palette.outline);
+            b(32, -8, 22, 3, palette.metal);
+            b(55, -12, 7, 10, palette.bone);
+            b(30, -19, 34, 3, tell, 0.48);
+          }
+        } else if (kind === "goblinBomber") {
+          const bombY = attackFrame === 0 ? -38 : strike ? -26 : -20;
+          const bombX = strike ? 24 : 7;
+          b(-3, -13, 18, 7, palette.base);
+          b(12, bombY + 15, 10, 9, palette.base);
+          b(bombX, bombY, 32, 32, palette.outline);
+          b(bombX + 5, bombY + 5, 22, 22, "#151820");
+          b(bombX + 18, bombY - 8, 6, 11, palette.accent);
+          b(bombX + 23, bombY - 13, 8, 7, "#ffd166");
+          if (strike) b(52, -28, 18, 7, "#ff8d3d", 0.58);
+        } else if (kind === "batDemon") {
+          b(-56, -35, 40, 21, palette.outline);
+          b(16, -35, 40, 21, palette.outline);
+          b(-12 + (strike ? 8 : 0), -22, 31, 33, palette.outline);
+          b(-8 + (strike ? 8 : 0), -18, 23, 25, palette.base);
+          b(7 + (strike ? 8 : 0), -10, 13, 8, palette.outline);
+          b(12 + (strike ? 8 : 0), -7, 4, 9, palette.bone);
+        } else if (kind === "spiderMonster") {
+          b(10, -23, 30, 22, palette.outline);
+          b(15, -19, 23, 16, palette.base);
+          for (let i = 0; i < 4; i++) {
+            b(27 + i * 5, -17 + i * 5, 26, 4, palette.outline);
+            b(36 + i * 5, -15 + i * 5, 14, 3, palette.accent);
+          }
+          b(19, -16, 5, 5, palette.eye);
+          b(28, -16, 5, 5, palette.eye);
+        } else if (kind === "mushroomMonster") {
+          b(-30, -38, 60, 20, palette.outline);
+          b(-24, -34, 48, 14, palette.accent);
+          b(17, -20, 22, 9, tell, 0.58);
+          b(29, -29, 8, 8, "#ffd6df", 0.82);
+          b(36, -17, 7, 7, "#fff0d0", 0.75);
+        } else if (kind === "shadowSpirit") {
+          b(10, -24, 35, 16, palette.base, 0.42);
+          b(33, -18, 22, 7, tell, 0.52);
+          b(15, -3, 38, 15, palette.baseDark, 0.38);
+          b(43, 1, 12, 8, "#ffffff", 0.35);
+        } else if (kind === "zombie") {
+          b(-30, -11, 31, 8, palette.base);
+          b(5, -9, 35, 8, palette.base);
+          if (strike) {
+            b(25, -14, 24, 5, palette.outline);
+            b(31, -12, 16, 3, palette.base);
+          }
+          b(-8, -4, 29, 9, palette.armor);
+        } else if (kind === "darkKnight") {
+          if (attackFrame === 0) {
+            b(15, -58, 11, 87, palette.outline);
+            b(19, -52, 5, 69, palette.metal);
+            b(25, -67, 13, 29, palette.accent);
+          } else {
+            b(20, -20, 66, 11, palette.outline);
+            b(29, -17, 47, 5, palette.metal);
+            b(77, -27, 13, 23, palette.accent);
+            b(21, -30, 65, 4, tell, 0.55);
+          }
+        } else if (kind === "stoneGolem" || kind === "iceGolem") {
+          const fist = kind === "iceGolem" ? "#ffffff" : palette.base;
+          if (attackFrame === 0) {
+            b(-42, -28, 18, 34, palette.outline);
+            b(24, -28, 18, 34, palette.outline);
+          } else {
+            b(-45, 4, 21, 36, palette.outline);
+            b(24, 4, 21, 36, palette.outline);
+            b(-41, 11, 13, 25, fist);
+            b(28, 11, 13, 25, fist);
+            b(-55, 39, 110, 5, tell, 0.42);
+          }
+        } else if (kind === "fireDemon") {
+          b(-12, -43, 24, 25, palette.accent);
+          b(-4, -37, 10, 16, "#fff0a8");
+          b(15, -10, 37, 12, "#ff6b2e", 0.72);
+          b(42, -8, 20, 8, "#ffd166", 0.72);
+          b(56, -6, 10, 5, "#ffffff", 0.55);
+        } else if (kind === "necromancer") {
+          b(16, -55, 7, 77, palette.outline);
+          b(19, -51, 3, 68, palette.metal);
+          b(8, -62, 28, 23, palette.outline);
+          b(13, -58, 18, 15, palette.bone);
+          b(23, -44, 30, 8, tell, 0.58);
+          b(43, -48, 12, 12, "#ffffff", 0.36);
+        } else if (kind === "werewolf") {
+          b(14, -7, 36, 5, palette.outline);
+          b(18, -5, 29, 3, palette.bone);
+          b(14, 4, 36, 5, palette.outline);
+          b(18, 6, 29, 3, palette.bone);
+          b(28, -17, 22, 3, tell, 0.5);
+        } else if (kind === "crystalBeast") {
+          b(16, -20, 32, 18, palette.outline);
+          b(22, -17, 23, 12, palette.base);
+          b(39, -27, 12, 27, palette.accent);
+          b(48, -16, 20, 6, "#ffffff", 0.62);
+        } else if (kind === "shadowGoblin") {
+          b(-39 - lunge, -9, 28, 5, palette.bone);
+          b(17 + lunge, -9, 28, 5, palette.bone);
+          b(28 + lunge, -17, 30, 4, tell, 0.48);
         }
       }
 

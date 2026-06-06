@@ -9,7 +9,7 @@
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
   const SIGNAL_REALTIME_RELAY_LIMIT = 2;
   const SIGNAL_REALTIME_TYPES = new Set(["state", "snapshot", "attack", "skill", "collect", "openChest", "dropItem", "damage", "chooseDoor"]);
-  const APP_VERSION = "20260606-shadow-goblin-only-231";
+  const APP_VERSION = "20260606-restore-old-character-232";
   const CHANGELOG_ENTRIES = [
     {
       version: APP_VERSION,
@@ -21241,16 +21241,11 @@
       const lean = dir * (anim === "dash" ? 0.09 : damageFrame ? -0.14 : castFrame ? 0.05 : 0) + attackPose.lean + castPose.lean;
       const squashX = anim === "dash" ? 1.08 : attackPose.squashX * castPose.squashX;
       const squashY = anim === "dash" ? 0.92 : attackPose.squashY * castPose.squashY;
-      const skin = custom.color || "#d8b46a";
-      const skinLight = custom.color ? "#f3d0a0" : "#f0c58d";
-      const lineColor = "#0f131d";
-      const hairDark = "#3b2519";
-      const hairLight = "#7a5434";
-      const outfitDark = character.id === "assassin" ? "#101520" : character.id === "guardian" ? "#182230" : "#172033";
-      const outfitMid = character.id === "assassin" ? "#252b3d" : character.id === "guardian" ? "#2f3a46" : "#25324a";
-      const outfitMain = character.color || power.color;
-      const outfitTrim = power.accent || "#f3ead7";
-      const eyeColor = custom.eyes === "frost" ? "#d9fbff" : custom.eyes === "void" ? "#101521" : custom.eyes === "focus" ? "#35d6c9" : "#fff1a6";
+      const color = custom.color || "#d8b46a";
+      const armorDark = character.id === "assassin" ? "#111722" : "#141a25";
+      const armorCore = character.id === "guardian" ? "#2d3544" : character.id === "assassin" ? "#202838" : "#283142";
+      const armorLight = "#d7e2ec";
+      const armorTrim = character.color || power.color;
       const auraColor = { gold: "#f2bf63", crimson: "#ff4b55", teal: "#35d6c9", violet: "#a169ff" }[custom.aura] || power.color;
       const awakenedPowerActive = Boolean(actor.powerAwakened ?? (actor === this.run?.player && this.run?.power?.id === power.id && this.powerAwakeningActive(power.id)));
       ctx.save();
@@ -21310,110 +21305,58 @@
       }
       const legSwing = movingAnim ? stride : 0;
       const crouch = anim === "dash" ? 3 : Math.max(castFrame ? 1 : 0, attackPose.crouch, castPose.crouch);
-      const legHeight = 10 - (anim === "dash" ? 2 : 0);
       const leftLegY = 8 + crouch + Math.max(0, -legSwing) * 2;
       const rightLegY = 8 + crouch + Math.max(0, legSwing) * 2;
-
-      ctx.fillStyle = lineColor;
-      ctx.fillRect(-10 + legSwing * 2, leftLegY - 1, 8, legHeight + 4);
-      ctx.fillRect(2 - legSwing * 2, rightLegY - 1, 8, legHeight + 4);
-      ctx.fillRect(-12 + legSwing * 2, leftLegY + legHeight + 1, 11, 4);
-      ctx.fillRect(1 - legSwing * 2, rightLegY + legHeight + 1, 11, 4);
-      ctx.fillStyle = outfitDark;
-      ctx.fillRect(-8 + legSwing * 2, leftLegY, 5, legHeight);
-      ctx.fillRect(4 - legSwing * 2, rightLegY, 5, legHeight);
-      ctx.fillStyle = outfitMid;
-      ctx.fillRect(-7 + legSwing * 2, leftLegY, 2, Math.max(2, legHeight - 2));
-      ctx.fillRect(5 - legSwing * 2, rightLegY, 2, Math.max(2, legHeight - 2));
-
-      ctx.fillStyle = lineColor;
-      ctx.fillRect(-10, -14 - holdFrame, 20, 25);
-      ctx.fillRect(-12, -10 - holdFrame, 24, 17);
-      ctx.fillStyle = outfitDark;
-      ctx.fillRect(-8, -12 - holdFrame, 16, 22);
-      ctx.fillStyle = outfitMid;
-      ctx.fillRect(-7, -10 - holdFrame, 14, 18);
-      ctx.fillStyle = outfitMain;
-      ctx.fillRect(-6, -9 - holdFrame, 12, 13);
-      ctx.fillRect(-4, 4 - holdFrame, 8, 7);
-      ctx.fillStyle = outfitTrim;
-      ctx.fillRect(-7, -7 - holdFrame, 14, 3);
-      ctx.fillRect(-2, -4 - holdFrame, 4, 13);
-      ctx.fillStyle = "#ffffff";
-      ctx.globalAlpha *= 0.7;
-      ctx.fillRect(-5, -8 - holdFrame, 2, 8);
-      ctx.fillRect(4, -8 - holdFrame, 1, 6);
-      ctx.globalAlpha = actor.invuln > 0 && Math.floor(t * 18) % 2 === 0 ? 0.55 : 1;
-
-      ctx.fillStyle = lineColor;
-      ctx.fillRect(-15, -10 - holdFrame, 7, 16);
-      ctx.fillRect(8, -10 - holdFrame, 7, 16);
-      ctx.fillRect(-16, 5 - holdFrame, 7, 7);
-      ctx.fillRect(9, 5 - holdFrame, 7, 7);
-      ctx.fillStyle = outfitDark;
-      ctx.fillRect(-13, -8 - holdFrame, 4, 13);
-      ctx.fillRect(9, -8 - holdFrame, 4, 13);
-      ctx.fillStyle = skin;
-      ctx.fillRect(-15, 6 - holdFrame, 5, 5);
-      ctx.fillRect(10, 6 - holdFrame, 5, 5);
-      ctx.fillStyle = skinLight;
-      ctx.fillRect(-14, 6 - holdFrame, 2, 2);
-      ctx.fillRect(11, 6 - holdFrame, 2, 2);
-
-      ctx.fillStyle = lineColor;
-      ctx.fillRect(-12, -31 - holdFrame, 24, 24);
-      ctx.fillRect(-14, -27 - holdFrame, 28, 15);
-      ctx.fillRect(-10, -8 - holdFrame, 20, 4);
-      ctx.fillStyle = skin;
-      ctx.fillRect(-10, -28 - holdFrame, 20, 18);
-      ctx.fillRect(-8, -10 - holdFrame, 16, 4);
-      ctx.fillStyle = skinLight;
-      ctx.fillRect(-7, -25 - holdFrame, 5, 5);
-      ctx.fillRect(3, -25 - holdFrame, 5, 5);
-      ctx.fillRect(-2, -13 - holdFrame, 4, 2);
-      ctx.fillStyle = hairDark;
-      ctx.fillRect(-11, -32 - holdFrame, 22, 10);
-      ctx.fillRect(-13, -27 - holdFrame, 8, 13);
-      ctx.fillRect(5, -27 - holdFrame, 8, 13);
-      ctx.fillRect(-8, -23 - holdFrame, 5, 5);
-      ctx.fillRect(-2, -24 - holdFrame, 6, 4);
-      ctx.fillStyle = hairLight;
-      ctx.fillRect(-8, -30 - holdFrame, 7, 3);
-      ctx.fillRect(2, -30 - holdFrame, 6, 3);
-      ctx.fillRect(7, -25 - holdFrame, 3, 7);
-
-      ctx.fillStyle = lineColor;
-      if (Math.cos(facing) >= -0.3) ctx.fillRect(3, -19 - holdFrame, 4, 4);
-      if (Math.cos(facing) <= 0.3) ctx.fillRect(-7, -19 - holdFrame, 4, 4);
-      ctx.fillStyle = eyeColor;
-      if (Math.cos(facing) >= -0.3) ctx.fillRect(4, -19 - holdFrame, 2, 2);
-      if (Math.cos(facing) <= 0.3) ctx.fillRect(-6, -19 - holdFrame, 2, 2);
+      ctx.fillStyle = "#0f131d";
+      roundPixel(ctx, -11 + legSwing * 2, leftLegY - 1, 9, 13 - (anim === "dash" ? 2 : 0), 2);
+      roundPixel(ctx, 2 - legSwing * 2, rightLegY - 1, 9, 13 - (anim === "dash" ? 2 : 0), 2);
+      ctx.fillStyle = armorDark;
+      roundPixel(ctx, -9 + legSwing * 2, leftLegY, 6, 10 - (anim === "dash" ? 2 : 0), 2);
+      roundPixel(ctx, 4 - legSwing * 2, rightLegY, 6, 10 - (anim === "dash" ? 2 : 0), 2);
+      ctx.fillStyle = "#0f131d";
+      roundPixel(ctx, -11, -14 - holdFrame, 22, 27, 5);
+      ctx.fillStyle = armorCore;
+      roundPixel(ctx, -9, -12 - holdFrame, 18, 23, 4);
+      roundPixel(ctx, -13, -9 - holdFrame, 6, 6, 2);
+      roundPixel(ctx, 7, -9 - holdFrame, 6, 6, 2);
+      ctx.fillStyle = power.color;
+      ctx.fillRect(-7, -2 - holdFrame, 14, 3);
+      ctx.fillStyle = "#0f131d";
+      ctx.fillRect(-9, 7 - holdFrame, 18, 4);
+      ctx.fillStyle = armorTrim;
+      ctx.fillRect(-2, 5 - holdFrame, 4, 6);
+      ctx.fillStyle = "#0f131d";
+      roundPixel(ctx, -9, -27 - holdFrame, 18, 19, 5);
+      ctx.fillStyle = color;
+      roundPixel(ctx, -8, -26 - holdFrame, 16, 18, 4);
+      ctx.fillStyle = armorDark;
+      roundPixel(ctx, -9, -28 - holdFrame, 18, 9, 3);
+      ctx.fillStyle = armorLight;
+      ctx.fillRect(-6, -20 - holdFrame, 12, 2);
+      ctx.fillStyle = custom.eyes === "frost" ? "#d9fbff" : custom.eyes === "void" ? "#101521" : custom.eyes === "focus" ? "#35d6c9" : "#ffdf73";
+      if (Math.cos(facing) >= -0.3) ctx.fillRect(3, -15 - holdFrame, 3, 2);
+      if (Math.cos(facing) <= 0.3) ctx.fillRect(-6, -15 - holdFrame, 3, 2);
       ctx.fillStyle = custom.mouth === "mask" ? "#111521" : "#4b1622";
-      if (custom.mouth === "mask") ctx.fillRect(-6, -13 - holdFrame, 12, 3);
-      else if (custom.mouth === "smirk") {
-        ctx.fillRect(-2, -13 - holdFrame, 6, 1);
-        ctx.fillRect(3, -14 - holdFrame, 2, 1);
-      } else if (custom.mouth === "grim") ctx.fillRect(-4, -13 - holdFrame, 8, 1);
-      else {
-        ctx.fillRect(-2, -13 - holdFrame, 5, 1);
-        ctx.fillRect(1, -12 - holdFrame, 2, 1);
-      }
+      if (custom.mouth === "mask") ctx.fillRect(-6, -11 - holdFrame, 12, 3);
+      else if (custom.mouth === "smirk") ctx.fillRect(-2, -10 - holdFrame, 6, 1);
+      else if (custom.mouth === "grim") ctx.fillRect(-4, -10 - holdFrame, 8, 1);
+      else ctx.fillRect(-2, -10 - holdFrame, 4, 2);
       if (custom.accessory === "horns") {
         ctx.fillStyle = "#f2f0e6";
-        ctx.fillRect(-15, -35 - holdFrame, 5, 9);
-        ctx.fillRect(10, -35 - holdFrame, 5, 9);
+        ctx.fillRect(-14, -31 - holdFrame, 5, 9);
+        ctx.fillRect(9, -31 - holdFrame, 5, 9);
       }
       if (custom.accessory === "halo") {
         ctx.strokeStyle = "#f2bf63";
         ctx.lineWidth = 2;
         ctx.beginPath();
-        ctx.ellipse(0, -36 - holdFrame, 13, 4, 0, 0, TAU);
+        ctx.ellipse(0, -33 - holdFrame, 12, 4, 0, 0, TAU);
         ctx.stroke();
       }
       const drawGripHand = (hx, hy, w = 5, h = 5) => {
-        ctx.fillStyle = lineColor;
+        ctx.fillStyle = "#0f131d";
         roundPixel(ctx, hx - 1, hy - 1, w + 2, h + 2, 2);
-        ctx.fillStyle = skin;
+        ctx.fillStyle = color;
         roundPixel(ctx, hx, hy, w, h, 2);
       };
       const hideWeaponForCast = (anim === "skill" || anim === "ultimate") && actionProgress < 0.94 && deathProgress <= 0;

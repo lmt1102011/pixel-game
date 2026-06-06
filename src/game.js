@@ -9,7 +9,7 @@
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
   const SIGNAL_REALTIME_RELAY_LIMIT = 2;
   const SIGNAL_REALTIME_TYPES = new Set(["state", "snapshot", "attack", "skill", "collect", "openChest", "dropItem", "damage", "chooseDoor"]);
-  const APP_VERSION = "20260606-weapon-grip-monsters-235";
+  const APP_VERSION = "20260606-skeleton-archer-grip-236";
   const CHANGELOG_ENTRIES = [
     {
       version: APP_VERSION,
@@ -22146,11 +22146,10 @@
         b(-10, 0, 20, 2, palette.bone);
         b(-9, 7, 18, 8, palette.outline);
         b(-6, 8, 12, 5, palette.bone);
-        b(-21, -10, 17, 5, palette.bone);
-        b(-25, -16, 6, 17, palette.bone);
-        b(5, -10, 16, 5, palette.bone);
-        b(19, -12, 6, 18, palette.bone);
-        b(17, -8, 8, 8, palette.bone);
+        b(-25, -11, 20, 5, palette.bone);
+        b(-31, -14, 8, 9, palette.bone);
+        b(5, -10, 23, 5, palette.bone);
+        b(24, -13, 8, 9, palette.bone);
         b(-10, 14, 5, 16, palette.bone);
         b(-15, 27, 13, 5, palette.bone);
         b(5, 14, 5, 16, palette.bone);
@@ -22159,13 +22158,22 @@
         b(-20, -25, 5, 27, palette.armor);
         b(-24, -31, 4, 16, palette.bone);
         b(-16, -31, 4, 16, palette.bone);
-        b(23, -34, 5, 62, palette.outline);
-        b(27, -30, 8, 12, palette.armor);
-        b(27, 12, 8, 12, palette.armor);
-        b(32, -17, 3, 33, palette.bone);
-        b(7, -11, 38, 4, palette.outline);
-        b(11, -10, 29, 2, palette.bone);
-        b(39, -15, 9, 10, palette.accent);
+        b(28, -39, 7, 12, palette.outline);
+        b(34, -30, 7, 18, palette.outline);
+        b(37, -13, 7, 29, palette.outline);
+        b(34, 15, 7, 18, palette.outline);
+        b(28, 30, 7, 12, palette.outline);
+        b(30, -35, 4, 9, palette.armor);
+        b(36, -27, 4, 15, palette.armor);
+        b(39, -9, 4, 23, palette.armor);
+        b(36, 15, 4, 15, palette.armor);
+        b(30, 29, 4, 9, palette.armor);
+        b(27, -31, 3, 62, palette.bone);
+        b(24, -12, 9, 16, palette.armor);
+        b(22, -8, 10, 10, palette.bone);
+        b(-31, -12, 62, 4, palette.outline);
+        b(-27, -11, 52, 2, palette.bone);
+        b(24, -16, 12, 10, palette.accent);
       } else if (kind === "skeletonWarrior") {
         b(-14, -34, 28, 24, palette.outline);
         b(-10, -31, 20, 18, palette.bone);
@@ -22372,13 +22380,18 @@
       }
 
       if (kind === "skeletonArcher") {
-        b(20, -35, 6, 61, palette.outline);
-        b(24, -32, 8, 13, palette.armor);
-        b(24, 12, 8, 13, palette.armor);
-        b(29, -20, 3, 34, palette.bone);
-        b(5, -12, 39, 4, palette.outline);
-        b(9, -11, 30, 2, palette.bone);
-        b(38, -15, 8, 10, palette.accent);
+        b(27, -35, 4, 66, palette.outline);
+        b(25, -12, 10, 17, palette.armor);
+        b(22, -9, 12, 11, palette.bone);
+        b(-32, -13, 67, 5, palette.outline);
+        b(-28, -11, 53, 2, "#fff0c0");
+        b(29, -40, 9, 9, palette.armor);
+        b(36, -30, 8, 10, palette.armor);
+        b(42, -12, 6, 22, palette.armor);
+        b(36, 18, 8, 10, palette.armor);
+        b(29, 34, 9, 9, palette.armor);
+        b(-35, -15, 9, 9, palette.bone);
+        b(32, -18, 11, 12, palette.accent);
         b(-23, -21, 9, 30, palette.outline);
         b(-20, -18, 5, 24, palette.armor);
         b(-25, -25, 4, 16, palette.bone);

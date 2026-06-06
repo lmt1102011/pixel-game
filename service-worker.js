@@ -1,18 +1,18 @@
-const SOULRIFT_CACHE = "soulrift-pwa-20260606-weapon-grip-monsters-235";
+const SOULRIFT_CACHE = "soulrift-pwa-20260606-skeleton-archer-grip-236";
 const SOULRIFT_ASSETS = [
   "./",
   "./index.html",
-  "./styles.css?v=20260606-weapon-grip-monsters-235",
-  "./src/pwa.js?v=20260606-weapon-grip-monsters-235",
-  "./src/game.js?v=20260606-weapon-grip-monsters-235",
-  "./manifest.webmanifest?v=20260606-weapon-grip-monsters-235",
+  "./styles.css?v=20260606-skeleton-archer-grip-236",
+  "./src/pwa.js?v=20260606-skeleton-archer-grip-236",
+  "./src/game.js?v=20260606-skeleton-archer-grip-236",
+  "./manifest.webmanifest?v=20260606-skeleton-archer-grip-236",
   "./version.json",
   "./assets/icons/app-icon-20260605-logo-xl-149.svg",
   "./assets/icons/app-icon-20260605-logo-xl-149-192.png",
   "./assets/icons/app-icon-20260605-logo-xl-149-512.png",
   "./assets/icons/app-icon-20260605-logo-xl-149-maskable-512.png",
   "./assets/icons/apple-touch-icon-20260605-logo-xl-149.png",
-  "./assets/sprites/monsters/shadow-goblin.png?v=20260606-weapon-grip-monsters-235"
+  "./assets/sprites/monsters/shadow-goblin.png?v=20260606-skeleton-archer-grip-236"
 ];
 
 self.addEventListener("install", (event) => {

@@ -9,7 +9,7 @@
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
   const SIGNAL_REALTIME_RELAY_LIMIT = 2;
   const SIGNAL_REALTIME_TYPES = new Set(["state", "snapshot", "attack", "skill", "collect", "openChest", "dropItem", "damage", "chooseDoor"]);
-  const APP_VERSION = "20260606-clean-cast-vfx-190";
+  const APP_VERSION = "20260606-menu-update-button-191";
   const CHANGELOG_ENTRIES = [
     {
       version: APP_VERSION,
@@ -4948,6 +4948,7 @@
         <nav class="main-nav">
           <div class="logo">
             <h1>SOULRIFT</h1>
+            <button class="menu-tool-btn" data-action="updates">C&#7852;P NH&#7852;T</button>
             <p>Roguelike hành động thời gian thực</p>
           </div>
           <div class="account-strip">

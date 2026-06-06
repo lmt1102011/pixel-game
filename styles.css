@@ -423,6 +423,27 @@ body.pwa-landing-active .screen {
   text-transform: uppercase;
 }
 
+.menu-tool-btn {
+  min-height: 30px;
+  margin-top: 10px;
+  padding: 6px 10px;
+  border: 1px solid rgba(242, 191, 99, 0.36);
+  background: rgba(0, 0, 0, 0.22);
+  color: var(--gold);
+  font-size: 11px;
+  font-weight: 900;
+  text-align: center;
+}
+
+.menu-tool-btn:hover {
+  border-color: rgba(242, 191, 99, 0.72);
+  background: rgba(242, 191, 99, 0.12);
+}
+
+.menu-only .nav-buttons [data-action="updates"] {
+  display: none;
+}
+
 .nav-buttons {
   display: grid;
   gap: 8px;

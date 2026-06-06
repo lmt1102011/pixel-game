@@ -9,7 +9,7 @@
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
   const SIGNAL_REALTIME_RELAY_LIMIT = 2;
   const SIGNAL_REALTIME_TYPES = new Set(["state", "snapshot", "attack", "skill", "collect", "openChest", "dropItem", "damage", "chooseDoor"]);
-  const APP_VERSION = "20260606-mobile-squad-fix-200";
+  const APP_VERSION = "20260606-squad-exit-button-201";
   const CHANGELOG_ENTRIES = [
     {
       version: APP_VERSION,
@@ -5569,14 +5569,20 @@
       const stateClass = isHost ? "start-action" : this.lobby.ready ? "ready-action active" : "ready-action";
       const iconClass = isHost ? "play" : "ready";
       return `
-        <button class="valorant-start-btn ${stateClass}" data-action="${action}" ${disabled ? "disabled" : ""}>
-          <span class="start-btn-edge top" aria-hidden="true"></span>
-          <span class="start-btn-core">
-            <span class="start-btn-icon ${iconClass}" aria-hidden="true"></span>
-            <span class="start-btn-label">${label}</span>
-          </span>
-          <span class="start-btn-edge bottom" aria-hidden="true"></span>
-        </button>
+        <div class="squad-action-bar">
+          <button class="valorant-exit-btn" data-action="menu">
+            <span class="exit-btn-icon" aria-hidden="true"></span>
+            <span>THOÁT</span>
+          </button>
+          <button class="valorant-start-btn ${stateClass}" data-action="${action}" ${disabled ? "disabled" : ""}>
+            <span class="start-btn-edge top" aria-hidden="true"></span>
+            <span class="start-btn-core">
+              <span class="start-btn-icon ${iconClass}" aria-hidden="true"></span>
+              <span class="start-btn-label">${label}</span>
+            </span>
+            <span class="start-btn-edge bottom" aria-hidden="true"></span>
+          </button>
+        </div>
       `;
     }
 

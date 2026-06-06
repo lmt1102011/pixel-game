@@ -4853,6 +4853,83 @@ body.is-mobile-ui .touch-actions [data-touch="dash"] {
   width: 100%;
 }
 
+.squad-action-bar {
+  display: grid;
+  grid-template-columns: 132px minmax(320px, 470px);
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  width: min(640px, 92vw);
+}
+
+.valorant-exit-btn {
+  position: relative;
+  display: inline-grid;
+  grid-template-columns: auto auto;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  min-height: 58px;
+  padding: 0 18px;
+  border: 1px solid rgba(236, 232, 225, 0.2);
+  color: rgba(236, 232, 225, 0.86);
+  background:
+    linear-gradient(135deg, transparent 0 13px, rgba(236, 232, 225, 0.28) 13px 15px, transparent 15px),
+    linear-gradient(315deg, transparent 0 13px, rgba(255, 70, 85, 0.32) 13px 15px, transparent 15px),
+    linear-gradient(180deg, rgba(31, 39, 49, 0.94), rgba(15, 25, 35, 0.92));
+  clip-path: polygon(15px 0, 100% 0, 100% calc(100% - 15px), calc(100% - 15px) 100%, 0 100%, 0 15px);
+  cursor: pointer;
+  overflow: hidden;
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.48), inset 0 0 0 1px rgba(255, 70, 85, 0.1);
+  transition: transform 160ms ease, border-color 160ms ease, background 160ms ease, box-shadow 160ms ease;
+}
+
+.valorant-exit-btn::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(120%) skewX(-18deg);
+  background: linear-gradient(90deg, transparent, rgba(236, 232, 225, 0.18), transparent);
+  transition: transform 260ms ease;
+}
+
+.valorant-exit-btn:hover {
+  transform: translateY(-1px);
+  border-color: rgba(255, 70, 85, 0.58);
+  background:
+    linear-gradient(135deg, transparent 0 13px, rgba(236, 232, 225, 0.34) 13px 15px, transparent 15px),
+    linear-gradient(315deg, transparent 0 13px, rgba(255, 70, 85, 0.5) 13px 15px, transparent 15px),
+    linear-gradient(180deg, rgba(38, 47, 59, 0.96), rgba(15, 25, 35, 0.94));
+  box-shadow: 0 16px 38px rgba(0, 0, 0, 0.52), 0 0 20px rgba(255, 70, 85, 0.18);
+}
+
+.valorant-exit-btn:hover::after {
+  transform: translateX(-120%) skewX(-18deg);
+}
+
+.valorant-exit-btn:active {
+  transform: translateY(1px) scale(0.985);
+}
+
+.valorant-exit-btn span {
+  position: relative;
+  z-index: 1;
+  font-size: 12px;
+  font-weight: 950;
+  letter-spacing: 0;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.exit-btn-icon {
+  width: 13px;
+  height: 13px;
+  border-left: 3px solid currentColor;
+  border-bottom: 3px solid currentColor;
+  transform: rotate(45deg);
+  filter: drop-shadow(0 0 7px rgba(236, 232, 225, 0.22));
+}
+
 .valorant-start-btn {
   --button-main: #ff4655;
   --button-ink: #0f1923;
@@ -4860,7 +4937,8 @@ body.is-mobile-ui .touch-actions [data-touch="dash"] {
   position: relative;
   display: grid;
   place-items: center;
-  width: min(470px, 82vw);
+  width: 100%;
+  max-width: 470px;
   min-height: 76px;
   padding: 0 40px;
   border: 0;
@@ -5362,10 +5440,31 @@ body.is-mobile-ui .touch-actions [data-touch="dash"] {
     padding-bottom: max(8px, env(safe-area-inset-bottom));
   }
 
+  .squad-action-bar {
+    grid-template-columns: minmax(82px, 96px) minmax(0, 1fr);
+    gap: 8px;
+    width: min(390px, calc(100vw - 24px));
+  }
+
+  .valorant-exit-btn {
+    min-height: 54px;
+    padding: 0 10px;
+  }
+
+  .valorant-exit-btn span {
+    font-size: 10px;
+  }
+
+  .exit-btn-icon {
+    width: 10px;
+    height: 10px;
+    border-left-width: 2px;
+    border-bottom-width: 2px;
+  }
+
   .valorant-start-btn {
-    width: min(360px, calc(100vw - 34px));
     min-height: 62px;
-    padding: 0 24px;
+    padding: 0 18px;
   }
 
   .start-btn-core {
@@ -5502,8 +5601,30 @@ body.is-mobile-ui .touch-actions [data-touch="dash"] {
     padding-bottom: 0;
   }
 
+  .squad-action-bar {
+    grid-template-columns: minmax(72px, 88px) minmax(0, 1fr);
+    gap: 7px;
+    width: min(430px, 78vw);
+  }
+
+  .valorant-exit-btn {
+    min-height: 42px;
+    padding: 0 8px;
+    clip-path: polygon(12px 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%, 0 12px);
+  }
+
+  .valorant-exit-btn span {
+    font-size: 9px;
+  }
+
+  .exit-btn-icon {
+    width: 9px;
+    height: 9px;
+    border-left-width: 2px;
+    border-bottom-width: 2px;
+  }
+
   .valorant-start-btn {
-    width: min(330px, 58vw);
     min-height: 48px;
     padding: 0 20px;
     clip-path: polygon(15px 0, 100% 0, 100% calc(100% - 15px), calc(100% - 15px) 100%, 0 100%, 0 15px);

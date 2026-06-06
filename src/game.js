@@ -9,7 +9,7 @@
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
   const SIGNAL_REALTIME_RELAY_LIMIT = 2;
   const SIGNAL_REALTIME_TYPES = new Set(["state", "snapshot", "attack", "skill", "collect", "openChest", "dropItem", "damage", "chooseDoor"]);
-  const APP_VERSION = "20260606-restore-old-character-232";
+  const APP_VERSION = "20260606-monster-roster-233";
   const CHANGELOG_ENTRIES = [
     {
       version: APP_VERSION,
@@ -374,6 +374,89 @@
     "voidFragment", "glitchPixel", "timeTick", "timeRing"
   ]);
 
+  const MONSTER_TYPES = {
+    skeletonArcher: {
+      name: "Skeleton Archer", role: "marksman", ranged: true, bulky: false, hp: 58, size: 20, speed: 74, damage: 16,
+      specialSkill: "lineShot", range: 370, palette: { base: "#e8ddc6", baseDark: "#948978", accent: "#7ddcff", eye: "#7ddcff", armor: "#6a4b2a", metal: "#8b5a33", bone: "#f3ead7" }
+    },
+    skeletonWarrior: {
+      name: "Skeleton Warrior", role: "guard", ranged: false, bulky: true, hp: 108, size: 28, speed: 58, damage: 23,
+      specialSkill: "guardSlam", reach: 34, palette: { base: "#dccfb6", baseDark: "#7f7466", accent: "#ff4058", eye: "#ff263a", armor: "#7b3f2c", metal: "#9aa0a8", bone: "#f3ead7" }
+    },
+    slime: {
+      name: "Slime", role: "stalker", ranged: false, bulky: false, hp: 72, size: 22, speed: 82, damage: 15,
+      specialSkill: "melee", reach: 30, palette: { base: "#62e6a7", baseDark: "#26945e", accent: "#c8ffe2", eye: "#23313d", armor: "#49bf82", metal: "#d8fff0", bone: "#e8fff5" }
+    },
+    fireSlime: {
+      name: "Fire Slime", role: "bomber", ranged: true, bulky: false, hp: 76, size: 22, speed: 68, damage: 18,
+      specialSkill: "bombZone", range: 280, palette: { base: "#ff6b2e", baseDark: "#9b2318", accent: "#ffd166", eye: "#3a0b08", armor: "#ff8d3d", metal: "#ffe0a3", bone: "#fff0c0" }
+    },
+    iceSlime: {
+      name: "Ice Slime", role: "caster", ranged: true, bulky: false, hp: 74, size: 22, speed: 66, damage: 16,
+      specialSkill: "orbNova", range: 300, palette: { base: "#8feaff", baseDark: "#2e7ea1", accent: "#ffffff", eye: "#17344c", armor: "#bff8ff", metal: "#eaffff", bone: "#ffffff" }
+    },
+    goblinScout: {
+      name: "Goblin Scout", role: "skirmisher", ranged: false, bulky: false, hp: 64, size: 21, speed: 110, damage: 17,
+      specialSkill: "skirmisherDash", reach: 32, palette: { base: "#6ad65f", baseDark: "#2e7c38", accent: "#d7b56d", eye: "#ffef70", armor: "#6b4a2d", metal: "#dfe6ef", bone: "#f3ead7" }
+    },
+    goblinBomber: {
+      name: "Goblin Bomber", role: "bomber", ranged: true, bulky: false, hp: 70, size: 23, speed: 60, damage: 19,
+      specialSkill: "bombZone", range: 280, palette: { base: "#79bd4d", baseDark: "#3f6c27", accent: "#ff8d3d", eye: "#fff16a", armor: "#4f3324", metal: "#2b303a", bone: "#f3ead7" }
+    },
+    batDemon: {
+      name: "Bat Demon", role: "skirmisher", ranged: false, bulky: false, hp: 60, size: 21, speed: 118, damage: 16,
+      specialSkill: "feintDash", reach: 34, flying: true, palette: { base: "#4a214f", baseDark: "#17051f", accent: "#ff4058", eye: "#ff2338", armor: "#2d1636", metal: "#d7c4ff", bone: "#f3ead7" }
+    },
+    spiderMonster: {
+      name: "Spider Monster", role: "skirmisher", ranged: false, bulky: false, hp: 82, size: 24, speed: 92, damage: 18,
+      specialSkill: "skirmisherDash", reach: 36, palette: { base: "#25212d", baseDark: "#09080d", accent: "#b8ff64", eye: "#ff2338", armor: "#3d3946", metal: "#d7ffc0", bone: "#f3ead7" }
+    },
+    mushroomMonster: {
+      name: "Mushroom Monster", role: "caster", ranged: true, bulky: false, hp: 78, size: 23, speed: 58, damage: 15,
+      specialSkill: "casterZone", range: 290, palette: { base: "#f0e7cf", baseDark: "#8f6a3f", accent: "#ff5f79", eye: "#4b1622", armor: "#c8334a", metal: "#f8d8a8", bone: "#fff0d0" }
+    },
+    shadowSpirit: {
+      name: "Shadow Spirit", role: "caster", ranged: true, bulky: false, hp: 66, size: 21, speed: 82, damage: 17,
+      specialSkill: "orbNova", range: 310, flying: true, palette: { base: "#6b45d9", baseDark: "#160826", accent: "#d7c4ff", eye: "#f2f6ff", armor: "#3b1d63", metal: "#bca8ff", bone: "#ffffff" }
+    },
+    zombie: {
+      name: "Zombie", role: "brute", ranged: false, bulky: true, hp: 124, size: 27, speed: 50, damage: 21,
+      specialSkill: "melee", reach: 32, palette: { base: "#79a860", baseDark: "#3d5c34", accent: "#8b4a6b", eye: "#fff0a8", armor: "#5c4b48", metal: "#b3a193", bone: "#d7c8aa" }
+    },
+    darkKnight: {
+      name: "Dark Knight", role: "duelist", ranged: false, bulky: true, hp: 142, size: 30, speed: 70, damage: 26,
+      specialSkill: "crossSlash", reach: 42, palette: { base: "#161923", baseDark: "#05070c", accent: "#ff2338", eye: "#ff2338", armor: "#272d3a", metal: "#9aa0aa", bone: "#f3ead7" }
+    },
+    stoneGolem: {
+      name: "Stone Golem", role: "brute", ranged: false, bulky: true, hp: 158, size: 32, speed: 42, damage: 27,
+      specialSkill: "quake", reach: 38, palette: { base: "#7b8790", baseDark: "#39424a", accent: "#76ffd8", eye: "#76ffd8", armor: "#5e6870", metal: "#b5c0c8", bone: "#dfe8ef" }
+    },
+    fireDemon: {
+      name: "Fire Demon", role: "caster", ranged: true, bulky: false, hp: 84, size: 24, speed: 78, damage: 20,
+      specialSkill: "orbNova", range: 310, palette: { base: "#d83224", baseDark: "#4a0d0a", accent: "#ffd166", eye: "#fff0a8", armor: "#7c1412", metal: "#ff944d", bone: "#ffe0a3" }
+    },
+    iceGolem: {
+      name: "Ice Golem", role: "guard", ranged: false, bulky: true, hp: 150, size: 32, speed: 46, damage: 25,
+      specialSkill: "guardSlam", reach: 38, palette: { base: "#a7f3ff", baseDark: "#2a6680", accent: "#ffffff", eye: "#eaffff", armor: "#6ec8df", metal: "#dffaff", bone: "#ffffff" }
+    },
+    necromancer: {
+      name: "Necromancer", role: "caster", ranged: true, bulky: false, hp: 88, size: 23, speed: 58, damage: 17,
+      specialSkill: "summonSkeleton", range: 320, palette: { base: "#2a1838", baseDark: "#08050f", accent: "#a169ff", eye: "#d7c4ff", armor: "#4b235f", metal: "#d7c4ff", bone: "#e8ddc6" }
+    },
+    werewolf: {
+      name: "Werewolf", role: "duelist", ranged: false, bulky: false, hp: 96, size: 26, speed: 112, damage: 22,
+      specialSkill: "crossSlash", reach: 40, palette: { base: "#6e4b35", baseDark: "#2a180f", accent: "#ffef70", eye: "#ffdf73", armor: "#3a2a20", metal: "#f3ead7", bone: "#f3ead7" }
+    },
+    crystalBeast: {
+      name: "Crystal Beast", role: "skirmisher", ranged: false, bulky: true, hp: 118, size: 28, speed: 86, damage: 23,
+      specialSkill: "skirmisherDash", reach: 38, palette: { base: "#6f8dff", baseDark: "#273164", accent: "#ffc4f5", eye: "#ffffff", armor: "#76ffd8", metal: "#d8fbff", bone: "#ffffff" }
+    },
+    shadowGoblin: {
+      name: "Shadow Goblin", role: "stalker", ranged: false, bulky: false, hp: 82, size: 23, speed: 88, damage: 22,
+      specialSkill: "melee", reach: 38, palette: { base: "#3d1c62", baseDark: "#201038", accent: "#ff2338", eye: "#ff2338", armor: "#5d36a0", metal: "#e7d7ff", bone: "#ead7ff" }
+    }
+  };
+
   const BIOMES = [
     {
       id: "forest",
@@ -384,7 +467,7 @@
       haze: "rgba(45, 110, 66, 0.18)",
       music: [110, 146.83, 164.81, 196],
       hazards: ["thorn"],
-      enemies: ["shadowGoblin"],
+      enemies: ["slime", "goblinScout", "mushroomMonster", "spiderMonster", "skeletonArcher", "skeletonWarrior", "zombie"],
       boss: "Hộ Vệ Vương Miện Rễ"
     },
     {
@@ -396,7 +479,7 @@
       haze: "rgba(80, 180, 230, 0.15)",
       music: [82.41, 123.47, 164.81, 220],
       hazards: ["ice"],
-      enemies: ["shadowGoblin"],
+      enemies: ["iceSlime", "iceGolem", "skeletonArcher", "skeletonWarrior", "zombie", "necromancer", "crystalBeast"],
       boss: "Thánh Đen Mùa Đông"
     },
     {
@@ -408,8 +491,8 @@
       haze: "rgba(210, 70, 25, 0.15)",
       music: [98, 130.81, 185, 246.94],
       hazards: ["lava"],
-      enemies: ["shadowGoblin"],
-      boss: "Varkul, Bạo Chúa Lò Lửa"
+      enemies: ["fireSlime", "fireDemon", "goblinBomber", "batDemon", "stoneGolem", "darkKnight"],
+      boss: "Dragon Boss"
     },
     {
       id: "neon",
@@ -420,7 +503,7 @@
       haze: "rgba(80, 80, 220, 0.16)",
       music: [123.47, 155.56, 207.65, 311.13],
       hazards: ["voltage"],
-      enemies: ["shadowGoblin"],
+      enemies: ["shadowSpirit", "crystalBeast", "batDemon", "goblinScout", "necromancer", "darkKnight"],
       boss: "Tín Hiệu Săn Mồi"
     },
     {
@@ -432,7 +515,7 @@
       haze: "rgba(210, 180, 85, 0.14)",
       music: [73.42, 110, 146.83, 196],
       hazards: ["blade"],
-      enemies: ["shadowGoblin"],
+      enemies: ["skeletonWarrior", "skeletonArcher", "necromancer", "darkKnight", "stoneGolem", "shadowSpirit"],
       boss: "Astrax, Thần Tượng Cuối"
     }
   ];
@@ -10103,17 +10186,17 @@
     }
 
     createEnemy(kind, x, y, elite = false) {
-      const designedGoblin = /shadowGoblin/i.test(kind);
-      const ranged = !designedGoblin && /Archer|Marksman|Caster|Acolyte|Seer|Shaman|Bomber/.test(kind);
-      const bulky = !designedGoblin && /Knight|Bulwark|Brute|Guard|Ogre|Warden/.test(kind);
-      const role = designedGoblin ? "stalker" : this.enemyRole(kind, ranged, bulky);
-      const hpBase = designedGoblin ? 82 : role === "guard" ? 104 : role === "brute" ? 94 : role === "bomber" ? 68 : role === "skirmisher" ? 64 : ranged ? 60 : 74;
-      const size = designedGoblin ? 23 : bulky ? 28 : role === "bomber" ? 22 : ranged ? 20 : role === "duelist" || role === "skirmisher" ? 22 : 23;
-      const speedBase = designedGoblin ? 88 : role === "skirmisher" ? 102 : role === "duelist" ? 94 : role === "bomber" ? 58 : role === "caster" ? 66 : role === "marksman" ? 72 : role === "guard" ? 56 : role === "brute" ? 64 : 84;
-      const damageBase = designedGoblin ? 22 : role === "caster" ? 15 : role === "bomber" ? 17 : role === "marksman" ? 16 : role === "guard" ? 22 : role === "brute" ? 24 : role === "skirmisher" ? 17 : 19;
+      const design = MONSTER_TYPES[kind] || MONSTER_TYPES.shadowGoblin;
+      const ranged = Boolean(design.ranged);
+      const bulky = Boolean(design.bulky);
+      const role = design.role || this.enemyRole(kind, ranged, bulky);
+      const hpBase = Number(design.hp || 74);
+      const size = Number(design.size || 23);
+      const speedBase = Number(design.speed || 84);
+      const damageBase = Number(design.damage || 18);
       return {
         id: uid("enemy"),
-        kind: designedGoblin ? "shadowGoblin" : kind,
+        kind: design === MONSTER_TYPES.shadowGoblin && !MONSTER_TYPES[kind] ? "shadowGoblin" : kind,
         x,
         y,
         vx: 0,
@@ -10124,13 +10207,13 @@
         speed: speedBase * (elite ? 1.04 : 1),
         damage: (damageBase + this.run.stage * 3.0) * (this.run.difficulty?.enemyDamage || 1),
         role,
-        specialSkill: designedGoblin ? "melee" : this.enemySpecialSkill(role),
+        specialSkill: design.specialSkill || this.enemySpecialSkill(role),
         ranged,
         bulky,
         elite,
         boss: false,
-        attackCd: designedGoblin ? rand(0.12, 0.62) : rand(0.4, 1.4),
-        skillCd: designedGoblin ? 999 : rand(1.2, 2.8),
+        attackCd: rand(0.18, 1.2),
+        skillCd: design.specialSkill === "melee" ? 999 : rand(1.0, 2.7),
         windupType: "",
         windupTime: 0,
         windupTotal: 0,
@@ -16420,7 +16503,7 @@
       const d = Math.hypot(p.x - enemy.x, p.y - enemy.y);
       const a = Math.atan2(p.y - enemy.y, p.x - enemy.x);
       enemy.facingDir = p.x >= enemy.x ? 1 : -1;
-      const designedGoblin = /shadowGoblin/i.test(enemy.kind || "");
+      const monsterDesign = MONSTER_TYPES[enemy.kind || ""] || null;
       const slow = (enemy.chill > 0 ? 0.48 : 1) * (enemy.weighted > 0 ? 0.82 : 1);
       enemy.attackCd -= dt;
       enemy.skillCd = Math.max(0, (enemy.skillCd || 0) - dt);
@@ -16433,7 +16516,7 @@
       }
 
       if (enemy.ranged) {
-        const desired = enemy.role === "marksman" ? 360 : enemy.role === "bomber" ? 280 : enemy.role === "caster" ? 300 : 320;
+        const desired = Number(monsterDesign?.range || (enemy.role === "marksman" ? 360 : enemy.role === "bomber" ? 280 : enemy.role === "caster" ? 300 : 320));
         if (d < desired - 40) {
           this.steerEnemy(enemy, -Math.cos(a) * enemy.speed * slow, -Math.sin(a) * enemy.speed * slow, dt, 9);
         } else if (d > desired + 40) {
@@ -16462,7 +16545,8 @@
         }
       } else {
         const contact = enemy.radius + p.radius;
-        const desired = contact + (designedGoblin ? 18 : enemy.role === "guard" ? 62 : enemy.role === "duelist" ? 58 : enemy.role === "skirmisher" ? 72 : 42);
+        const basicReach = Number(monsterDesign?.reach || (enemy.role === "guard" ? 42 : enemy.role === "duelist" ? 40 : enemy.role === "skirmisher" ? 36 : 34));
+        const desired = contact + Math.max(14, basicReach - 12);
         if (d > desired + 8) {
           this.steerEnemy(enemy, Math.cos(a) * enemy.speed * slow, Math.sin(a) * enemy.speed * slow, dt, 8);
         } else if (d < desired - 8) {
@@ -16495,13 +16579,12 @@
             return;
           }
         }
-        const basicReach = designedGoblin ? 38 : 22;
         if (d < contact + basicReach && enemy.attackCd <= 0) {
-          enemy.attackCd = designedGoblin ? (enemy.elite ? 0.92 : 1.18) : enemy.role === "skirmisher" ? (enemy.elite ? 0.78 : 1.0) : enemy.role === "duelist" ? (enemy.elite ? 0.82 : 1.08) : enemy.elite ? 0.82 : 1.1;
-          enemy.attackAnim = designedGoblin ? 0.36 : 0.32;
+          enemy.attackCd = enemy.role === "skirmisher" ? (enemy.elite ? 0.78 : 1.0) : enemy.role === "duelist" ? (enemy.elite ? 0.82 : 1.08) : enemy.elite ? 0.86 : 1.14;
+          enemy.attackAnim = 0.34;
           enemy.attackDir = a;
-          this.damageCombatTarget(p, enemy.damage * (designedGoblin ? 0.9 : enemy.role === "brute" ? 1.05 : enemy.role === "skirmisher" ? 0.76 : 0.92), enemy);
-          if (designedGoblin) {
+          this.damageCombatTarget(p, enemy.damage * (enemy.role === "brute" ? 1.05 : enemy.role === "skirmisher" ? 0.78 : 0.92), enemy);
+          if (monsterDesign) {
             this.addEffect({
               type: "lineTell",
               x: enemy.x,
@@ -16511,13 +16594,13 @@
               width: enemy.elite ? 34 : 28,
               time: 0.08,
               maxTime: 0.08,
-              color: enemy.elite ? "#ffbd5e" : "#ff2338",
+              color: enemy.elite ? "#ffbd5e" : (monsterDesign.palette?.accent || "#ff2338"),
               damage: 0,
               owner: "enemy"
             });
           }
-          enemy.vx -= Math.cos(a) * (designedGoblin ? 92 : 120);
-          enemy.vy -= Math.sin(a) * (designedGoblin ? 92 : 120);
+          enemy.vx -= Math.cos(a) * 96;
+          enemy.vy -= Math.sin(a) * 96;
         }
       }
     }
@@ -16583,6 +16666,14 @@
       }
       if (type === "orbNova") {
         this.addEffect({ type: "danger", x: enemy.x, y: enemy.y, radius: enemy.elite ? 118 : 96, time, color, damage: enemy.damage * 0.45 });
+      }
+      if (type === "summonSkeleton") {
+        const radius = enemy.elite ? 126 : 104;
+        this.addEffect({ type: "danger", x: targetX || enemy.x, y: targetY || enemy.y, radius, time: time + 0.12, color: "#a169ff", damage: enemy.damage * 0.34 });
+        for (let i = 0; i < 3; i++) {
+          const a = angle + (i - 1) * 0.74;
+          this.addParticle(enemy.x + Math.cos(a) * 22, enemy.y + Math.sin(a) * 18, "#d7c4ff", 10, 0.5, "ring", a, 70);
+        }
       }
       if (type === "bombZone") {
         const radius = enemy.elite ? 84 : 68;
@@ -16741,6 +16832,22 @@
             pierce: 0,
             kind: "enemyOrb"
           });
+        }
+      }
+      if (type === "summonSkeleton") {
+        const currentMinions = this.run.enemies.filter((entry) => entry.kind === "skeletonWarrior" || entry.kind === "skeletonArcher").length;
+        const count = Math.min(enemy.elite ? 3 : 2, Math.max(0, 8 - currentMinions));
+        for (let i = 0; i < count; i++) {
+          const a = angle + (i - (count - 1) / 2) * 0.8;
+          const x = clamp(enemy.x + Math.cos(a) * 82, ROOM_PAD + 80, WORLD_W - ROOM_PAD - 80);
+          const y = clamp(enemy.y + Math.sin(a) * 82, ROOM_PAD + 80, WORLD_H - ROOM_PAD - 80);
+          const minion = this.createEnemy(i % 2 ? "skeletonArcher" : "skeletonWarrior", x, y, false);
+          minion.hp *= 0.66;
+          minion.maxHp *= 0.66;
+          minion.damage *= 0.72;
+          minion.skillCd = Math.max(minion.skillCd || 0, 1.6);
+          this.run.enemies.push(minion);
+          this.addShockwave(x, y, 52, "#a169ff", 0, { owner: "enemy" });
         }
       }
     }
@@ -21920,20 +22027,22 @@
 
     enemySpritePalette(enemy, color, accent) {
       const kind = `${enemy.kind || ""}`;
-      if (/shadowGoblin/i.test(kind)) {
+      const monster = MONSTER_TYPES[kind];
+      if (monster?.palette) {
+        const p = monster.palette;
         return {
-          outline: enemy.flash > 0 ? "#ffffff" : "#0d0514",
-          dark: "#1f0e38",
-          shadow: "#05030a",
-          armor: "#5d36a0",
-          metal: "#e7d7ff",
-          bone: "#ead7ff",
-          eye: enemy.flash > 0 ? "#0b0d13" : "#ff2338",
-          danger: "#ff2338",
-          base: "#3d1c62",
-          baseDark: "#201038",
-          accent: "#ff2338",
-          glow: enemy.elite ? "#ffbd5e" : "#ff4058"
+          outline: enemy.flash > 0 ? "#ffffff" : (p.outline || "#070a10"),
+          dark: p.dark || p.baseDark || "#101018",
+          shadow: p.shadow || "#05070c",
+          armor: p.armor || p.baseDark || "#4a5361",
+          metal: p.metal || "#dfe8ef",
+          bone: p.bone || "#f3ead7",
+          eye: enemy.flash > 0 ? "#0b0d13" : (p.eye || "#fff0a8"),
+          danger: p.danger || "#ff4655",
+          base: p.base || color,
+          baseDark: p.baseDark || "#25482f",
+          accent: p.accent || accent,
+          glow: enemy.elite ? "#ffbd5e" : (p.glow || p.accent || accent)
         };
       }
       const biomeId = this.run?.biome?.id || "";
@@ -22002,7 +22111,237 @@
       return true;
     }
 
+    drawDesignedMonsterSprite(ctx, enemy, palette, variant = 0) {
+      const kind = enemy.kind || "";
+      if (!MONSTER_TYPES[kind]) return false;
+      const pulse = Math.round(Math.sin(this.menuTime * 5 + variant * 1.7) * 1);
+      const lunge = enemy.attackAnim > 0 ? Math.round(Math.sin(clamp(enemy.attackAnim / 0.36, 0, 1) * Math.PI) * 3) : 0;
+      const b = (x, y, w, h, color, alpha = 1) => this.spriteBlock(ctx, x, y, w, h, color, alpha);
+      const eyes = (x1, x2, y, color = palette.eye) => {
+        b(x1, y, 4, 4, palette.outline);
+        b(x2, y, 4, 4, palette.outline);
+        b(x1 + 1, y + 1, 2, 2, color);
+        b(x2 + 1, y + 1, 2, 2, color);
+      };
+      const legs = (y = 13) => {
+        b(-10, y, 8, 8, palette.outline);
+        b(2, y, 8, 8, palette.outline);
+        b(-8, y, 5, 5, palette.baseDark);
+        b(4, y, 5, 5, palette.baseDark);
+      };
+      ctx.save();
+      ctx.translate((MONSTER_TYPES[kind].flying ? 0 : lunge), pulse - (MONSTER_TYPES[kind].flying ? 7 + Math.sin(this.menuTime * 4 + variant) * 3 : 0));
+      b(-24, 17, 48, 6, palette.shadow, MONSTER_TYPES[kind].flying ? 0.22 : 0.42);
+
+      if (kind === "skeletonArcher") {
+        b(-9, -28, 18, 18, palette.outline);
+        b(-7, -26, 14, 14, palette.bone);
+        eyes(-6, 2, -21, palette.eye);
+        b(-5, -9, 10, 22, palette.bone);
+        b(-16, -5, 7, 18, palette.bone);
+        b(9, -5, 7, 18, palette.bone);
+        legs(12);
+        b(-19, -14, 6, 28, palette.armor);
+        b(16, -18, 4, 35, palette.metal);
+        b(20, -16, 8, 4, palette.bone);
+        b(20, 10, 8, 4, palette.bone);
+        b(27, -10, 4, 20, palette.accent);
+      } else if (kind === "skeletonWarrior") {
+        b(-12, -30, 24, 21, palette.outline);
+        b(-9, -27, 18, 16, palette.bone);
+        eyes(-7, 3, -22, palette.eye);
+        b(-10, -10, 20, 28, palette.bone);
+        b(-14, -6, 28, 13, palette.armor);
+        b(-24, -14, 14, 31, palette.metal);
+        b(-21, -8, 8, 20, palette.armor);
+        b(13, -17, 5, 36, palette.metal);
+        b(18, -24, 5, 14, palette.accent);
+        legs(15);
+      } else if (kind === "slime" || kind === "fireSlime" || kind === "iceSlime") {
+        b(-19, -7, 38, 24, palette.outline, 0.88);
+        b(-15, -13, 30, 34, palette.baseDark, 0.82);
+        b(-18, -4, 36, 20, palette.base, kind === "slime" ? 0.72 : 0.9);
+        b(-10, -2, 5, 5, palette.eye);
+        b(5, -2, 5, 5, palette.eye);
+        b(-6, 8, 12, 2, palette.outline, 0.7);
+        b(-10, -9, 7, 4, "#ffffff", 0.38);
+        if (kind === "fireSlime") {
+          b(-5, -26, 10, 16, palette.outline);
+          b(-3, -24, 7, 13, palette.accent);
+          b(0, -21, 4, 8, "#fff0a8");
+        }
+        if (kind === "iceSlime") {
+          b(-5, -15, 10, 14, palette.outline);
+          b(-3, -13, 6, 10, palette.accent);
+          b(-8, -17, 16, 3, "#dffaff");
+        }
+      } else if (kind === "goblinScout") {
+        b(-13, -24, 26, 23, palette.outline);
+        b(-10, -21, 20, 19, palette.base);
+        b(-12, -25, 6, 8, palette.baseDark);
+        b(6, -25, 6, 8, palette.baseDark);
+        eyes(-7, 3, -16);
+        b(-11, -2, 22, 21, palette.armor);
+        b(12, -7, 24, 5, palette.metal);
+        b(31, -10, 6, 11, palette.bone);
+        legs(14);
+      } else if (kind === "goblinBomber") {
+        b(-14, -23, 28, 22, palette.outline);
+        b(-11, -20, 22, 18, palette.base);
+        eyes(-7, 3, -15, palette.eye);
+        b(-12, -2, 24, 21, palette.armor);
+        b(12, -19, 22, 22, palette.outline);
+        b(15, -16, 17, 17, palette.metal);
+        b(20, -23, 5, 8, palette.accent);
+        b(24, -26, 5, 5, "#ffd166");
+        legs(14);
+      } else if (kind === "batDemon") {
+        b(-38, -15, 28, 26, palette.outline);
+        b(10, -15, 28, 26, palette.outline);
+        b(-34, -10, 24, 18, palette.baseDark);
+        b(10, -10, 24, 18, palette.baseDark);
+        b(-13, -22, 26, 32, palette.outline);
+        b(-10, -19, 20, 26, palette.base);
+        b(-9, -28, 6, 10, palette.outline);
+        b(3, -28, 6, 10, palette.outline);
+        eyes(-6, 2, -14);
+        b(-4, -5, 3, 7, palette.bone);
+        b(2, -5, 3, 7, palette.bone);
+      } else if (kind === "spiderMonster") {
+        b(-20, -13, 40, 26, palette.outline);
+        b(-16, -10, 32, 20, palette.baseDark);
+        b(-10, -18, 20, 17, palette.base);
+        eyes(-7, 3, -12);
+        for (const side of [-1, 1]) {
+          for (let i = 0; i < 4; i++) {
+            b(side * (14 + i * 5), -8 + i * 4, 10, 3, palette.outline);
+            b(side * (20 + i * 5), -5 + i * 4, 9, 3, palette.base);
+          }
+        }
+        b(-4, 2, 8, 3, palette.accent);
+      } else if (kind === "mushroomMonster") {
+        b(-21, -31, 42, 18, palette.outline);
+        b(-18, -28, 36, 14, palette.accent);
+        b(-12, -34, 24, 7, "#ffd6df");
+        b(-11, -14, 22, 31, palette.outline);
+        b(-8, -12, 16, 27, palette.base);
+        eyes(-6, 2, -5, palette.eye);
+        b(-12, 13, 8, 7, palette.baseDark);
+        b(4, 13, 8, 7, palette.baseDark);
+      } else if (kind === "shadowSpirit") {
+        b(-15, -28, 30, 39, palette.outline, 0.82);
+        b(-12, -25, 24, 35, palette.baseDark, 0.75);
+        b(-17, -9, 34, 19, palette.base, 0.58);
+        eyes(-7, 3, -16, palette.eye);
+        b(-11, 8, 7, 12, palette.baseDark, 0.42);
+        b(-1, 8, 7, 15, palette.base, 0.42);
+        b(8, 7, 6, 10, palette.accent, 0.35);
+      } else if (kind === "zombie") {
+        b(-14, -28, 28, 24, palette.outline);
+        b(-11, -25, 22, 20, palette.base);
+        eyes(-7, 3, -17, palette.eye);
+        b(-13, -5, 26, 27, palette.outline);
+        b(-10, -3, 20, 24, palette.armor);
+        b(-12, 3, 8, 4, palette.accent);
+        b(5, 10, 8, 4, palette.accent);
+        b(-20, -5, 8, 24, palette.base);
+        b(12, -2, 8, 20, palette.base);
+        legs(16);
+      } else if (kind === "darkKnight") {
+        b(-17, -34, 34, 33, palette.outline);
+        b(-14, -31, 28, 28, palette.armor);
+        b(-10, -21, 20, 6, palette.eye);
+        b(-17, -3, 34, 27, palette.outline);
+        b(-13, 0, 26, 22, palette.base);
+        b(-2, 0, 4, 22, palette.accent);
+        b(15, -25, 7, 55, palette.metal);
+        b(21, -35, 8, 18, palette.accent);
+        legs(17);
+      } else if (kind === "stoneGolem" || kind === "iceGolem") {
+        b(-22, -30, 44, 51, palette.outline);
+        b(-18, -26, 36, 43, palette.baseDark);
+        b(-23, -5, 46, 22, palette.base);
+        b(-7, -13, 14, 14, palette.accent);
+        eyes(-10, 6, -20, palette.eye);
+        b(-35, -9, 14, 31, palette.outline);
+        b(21, -9, 14, 31, palette.outline);
+        b(-33, -6, 10, 24, palette.base);
+        b(23, -6, 10, 24, palette.base);
+        legs(18);
+        if (kind === "iceGolem") {
+          b(-14, -37, 9, 13, palette.accent);
+          b(5, -37, 9, 13, palette.accent);
+        }
+      } else if (kind === "fireDemon") {
+        b(-16, -27, 32, 31, palette.outline);
+        b(-13, -24, 26, 26, palette.base);
+        b(-13, -35, 7, 13, palette.outline);
+        b(6, -35, 7, 13, palette.outline);
+        b(-10, -38, 5, 8, palette.accent);
+        b(5, -38, 5, 8, palette.accent);
+        eyes(-7, 3, -17, palette.eye);
+        b(-13, 1, 26, 21, palette.baseDark);
+        b(-4, -8, 8, 15, palette.accent, 0.8);
+        legs(15);
+      } else if (kind === "necromancer") {
+        b(-18, -32, 36, 48, palette.outline);
+        b(-14, -28, 28, 44, palette.baseDark);
+        b(-10, -21, 20, 12, palette.base);
+        eyes(-6, 2, -16, palette.eye);
+        b(-7, -4, 14, 22, palette.armor);
+        b(17, -35, 5, 54, palette.metal);
+        b(12, -42, 15, 15, palette.accent);
+        b(15, -39, 9, 9, "#ffffff", 0.6);
+      } else if (kind === "werewolf") {
+        b(-16, -30, 32, 27, palette.outline);
+        b(-13, -27, 26, 23, palette.base);
+        b(-13, -36, 8, 12, palette.outline);
+        b(5, -36, 8, 12, palette.outline);
+        b(10, -20, 10, 9, palette.outline);
+        eyes(-7, 3, -19, palette.eye);
+        b(-5, -11, 10, 4, palette.bone);
+        b(-15, -4, 30, 25, palette.baseDark);
+        b(-22, -3, 12, 19, palette.outline);
+        b(10, -3, 12, 19, palette.outline);
+        b(-27, 7, 9, 3, palette.bone);
+        b(18, 7, 9, 3, palette.bone);
+        legs(15);
+      } else if (kind === "crystalBeast") {
+        b(-23, -19, 46, 34, palette.outline);
+        b(-19, -16, 38, 28, palette.baseDark);
+        b(-12, -29, 9, 15, palette.accent);
+        b(3, -31, 10, 17, palette.armor);
+        b(-27, -9, 10, 13, palette.outline);
+        b(17, -9, 10, 13, palette.outline);
+        eyes(-7, 3, -8, palette.eye);
+        b(-16, 12, 8, 8, palette.base);
+        b(8, 12, 8, 8, palette.base);
+      } else if (kind === "shadowGoblin") {
+        b(-18, -17, 36, 35, palette.outline);
+        b(-14, -25, 28, 43, palette.baseDark);
+        b(-18, -10, 36, 25, palette.base);
+        b(-14, -33, 8, 14, palette.outline);
+        b(6, -33, 8, 14, palette.outline);
+        b(-11, -37, 6, 9, palette.bone);
+        b(5, -37, 6, 9, palette.bone);
+        b(-16, -24, 32, 11, palette.armor);
+        eyes(-9, 4, -20, palette.eye);
+        b(-25 - lunge, -6, 12, 5, palette.outline);
+        b(13 + lunge, -6, 12, 5, palette.outline);
+        legs(13);
+      }
+
+      if (enemy.elite && !enemy.boss) {
+        b(-20, -38, 6, 6, palette.glow);
+        b(14, -38, 6, 6, palette.glow);
+        b(-5, -44, 10, 5, "#fff0a8");
+      }
+      ctx.restore();
+      return true;
+    }
+
     drawPixelMonsterSprite(ctx, enemy, palette, variant = 0) {
+      if (this.drawDesignedMonsterSprite(ctx, enemy, palette, variant)) return;
       if (/shadowGoblin/i.test(enemy.kind || "")) {
         const pulse = Math.round(Math.sin(this.menuTime * 5 + variant * 1.7) * 1);
         const lunge = enemy.attackAnim > 0 ? Math.round(Math.sin(clamp(enemy.attackAnim / 0.36, 0, 1) * Math.PI) * 3) : 0;
@@ -22162,8 +22501,88 @@
       const raidPower = enemy.raidPowerId ? powerById(enemy.raidPowerId) : null;
       const accent = raidPower?.color || palette.accent;
       const pulse = Math.round(Math.sin(this.menuTime * 4 + variant) * 1);
+      const bossKind = `${enemy.kind || ""}`;
       ctx.save();
       ctx.translate(0, pulse);
+      if (/dragon boss/i.test(bossKind)) {
+        const b = (x, y, w, h, color, alpha = 1) => this.spriteBlock(ctx, x, y, w, h, color, alpha);
+        const wingLift = Math.round(Math.sin(this.menuTime * 5.2 + variant) * 2);
+        const attackSnap = enemy.attackAnim > 0 ? Math.round(Math.sin(clamp(enemy.attackAnim / 0.38, 0, 1) * Math.PI) * 5) : 0;
+        const outline = "#12070a";
+        const dark = "#5a1016";
+        const base = enemy.flash > 0 ? "#ffffff" : "#c92d24";
+        const light = "#ff6b3a";
+        const ember = "#ffd166";
+        const gold = "#f0c35a";
+        const wing = "#3b0d15";
+        b(-48, 34, 96, 10, palette.shadow, 0.56);
+
+        b(-64, -4, 32, 11, outline);
+        b(-76, 0, 24, 8, outline);
+        b(-70, 2, 20, 5, dark);
+        b(-57, -1, 26, 7, light);
+        b(-83, -3, 9, 6, gold);
+
+        b(-59, -39 + wingLift, 41, 54, outline);
+        b(-53, -31 + wingLift, 31, 42, wing);
+        b(-46, -22 + wingLift, 22, 30, dark);
+        b(-36, -10 + wingLift, 12, 18, light, 0.62);
+        b(18, -39 - wingLift, 41, 54, outline);
+        b(22, -31 - wingLift, 31, 42, wing);
+        b(24, -22 - wingLift, 22, 30, dark);
+        b(24, -10 - wingLift, 12, 18, light, 0.62);
+
+        b(-25, -29, 50, 58, outline);
+        b(-20, -25, 40, 51, dark);
+        b(-16, -17, 32, 38, base);
+        b(-8, -5, 16, 20, light);
+        b(-5, 0, 10, 10, ember, 0.82);
+
+        b(-31, -56, 62, 36, outline);
+        b(-26, -52, 52, 29, base);
+        b(-20, -47, 40, 16, light);
+        b(-17, -68, 9, 17, outline);
+        b(8, -68, 9, 17, outline);
+        b(-15, -65, 7, 12, gold);
+        b(8, -65, 7, 12, gold);
+        b(-34, -49, 10, 15, outline);
+        b(24, -49, 10, 15, outline);
+        b(-29, -44, 8, 9, gold);
+        b(21, -44, 8, 9, gold);
+        b(-15, -40, 7, 7, outline);
+        b(8, -40, 7, 7, outline);
+        b(-13, -38, 4, 4, ember);
+        b(9, -38, 4, 4, ember);
+        b(-8, -30, 16, 5, outline);
+        b(-5, -29, 10, 2, "#fff0a8", 0.8);
+
+        b(-38, -8, 16, 39, outline);
+        b(22, -8, 16, 39, outline);
+        b(-35, -3, 11, 29, base);
+        b(24, -3, 11, 29, base);
+        b(-30, 17, 14, 11, gold);
+        b(16, 17, 14, 11, gold);
+
+        b(-19, 25, 16, 17, outline);
+        b(3, 25, 16, 17, outline);
+        b(-15, 29, 11, 10, dark);
+        b(4, 29, 11, 10, dark);
+        b(-21, 38, 20, 5, gold);
+        b(1, 38, 20, 5, gold);
+
+        if (enemy.windupTime > 0 || enemy.attackAnim > 0) {
+          const flameAlpha = enemy.windupTime > 0 ? 0.35 + (1 - enemy.windupTime / (enemy.windupTotal || 1)) * 0.5 : 0.72;
+          b(27 + attackSnap, -35, 19, 9, ember, flameAlpha);
+          b(43 + attackSnap, -32, 24, 7, light, flameAlpha * 0.82);
+          b(62 + attackSnap, -30, 16, 5, "#ff4655", flameAlpha * 0.64);
+        }
+        if (enemy.playerBoss) {
+          b(-27, -75, 54, 8, "#ff4655");
+          b(-9, -86, 18, 11, gold);
+        }
+        ctx.restore();
+        return;
+      }
       this.spriteBlock(ctx, -38, 33, 76, 9, palette.shadow, 0.5);
       this.spriteBlock(ctx, -28, -35, 56, 72, palette.outline);
       this.spriteBlock(ctx, -22, -41, 44, 76, palette.dark);
@@ -22416,6 +22835,9 @@
     }
 
     enemyColor(kind) {
+      const monsterPalette = MONSTER_TYPES[kind]?.palette;
+      if (monsterPalette?.base) return monsterPalette.base;
+      if (/dragon boss/i.test(kind || "")) return "#c92d24";
       if (/shadowGoblin/i.test(kind)) return "#7d53c4";
       if (/frost|grave|ice/i.test(kind)) return "#83e8ff";
       if (/ember|slag|chain/i.test(kind)) return "#ff6b3a";

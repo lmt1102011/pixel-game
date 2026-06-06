@@ -9,7 +9,7 @@
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
   const SIGNAL_REALTIME_RELAY_LIMIT = 2;
   const SIGNAL_REALTIME_TYPES = new Set(["state", "snapshot", "attack", "skill", "collect", "openChest", "dropItem", "damage", "chooseDoor"]);
-  const APP_VERSION = "20260606-squad-only-197";
+  const APP_VERSION = "20260606-invite-list-only-198";
   const CHANGELOG_ENTRIES = [
     {
       version: APP_VERSION,
@@ -1684,7 +1684,8 @@
       };
     }
 
-    create() {
+    create(options = {}) {
+      const quiet = Boolean(options.quiet);
       this.close();
       this.host = true;
       this.code = this.makeCode();
@@ -1697,10 +1698,10 @@
       this.lastLobbyAt = Date.now();
       this.slots = [{ ...this.playerProfile(), ready: true, vote: this.mapVote, host: true, joinedAt: this.joinedAt, seenAt: this.joinedAt }];
       this.openSignal();
-      this.openPeerJsHost();
+      this.openPeerJsHost({ quiet });
       this.game.rememberRoomCode(this.code);
-      this.game.toast(`Đã tạo phòng ${this.code}`);
-      this.renderLobbyIfVisible();
+      if (!quiet) this.game.toast(`Đã tạo phòng ${this.code}`);
+      if (!options.skipRender) this.renderLobbyIfVisible();
       this.publishDirectoryPresence(true);
     }
 
@@ -1743,7 +1744,7 @@
       try {
         this.peerJs = new Peer(this.peerJsRoomId, this.peerJsOptions());
         this.peerJs.on("open", () => {
-          this.game.toast(`Phòng ${this.code} đã sẵn sàng`);
+          if (!options.quiet) this.game.toast(`Phòng ${this.code} đã sẵn sàng`);
           this.publishDirectoryPresence(this.game.mode === "lobby");
         });
         this.peerJs.on("connection", (conn) => this.bindPeerJsConnection(conn));
@@ -5275,16 +5276,24 @@
       if (action === "close-changelog-play") this.closeChangelogAndPlay();
       if (action === "open-lobby-invites") {
         const playView = target?.dataset.view === "play" || this.mode === "play";
+        if (playView && (!this.lobby?.code || this.lobby.joinPending)) {
+          this.lobby.runMode = this.lobby.runMode || "gauntlet";
+          this.lobby.create({ quiet: true, skipRender: true });
+        }
+        if (!this.lobby?.code || this.lobby.joinPending || !this.lobby.host) {
+          this.toast("Chỉ chủ phòng mới mời bạn bè");
+          return;
+        }
         this.lobbyFriendInviteOpen = true;
-        if (playView) this.refreshValorantInvitePanel() || this.refreshValorantLobby({ fullIfMissing: true });
-        else this.renderLobby();
+        if (playView) this.refreshValorantInvitePanel();
+        else this.refreshValorantInvitePanel() || this.renderLobby();
         return;
       }
       if (action === "close-lobby-invites") {
         const playView = target?.dataset.view === "play" || this.mode === "play";
         this.lobbyFriendInviteOpen = false;
-        if (playView) this.refreshValorantInvitePanel() || this.refreshValorantLobby({ fullIfMissing: true });
-        else this.renderLobby();
+        if (playView) this.refreshValorantInvitePanel();
+        else this.refreshValorantInvitePanel() || this.renderLobby();
         return;
       }
       if (action === "add-friend") this.addFriendFromInput();
@@ -5475,7 +5484,7 @@
       const name = empty ? "OPEN SLOT" : this.lobby.slotName(slot, self ? "Bạn" : "Player");
       const tag = empty ? "INVITE" : `#${stats.tag}`;
       const statusClass = this.squadStatusClass(stats.status);
-      const inviteAction = this.lobby?.code && this.lobby.host ? "open-lobby-invites" : "play-create-room";
+      const inviteAction = "open-lobby-invites";
       return `
         <article class="valorant-member ${options.key || ""} ${self ? "self" : ""} ${leader ? "leader" : ""} ${ready ? "ready" : "not-ready"} ${empty ? "empty" : "filled"}" style="--hero:${custom.color || character.color}; --power:${power.color}; --rank:${stats.rank.color}; --char:${character.color}">
           ${leader && !empty ? `<div class="leader-crown">♛</div>` : ""}
@@ -6178,6 +6187,7 @@
     }
 
     refreshRoomInviteCooldownViews() {
+      if (this.screen?.querySelector(".lobby-invite-mount") && this.refreshValorantInvitePanel()) return;
       if (this.mode === "lobby") this.renderLobby();
       else if (this.mode === "friends") this.showFriends();
     }
@@ -6194,7 +6204,7 @@
         <div class="friend-card">
           <div>
             <h3>${username}</h3>
-            <p>${canInvite ? `Mời vào phòng ${escapeHtml(this.lobby.code)}` : "Bạn bè"}</p>
+            ${compact ? "" : `<p>${canInvite ? `Mời vào phòng ${escapeHtml(this.lobby.code)}` : "Bạn bè"}</p>`}
           </div>
           <div class="friend-actions">
             ${canInvite ? `<button class="btn primary" data-action="invite-friend" data-friend="${escapeHtml(key)}" ${inviteDisabled ? "disabled" : ""}>${inviteLabel}</button>` : ""}
@@ -6228,8 +6238,7 @@
           <div class="lobby-invite-box">
             <div class="panel-header">
               <div>
-                <h2 class="panel-title">Mời bạn bè</h2>
-                <p class="panel-subtitle">Phòng ${escapeHtml(this.lobby.code)} - chỉ hiển thị danh sách bạn bè.</p>
+                <h2 class="panel-title">Danh sách bạn bè</h2>
               </div>
               <button class="btn danger" data-action="close-lobby-invites">THOÁT</button>
             </div>

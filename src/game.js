@@ -9,7 +9,7 @@
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
   const SIGNAL_REALTIME_RELAY_LIMIT = 2;
   const SIGNAL_REALTIME_TYPES = new Set(["state", "snapshot", "attack", "skill", "collect", "openChest", "dropItem", "damage", "chooseDoor"]);
-  const APP_VERSION = "20260606-no-menu-resources-215";
+  const APP_VERSION = "20260606-aaa-friends-216";
   const CHANGELOG_ENTRIES = [
     {
       version: APP_VERSION,
@@ -2937,6 +2937,11 @@
       this.squadModeTransition = null;
       this.squadModeTransitionTimer = null;
       this.squadActionRunMode = "";
+      this.friendFilter = "all";
+      this.friendSort = "name";
+      this.friendInviteTab = "requests";
+      this.friendSearchQuery = "";
+      this.friendSelectedKey = "";
       this.roomFinderOpen = false;
       this.roomDirectoryTimer = 0;
       this.roomDirectoryBusy = false;
@@ -5596,6 +5601,50 @@
         else this.refreshValorantInvitePanel() || this.renderLobby();
         return;
       }
+      if (action === "friends-filter") {
+        this.friendFilter = target.dataset.filter || "all";
+        this.showFriends();
+        return;
+      }
+      if (action === "friends-invite-tab") {
+        this.friendInviteTab = target.dataset.tab || "requests";
+        this.showFriends();
+        return;
+      }
+      if (action === "friend-search-submit") {
+        this.refreshFriendsSearchResults();
+        return;
+      }
+      if (action === "select-friend") {
+        this.friendSelectedKey = target.dataset.friend || "";
+        this.showFriends();
+        return;
+      }
+      if (action === "add-friend-suggestion") {
+        const name = String(target.dataset.name || "").trim().slice(0, 18);
+        const input = document.getElementById("friendNameInput");
+        if (input) input.value = name;
+        this.friendSearchQuery = name;
+        this.addFriendFromInput();
+        return;
+      }
+      if (action === "friend-message") {
+        this.toast("Tin nhắn bạn bè sẽ được mở trong bản chat party");
+        return;
+      }
+      if (action === "friend-profile") {
+        this.friendSelectedKey = target.dataset.friend || this.friendSelectedKey || "";
+        this.showFriends();
+        return;
+      }
+      if (action === "friend-block") {
+        this.toast("Chặn người chơi đang được chuẩn bị");
+        return;
+      }
+      if (action === "friend-demo-action") {
+        this.toast("Đây là dữ liệu mẫu để xem giao diện");
+        return;
+      }
       if (action === "add-friend") this.addFriendFromInput();
       if (action === "accept-friend") this.acceptFriendRequest(target.dataset.friend);
       if (action === "decline-friend") this.declineFriendRequest(target.dataset.friend);
@@ -5691,6 +5740,16 @@
 
     handleInput(event) {
       const target = event.target;
+      if (target.id === "friendSearchInput" || (target.id === "friendNameInput" && this.mode === "friends")) {
+        this.friendSearchQuery = String(target.value || "").slice(0, 32);
+        this.refreshFriendsSearchResults();
+        return;
+      }
+      if (target.dataset.friendSort) {
+        this.friendSort = String(target.value || "name");
+        if (this.mode === "friends") this.showFriends();
+        return;
+      }
       if (target.dataset.setting) {
         const key = target.dataset.setting;
         if (target.dataset.settingType === "string" || target.tagName === "SELECT") this.save.settings[key] = String(target.value);
@@ -6836,6 +6895,269 @@
       `;
     }
 
+    friendStatusLabel(status = "online") {
+      return {
+        online: "Online",
+        offline: "Offline",
+        playing: "&#272;ang ch&#417;i",
+        match: "Trong tr&#7853;n",
+        party: "Trong t&#7893; &#273;&#7897;i"
+      }[status] || "Online";
+    }
+
+    friendStatusOrder(status = "online") {
+      return { online: 0, party: 1, playing: 2, match: 3, offline: 4 }[status] ?? 5;
+    }
+
+    friendProfileFromEntry(key = "", entry = {}, index = 0, options = {}) {
+      const username = String(entry?.username || options.username || key || "Player").trim() || "Player";
+      const seed = parseInt(hashText(`${key}:${username}:${index}`).slice(0, 8), 16) || (index + 3) * 977;
+      const level = Math.max(1, Math.floor(Number(options.level || entry.level || 8 + (seed % 92))));
+      const rank = this.mainMenuRank(900 + level * 86 + (seed % 6400), level);
+      const statuses = ["online", "playing", "party", "match", "offline"];
+      const status = options.status || entry.status || statuses[(seed + index) % statuses.length];
+      const id = String(options.id || entry.id || `SR-${String((seed % 9000) + 1000)}`);
+      return {
+        key,
+        username,
+        id,
+        level,
+        rank,
+        rankScore: rank.min || 0,
+        status,
+        mock: Boolean(options.mock),
+        avatar: username.slice(0, 1).toUpperCase() || "S",
+        matches: Math.max(12, Number(options.matches || 48 + (seed % 420))),
+        winRate: Math.max(31, Math.min(82, Number(options.winRate || 42 + (seed % 24)))),
+        achievements: options.achievements || ["Boss Breaker", "Rift Runner", "Power Adept"].slice(0, 1 + (seed % 3)),
+        since: Number(entry?.since || entry?.sentAt || Date.now() - seed * 10)
+      };
+    }
+
+    friendDemoProfiles() {
+      const names = [
+        "NguyenPro", "ShadowKai", "LunaAce", "RiftZero", "AkiraVN",
+        "NovaBlade", "StormT", "HanaMage", "BossHunter", "CrimsonQ",
+        "ZenithX", "FrostByte", "KuroS", "PixelLord", "AstraWing",
+        "VoidNeko", "IronWard", "SageArrow", "ThunderKid", "SolarV"
+      ];
+      const statuses = ["online", "party", "playing", "match", "offline"];
+      return names.map((username, index) => this.friendProfileFromEntry(`mock-${index}`, { username }, index, {
+        mock: true,
+        status: statuses[index % statuses.length],
+        level: 12 + index * 4 + (index % 3),
+        matches: 58 + index * 17,
+        winRate: 44 + (index % 9)
+      }));
+    }
+
+    friendProfiles() {
+      const account = this.currentAccountRecord();
+      const real = this.socialEntries(account?.friends).map(([key, friend], index) => this.friendProfileFromEntry(key, friend, index));
+      const realNames = new Set(real.map((friend) => friend.username.toLowerCase()));
+      const mock = this.friendDemoProfiles().filter((friend) => !realNames.has(friend.username.toLowerCase()));
+      return [...real, ...mock.slice(0, Math.max(0, 20 - real.length))];
+    }
+
+    filteredFriendProfiles() {
+      const query = String(this.friendSearchQuery || "").trim().toLowerCase();
+      const filter = this.friendFilter || "all";
+      const sort = this.friendSort || "name";
+      let list = this.friendProfiles();
+      if (filter !== "all") list = list.filter((friend) => friend.status === filter);
+      if (query) {
+        list = list.filter((friend) => (
+          friend.username.toLowerCase().includes(query)
+          || friend.id.toLowerCase().includes(query)
+        ));
+      }
+      list.sort((a, b) => {
+        if (sort === "level") return b.level - a.level || a.username.localeCompare(b.username, "vi");
+        if (sort === "rank") return b.rankScore - a.rankScore || b.level - a.level;
+        return a.username.localeCompare(b.username, "vi");
+      });
+      return list;
+    }
+
+    friendSearchResultsHtml(query = this.friendSearchQuery || "") {
+      const clean = String(query || "").trim();
+      if (!clean) return `<div class="friends-search-empty">Nh&#7853;p t&#234;n ho&#7863;c ID &#273;&#7875; t&#236;m ng&#432;&#7901;i ch&#417;i.</div>`;
+      const lower = clean.toLowerCase();
+      const matches = this.friendProfiles()
+        .filter((friend) => friend.username.toLowerCase().includes(lower) || friend.id.toLowerCase().includes(lower))
+        .slice(0, 4);
+      const generated = this.friendProfileFromEntry(`search-${accountKey(clean)}`, { username: clean }, 22, {
+        status: "online",
+        level: 16 + (clean.length % 40)
+      });
+      const rows = (matches.length ? matches : [generated]).map((friend) => `
+        <div class="friends-search-result" style="--rank:${friend.rank.color}">
+          <div class="friends-avatar">${escapeHtml(friend.avatar)}</div>
+          <div>
+            <b>${escapeHtml(friend.username)}</b>
+            <span>${escapeHtml(friend.id)} - LV ${friend.level} - ${friend.rank.name}</span>
+          </div>
+          <button class="friends-mini-btn primary" data-action="add-friend-suggestion" data-name="${escapeHtml(friend.username)}">Th&#234;m b&#7841;n</button>
+        </div>
+      `).join("");
+      return rows;
+    }
+
+    refreshFriendsSearchResults() {
+      const mount = this.screen?.querySelector(".friends-search-results");
+      if (mount) mount.innerHTML = this.friendSearchResultsHtml();
+    }
+
+    friendCardHtml(friend) {
+      const canInvite = Boolean(!friend.mock && this.lobby?.code && !this.lobby.joinPending && this.lobby.host);
+      const inviteLockId = `invite:${accountKey(friend.key)}:${this.lobby?.code || ""}`;
+      const invitePending = canInvite && this.socialActionLocks.has(inviteLockId);
+      const inviteCooldownLeft = canInvite ? this.roomInviteCooldownLeft(friend.key) : 0;
+      const inviteDisabled = friend.mock || !canInvite || invitePending || inviteCooldownLeft > 0;
+      const inviteLabel = friend.mock ? "M&#7901;i" : invitePending ? "&#272;ang g&#7917;i" : inviteCooldownLeft > 0 ? "&#272;&#227; m&#7901;i" : "M&#7901;i";
+      return `
+        <article class="friend-player-card ${this.friendSelectedKey === friend.key ? "selected" : ""}" style="--rank:${friend.rank.color}" data-action="select-friend" data-friend="${escapeHtml(friend.key)}">
+          <div class="friends-avatar large">${escapeHtml(friend.avatar)}</div>
+          <div class="friend-player-main">
+            <div class="friend-name-line">
+              <b>${escapeHtml(friend.username)}</b>
+              <span>${escapeHtml(friend.id)}</span>
+            </div>
+            <div class="friend-meta-line">
+              <span class="friend-rank">${friend.rank.name}</span>
+              <span>LV ${friend.level}</span>
+              <span class="friend-status ${friend.status}"><i></i>${this.friendStatusLabel(friend.status)}</span>
+            </div>
+          </div>
+          <div class="friend-card-actions">
+            <button class="friends-mini-btn primary" data-action="${friend.mock ? "friend-demo-action" : "invite-friend"}" data-friend="${escapeHtml(friend.key)}" ${inviteDisabled ? "disabled" : ""}>${inviteLabel}</button>
+            <button class="friends-mini-btn" data-action="friend-message" data-friend="${escapeHtml(friend.key)}">Chat</button>
+            <button class="friends-mini-btn" data-action="friend-profile" data-friend="${escapeHtml(friend.key)}">H&#7891; s&#417;</button>
+          </div>
+        </article>
+      `;
+    }
+
+    friendDetailHtml(friend) {
+      if (!friend) {
+        return `<aside class="friend-detail-panel"><div class="friends-empty-state">Ch&#7885;n m&#7897;t ng&#432;&#7901;i b&#7841;n &#273;&#7875; xem h&#7891; s&#417;.</div></aside>`;
+      }
+      const canInvite = Boolean(!friend.mock && this.lobby?.code && !this.lobby.joinPending && this.lobby.host);
+      return `
+        <aside class="friend-detail-panel" style="--rank:${friend.rank.color}">
+          <div class="friend-profile-banner"></div>
+          <div class="friend-profile-head">
+            <div class="friends-avatar hero">${escapeHtml(friend.avatar)}</div>
+            <div>
+              <span>H&#7890; S&#416; NG&#431;&#7900;I CH&#416;I</span>
+              <h3>${escapeHtml(friend.username)}</h3>
+              <p>${escapeHtml(friend.id)} - LV ${friend.level}</p>
+            </div>
+          </div>
+          <div class="friend-profile-rank">
+            <b>${friend.rank.name}</b>
+            <span class="friend-status ${friend.status}"><i></i>${this.friendStatusLabel(friend.status)}</span>
+          </div>
+          <div class="friend-profile-stats">
+            <div><b>${friend.matches}</b><span>S&#7889; tr&#7853;n</span></div>
+            <div><b>${friend.winRate}%</b><span>T&#7881; l&#7879; th&#7855;ng</span></div>
+            <div><b>${friend.achievements.length}</b><span>Th&#224;nh t&#237;ch</span></div>
+          </div>
+          <div class="friend-achievements">
+            ${friend.achievements.map((item) => `<span>${escapeHtml(item)}</span>`).join("")}
+          </div>
+          <div class="friend-detail-actions">
+            <button class="friends-big-btn primary" data-action="${friend.mock ? "friend-demo-action" : "invite-friend"}" data-friend="${escapeHtml(friend.key)}" ${canInvite ? "" : "disabled"}>M&#7901;i v&#224;o &#273;&#7897;i</button>
+            <button class="friends-big-btn" data-action="friend-message" data-friend="${escapeHtml(friend.key)}">Nh&#7855;n tin</button>
+            <button class="friends-big-btn danger" data-action="${friend.mock ? "friend-demo-action" : "remove-friend"}" data-friend="${escapeHtml(friend.key)}" ${friend.mock ? "disabled" : ""}>X&#243;a b&#7841;n</button>
+            <button class="friends-big-btn" data-action="friend-block" data-friend="${escapeHtml(friend.key)}">Ch&#7863;n</button>
+          </div>
+        </aside>
+      `;
+    }
+
+    friendRequestProfiles() {
+      const account = this.currentAccountRecord();
+      const real = this.socialEntries(account?.friendRequests?.incoming).map(([key, request], index) => this.friendProfileFromEntry(key, request, index, { status: "online" }));
+      const names = ["MikaRaid", "BladeVN", "IcyT", "TempoMax", "RogueST"];
+      const mock = names.map((username, index) => this.friendProfileFromEntry(`mock-request-${index}`, { username }, index + 40, {
+        mock: true,
+        status: index % 2 ? "playing" : "online",
+        level: 18 + index * 6
+      }));
+      return [...real, ...mock.slice(0, Math.max(0, 5 - real.length))];
+    }
+
+    roomInviteProfiles() {
+      const account = this.currentAccountRecord();
+      const real = this.freshRoomInviteEntries(account?.roomInvites).map(([id, invite], index) => ({
+        id,
+        mock: false,
+        leader: this.friendProfileFromEntry(invite.fromKey || id, { username: invite.fromName || "Leader" }, index + 70, { status: "party" }),
+        code: invite.code,
+        members: 2 + (index % 3),
+        maxMembers: 5,
+        mode: this.roomModeLabel(this.lobby?.runMode || "gauntlet"),
+        map: "Rift Gate",
+        averageRank: "GOLD"
+      }));
+      const mock = [
+        ["NovaBlade", "A7KQ9", "V&#432;&#7907;t &#7843;i", "Forest Gate", "PLATINUM"],
+        ["StormT", "BOSS7", "&#272;&#7841;i chi&#7871;n boss", "Boss Arena", "GOLD"],
+        ["AkiraVN", "RAID2", "Raid A", "Temple Core", "DIAMOND"]
+      ].map(([leaderName, code, mode, map, averageRank], index) => ({
+        id: `mock-party-${index}`,
+        mock: true,
+        leader: this.friendProfileFromEntry(`mock-party-leader-${index}`, { username: leaderName }, index + 90, { mock: true, status: "party", level: 24 + index * 9 }),
+        code,
+        members: 2 + index,
+        maxMembers: 5,
+        mode,
+        map,
+        averageRank
+      }));
+      return [...real, ...mock.slice(0, Math.max(0, 3 - real.length))];
+    }
+
+    friendsInviteQueueHtml() {
+      const active = this.friendInviteTab || "requests";
+      const requests = this.friendRequestProfiles();
+      const parties = this.roomInviteProfiles();
+      const requestRows = requests.map((friend) => `
+        <article class="friend-request-card" style="--rank:${friend.rank.color}">
+          <div class="friends-avatar">${escapeHtml(friend.avatar)}</div>
+          <div><b>${escapeHtml(friend.username)}</b><span>LV ${friend.level} - ${friend.rank.name}</span></div>
+          <div class="friend-card-actions">
+            <button class="friends-mini-btn primary" data-action="${friend.mock ? "friend-demo-action" : "accept-friend"}" data-friend="${escapeHtml(friend.key)}">&#10003;</button>
+            <button class="friends-mini-btn" data-action="${friend.mock ? "friend-demo-action" : "decline-friend"}" data-friend="${escapeHtml(friend.key)}">&#10005;</button>
+          </div>
+        </article>
+      `).join("");
+      const partyRows = parties.map((invite) => `
+        <article class="party-invite-card" style="--rank:${invite.leader.rank.color}">
+          <div class="friends-avatar">${escapeHtml(invite.leader.avatar)}</div>
+          <div>
+            <b>${escapeHtml(invite.leader.username)}</b>
+            <span>${invite.members}/${invite.maxMembers} th&#224;nh vi&#234;n - ${invite.mode}</span>
+            <small>${invite.map} - Rank TB ${invite.averageRank}</small>
+          </div>
+          <div class="friend-card-actions">
+            <button class="friends-mini-btn primary" data-action="${invite.mock ? "friend-demo-action" : "join-friend-invite"}" data-invite="${escapeHtml(invite.id)}">Tham gia</button>
+            <button class="friends-mini-btn" data-action="${invite.mock ? "friend-demo-action" : "dismiss-room-invite"}" data-invite="${escapeHtml(invite.id)}">T&#7915; ch&#7889;i</button>
+          </div>
+        </article>
+      `).join("");
+      return `
+        <section class="friends-queue-panel">
+          <div class="friends-queue-tabs">
+            <button class="${active === "requests" ? "active" : ""}" data-action="friends-invite-tab" data-tab="requests">K&#7871;t b&#7841;n <b>${requests.length}</b></button>
+            <button class="${active === "party" ? "active" : ""}" data-action="friends-invite-tab" data-tab="party">Party <b>${parties.length}</b></button>
+          </div>
+          <div class="friends-queue-list">${active === "party" ? partyRows : requestRows}</div>
+        </section>
+      `;
+    }
+
     showFriends() {
       if (!this.hasAccount()) {
         this.showAccountGate();
@@ -6919,6 +7241,89 @@
               </div>
             </div>
           </div>
+        </section>
+      `);
+    }
+
+    showFriends() {
+      if (!this.hasAccount()) {
+        this.showAccountGate();
+        return;
+      }
+      this.mode = "friends";
+      this.roomFinderOpen = false;
+      const allFriends = this.friendProfiles();
+      const list = this.filteredFriendProfiles();
+      if (!this.friendSelectedKey || !allFriends.some((friend) => friend.key === this.friendSelectedKey)) {
+        this.friendSelectedKey = list[0]?.key || allFriends[0]?.key || "";
+      }
+      const selected = allFriends.find((friend) => friend.key === this.friendSelectedKey) || list[0] || allFriends[0] || null;
+      const filterButton = (id, label) => `
+        <button class="${(this.friendFilter || "all") === id ? "active" : ""}" data-action="friends-filter" data-filter="${id}">${label}</button>
+      `;
+      const roomHint = this.lobby?.code && this.lobby.host
+        ? `<span class="friends-room-chip">Ph&#242;ng ${escapeHtml(this.lobby.code)} &#273;ang m&#7903;</span>`
+        : `<span class="friends-room-chip muted">T&#7841;o ph&#242;ng trong CH&#416;I &#273;&#7875; m&#7901;i b&#7841;n</span>`;
+      this.setScreen(`
+        <section class="friends-arena">
+          <div class="friends-bg-grid"></div>
+          <header class="friends-topbar">
+            <div>
+              <span>SOCIAL COMMAND</span>
+              <h2>B&#7840;N B&#200;</h2>
+              <p>Qu&#7843;n l&#253; &#273;&#7897;i h&#236;nh, l&#7901;i m&#7901;i v&#224; h&#7891; s&#417; ng&#432;&#7901;i ch&#417;i.</p>
+            </div>
+            <div class="friends-top-actions">
+              ${roomHint}
+              <button class="friends-exit-btn" data-action="menu">MENU</button>
+            </div>
+          </header>
+
+          <section class="friends-search-panel">
+            <div class="friends-search-box">
+              <input id="friendNameInput" maxlength="18" value="${escapeHtml(this.friendSearchQuery || "")}" placeholder="Nh&#7853;p t&#234;n ho&#7863;c ID ng&#432;&#7901;i ch&#417;i..." autocomplete="off" />
+              <button data-action="friend-search-submit">T&#204;M</button>
+              <button class="primary" data-action="add-friend">TH&#202;M B&#7840;N</button>
+            </div>
+            <div class="friends-search-results">${this.friendSearchResultsHtml()}</div>
+          </section>
+
+          <aside class="friends-control-panel">
+            <div class="friends-filter-tabs">
+              ${filterButton("all", "T&#7845;t c&#7843;")}
+              ${filterButton("online", "Online")}
+              ${filterButton("offline", "Offline")}
+              ${filterButton("playing", "&#272;ang ch&#417;i")}
+              ${filterButton("match", "Trong tr&#7853;n")}
+            </div>
+            <label class="friends-sort-box">
+              <span>S&#7855;p x&#7871;p</span>
+              <select data-friend-sort="1">
+                <option value="name" ${(this.friendSort || "name") === "name" ? "selected" : ""}>T&#234;n</option>
+                <option value="rank" ${(this.friendSort || "name") === "rank" ? "selected" : ""}>Rank</option>
+                <option value="level" ${(this.friendSort || "name") === "level" ? "selected" : ""}>Level</option>
+              </select>
+            </label>
+            <div class="friends-stat-strip">
+              <div><b>${allFriends.length}</b><span>B&#7841;n b&#232;</span></div>
+              <div><b>${allFriends.filter((friend) => friend.status !== "offline").length}</b><span>Online</span></div>
+            </div>
+          </aside>
+
+          <main class="friends-list-panel">
+            <div class="friends-section-head">
+              <div>
+                <span>DANH S&#193;CH</span>
+                <b>${list.length} ng&#432;&#7901;i ch&#417;i</b>
+              </div>
+            </div>
+            <div class="friends-player-list">
+              ${list.length ? list.map((friend) => this.friendCardHtml(friend)).join("") : `<div class="friends-empty-state">Kh&#244;ng c&#243; b&#7841;n b&#232; ph&#249; h&#7907;p b&#7897; l&#7885;c.</div>`}
+            </div>
+          </main>
+
+          ${this.friendsInviteQueueHtml()}
+          ${this.friendDetailHtml(selected)}
         </section>
       `);
     }

@@ -9,7 +9,7 @@
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
   const SIGNAL_REALTIME_RELAY_LIMIT = 2;
   const SIGNAL_REALTIME_TYPES = new Set(["state", "snapshot", "attack", "skill", "collect", "openChest", "dropItem", "damage", "chooseDoor"]);
-  const APP_VERSION = "20260606-clean-main-menu-214";
+  const APP_VERSION = "20260606-no-menu-resources-215";
   const CHANGELOG_ENTRIES = [
     {
       version: APP_VERSION,
@@ -5140,23 +5140,6 @@
       `;
     }
 
-    mainMenuResourceBarHtml(profile) {
-      const resource = (kind, label, value) => `
-        <div class="aaa-resource ${kind}">
-          <span class="aaa-resource-icon" aria-hidden="true"></span>
-          <div><b>${this.shortNumber(value)}</b><small>${label}</small></div>
-        </div>
-      `;
-      return `
-        <div class="aaa-resource-bar">
-          ${resource("gold", "GOLD", profile.gold)}
-          ${resource("gem", "GEM", profile.gems)}
-          ${resource("energy", "ENERGY", profile.energy)}
-          ${resource("ticket", "V&#201; QUAY", profile.spins)}
-        </div>
-      `;
-    }
-
     mainMenuAccountHtml(profile) {
       return `
         <aside class="aaa-account-card" style="--rank:${profile.rank.color}">
@@ -5261,7 +5244,6 @@
           <div class="aaa-bg-particles" aria-hidden="true">
             ${Array.from({ length: 18 }, (_, i) => `<span style="--i:${i};--x:${(i * 53) % 100}%;--y:${(i * 37) % 100}%;--dur:${(4.6 + i * 0.19).toFixed(2)}s"></span>`).join("")}
           </div>
-          ${this.mainMenuResourceBarHtml(profile)}
           ${this.mainMenuAccountHtml(profile)}
           <aside class="aaa-menu-left">
             <div class="aaa-brand">

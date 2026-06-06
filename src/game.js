@@ -9,7 +9,7 @@
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
   const SIGNAL_REALTIME_RELAY_LIMIT = 2;
   const SIGNAL_REALTIME_TYPES = new Set(["state", "snapshot", "attack", "skill", "collect", "openChest", "dropItem", "damage", "chooseDoor"]);
-  const APP_VERSION = "20260606-squad-mode-settings-221";
+  const APP_VERSION = "20260606-pixel-monsters-bosses-222";
   const CHANGELOG_ENTRIES = [
     {
       version: APP_VERSION,
@@ -21714,6 +21714,270 @@
       ctx.restore();
     }
 
+    spriteBlock(ctx, x, y, w, h, color, alpha = 1) {
+      if (alpha < 1) {
+        ctx.save();
+        ctx.globalAlpha *= alpha;
+        ctx.fillStyle = color;
+        ctx.fillRect(Math.round(x), Math.round(y), Math.round(w), Math.round(h));
+        ctx.restore();
+        return;
+      }
+      ctx.fillStyle = color;
+      ctx.fillRect(Math.round(x), Math.round(y), Math.round(w), Math.round(h));
+    }
+
+    enemySpritePalette(enemy, color, accent) {
+      const kind = `${enemy.kind || ""}`;
+      const biomeId = this.run?.biome?.id || "";
+      const biomeDark = biomeId === "frozen" ? "#132436"
+        : biomeId === "lava" ? "#29110f"
+          : biomeId === "neon" ? "#17142f"
+            : biomeId === "temple" ? "#2d2818"
+              : "#132318";
+      const secondary = /frost|grave|ice/i.test(kind) ? "#dffaff"
+        : /ember|slag|chain/i.test(kind) ? "#2a1010"
+          : /rift|pulse|chrome/i.test(kind) ? "#211042"
+            : /sun|idol|obsidian/i.test(kind) ? "#4d3f1f"
+              : "#25482f";
+      return {
+        outline: enemy.flash > 0 ? "#ffffff" : "#070a10",
+        dark: enemy.boss ? "#100912" : biomeDark,
+        shadow: "#05070c",
+        armor: enemy.elite ? "#8e5d34" : "#4a5361",
+        metal: "#dfe8ef",
+        bone: "#f3ead7",
+        eye: enemy.flash > 0 ? "#0b0d13" : "#fff0a8",
+        danger: "#ff4655",
+        base: color,
+        baseDark: secondary,
+        accent,
+        glow: enemy.elite ? "#ffbd5e" : accent
+      };
+    }
+
+    drawEnemyEyes(ctx, palette, role = "stalker", angry = false) {
+      const eyeY = role === "bomber" ? -18 : role === "brute" ? -18 : -20;
+      this.spriteBlock(ctx, -10, eyeY, 5, angry ? 6 : 5, palette.eye);
+      this.spriteBlock(ctx, 5, eyeY, 5, angry ? 6 : 5, palette.eye);
+      if (angry) {
+        this.spriteBlock(ctx, -11, eyeY - 3, 7, 2, palette.outline);
+        this.spriteBlock(ctx, 4, eyeY - 3, 7, 2, palette.outline);
+      }
+      this.spriteBlock(ctx, -5, eyeY + 9, 10, 2, palette.outline, 0.85);
+    }
+
+    drawPixelMonsterSprite(ctx, enemy, palette, variant = 0) {
+      const role = enemy.role || "stalker";
+      const pulse = Math.round(Math.sin(this.menuTime * 5 + variant * 1.7) * 1);
+      ctx.save();
+      ctx.translate(0, pulse);
+      this.spriteBlock(ctx, -23, 17, 46, 6, palette.shadow, 0.42);
+      if (role === "bomber") {
+        this.spriteBlock(ctx, -19, -15, 38, 32, palette.outline);
+        this.spriteBlock(ctx, -15, -20, 30, 42, palette.baseDark);
+        this.spriteBlock(ctx, -20, -9, 40, 24, palette.base);
+        this.spriteBlock(ctx, -11, 13, 8, 8, palette.outline);
+        this.spriteBlock(ctx, 3, 13, 8, 8, palette.outline);
+        this.spriteBlock(ctx, 12, -21, 17, 23, palette.outline);
+        this.spriteBlock(ctx, 15, -18, 14, 19, "#273040");
+        this.spriteBlock(ctx, 19, -24, 4, 8, palette.metal);
+        this.spriteBlock(ctx, 23, -27, 5, 5, palette.danger);
+        this.drawEnemyEyes(ctx, palette, role, true);
+      } else if (role === "caster") {
+        this.spriteBlock(ctx, -17, -18, 34, 38, palette.outline);
+        this.spriteBlock(ctx, -13, -22, 26, 42, palette.baseDark);
+        this.spriteBlock(ctx, -20, -28, 40, 12, palette.outline);
+        this.spriteBlock(ctx, -14, -34, 28, 12, palette.base);
+        this.spriteBlock(ctx, -8, -42, 16, 10, palette.accent);
+        this.spriteBlock(ctx, 17, -32, 5, 50, palette.metal);
+        this.spriteBlock(ctx, 13, -38, 13, 13, palette.accent);
+        this.spriteBlock(ctx, 16, -35, 7, 7, "#ffffff", 0.68);
+        this.spriteBlock(ctx, -10, -18, 20, 11, palette.outline);
+        this.drawEnemyEyes(ctx, palette, role, false);
+        this.spriteBlock(ctx, -8, 15, 6, 7, palette.outline);
+        this.spriteBlock(ctx, 3, 15, 6, 7, palette.outline);
+      } else if (role === "marksman") {
+        this.spriteBlock(ctx, -18, -17, 36, 35, palette.outline);
+        this.spriteBlock(ctx, -14, -23, 28, 39, palette.baseDark);
+        this.spriteBlock(ctx, -17, -10, 34, 19, palette.base);
+        this.spriteBlock(ctx, 15, -12, 7, 27, palette.metal);
+        this.spriteBlock(ctx, 20, -7, 34, 5, palette.outline);
+        this.spriteBlock(ctx, 23, -5, 28, 3, palette.bone);
+        this.spriteBlock(ctx, 43, -11, 5, 16, palette.accent);
+        this.spriteBlock(ctx, -23, -20, 9, 12, palette.outline);
+        this.spriteBlock(ctx, 14, -20, 9, 12, palette.outline);
+        this.drawEnemyEyes(ctx, palette, role, true);
+        this.spriteBlock(ctx, -11, 13, 7, 8, palette.outline);
+        this.spriteBlock(ctx, 5, 13, 7, 8, palette.outline);
+      } else if (role === "guard") {
+        this.spriteBlock(ctx, -19, -22, 38, 42, palette.outline);
+        this.spriteBlock(ctx, -15, -27, 30, 44, palette.baseDark);
+        this.spriteBlock(ctx, -21, -8, 42, 23, palette.base);
+        this.spriteBlock(ctx, 13, -24, 28, 44, palette.outline);
+        this.spriteBlock(ctx, 17, -20, 21, 36, palette.armor);
+        this.spriteBlock(ctx, 22, -13, 11, 23, palette.accent);
+        this.spriteBlock(ctx, -25, -28, 10, 12, palette.outline);
+        this.spriteBlock(ctx, 15, -28, 10, 12, palette.outline);
+        this.drawEnemyEyes(ctx, palette, role, true);
+        this.spriteBlock(ctx, -12, 14, 8, 8, palette.outline);
+        this.spriteBlock(ctx, 4, 14, 8, 8, palette.outline);
+      } else if (role === "brute") {
+        this.spriteBlock(ctx, -23, -23, 46, 43, palette.outline);
+        this.spriteBlock(ctx, -18, -28, 36, 47, palette.baseDark);
+        this.spriteBlock(ctx, -25, -7, 50, 24, palette.base);
+        this.spriteBlock(ctx, -28, -34, 13, 16, palette.outline);
+        this.spriteBlock(ctx, 15, -34, 13, 16, palette.outline);
+        this.spriteBlock(ctx, -25, -38, 8, 8, palette.bone);
+        this.spriteBlock(ctx, 17, -38, 8, 8, palette.bone);
+        this.spriteBlock(ctx, 17, -9, 33, 10, palette.metal);
+        this.spriteBlock(ctx, 42, -14, 10, 20, palette.armor);
+        this.drawEnemyEyes(ctx, palette, role, true);
+        this.spriteBlock(ctx, -16, 15, 10, 9, palette.outline);
+        this.spriteBlock(ctx, 6, 15, 10, 9, palette.outline);
+      } else if (role === "duelist") {
+        this.spriteBlock(ctx, -17, -24, 34, 44, palette.outline);
+        this.spriteBlock(ctx, -13, -27, 26, 45, palette.baseDark);
+        this.spriteBlock(ctx, -18, -8, 36, 20, palette.base);
+        this.spriteBlock(ctx, 12, -10, 39, 4, palette.metal);
+        this.spriteBlock(ctx, 43, -15, 8, 13, palette.bone);
+        this.spriteBlock(ctx, 9, 7, 31, 4, palette.accent);
+        this.spriteBlock(ctx, -21, -29, 11, 10, palette.outline);
+        this.spriteBlock(ctx, 10, -29, 11, 10, palette.outline);
+        this.drawEnemyEyes(ctx, palette, role, true);
+        this.spriteBlock(ctx, -10, 14, 7, 8, palette.outline);
+        this.spriteBlock(ctx, 4, 14, 7, 8, palette.outline);
+      } else if (role === "skirmisher") {
+        this.spriteBlock(ctx, -16, -20, 32, 37, palette.outline);
+        this.spriteBlock(ctx, -12, -24, 24, 40, palette.baseDark);
+        this.spriteBlock(ctx, -17, -7, 34, 18, palette.base);
+        this.spriteBlock(ctx, 12, -12, 26, 3, palette.metal);
+        this.spriteBlock(ctx, 12, 8, 26, 3, palette.metal);
+        this.spriteBlock(ctx, 34, -15, 6, 8, palette.accent);
+        this.spriteBlock(ctx, 34, 6, 6, 8, palette.accent);
+        this.spriteBlock(ctx, -19, -25, 9, 9, palette.outline);
+        this.spriteBlock(ctx, 10, -25, 9, 9, palette.outline);
+        this.drawEnemyEyes(ctx, palette, role, true);
+        this.spriteBlock(ctx, -10, 12, 7, 8, palette.outline);
+        this.spriteBlock(ctx, 4, 12, 7, 8, palette.outline);
+      } else {
+        this.spriteBlock(ctx, -18, -21, 36, 39, palette.outline);
+        this.spriteBlock(ctx, -14, -25, 28, 42, palette.baseDark);
+        this.spriteBlock(ctx, -19, -7, 38, 21, palette.base);
+        this.spriteBlock(ctx, 12, -9, 24, 6, palette.metal);
+        this.spriteBlock(ctx, 29, -13, 7, 13, palette.bone);
+        this.spriteBlock(ctx, -22, -26, 9, 9, palette.outline);
+        this.spriteBlock(ctx, 13, -26, 9, 9, palette.outline);
+        this.drawEnemyEyes(ctx, palette, role, false);
+        this.spriteBlock(ctx, -12, 13, 8, 8, palette.outline);
+        this.spriteBlock(ctx, 4, 13, 8, 8, palette.outline);
+      }
+      if (enemy.elite && !enemy.boss) {
+        this.spriteBlock(ctx, -21, -33, 6, 6, palette.glow);
+        this.spriteBlock(ctx, 15, -33, 6, 6, palette.glow);
+        this.spriteBlock(ctx, -5, -39, 10, 5, palette.glow);
+      }
+      if (variant === 1) this.spriteBlock(ctx, -3, -3, 6, 14, palette.accent, 0.72);
+      if (variant === 2) this.spriteBlock(ctx, -14, -30, 28, 3, palette.accent, 0.78);
+      if (variant === 3) {
+        this.spriteBlock(ctx, -18, -15, 4, 20, palette.bone, 0.72);
+        this.spriteBlock(ctx, 14, -15, 4, 20, palette.bone, 0.72);
+      }
+      ctx.restore();
+    }
+
+    drawPixelBossSprite(ctx, enemy, palette, variant = 0) {
+      const biomeId = this.run?.biome?.id || "forest";
+      const raidPower = enemy.raidPowerId ? powerById(enemy.raidPowerId) : null;
+      const accent = raidPower?.color || palette.accent;
+      const pulse = Math.round(Math.sin(this.menuTime * 4 + variant) * 1);
+      ctx.save();
+      ctx.translate(0, pulse);
+      this.spriteBlock(ctx, -38, 33, 76, 9, palette.shadow, 0.5);
+      this.spriteBlock(ctx, -28, -35, 56, 72, palette.outline);
+      this.spriteBlock(ctx, -22, -41, 44, 76, palette.dark);
+      this.spriteBlock(ctx, -31, -12, 62, 34, palette.baseDark);
+      this.spriteBlock(ctx, -18, -30, 36, 23, palette.base);
+      this.spriteBlock(ctx, -11, -24, 8, 8, palette.eye);
+      this.spriteBlock(ctx, 3, -24, 8, 8, palette.eye);
+      this.spriteBlock(ctx, -7, -8, 14, 4, palette.outline);
+      if (biomeId === "forest") {
+        this.spriteBlock(ctx, -34, -52, 12, 31, palette.baseDark);
+        this.spriteBlock(ctx, 22, -52, 12, 31, palette.baseDark);
+        this.spriteBlock(ctx, -18, -56, 8, 22, accent);
+        this.spriteBlock(ctx, 10, -56, 8, 22, accent);
+        this.spriteBlock(ctx, -6, -65, 12, 18, palette.bone);
+        this.spriteBlock(ctx, -45, -5, 19, 44, palette.outline);
+        this.spriteBlock(ctx, 26, -5, 19, 44, palette.outline);
+        this.spriteBlock(ctx, -41, 0, 12, 34, palette.base);
+        this.spriteBlock(ctx, 29, 0, 12, 34, palette.base);
+        for (let i = 0; i < 4; i++) this.spriteBlock(ctx, -28 + i * 18, 20 + (i % 2) * 5, 10, 25, accent, 0.7);
+      } else if (biomeId === "frozen") {
+        this.spriteBlock(ctx, -32, -55, 16, 25, "#0b0d13");
+        this.spriteBlock(ctx, 16, -55, 16, 25, "#0b0d13");
+        this.spriteBlock(ctx, -21, -63, 12, 31, accent);
+        this.spriteBlock(ctx, 9, -63, 12, 31, accent);
+        this.spriteBlock(ctx, -4, -72, 8, 31, "#dffaff");
+        this.spriteBlock(ctx, -44, -8, 14, 48, palette.outline);
+        this.spriteBlock(ctx, 30, -8, 14, 48, palette.outline);
+        this.spriteBlock(ctx, -39, -1, 8, 34, accent, 0.72);
+        this.spriteBlock(ctx, 31, -1, 8, 34, accent, 0.72);
+        this.spriteBlock(ctx, -18, 21, 36, 6, "#dffaff", 0.55);
+      } else if (biomeId === "lava") {
+        this.spriteBlock(ctx, -38, -49, 18, 28, palette.outline);
+        this.spriteBlock(ctx, 20, -49, 18, 28, palette.outline);
+        this.spriteBlock(ctx, -34, -45, 11, 20, "#ff944d");
+        this.spriteBlock(ctx, 23, -45, 11, 20, "#ff944d");
+        this.spriteBlock(ctx, -14, -2, 28, 25, "#ff6b3a");
+        this.spriteBlock(ctx, -8, 4, 16, 13, "#ffd700", 0.85);
+        this.spriteBlock(ctx, -52, -4, 24, 38, palette.outline);
+        this.spriteBlock(ctx, 28, -4, 24, 38, palette.outline);
+        this.spriteBlock(ctx, -49, 1, 15, 30, "#6d2418");
+        this.spriteBlock(ctx, 34, 1, 15, 30, "#6d2418");
+        this.spriteBlock(ctx, -4, -61, 8, 16, "#ffd700");
+      } else if (biomeId === "neon") {
+        this.spriteBlock(ctx, -36, -56, 11, 34, accent);
+        this.spriteBlock(ctx, 25, -56, 11, 34, accent);
+        this.spriteBlock(ctx, -45, -39, 12, 11, palette.eye);
+        this.spriteBlock(ctx, 33, -39, 12, 11, palette.eye);
+        this.spriteBlock(ctx, -50, -1, 19, 39, palette.outline);
+        this.spriteBlock(ctx, 31, -1, 19, 39, palette.outline);
+        this.spriteBlock(ctx, -45, 5, 11, 29, "#221042");
+        this.spriteBlock(ctx, 34, 5, 11, 29, "#221042");
+        this.spriteBlock(ctx, -20, -3, 40, 5, accent, 0.9);
+        this.spriteBlock(ctx, -12, 9, 24, 5, palette.eye, 0.78);
+        this.spriteBlock(ctx, -3, -69, 6, 22, accent);
+      } else {
+        this.spriteBlock(ctx, -35, -51, 70, 11, palette.outline);
+        this.spriteBlock(ctx, -29, -57, 58, 9, accent);
+        this.spriteBlock(ctx, -48, -3, 18, 42, palette.outline);
+        this.spriteBlock(ctx, 30, -3, 18, 42, palette.outline);
+        this.spriteBlock(ctx, -43, 2, 10, 32, "#4d3f1f");
+        this.spriteBlock(ctx, 33, 2, 10, 32, "#4d3f1f");
+        this.spriteBlock(ctx, -15, -3, 30, 31, palette.armor);
+        this.spriteBlock(ctx, -8, 4, 16, 14, accent, 0.78);
+        this.spriteBlock(ctx, -5, -66, 10, 18, palette.bone);
+      }
+      if (enemy.playerBoss) {
+        this.spriteBlock(ctx, -26, -70, 52, 9, "#ff4655");
+        this.spriteBlock(ctx, -16, -79, 10, 12, "#ffbd5e");
+        this.spriteBlock(ctx, 6, -79, 10, 12, "#ffbd5e");
+      }
+      if (raidPower) {
+        this.spriteBlock(ctx, -9, -2, 18, 18, accent, 0.86);
+        this.spriteBlock(ctx, -4, 3, 8, 8, raidPower.accent || "#ffffff", 0.82);
+      } else {
+        this.spriteBlock(ctx, -7, -2, 14, 16, accent, 0.78);
+      }
+      this.spriteBlock(ctx, -35, 29, 16, 11, palette.outline);
+      this.spriteBlock(ctx, 19, 29, 16, 11, palette.outline);
+      if (variant % 2 === 1) {
+        this.spriteBlock(ctx, -29, -32, 7, 11, palette.bone, 0.72);
+        this.spriteBlock(ctx, 22, -32, 7, 11, palette.bone, 0.72);
+      }
+      ctx.restore();
+    }
+
     drawEnemy(ctx, enemy) {
       ctx.save();
       const lift = enemy.launch > 0 ? Math.sin((enemy.launch / (enemy.boss ? 0.12 : 0.45)) * Math.PI) * (enemy.boss ? 7 : 18) : 0;
@@ -21728,141 +21992,11 @@
       }
       ctx.scale(enemy.facingDir === -1 ? -1 : 1, 1);
       const color = enemy.flash > 0 ? "#ffffff" : enemy.elite ? "#ffbd5e" : this.enemyColor(enemy.kind);
-      const dark = enemy.boss ? "#181019" : "#151923";
       const accent = this.run.biome.accent;
       const variant = this.enemyVariant(enemy);
-      if (enemy.boss) {
-        ctx.fillStyle = accent;
-        ctx.globalAlpha = 0.16;
-        ctx.beginPath();
-        ctx.arc(0, 2, 36 + Math.sin(this.menuTime * 5) * 4, 0, TAU);
-        ctx.fill();
-        ctx.globalAlpha = 0.82;
-        ctx.fillStyle = "#0b0d13";
-        for (const side of [-1, 1]) {
-          ctx.save();
-          ctx.scale(side, 1);
-          ctx.fillRect(18, -28, 8, 26);
-          ctx.fillRect(26, -34, 7, 20);
-          ctx.fillRect(28, 1, 18, 8);
-          ctx.fillRect(39, -4, 8, 17);
-          ctx.restore();
-        }
-        ctx.fillStyle = accent;
-        ctx.globalAlpha = 0.42;
-        for (let i = -2; i <= 2; i++) {
-          ctx.fillRect(i * 12 - 4, -42 - Math.abs(i) * 3, 8, 14);
-        }
-        ctx.globalAlpha = 1;
-      }
-      ctx.fillStyle = dark;
-      ctx.fillRect(-16 - (enemy.role === "brute" ? 3 : 0), -20, 32 + (enemy.role === "brute" ? 6 : 0), 34);
-      ctx.fillStyle = color;
-      ctx.fillRect(-13, -24, 26, 12);
-      ctx.fillRect(-18, -8, 36, 17);
-      ctx.fillStyle = "#0b0d13";
-      ctx.fillRect(-10, -17, 6, 4);
-      ctx.fillRect(4, -17, 6, 4);
-      if (variant === 1) {
-        ctx.fillStyle = dark;
-        ctx.fillRect(-18, -29, 8, 8);
-        ctx.fillRect(10, -29, 8, 8);
-      } else if (variant === 2) {
-        ctx.fillStyle = accent;
-        ctx.fillRect(-4, -33, 8, 7);
-      } else if (variant === 3) {
-        ctx.fillStyle = "#dfe8ef";
-        ctx.fillRect(-17, -25, 4, 8);
-        ctx.fillRect(13, -25, 4, 8);
-      }
-      ctx.fillStyle = accent;
-      ctx.fillRect(-3, -8, 6, 20);
-      ctx.fillStyle = dark;
-      ctx.fillRect(-13, 10, 8, 8);
-      ctx.fillRect(5, 10, 8, 8);
-      if (enemy.ranged) {
-        ctx.fillStyle = "#dfe8ef";
-        if (enemy.role === "caster") {
-          ctx.fillRect(16, -16, 4, 34);
-          ctx.fillStyle = accent;
-          ctx.beginPath();
-          ctx.arc(18, -20, 6, 0, TAU);
-          ctx.fill();
-          ctx.globalAlpha = 0.45;
-          ctx.strokeStyle = accent;
-          ctx.lineWidth = 2;
-          ctx.beginPath();
-          ctx.arc(-1, -5, 17 + variant * 2, 0, TAU);
-          ctx.stroke();
-          ctx.globalAlpha = 1;
-        } else if (enemy.role === "bomber") {
-          ctx.fillStyle = "#2f3546";
-          ctx.fillRect(13, -10, 16, 20);
-          ctx.fillStyle = "#ff8d3d";
-          ctx.fillRect(17, -14, 8, 8);
-          ctx.fillStyle = "#dfe8ef";
-          ctx.fillRect(20, -20, 3, 8);
-          ctx.fillStyle = "#ff4b55";
-          ctx.fillRect(24, 4, 5, 5);
-        } else {
-          ctx.fillRect(15, -12, 4, 30);
-          ctx.fillRect(10, -3, enemy.role === "marksman" ? 30 : 16, 4);
-          ctx.fillStyle = accent;
-          ctx.fillRect(28, -6, 4, 10);
-        }
-      } else {
-        ctx.fillStyle = "#c9d0db";
-        if (enemy.role === "guard") {
-          ctx.fillStyle = "#677084";
-          ctx.fillRect(13, -16, 18, 31);
-          ctx.strokeStyle = "#dfe8ef";
-          ctx.lineWidth = 2;
-          ctx.strokeRect(13, -16, 18, 31);
-          ctx.fillStyle = accent;
-          ctx.fillRect(18, -8, 5, 16);
-        } else if (enemy.role === "brute") {
-          ctx.fillRect(11, -15, 28, 10);
-          ctx.fillRect(31, -20, 10, 21);
-          ctx.fillStyle = "#677084";
-          ctx.fillRect(-24, -8, 8, 22);
-        } else if (enemy.role === "duelist") {
-          ctx.fillRect(13, -7, 27, 3);
-          ctx.fillRect(36, -10, 4, 9);
-          ctx.fillStyle = accent;
-          ctx.fillRect(12, 7, 24, 3);
-        } else if (enemy.role === "skirmisher") {
-          ctx.fillRect(12, -9, 18, 3);
-          ctx.fillRect(12, 6, 18, 3);
-          ctx.fillStyle = accent;
-          ctx.fillRect(28, -10, 4, 5);
-          ctx.fillRect(28, 5, 4, 5);
-        } else {
-          ctx.fillRect(13, -10, 18, 5);
-          ctx.fillRect(24, -13, 5, 11);
-        }
-      }
-      if (enemy.bulky) {
-        ctx.fillStyle = "#677084";
-        ctx.fillRect(-20, -6, 7, 18);
-        ctx.fillRect(13, -6, 7, 18);
-      }
-      if (enemy.boss) {
-        ctx.fillStyle = accent;
-        ctx.globalAlpha = 0.9;
-        ctx.beginPath();
-        ctx.arc(0, -1, 9 + Math.sin(this.menuTime * 6) * 1.5, 0, TAU);
-        ctx.fill();
-        ctx.globalAlpha = 0.55;
-        ctx.strokeStyle = "#ffffff";
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.arc(0, -1, 15, 0, TAU);
-        ctx.stroke();
-        ctx.globalAlpha = 1;
-        ctx.fillStyle = "#dfe8ef";
-        ctx.fillRect(-25, -2, 10, 6);
-        ctx.fillRect(15, -2, 10, 6);
-      }
+      const palette = this.enemySpritePalette(enemy, color, accent);
+      if (enemy.boss) this.drawPixelBossSprite(ctx, enemy, palette, variant);
+      else this.drawPixelMonsterSprite(ctx, enemy, palette, variant);
       if (enemy.windupTime > 0) {
         const pulse = clamp(enemy.windupTime / (enemy.windupTotal || 1), 0, 1);
         ctx.strokeStyle = "#ff4b55";

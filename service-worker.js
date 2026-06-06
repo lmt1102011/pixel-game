@@ -1,11 +1,11 @@
-const SOULRIFT_CACHE = "soulrift-pwa-20260606-squad-mode-settings-221";
+const SOULRIFT_CACHE = "soulrift-pwa-20260606-pixel-monsters-bosses-222";
 const SOULRIFT_ASSETS = [
   "./",
   "./index.html",
-  "./styles.css?v=20260606-squad-mode-settings-221",
-  "./src/pwa.js?v=20260606-squad-mode-settings-221",
-  "./src/game.js?v=20260606-squad-mode-settings-221",
-  "./manifest.webmanifest?v=20260606-squad-mode-settings-221",
+  "./styles.css?v=20260606-pixel-monsters-bosses-222",
+  "./src/pwa.js?v=20260606-pixel-monsters-bosses-222",
+  "./src/game.js?v=20260606-pixel-monsters-bosses-222",
+  "./manifest.webmanifest?v=20260606-pixel-monsters-bosses-222",
   "./version.json",
   "./assets/icons/app-icon-20260605-logo-xl-149.svg",
   "./assets/icons/app-icon-20260605-logo-xl-149-192.png",

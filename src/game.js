@@ -9,7 +9,7 @@
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
   const SIGNAL_REALTIME_RELAY_LIMIT = 2;
   const SIGNAL_REALTIME_TYPES = new Set(["state", "snapshot", "attack", "skill", "collect", "openChest", "dropItem", "damage", "chooseDoor"]);
-  const APP_VERSION = "20260606-valorant-party-194";
+  const APP_VERSION = "20260606-valorant-no-reload-195";
   const CHANGELOG_ENTRIES = [
     {
       version: APP_VERSION,
@@ -1700,7 +1700,7 @@
       this.openPeerJsHost();
       this.game.rememberRoomCode(this.code);
       this.game.toast(`Đã tạo phòng ${this.code}`);
-      this.game.renderLobby();
+      this.renderLobbyIfVisible();
       this.publishDirectoryPresence(true);
     }
 
@@ -2404,7 +2404,7 @@
 
     renderLobbyIfVisible() {
       if (this.game.mode === "lobby" || this.game.roomFinderOpen) this.game.renderLobby();
-      else if (this.game.mode === "play" && this.game.screen?.querySelector(".play-squad-panel")) this.game.showPlayMenu();
+      else if (this.game.mode === "play" && this.game.screen?.querySelector(".valorant-lobby")) this.game.refreshValorantLobby();
     }
 
     upsertSlot(slot) {
@@ -2473,7 +2473,7 @@
       this.ready = !this.ready;
       this.syncOwnSlot();
       this.sendReadyBurst();
-      this.game.renderLobby();
+      this.renderLobbyIfVisible();
     }
 
     setVote(biomeId) {
@@ -2486,7 +2486,7 @@
       this.syncOwnSlot();
       this.broadcastReady();
       this.broadcastLobby();
-      this.game.renderLobby();
+      this.renderLobbyIfVisible();
     }
 
     setDifficulty(difficultyId) {
@@ -2499,7 +2499,7 @@
       this.difficultyVote = difficulty.id;
       this.syncOwnSlot();
       this.broadcastLobby();
-      this.game.renderLobby();
+      this.renderLobbyIfVisible();
     }
 
     broadcastReady() {
@@ -5229,7 +5229,10 @@
         if (action !== "menu") this.toast("Bạn cần tạo tài khoản trước");
         return;
       }
-      if (action === "play") this.showPlayMenu();
+      if (action === "play") {
+        if (this.mode === "play" && this.screen?.querySelector(".valorant-lobby")) this.refreshValorantLobby();
+        else this.showPlayMenu();
+      }
       if (action === "play-gauntlet") this.showGauntletMenu();
       if (action === "play-gauntlet-normal") this.showGauntletNormalMenu();
       if (action === "play-awakening-raid") {
@@ -5284,14 +5287,14 @@
       if (action === "open-lobby-invites") {
         const playView = target?.dataset.view === "play" || this.mode === "play";
         this.lobbyFriendInviteOpen = true;
-        if (playView) this.showPlayMenu();
+        if (playView) this.refreshValorantInvitePanel() || this.refreshValorantLobby({ fullIfMissing: true });
         else this.renderLobby();
         return;
       }
       if (action === "close-lobby-invites") {
         const playView = target?.dataset.view === "play" || this.mode === "play";
         this.lobbyFriendInviteOpen = false;
-        if (playView) this.showPlayMenu();
+        if (playView) this.refreshValorantInvitePanel() || this.refreshValorantLobby({ fullIfMissing: true });
         else this.renderLobby();
         return;
       }
@@ -5361,13 +5364,13 @@
       if (action === "play-create-room") {
         this.lobby.runMode = this.lobby.runMode || "gauntlet";
         this.lobby.create();
-        this.showPlayMenu();
+        this.refreshValorantLobby({ fullIfMissing: true });
         return;
       }
       if (action === "play-leave-room") {
         if (this.lobby?.code || this.lobby?.joinPending) this.lobby.leaveRoom();
         this.lobbyFriendInviteOpen = false;
-        this.showPlayMenu();
+        this.refreshValorantLobby({ fullIfMissing: true });
         return;
       }
       if (action === "create-room") this.lobby.create();
@@ -5550,6 +5553,111 @@
       };
     }
 
+    valorantLobbyData() {
+      const members = this.squadMembers();
+      const stats = this.squadTeamStats(members);
+      const inRoom = Boolean(this.lobby?.code);
+      const isHost = Boolean(this.lobby?.host);
+      const leaderVisible = isHost || !inRoom;
+      const roomLabel = inRoom ? `PARTY ${escapeHtml(this.lobby.code)}` : "SOLO PARTY";
+      const readyLabel = this.lobby.ready ? "CANCEL READY" : "READY";
+      const leaderActions = leaderVisible
+        ? `
+          <button class="valorant-btn primary" data-action="${inRoom ? "start-room" : "play-gauntlet"}">START MATCH</button>
+          <button class="valorant-btn" data-action="multiplayer">CHANGE MODE</button>
+          <button class="valorant-btn" data-action="${inRoom ? "open-lobby-invites" : "play-create-room"}" data-view="play">INVITE FRIEND</button>
+        `
+        : "";
+      const memberActions = inRoom && !isHost
+        ? `<button class="valorant-btn primary" data-action="ready-room">${readyLabel}</button>`
+        : !inRoom
+          ? `<button class="valorant-btn" data-action="play-create-room">CREATE PARTY</button>`
+          : "";
+      const controlsHtml = `
+        ${leaderActions}
+        ${memberActions}
+        <button class="valorant-btn" data-action="find-room">FIND PARTY</button>
+        <button class="valorant-btn" data-action="squad-voice-settings">VOICE SETTINGS</button>
+        ${inRoom ? `<button class="valorant-btn danger" data-action="play-leave-room">LEAVE PARTY</button>` : ""}
+      `;
+      return {
+        members,
+        stats,
+        inRoom,
+        isHost,
+        leaderVisible,
+        roomLabel,
+        modePill: this.roomModeLabel(this.lobby.runMode || "gauntlet"),
+        slotsHtml: members.map((entry) => this.squadMemberCardHtml(entry.slot, entry)).join(""),
+        controlsHtml
+      };
+    }
+
+    valorantPartyHeaderHtml(data = this.valorantLobbyData()) {
+      return `
+        <div>
+          <p class="eyebrow">TACTICAL PARTY</p>
+          <h2>${data.roomLabel}</h2>
+          <span>${data.modePill} / ${LOBBY_MAX_PLAYERS} PLAYER SLOTS / LEADER CONTROLS ENABLED</span>
+        </div>
+        <div class="party-status-block">
+          <b>${data.inRoom ? escapeHtml(this.lobby.code) : "LOCAL"}</b>
+          <span>${data.leaderVisible ? "PARTY LEADER" : "MEMBER"}</span>
+        </div>
+      `;
+    }
+
+    valorantTeamStatsHtml(stats = this.squadTeamStats()) {
+      return `
+        <div class="side-title">
+          <p class="eyebrow">TEAM OVERVIEW</p>
+          <h3>Combat Rating</h3>
+        </div>
+        <div class="stat-card hot"><span>AVG RANK</span><b>${stats.rank}</b></div>
+        <div class="stat-card"><span>AVG MMR</span><b>${stats.mmr || "----"}</b></div>
+        <div class="stat-card"><span>WIN RATE</span><b>${stats.winRate || 0}%</b></div>
+        <div class="stat-card"><span>RECENT MATCHES</span><b>${stats.recent || 0}</b></div>
+      `;
+    }
+
+    refreshValorantChat() {
+      const feed = this.screen?.querySelector(".chat-feed");
+      if (!feed) return false;
+      feed.innerHTML = this.squadChatHtml();
+      requestAnimationFrame(() => {
+        feed.scrollTop = feed.scrollHeight;
+      });
+      return true;
+    }
+
+    refreshValorantInvitePanel() {
+      const mount = this.screen?.querySelector(".lobby-invite-mount");
+      if (!mount) return false;
+      mount.innerHTML = this.lobbyFriendInvitePanel();
+      return true;
+    }
+
+    refreshValorantLobby(options = {}) {
+      const root = this.screen?.querySelector(".valorant-lobby");
+      if (!root) {
+        if (options.fullIfMissing) this.showPlayMenu();
+        return false;
+      }
+      if (this.lobby?.code) this.lobby.syncOwnSlot();
+      const data = this.valorantLobbyData();
+      const header = root.querySelector(".party-header");
+      const grid = root.querySelector(".valorant-squad-grid");
+      const controls = root.querySelector(".valorant-controls");
+      const stats = root.querySelector(".team-stats");
+      if (header) header.innerHTML = this.valorantPartyHeaderHtml(data);
+      if (grid) grid.innerHTML = data.slotsHtml;
+      if (controls) controls.innerHTML = data.controlsHtml;
+      if (stats) stats.innerHTML = this.valorantTeamStatsHtml(data.stats);
+      this.refreshValorantChat();
+      this.refreshValorantInvitePanel();
+      return true;
+    }
+
     squadChatEntries() {
       if (!this.squadChat.length) {
         const now = Date.now();
@@ -5590,7 +5698,7 @@
         avatar: name.slice(0, 2).toUpperCase()
       });
       if (input) input.value = "";
-      this.showPlayMenu();
+      if (!this.refreshValorantChat()) this.showPlayMenu();
     }
 
     showPlayMenu() {
@@ -5599,34 +5707,7 @@
       this.hud.classList.add("hidden");
       this.touchLayer.classList.add("hidden");
       if (this.lobby?.code) this.lobby.syncOwnSlot();
-      const members = this.squadMembers();
-      const slots = members.map((entry) => this.squadMemberCardHtml(entry.slot, entry)).join("");
-      const stats = this.squadTeamStats(members);
-      const inRoom = Boolean(this.lobby?.code);
-      const isHost = Boolean(this.lobby?.host);
-      const leaderVisible = isHost || !inRoom;
-      const roomLabel = inRoom ? `PARTY ${escapeHtml(this.lobby.code)}` : "SOLO PARTY";
-      const readyLabel = this.lobby.ready ? "CANCEL READY" : "READY";
-      const leaderActions = leaderVisible
-        ? `
-          <button class="valorant-btn primary" data-action="${inRoom ? "start-room" : "play-gauntlet"}">START MATCH</button>
-          <button class="valorant-btn" data-action="multiplayer">CHANGE MODE</button>
-          <button class="valorant-btn" data-action="${inRoom ? "open-lobby-invites" : "play-create-room"}" data-view="play">INVITE FRIEND</button>
-        `
-        : "";
-      const memberActions = inRoom && !isHost
-        ? `<button class="valorant-btn primary" data-action="ready-room">${readyLabel}</button>`
-        : !inRoom
-          ? `<button class="valorant-btn" data-action="play-create-room">CREATE PARTY</button>`
-          : "";
-      const secondaryActions = `
-        ${leaderActions}
-        ${memberActions}
-        <button class="valorant-btn" data-action="find-room">FIND PARTY</button>
-        <button class="valorant-btn" data-action="squad-voice-settings">VOICE SETTINGS</button>
-        ${inRoom ? `<button class="valorant-btn danger" data-action="play-leave-room">LEAVE PARTY</button>` : ""}
-      `;
-      const modePill = this.roomModeLabel(this.lobby.runMode || "gauntlet");
+      const data = this.valorantLobbyData();
       const friendInvitePanel = this.lobbyFriendInvitePanel();
       this.setScreen(`
         <section class="valorant-lobby">
@@ -5646,19 +5727,9 @@
 
           <div class="valorant-main">
             <div class="valorant-party">
-              <div class="party-header">
-                <div>
-                  <p class="eyebrow">TACTICAL PARTY</p>
-                  <h2>${roomLabel}</h2>
-                  <span>${modePill} / ${LOBBY_MAX_PLAYERS} PLAYER SLOTS / LEADER CONTROLS ENABLED</span>
-                </div>
-                <div class="party-status-block">
-                  <b>${inRoom ? escapeHtml(this.lobby.code) : "LOCAL"}</b>
-                  <span>${leaderVisible ? "PARTY LEADER" : "MEMBER"}</span>
-                </div>
-              </div>
-              <div class="valorant-squad-grid">${slots}</div>
-              <div class="valorant-controls">${secondaryActions}</div>
+              <div class="party-header">${this.valorantPartyHeaderHtml(data)}</div>
+              <div class="valorant-squad-grid">${data.slotsHtml}</div>
+              <div class="valorant-controls">${data.controlsHtml}</div>
               <div class="valorant-mode-bar">
                 <button data-action="play-gauntlet">VƯỢT ẢI</button>
                 <button data-action="play-minigames">MINI GAME</button>
@@ -5668,16 +5739,7 @@
             </div>
 
             <aside class="valorant-side">
-              <div class="team-stats">
-                <div class="side-title">
-                  <p class="eyebrow">TEAM OVERVIEW</p>
-                  <h3>Combat Rating</h3>
-                </div>
-                <div class="stat-card hot"><span>AVG RANK</span><b>${stats.rank}</b></div>
-                <div class="stat-card"><span>AVG MMR</span><b>${stats.mmr || "----"}</b></div>
-                <div class="stat-card"><span>WIN RATE</span><b>${stats.winRate || 0}%</b></div>
-                <div class="stat-card"><span>RECENT MATCHES</span><b>${stats.recent || 0}</b></div>
-              </div>
+              <div class="team-stats">${this.valorantTeamStatsHtml(data.stats)}</div>
 
               <div class="squad-chat">
                 <div class="side-title">
@@ -5692,7 +5754,7 @@
               </div>
             </div>
           </div>
-          ${friendInvitePanel}
+          <div class="lobby-invite-mount">${friendInvitePanel}</div>
         </section>
       `);
     }
@@ -6675,7 +6737,8 @@
       this.save.auth.accounts[myKey] = local;
       await this.saveCloudAccountNow(myKey);
       this.lobby.join(invite.code);
-      this.renderLobby();
+      if (this.mode === "play" && this.screen?.querySelector(".valorant-lobby")) this.refreshValorantLobby({ fullIfMissing: true });
+      else this.renderLobby();
     }
 
     async dismissRoomInvite(inviteId = "") {

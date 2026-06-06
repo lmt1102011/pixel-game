@@ -1,18 +1,18 @@
-const SOULRIFT_CACHE = "soulrift-pwa-20260606-canvas-hero-polish-229";
+const SOULRIFT_CACHE = "soulrift-pwa-20260606-mode-difficulty-gate-230";
 const SOULRIFT_ASSETS = [
   "./",
   "./index.html",
-  "./styles.css?v=20260606-canvas-hero-polish-229",
-  "./src/pwa.js?v=20260606-canvas-hero-polish-229",
-  "./src/game.js?v=20260606-canvas-hero-polish-229",
-  "./manifest.webmanifest?v=20260606-canvas-hero-polish-229",
+  "./styles.css?v=20260606-mode-difficulty-gate-230",
+  "./src/pwa.js?v=20260606-mode-difficulty-gate-230",
+  "./src/game.js?v=20260606-mode-difficulty-gate-230",
+  "./manifest.webmanifest?v=20260606-mode-difficulty-gate-230",
   "./version.json",
   "./assets/icons/app-icon-20260605-logo-xl-149.svg",
   "./assets/icons/app-icon-20260605-logo-xl-149-192.png",
   "./assets/icons/app-icon-20260605-logo-xl-149-512.png",
   "./assets/icons/app-icon-20260605-logo-xl-149-maskable-512.png",
   "./assets/icons/apple-touch-icon-20260605-logo-xl-149.png",
-  "./assets/sprites/monsters/shadow-goblin.png?v=20260606-canvas-hero-polish-229"
+  "./assets/sprites/monsters/shadow-goblin.png?v=20260606-mode-difficulty-gate-230"
 ];
 
 self.addEventListener("install", (event) => {

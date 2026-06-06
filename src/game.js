@@ -9,7 +9,7 @@
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
   const SIGNAL_REALTIME_RELAY_LIMIT = 2;
   const SIGNAL_REALTIME_TYPES = new Set(["state", "snapshot", "attack", "skill", "collect", "openChest", "dropItem", "damage", "chooseDoor"]);
-  const APP_VERSION = "20260606-canvas-hero-polish-229";
+  const APP_VERSION = "20260606-mode-difficulty-gate-230";
   const CHANGELOG_ENTRIES = [
     {
       version: APP_VERSION,
@@ -2502,6 +2502,12 @@
     }
 
     setDifficulty(difficultyId, options = {}) {
+      const runMode = this.runMode || "gauntlet";
+      if (!this.game.squadModeHasDifficulty(runMode)) {
+        this.difficultyVote = this.game.squadModeDifficultyId(runMode);
+        if (options.render !== false) this.renderLobbyIfVisible();
+        return;
+      }
       const difficulty = DIFFICULTIES.find((entry) => entry.id === difficultyId);
       if (!difficulty) return;
       if (!this.host && this.code) {
@@ -6018,7 +6024,6 @@
       const selectedBiomeId = this.lobby.mapVote || "forest";
       const selectedDifficultyId = this.lobby.difficultyVote || "normal";
       const modeMeta = this.squadModeById(runMode);
-      const sectionHidden = (modes) => modes.includes(runMode) ? "" : "hidden";
       const mapButtons = BIOMES.map((biome) => `
         <button class="squad-setting-pill ${selectedBiomeId === biome.id ? "active" : ""}" style="--pill:${biome.accent}" data-action="vote-map" data-biome="${biome.id}" ${canChoose ? "" : "disabled"}>
           <span>${biome.name}</span>
@@ -6033,41 +6038,53 @@
       const raidBiome = selectedPower ? (BIOMES.find((entry) => entry.id === awakeningRaidBiomeId(selectedPower.id)) || BIOMES[0]) : BIOMES[0];
       const raidGem = selectedPower ? materialLabel(awakeningGemMaterial(selectedPower.id)) : "Ngọc power";
       const lockedNotice = canChoose ? "" : `<p class="squad-setting-note">Chỉ chủ phòng được điều chỉnh chế độ.</p>`;
-      return `
-        <div class="squad-mode-settings" data-run-mode="${runMode}" style="--mode:${modeMeta.color}">
-          <div class="squad-setting-title main">
-            <b>Thiết lập</b>
-            <span data-squad-setting-current>${modeMeta.title}</span>
-          </div>
-          ${lockedNotice}
-          <div class="squad-setting-locked" data-mode-section="awakeningRaid" style="--pill:${selectedPower?.color || modeMeta.color}" ${sectionHidden(["awakeningRaid"])}>
+      const raidSection = runMode === "awakeningRaid" ? `
+          <div class="squad-setting-locked" data-mode-section="awakeningRaid" style="--pill:${selectedPower?.color || modeMeta.color}">
             <div class="squad-setting-title">
               <b>${selectedPower ? `Raid ${selectedPower.name}` : "Raid A"}</b>
               <span>${selectedPower ? `Khu ${raidBiome.name} - thưởng ${raidGem}` : "Chọn power trước khi bắt đầu"}</span>
             </div>
-            <p>Raid thức tỉnh khóa map và độ khó để boss bắt đúng hệ power đang chọn.</p>
+            <p>Raid thức tỉnh khóa khu theo power đang chọn để boss bắt đúng hệ.</p>
           </div>
-          <div class="squad-setting-group" data-mode-section="gauntlet bossRush playerBoss" ${sectionHidden(["gauntlet", "bossRush", "playerBoss"])}>
+      ` : "";
+      const mapSection = this.squadModeHasMap(runMode) ? `
+          <div class="squad-setting-group" data-mode-section="${runMode}">
             <div class="squad-setting-title">
               <b>Khu vực</b>
               <span data-map-setting-caption>${runMode === "playerBoss" ? "Nơi player boss xuất hiện" : runMode === "bossRush" ? "Sàn boss đầu tiên" : "Khu khởi đầu"}</span>
             </div>
             <div class="squad-setting-row map">${mapButtons}</div>
           </div>
-          <div class="squad-setting-group" data-mode-section="gauntlet bossRush" ${sectionHidden(["gauntlet", "bossRush"])}>
+      ` : "";
+      const difficultySection = this.squadModeHasDifficulty(runMode) ? `
+          <div class="squad-setting-group" data-mode-section="${runMode}">
             <div class="squad-setting-title">
               <b>Độ khó</b>
-              <span data-difficulty-setting-caption>${runMode === "bossRush" ? "Chỉ ảnh hưởng trận boss" : "Áp dụng cho toàn lượt vượt ải"}</span>
+              <span data-difficulty-setting-caption>Áp dụng cho toàn lượt vượt ải</span>
             </div>
             <div class="squad-setting-row difficulty">${difficultyButtons}</div>
           </div>
-          <div class="squad-setting-locked" data-mode-section="playerBoss" style="--pill:${modeMeta.color}" ${sectionHidden(["playerBoss"])}>
+      ` : "";
+      const playerBossSection = runMode === "playerBoss" ? `
+          <div class="squad-setting-locked" data-mode-section="playerBoss" style="--pill:${modeMeta.color}">
             <div class="squad-setting-title">
               <b>Hóa boss</b>
               <span>Không có chọn độ khó</span>
             </div>
             <p>Chế độ này cần phòng nhiều người. Khi bắt đầu, hệ thống random một player làm boss.</p>
           </div>
+      ` : "";
+      return `
+        <div class="squad-mode-settings" data-run-mode="${runMode}" data-can-choose="${canChoose ? "1" : "0"}" style="--mode:${modeMeta.color}">
+          <div class="squad-setting-title main">
+            <b>Thiết lập</b>
+            <span data-squad-setting-current>${modeMeta.title}</span>
+          </div>
+          ${lockedNotice}
+          ${raidSection}
+          ${mapSection}
+          ${difficultySection}
+          ${playerBossSection}
         </div>
       `;
     }
@@ -6075,6 +6092,20 @@
     squadModeById(runMode = "gauntlet") {
       const options = this.squadModeOptions();
       return options.find((mode) => mode.id === runMode) || options[0];
+    }
+
+    squadModeHasMap(runMode = "gauntlet") {
+      return ["gauntlet", "bossRush", "playerBoss"].includes(runMode);
+    }
+
+    squadModeHasDifficulty(runMode = "gauntlet") {
+      return runMode === "gauntlet";
+    }
+
+    squadModeDifficultyId(runMode = "gauntlet") {
+      if (runMode === "awakeningRaid") return "hard";
+      if (!this.squadModeHasDifficulty(runMode)) return "normal";
+      return this.lobby?.difficultyVote || "normal";
     }
 
     squadModeClassSuffix(runMode = "gauntlet") {
@@ -6192,19 +6223,28 @@
           mark.remove();
         }
       }
-      const settings = panel.querySelector(".squad-mode-settings");
+      const canChoose = Boolean(this.lobby?.host || !this.lobby?.code);
+      let settings = panel.querySelector(".squad-mode-settings");
+      if (settings && (settings.dataset.runMode !== runMode || settings.dataset.canChoose !== (canChoose ? "1" : "0"))) {
+        settings.outerHTML = this.squadModeSettingsHtml(runMode, canChoose);
+        settings = panel.querySelector(".squad-mode-settings");
+      } else if (!settings) {
+        panel.insertAdjacentHTML("beforeend", this.squadModeSettingsHtml(runMode, canChoose));
+        settings = panel.querySelector(".squad-mode-settings");
+      }
       if (settings) {
         settings.dataset.runMode = runMode;
+        settings.dataset.canChoose = canChoose ? "1" : "0";
         settings.style.setProperty("--mode", modeMeta.color);
         const current = settings.querySelector("[data-squad-setting-current]");
         if (current) current.textContent = modeMeta.title;
         const mapCaption = settings.querySelector("[data-map-setting-caption]");
         if (mapCaption) mapCaption.textContent = runMode === "playerBoss" ? "Nơi player boss xuất hiện" : runMode === "bossRush" ? "Sàn boss đầu tiên" : "Khu khởi đầu";
-        const difficultyCaption = settings.querySelector("[data-difficulty-setting-caption]");
-        if (difficultyCaption) difficultyCaption.textContent = runMode === "bossRush" ? "Chỉ ảnh hưởng trận boss" : "Áp dụng cho toàn lượt vượt ải";
         for (const section of settings.querySelectorAll("[data-mode-section]")) {
           const modes = String(section.dataset.modeSection || "").split(/\s+/).filter(Boolean);
-          section.hidden = !modes.includes(runMode);
+          const visible = modes.length === 0 || modes.includes(runMode);
+          section.hidden = !visible;
+          section.classList.toggle("hidden", !visible);
           if (section.classList.contains("squad-setting-locked")) {
             const selectedPower = this.save.account.selectedPower ? powerById(this.save.account.selectedPower) : null;
             const pill = section.dataset.modeSection === "awakeningRaid" ? selectedPower?.color || modeMeta.color : modeMeta.color;
@@ -6294,7 +6334,7 @@
     startSelectedSquadMode() {
       const runMode = this.lobby.runMode || "gauntlet";
       this.squadModePickerOpen = false;
-      const difficulty = runMode === "awakeningRaid" ? "hard" : this.lobby.difficultyVote || "normal";
+      const difficulty = this.squadModeDifficultyId(runMode);
       const biome = this.lobby.mapVote || "forest";
       if (runMode === "awakeningRaid") {
         this.startAwakeningRaid();
@@ -8435,6 +8475,7 @@
       const bossRush = this.lobby.runMode === "bossRush";
       const playerBoss = this.lobby.runMode === "playerBoss";
       const awakeningRaid = this.lobby.runMode === "awakeningRaid";
+      const hasDifficulty = this.squadModeHasDifficulty(this.lobby.runMode || "gauntlet");
       const hostSlot = this.lobby.slots.find((slot) => slot?.host) || this.lobby.slots[0] || null;
       const raidPower = powerById((isHost ? this.save.account.selectedPower : hostSlot?.powerId) || hostSlot?.powerId || this.save.account.selectedPower || "fire");
       const raidBiome = BIOMES.find((entry) => entry.id === awakeningRaidBiomeId(raidPower.id)) || BIOMES[0];
@@ -8459,10 +8500,10 @@
       const difficultyVotes = DIFFICULTIES.map((difficulty) => `
         <button class="tab ${this.lobby.difficultyVote === difficulty.id ? "active" : ""}" data-action="vote-difficulty" data-difficulty="${difficulty.id}" ${isHost ? "" : "disabled"}>${difficulty.label}</button>
       `).join("");
-      const difficultySection = (playerBoss || awakeningRaid) ? "" : `
+      const difficultySection = hasDifficulty ? `
             <p class="small">Chủ phòng chọn độ khó ải</p>
             <div class="tabs">${difficultyVotes}</div>
-      `;
+      ` : "";
       const mapSection = awakeningRaid ? `
             <p class="small">Raid đang chọn</p>
             <div class="choice-card locked" style="border-color:${raidPower.color}">
@@ -8501,7 +8542,7 @@
             <div class="panel-header">
               <div>
                 <h2 class="panel-title">${awakeningRaid ? "Phòng Raid A" : playerBoss ? "Phòng hóa trùm" : bossRush ? "Phòng đại chiến boss" : "Phòng vượt ải"}</h2>
-                <p class="panel-subtitle">${awakeningRaid ? (isHost ? `Chủ phòng bắt đầu Raid ${raidPower.name}; boss trâu hơn và chỉ dùng chiêu hệ ${raidPower.name}.` : `Sẵn sàng để vào Raid ${raidPower.name} cùng chủ phòng.`) : playerBoss ? (isHost ? "Chủ phòng chọn khu rồi bắt đầu để random một người làm boss." : "Bạn sẵn sàng, khi bắt đầu sẽ random một người làm boss.") : bossRush ? (isHost ? "Chủ phòng chọn boss/khu, độ khó và bắt đầu boss-only khi mọi người sẵn sàng." : "Bạn chỉ cần sẵn sàng, chủ phòng sẽ bắt đầu trận boss-only.") : (isHost ? "Chủ phòng chọn khu, độ khó và bắt đầu khi mọi người sẵn sàng." : "Bạn chỉ cần sẵn sàng, chủ phòng sẽ chọn khu, độ khó và bắt đầu.")}</p>
+                <p class="panel-subtitle">${awakeningRaid ? (isHost ? `Chủ phòng bắt đầu Raid ${raidPower.name}; boss trâu hơn và chỉ dùng chiêu hệ ${raidPower.name}.` : `Sẵn sàng để vào Raid ${raidPower.name} cùng chủ phòng.`) : playerBoss ? (isHost ? "Chủ phòng chọn khu rồi bắt đầu để random một người làm boss." : "Bạn sẵn sàng, khi bắt đầu sẽ random một người làm boss.") : bossRush ? (isHost ? "Chủ phòng chọn khu rồi bắt đầu boss-only khi mọi người sẵn sàng." : "Bạn chỉ cần sẵn sàng, chủ phòng sẽ bắt đầu trận boss-only.") : (isHost ? "Chủ phòng chọn khu, độ khó và bắt đầu khi mọi người sẵn sàng." : "Bạn chỉ cần sẵn sàng, chủ phòng sẽ chọn khu, độ khó và bắt đầu.")}</p>
               </div>
             </div>
             <div class="grid cols-2 ${this.lobby.code ? "hidden" : ""}">
@@ -8555,7 +8596,7 @@
       const awakeningRaid = runMode === "awakeningRaid";
       const raidPowerId = awakeningRaid ? selectedPower.id : "";
       const biomeId = awakeningRaid ? awakeningRaidBiomeId(raidPowerId) : (this.lobby.mapVote || "forest");
-      const difficultyId = runMode === "playerBoss" ? "normal" : awakeningRaid ? "hard" : (this.lobby.difficultyVote || "normal");
+      const difficultyId = this.squadModeDifficultyId(runMode);
       const bossPlayerId = runMode === "playerBoss" ? pick(this.lobby.slots.filter(Boolean)).id : "";
       const seed = Math.random();
       this.lobby.publishDirectoryPresence(false);

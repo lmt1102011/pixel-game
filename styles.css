@@ -76,7 +76,8 @@ body.pwa-landing-active .screen {
   display: none !important;
 }
 
-.hidden {
+.hidden,
+[hidden] {
   display: none !important;
 }
 

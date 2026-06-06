@@ -9,7 +9,7 @@
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
   const SIGNAL_REALTIME_RELAY_LIMIT = 2;
   const SIGNAL_REALTIME_TYPES = new Set(["state", "snapshot", "attack", "skill", "collect", "openChest", "dropItem", "damage", "chooseDoor"]);
-  const APP_VERSION = "20260606-smooth-mode-wipe-205";
+  const APP_VERSION = "20260606-mode-transition-lock-206";
   const CHANGELOG_ENTRIES = [
     {
       version: APP_VERSION,
@@ -5236,6 +5236,7 @@
         return;
       }
       if (action === "open-squad-modes") {
+        if (this.squadModeTransitionActive()) return;
         this.squadModePickerOpen = !this.squadModePickerOpen;
         if (this.squadModePickerOpen) {
           this.lobbyFriendInviteOpen = false;
@@ -5245,6 +5246,7 @@
         return;
       }
       if (action === "close-squad-modes") {
+        if (this.squadModeTransitionActive()) return;
         this.squadModePickerOpen = false;
         this.refreshValorantActionButton();
         return;
@@ -5614,7 +5616,8 @@
     squadModePickerHtml() {
       if (!this.squadModePickerOpen) return "";
       const current = this.lobby.runMode || "gauntlet";
-      const canChoose = Boolean(this.lobby?.host || !this.lobby?.code);
+      const transitionLocked = this.squadModeTransitionActive();
+      const canChoose = Boolean(this.lobby?.host || !this.lobby?.code) && !transitionLocked;
       const cards = this.squadModeOptions().map((mode) => {
         const selected = mode.id === current;
         return `
@@ -5629,7 +5632,7 @@
         `;
       }).join("");
       return `
-        <div class="squad-mode-panel">
+        <div class="squad-mode-panel ${transitionLocked ? "locked" : ""}">
           <div class="squad-mode-panel-head">
             <b>Chế độ chơi</b>
             <button class="squad-mode-close" data-action="close-squad-modes" aria-label="Đóng">×</button>
@@ -5652,6 +5655,10 @@
       return runMode === "gauntlet" || runMode === "awakeningRaid" ? "#0f1923" : "#ece8e1";
     }
 
+    squadModeTransitionActive() {
+      return Boolean(this.squadModeTransition);
+    }
+
     prepareSquadModeTransition(runMode = "gauntlet") {
       const nextMode = runMode || "gauntlet";
       const previousMode = this.squadActionRunMode || nextMode;
@@ -5668,7 +5675,7 @@
         if (this.squadModeTransition?.token !== token) return;
         this.squadModeTransition = null;
         this.squadModeTransitionTimer = null;
-        this.refreshValorantActionButton();
+        this.refreshValorantActionButton({ force: true });
       }, 1080);
     }
 
@@ -5723,6 +5730,7 @@
     }
 
     selectSquadMode(runMode = "gauntlet") {
+      if (this.squadModeTransitionActive()) return;
       const allowed = new Set(this.squadModeOptions().map((mode) => mode.id));
       const nextMode = allowed.has(runMode) ? runMode : "gauntlet";
       if (this.lobby?.code && !this.lobby.host) {
@@ -5761,7 +5769,8 @@
       return true;
     }
 
-    refreshValorantActionButton() {
+    refreshValorantActionButton(options = {}) {
+      if (!options.force && this.squadModeTransitionActive()) return true;
       const mount = this.screen?.querySelector(".squad-action-mount");
       if (!mount) return false;
       mount.innerHTML = this.squadActionButtonHtml();

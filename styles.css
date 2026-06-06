@@ -5385,6 +5385,20 @@ body.is-mobile-ui .touch-actions [data-touch="dash"] {
   transform: none;
 }
 
+.squad-mode-panel.locked .squad-mode-card {
+  pointer-events: none;
+}
+
+.squad-mode-panel.locked .squad-mode-card:not(.selected) {
+  opacity: 0.42;
+  filter: saturate(0.72);
+}
+
+.squad-mode-panel.locked .squad-mode-card.selected {
+  opacity: 1;
+  box-shadow: 0 0 24px color-mix(in srgb, var(--mode), transparent 70%), 0 14px 34px rgba(0, 0, 0, 0.38);
+}
+
 .squad-mode-icon {
   display: grid;
   place-items: center;

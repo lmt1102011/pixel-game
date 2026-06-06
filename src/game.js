@@ -9,7 +9,7 @@
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
   const SIGNAL_REALTIME_RELAY_LIMIT = 2;
   const SIGNAL_REALTIME_TYPES = new Set(["state", "snapshot", "attack", "skill", "collect", "openChest", "dropItem", "damage", "chooseDoor"]);
-  const APP_VERSION = "20260607-monster-attack-animations-239";
+  const APP_VERSION = "20260607-real-monster-weapons-240";
   const CHANGELOG_ENTRIES = [
     {
       version: APP_VERSION,
@@ -22133,6 +22133,94 @@
       const attacking = (enemy.attackAnim || 0) > 0;
       const attackFrame = !attacking ? 0 : enemy.attackAnim > 0.42 ? 0 : enemy.attackAnim > 0.18 ? 1 : 2;
       const b = (x, y, w, h, color, alpha = 1) => this.spriteBlock(ctx, x, y, w, h, color, alpha);
+      const poly = (points, color, alpha = 1) => {
+        ctx.save();
+        ctx.globalAlpha *= alpha;
+        ctx.fillStyle = color;
+        ctx.beginPath();
+        ctx.moveTo(Math.round(points[0][0]), Math.round(points[0][1]));
+        for (let i = 1; i < points.length; i++) ctx.lineTo(Math.round(points[i][0]), Math.round(points[i][1]));
+        ctx.closePath();
+        ctx.fill();
+        ctx.restore();
+      };
+      const dagger = (x, y, tilt = 0) => {
+        b(x - 6, y - 2 + tilt, 9, 5, palette.armor);
+        b(x + 1, y - 5 + tilt, 4, 11, palette.outline);
+        poly([[x + 4, y - 5 + tilt], [x + 22, y - 5 + tilt], [x + 32, y + tilt], [x + 22, y + 6 + tilt], [x + 4, y + 6 + tilt]], palette.outline);
+        poly([[x + 7, y - 2 + tilt], [x + 21, y - 2 + tilt], [x + 28, y + tilt], [x + 21, y + 3 + tilt], [x + 7, y + 3 + tilt]], palette.metal);
+        poly([[x + 9, y - 2 + tilt], [x + 20, y - 2 + tilt], [x + 25, y - 1 + tilt], [x + 13, y + tilt]], "#ffffff", 0.55);
+      };
+      const shortSword = (x, y, lifted = false) => {
+        const oy = lifted ? -8 : 0;
+        b(x - 5, y + 20 + oy, 13, 5, palette.outline);
+        b(x - 1, y + 14 + oy, 5, 10, palette.armor);
+        b(x - 8, y + 11 + oy, 18, 5, palette.armor);
+        poly([[x - 5, y + 12 + oy], [x + 9, y + 12 + oy], [x + 7, y - 20 + oy], [x + 2, y - 30 + oy], [x - 3, y - 20 + oy]], palette.outline);
+        poly([[x - 1, y + 10 + oy], [x + 6, y + 10 + oy], [x + 5, y - 18 + oy], [x + 2, y - 25 + oy], [x, y - 18 + oy]], palette.metal);
+        poly([[x + 2, y + 7 + oy], [x + 4, y - 16 + oy], [x + 2, y - 21 + oy]], "#ffffff", 0.5);
+      };
+      const greatSword = (x, y, horizontal = false) => {
+        if (horizontal) {
+          poly([[x, y - 6], [x + 52, y - 6], [x + 67, y], [x + 52, y + 7], [x, y + 7]], palette.outline);
+          poly([[x + 7, y - 2], [x + 49, y - 2], [x + 59, y], [x + 49, y + 3], [x + 7, y + 3]], palette.metal);
+          b(x + 12, y - 1, 36, 1, "#ffffff", 0.45);
+          b(x - 8, y - 8, 12, 17, palette.armor);
+          b(x - 14, y - 3, 11, 7, palette.outline);
+          return;
+        }
+        poly([[x - 8, y + 13], [x + 9, y + 13], [x + 7, y - 49], [x + 1, y - 67], [x - 6, y - 49]], palette.outline);
+        poly([[x - 4, y + 8], [x + 5, y + 8], [x + 4, y - 47], [x + 1, y - 59], [x - 2, y - 47]], palette.metal);
+        poly([[x + 1, y + 4], [x + 3, y - 42], [x + 1, y - 55]], "#ffffff", 0.45);
+        b(x - 13, y + 11, 27, 6, palette.armor);
+        b(x - 3, y + 16, 7, 14, palette.outline);
+      };
+      const shield = (x, y) => {
+        poly([[x - 16, y - 20], [x + 16, y - 20], [x + 19, y - 4], [x + 11, y + 19], [x, y + 27], [x - 11, y + 19], [x - 19, y - 4]], palette.outline);
+        poly([[x - 12, y - 16], [x + 12, y - 16], [x + 14, y - 3], [x + 8, y + 16], [x, y + 21], [x - 8, y + 16], [x - 14, y - 3]], palette.metal);
+        b(x - 3, y - 11, 6, 23, palette.accent);
+        b(x - 9, y - 2, 18, 4, palette.accent);
+        b(x - 10, y - 11, 4, 4, "#ffffff", 0.55);
+        b(x + 6, y - 11, 4, 4, "#ffffff", 0.55);
+      };
+      const bowWeapon = (x, y, pulled = false) => {
+        b(x - 1, y - 38, 7, 11, palette.outline);
+        b(x + 5, y - 29, 7, 16, palette.outline);
+        b(x + 9, y - 13, 7, 27, palette.outline);
+        b(x + 5, y + 13, 7, 17, palette.outline);
+        b(x - 1, y + 28, 7, 11, palette.outline);
+        b(x + 1, y - 34, 3, 8, palette.armor);
+        b(x + 7, y - 26, 3, 14, palette.armor);
+        b(x + 11, y - 10, 3, 22, palette.armor);
+        b(x + 7, y + 14, 3, 14, palette.armor);
+        b(x + 1, y + 29, 3, 8, palette.armor);
+        b(x - 2, y - 30, 2, 60, palette.bone);
+        b(x - 4, y - 6, 11, 12, palette.armor);
+        const pullX = pulled ? x - 35 : x - 24;
+        b(pullX, y - 4, x + 2 - pullX, 5, palette.outline);
+        b(pullX + 4, y - 2, x - pullX - 2, 2, "#fff0c0");
+        b(pullX - 6, y - 7, 9, 9, palette.bone);
+        b(x + 13, y - 9, 12, 10, palette.accent);
+      };
+      const bombWeapon = (x, y) => {
+        poly([[x - 14, y - 18], [x + 13, y - 18], [x + 21, y - 9], [x + 21, y + 10], [x + 13, y + 19], [x - 14, y + 19], [x - 22, y + 10], [x - 22, y - 9]], palette.outline);
+        poly([[x - 11, y - 13], [x + 10, y - 13], [x + 16, y - 7], [x + 16, y + 8], [x + 10, y + 14], [x - 11, y + 14], [x - 16, y + 8], [x - 16, y - 7]], "#151820");
+        b(x - 6, y - 5, 12, 10, "#4b5260");
+        b(x + 4, y - 20, 6, 12, palette.accent);
+        b(x + 8, y - 25, 9, 7, "#ffd166");
+        b(x + 14, y - 30, 5, 5, "#ffffff");
+      };
+      const staffWeapon = (x, y, raised = false) => {
+        const oy = raised ? -7 : 0;
+        b(x - 2, y - 42 + oy, 6, 70, palette.outline);
+        b(x, y - 38 + oy, 2, 63, palette.metal);
+        b(x - 12, y - 54 + oy, 28, 21, palette.outline);
+        b(x - 8, y - 50 + oy, 20, 13, palette.bone);
+        b(x - 10, y - 46 + oy, 4, 4, palette.accent);
+        b(x + 6, y - 46 + oy, 4, 4, palette.accent);
+        b(x - 1, y - 62 + oy, 6, 10, palette.accent);
+        b(x + 11, y - 58 + oy, 6, 6, "#ffffff", 0.6);
+      };
       const eyes = (x1, x2, y, color = palette.eye) => {
         b(x1, y, 4, 4, palette.outline);
         b(x2, y, 4, 4, palette.outline);
@@ -22193,6 +22281,7 @@
         b(-31, -12, 62, 4, palette.outline);
         b(-27, -11, 52, 2, palette.bone);
         b(24, -16, 12, 10, palette.accent);
+        bowWeapon(28, -1, false);
       } else if (kind === "skeletonWarrior") {
         b(-14, -34, 28, 24, palette.outline);
         b(-10, -31, 20, 18, palette.bone);
@@ -22224,6 +22313,8 @@
         b(34, -51, 10, 25, palette.accent);
         b(37, -41, 6, 10, palette.metal);
         b(25, -8, 9, 8, palette.bone);
+        shield(-27, 0);
+        shortSword(34, -2, true);
       } else if (kind === "slime" || kind === "fireSlime" || kind === "iceSlime") {
         b(-19, -7, 38, 24, palette.outline, 0.88);
         b(-15, -13, 30, 34, palette.baseDark, 0.82);
@@ -22255,6 +22346,7 @@
         b(24, -17, 16, 6, palette.outline);
         b(28, -16, 10, 3, palette.metal);
         b(39, -19, 5, 8, palette.bone);
+        dagger(24, -14);
         legs(14);
       } else if (kind === "goblinBomber") {
         b(-14, -23, 28, 22, palette.outline);
@@ -22268,6 +22360,7 @@
         b(21, -23, 5, 8, palette.accent);
         b(25, -27, 6, 6, "#ffd166");
         b(15, -5, 8, 7, palette.base);
+        bombWeapon(24, -7);
         legs(14);
       } else if (kind === "batDemon") {
         b(-38, -15, 28, 26, palette.outline);
@@ -22330,6 +22423,7 @@
         b(-2, 0, 4, 22, palette.accent);
         b(15, -25, 7, 55, palette.metal);
         b(21, -35, 8, 18, palette.accent);
+        greatSword(22, -3, false);
         legs(17);
       } else if (kind === "stoneGolem" || kind === "iceGolem") {
         b(-22, -30, 44, 51, palette.outline);
@@ -22366,6 +22460,7 @@
         b(17, -35, 5, 54, palette.metal);
         b(12, -42, 15, 15, palette.accent);
         b(15, -39, 9, 9, "#ffffff", 0.6);
+        staffWeapon(21, 0, false);
       } else if (kind === "werewolf") {
         b(-16, -30, 32, 27, palette.outline);
         b(-13, -27, 26, 23, palette.base);
@@ -22422,6 +22517,7 @@
         b(-20, -18, 5, 24, palette.armor);
         b(-25, -25, 4, 16, palette.bone);
         b(-17, -25, 4, 16, palette.bone);
+        bowWeapon(28, -1, false);
       } else if (kind === "skeletonWarrior") {
         b(-37, -20, 25, 40, palette.outline);
         b(-32, -16, 17, 32, palette.armor);
@@ -22431,6 +22527,8 @@
         b(20, -34, 4, 52, palette.metal);
         b(24, -47, 9, 23, palette.accent);
         b(27, -38, 6, 10, palette.metal);
+        shield(-27, 0);
+        shortSword(34, -2, true);
       } else if (kind === "slime") {
         b(-24, 8, 48, 10, palette.outline, 0.78);
         b(-18, 4, 36, 13, palette.base, 0.72);
@@ -22460,6 +22558,7 @@
         b(24, -18, 17, 7, palette.outline);
         b(28, -17, 11, 3, palette.metal);
         b(39, -20, 5, 8, palette.bone);
+        dagger(24, -14);
         b(-17, 2, 7, 15, palette.metal);
       } else if (kind === "goblinBomber") {
         b(0, -10, 17, 6, palette.base);
@@ -22472,6 +22571,7 @@
         b(35, -38, 5, 5, "#ffffff");
         b(14, -6, 10, 8, palette.base);
         b(-25, 0, 12, 5, palette.accent);
+        bombWeapon(24, -7);
       } else if (kind === "batDemon") {
         b(-48, -24, 30, 36, palette.outline);
         b(18, -24, 30, 36, palette.outline);
@@ -22526,6 +22626,7 @@
         b(-16, -22, 32, 9, palette.eye);
         b(-11, -19, 22, 3, "#ff8d3d");
         b(-20, 0, 40, 6, palette.accent, 0.45);
+        greatSword(22, -3, false);
       } else if (kind === "stoneGolem") {
         b(-40, -9, 18, 35, palette.outline);
         b(22, -9, 18, 35, palette.outline);
@@ -22563,6 +22664,7 @@
         b(18, -45, 4, 4, palette.accent);
         b(27, -45, 4, 4, palette.accent);
         b(-18, -4, 36, 7, palette.accent, 0.52);
+        staffWeapon(21, 0, false);
       } else if (kind === "werewolf") {
         b(-17, -41, 12, 17, palette.outline);
         b(5, -41, 12, 17, palette.outline);
@@ -22598,11 +22700,14 @@
           b(-34, -13 + (walkFrame === 1 ? -2 : 0), 12, 9, palette.bone);
           b(22, -12 + (walkFrame === 3 ? -2 : 0), 12, 10, palette.bone);
           b(-20, 31, 15, 3, palette.shadow, 0.5);
+          bowWeapon(28, -1, false);
         } else if (kind === "skeletonWarrior") {
           b(-18 - stepSign * 2, 27, 8, 16, palette.bone);
           b(9 + stepSign * 2, 27, 8, 16, palette.bone);
           b(-43, 22, 13, 5, palette.shadow, 0.55);
           b(30, -42 + (walkFrame === 1 ? -3 : 0), 7, 14, palette.metal);
+          shield(-27, 0);
+          shortSword(34 + stepSign * 2, -2, true);
         } else if (kind === "slime") {
           const flat = walkFrame === 1 || walkFrame === 3;
           b(-25, flat ? 8 : 13, 50, flat ? 16 : 8, palette.outline, 0.72);
@@ -22623,6 +22728,7 @@
           b(24 + stepSign * 2, -18, 17, 6, palette.outline);
           b(28 + stepSign * 2, -17, 10, 3, palette.metal);
           b(39 + stepSign * 2, -20, 5, 8, palette.bone);
+          dagger(24 + stepSign * 2, -14);
           b(-27, 20, 18, 3, palette.shadow, 0.48);
         } else if (kind === "goblinBomber") {
           const bombY = -22 + (walkFrame % 2 ? -3 : 2);
@@ -22631,6 +22737,7 @@
           b(10, bombY, 30, 30, palette.outline);
           b(15, bombY + 5, 20, 20, "#151820");
           b(30, bombY - 12 + (walkFrame === 2 ? -2 : 0), 8, 7, "#ffd166");
+          bombWeapon(25, bombY + 14);
           b(-14 - stepSign * 3, 15, 9, 11, palette.baseDark);
         } else if (kind === "batDemon") {
           const up = walkFrame === 1 || walkFrame === 2;
@@ -22664,6 +22771,7 @@
           b(22 + stepSign * 2, -42, 5, 60, palette.metal);
           b(-18, 28, 36, 5, palette.shadow, 0.55);
           b(-23, 0, 45, 5, palette.accent, 0.38);
+          greatSword(22 + stepSign * 2, -3, false);
         } else if (kind === "stoneGolem") {
           b(-42 - stepSign * 2, 10, 20, 27, palette.outline);
           b(22 + stepSign * 2, 10, 20, 27, palette.outline);
@@ -22684,6 +22792,7 @@
           b(-14 - stepSign * 2, 16, 10, 8, palette.armor);
           b(4 + stepSign * 2, 16, 10, 8, palette.armor);
           b(18, -45 + (walkFrame === 1 ? -2 : 0), 6, 65, palette.outline);
+          staffWeapon(21, 0, walkFrame === 1);
         } else if (kind === "werewolf") {
           b(-35 - stepSign * 5, 6, 20, 4, palette.bone);
           b(15 + stepSign * 5, 6, 20, 4, palette.bone);
@@ -22707,6 +22816,7 @@
         const tell = enemy.elite ? "#ffbd5e" : palette.accent;
         if (kind === "skeletonArcher") {
           const drawPull = attackFrame === 0;
+          bowWeapon(28, -1, drawPull);
           b(22, -13, 12, 11, palette.bone);
           b(-38, -13, drawPull ? 64 : 72, 5, palette.outline);
           b(-33, -11, drawPull ? 54 : 61, 2, "#fff0c0");
@@ -22720,15 +22830,13 @@
           }
         } else if (kind === "skeletonWarrior") {
           if (attackFrame === 0) {
-            b(16, -46, 9, 58, palette.outline);
-            b(19, -42, 4, 47, palette.metal);
-            b(23, -55, 11, 24, palette.accent);
+            shortSword(25, -7, true);
+            shield(-28, 0);
           } else {
-            b(18, -19, 48, 9, palette.outline);
-            b(25, -17, 35, 4, palette.metal);
-            b(61, -24, 10, 18, palette.accent);
+            greatSword(21, -12, true);
             b(-43, -12, 34, 39, palette.outline);
             b(-38, -7, 24, 30, palette.metal);
+            shield(-28, 0);
           }
         } else if (kind === "slime" || kind === "fireSlime" || kind === "iceSlime") {
           b(-22, strike ? 1 : 6, 44 + (strike ? 12 : 0), strike ? 27 : 21, palette.outline, 0.82);
@@ -22739,13 +22847,9 @@
           b(11, -11, 17, 7, palette.base);
           b(24, -17, 8, 13, palette.armor);
           if (attackFrame === 0) {
-            b(23, -28, 15, 7, palette.outline);
-            b(28, -27, 9, 3, palette.metal);
-            b(38, -31, 6, 8, palette.bone);
+            dagger(22, -26, -1);
           } else {
-            b(27, -9, 31, 7, palette.outline);
-            b(32, -8, 22, 3, palette.metal);
-            b(55, -12, 7, 10, palette.bone);
+            dagger(32, -9, 0);
             b(30, -19, 34, 3, tell, 0.48);
           }
         } else if (kind === "goblinBomber") {
@@ -22753,10 +22857,7 @@
           const bombX = strike ? 24 : 7;
           b(-3, -13, 18, 7, palette.base);
           b(12, bombY + 15, 10, 9, palette.base);
-          b(bombX, bombY, 32, 32, palette.outline);
-          b(bombX + 5, bombY + 5, 22, 22, "#151820");
-          b(bombX + 18, bombY - 8, 6, 11, palette.accent);
-          b(bombX + 23, bombY - 13, 8, 7, "#ffd166");
+          bombWeapon(bombX + 16, bombY + 16);
           if (strike) b(52, -28, 18, 7, "#ff8d3d", 0.58);
         } else if (kind === "batDemon") {
           b(-56, -35, 40, 21, palette.outline);
@@ -22795,13 +22896,9 @@
           b(-8, -4, 29, 9, palette.armor);
         } else if (kind === "darkKnight") {
           if (attackFrame === 0) {
-            b(15, -58, 11, 87, palette.outline);
-            b(19, -52, 5, 69, palette.metal);
-            b(25, -67, 13, 29, palette.accent);
+            greatSword(20, -8, false);
           } else {
-            b(20, -20, 66, 11, palette.outline);
-            b(29, -17, 47, 5, palette.metal);
-            b(77, -27, 13, 23, palette.accent);
+            greatSword(23, -16, true);
             b(21, -30, 65, 4, tell, 0.55);
           }
         } else if (kind === "stoneGolem" || kind === "iceGolem") {
@@ -22823,10 +22920,7 @@
           b(42, -8, 20, 8, "#ffd166", 0.72);
           b(56, -6, 10, 5, "#ffffff", 0.55);
         } else if (kind === "necromancer") {
-          b(16, -55, 7, 77, palette.outline);
-          b(19, -51, 3, 68, palette.metal);
-          b(8, -62, 28, 23, palette.outline);
-          b(13, -58, 18, 15, palette.bone);
+          staffWeapon(21, 0, true);
           b(23, -44, 30, 8, tell, 0.58);
           b(43, -48, 12, 12, "#ffffff", 0.36);
         } else if (kind === "werewolf") {

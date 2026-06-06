@@ -1,18 +1,18 @@
-const SOULRIFT_CACHE = "soulrift-pwa-20260607-replaced-monster-weapons-241";
+const SOULRIFT_CACHE = "soulrift-pwa-20260607-single-monster-weapons-242";
 const SOULRIFT_ASSETS = [
   "./",
   "./index.html",
-  "./styles.css?v=20260607-replaced-monster-weapons-241",
-  "./src/pwa.js?v=20260607-replaced-monster-weapons-241",
-  "./src/game.js?v=20260607-replaced-monster-weapons-241",
-  "./manifest.webmanifest?v=20260607-replaced-monster-weapons-241",
+  "./styles.css?v=20260607-single-monster-weapons-242",
+  "./src/pwa.js?v=20260607-single-monster-weapons-242",
+  "./src/game.js?v=20260607-single-monster-weapons-242",
+  "./manifest.webmanifest?v=20260607-single-monster-weapons-242",
   "./version.json",
   "./assets/icons/app-icon-20260605-logo-xl-149.svg",
   "./assets/icons/app-icon-20260605-logo-xl-149-192.png",
   "./assets/icons/app-icon-20260605-logo-xl-149-512.png",
   "./assets/icons/app-icon-20260605-logo-xl-149-maskable-512.png",
   "./assets/icons/apple-touch-icon-20260605-logo-xl-149.png",
-  "./assets/sprites/monsters/shadow-goblin.png?v=20260607-replaced-monster-weapons-241"
+  "./assets/sprites/monsters/shadow-goblin.png?v=20260607-single-monster-weapons-242"
 ];
 
 self.addEventListener("install", (event) => {

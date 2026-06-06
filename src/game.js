@@ -9,7 +9,7 @@
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
   const SIGNAL_REALTIME_RELAY_LIMIT = 2;
   const SIGNAL_REALTIME_TYPES = new Set(["state", "snapshot", "attack", "skill", "collect", "openChest", "dropItem", "damage", "chooseDoor"]);
-  const APP_VERSION = "20260607-replaced-monster-weapons-241";
+  const APP_VERSION = "20260607-single-monster-weapons-242";
   const CHANGELOG_ENTRIES = [
     {
       version: APP_VERSION,
@@ -20901,7 +20901,38 @@
         ctx.beginPath();
         ctx.ellipse(0, 0, r * 1.35, r * 0.62, 0, 0, TAU);
         ctx.fill();
-      } else if (projectile.kind === "crystal" || projectile.kind === "enemySniper") {
+      } else if (projectile.kind === "enemySniper") {
+        const r = projectile.radius;
+        ctx.shadowBlur = this.glow(8);
+        ctx.fillStyle = "#241a12";
+        ctx.fillRect(-r * 2.65, -r * 0.38, r * 4.25, r * 0.76);
+        ctx.fillStyle = "#f3ead7";
+        ctx.fillRect(-r * 2.35, -r * 0.16, r * 3.55, r * 0.32);
+        ctx.fillStyle = projectile.color || "#7ddcff";
+        ctx.beginPath();
+        ctx.moveTo(r * 3.05, 0);
+        ctx.lineTo(r * 1.45, -r * 0.96);
+        ctx.lineTo(r * 1.75, -r * 0.28);
+        ctx.lineTo(r * 0.88, -r * 0.18);
+        ctx.lineTo(r * 0.88, r * 0.18);
+        ctx.lineTo(r * 1.75, r * 0.28);
+        ctx.lineTo(r * 1.45, r * 0.96);
+        ctx.closePath();
+        ctx.fill();
+        ctx.fillStyle = "#ffffff";
+        ctx.globalAlpha = 0.62;
+        ctx.fillRect(-r * 1.35, -1, r * 2.15, 2);
+        ctx.globalAlpha = 1;
+        ctx.fillStyle = "#e8ddc6";
+        ctx.beginPath();
+        ctx.moveTo(-r * 2.7, 0);
+        ctx.lineTo(-r * 3.45, -r * 0.72);
+        ctx.lineTo(-r * 2.12, -r * 0.42);
+        ctx.lineTo(-r * 2.12, r * 0.42);
+        ctx.lineTo(-r * 3.45, r * 0.72);
+        ctx.closePath();
+        ctx.fill();
+      } else if (projectile.kind === "crystal") {
         ctx.fillRect(-projectile.radius, -projectile.radius * 0.35, projectile.radius * 2.4, projectile.radius * 0.7);
         ctx.beginPath();
         ctx.moveTo(projectile.radius * 1.4, 0);
@@ -22270,7 +22301,6 @@
         b(-24, -31, 4, 16, palette.bone);
         b(-16, -31, 4, 16, palette.bone);
         b(22, -8, 10, 10, palette.bone);
-        bowWeapon(28, -1, false);
       } else if (kind === "skeletonWarrior") {
         b(-14, -34, 28, 24, palette.outline);
         b(-10, -31, 20, 18, palette.bone);
@@ -22293,8 +22323,6 @@
         b(6, 22, 6, 18, palette.bone);
         b(3, 36, 15, 5, palette.bone);
         b(25, -8, 9, 8, palette.bone);
-        shield(-27, 0);
-        shortSword(34, -2, true);
       } else if (kind === "slime" || kind === "fireSlime" || kind === "iceSlime") {
         b(-19, -7, 38, 24, palette.outline, 0.88);
         b(-15, -13, 30, 34, palette.baseDark, 0.82);
@@ -22322,7 +22350,6 @@
         b(-11, -2, 22, 21, palette.armor);
         b(6, -9, 15, 6, palette.base);
         b(17, -13, 9, 9, palette.base);
-        dagger(24, -14);
         legs(14);
       } else if (kind === "goblinBomber") {
         b(-14, -23, 28, 22, palette.outline);
@@ -22332,7 +22359,6 @@
         b(2, -10, 17, 6, palette.base);
         b(17, -13, 9, 9, palette.base);
         b(15, -5, 8, 7, palette.base);
-        bombWeapon(24, -7);
         legs(14);
       } else if (kind === "batDemon") {
         b(-38, -15, 28, 26, palette.outline);
@@ -22393,7 +22419,6 @@
         b(-17, -3, 34, 27, palette.outline);
         b(-13, 0, 26, 22, palette.base);
         b(-2, 0, 4, 22, palette.accent);
-        greatSword(22, -3, false);
         legs(17);
       } else if (kind === "stoneGolem" || kind === "iceGolem") {
         const ice = kind === "iceGolem";
@@ -22444,7 +22469,6 @@
         b(-10, -21, 20, 12, palette.base);
         eyes(-6, 2, -16, palette.eye);
         b(-7, -4, 14, 22, palette.armor);
-        staffWeapon(21, 0, false);
       } else if (kind === "werewolf") {
         b(-16, -30, 32, 27, palette.outline);
         b(-13, -27, 26, 23, palette.base);
@@ -22490,10 +22514,6 @@
         b(-20, -18, 5, 24, palette.armor);
         b(-25, -25, 4, 16, palette.bone);
         b(-17, -25, 4, 16, palette.bone);
-        bowWeapon(28, -1, false);
-      } else if (kind === "skeletonWarrior") {
-        shield(-27, 0);
-        shortSword(34, -2, true);
       } else if (kind === "slime") {
         b(-24, 8, 48, 10, palette.outline, 0.78);
         b(-18, 4, 36, 13, palette.base, 0.72);
@@ -22519,14 +22539,12 @@
         b(13, -22, 9, 5, palette.base);
         b(4, -10, 18, 6, palette.base);
         b(17, -13, 9, 9, palette.base);
-        dagger(24, -14);
         b(-17, 2, 7, 15, palette.metal);
       } else if (kind === "goblinBomber") {
         b(0, -10, 17, 6, palette.base);
         b(14, -13, 10, 9, palette.base);
         b(14, -6, 10, 8, palette.base);
         b(-25, 0, 12, 5, palette.accent);
-        bombWeapon(24, -7);
       } else if (kind === "batDemon") {
         b(-48, -24, 30, 36, palette.outline);
         b(18, -24, 30, 36, palette.outline);
@@ -22578,7 +22596,6 @@
         b(-16, -22, 32, 9, palette.eye);
         b(-11, -19, 22, 3, "#ff8d3d");
         b(-20, 0, 40, 6, palette.accent, 0.45);
-        greatSword(22, -3, false);
       } else if (kind === "stoneGolem") {
         b(-28, -23, 13, 3, palette.metal, 0.38);
         b(-21, -8, 4, 13, palette.metal, 0.36);
@@ -22604,7 +22621,6 @@
         b(4, -9, 17, 6, palette.armor);
         b(17, -13, 9, 9, palette.bone);
         b(-18, -4, 36, 7, palette.accent, 0.52);
-        staffWeapon(21, 0, false);
       } else if (kind === "werewolf") {
         b(-17, -41, 12, 17, palette.outline);
         b(5, -41, 12, 17, palette.outline);
@@ -22640,14 +22656,10 @@
           b(-34, -13 + (walkFrame === 1 ? -2 : 0), 12, 9, palette.bone);
           b(22, -12 + (walkFrame === 3 ? -2 : 0), 12, 10, palette.bone);
           b(-20, 31, 15, 3, palette.shadow, 0.5);
-          bowWeapon(28, -1, false);
         } else if (kind === "skeletonWarrior") {
           b(-18 - stepSign * 2, 27, 8, 16, palette.bone);
           b(9 + stepSign * 2, 27, 8, 16, palette.bone);
           b(-43, 22, 13, 5, palette.shadow, 0.55);
-          b(30, -42 + (walkFrame === 1 ? -3 : 0), 7, 14, palette.metal);
-          shield(-27, 0);
-          shortSword(34 + stepSign * 2, -2, true);
         } else if (kind === "slime") {
           const flat = walkFrame === 1 || walkFrame === 3;
           b(-25, flat ? 8 : 13, 50, flat ? 16 : 8, palette.outline, 0.72);
@@ -22664,13 +22676,11 @@
           b(-16 - stepSign * 5, 15, 8, 12, palette.baseDark);
           b(8 + stepSign * 5, 15, 8, 12, palette.baseDark);
           b(17 + stepSign * 2, -13, 9, 9, palette.base);
-          dagger(24 + stepSign * 2, -14);
           b(-27, 20, 18, 3, palette.shadow, 0.48);
         } else if (kind === "goblinBomber") {
           const bombY = -22 + (walkFrame % 2 ? -3 : 2);
           b(4, -10, 16, 6, palette.base);
           b(17, bombY + 9, 9, 9, palette.base);
-          bombWeapon(25, bombY + 14);
           b(-14 - stepSign * 3, 15, 9, 11, palette.baseDark);
         } else if (kind === "batDemon") {
           const up = walkFrame === 1 || walkFrame === 2;
@@ -22700,11 +22710,8 @@
           b(-15, 21, 20, 6, palette.shadow, 0.48);
           b(5 + stepSign * 3, 17, 9, 13, palette.baseDark);
         } else if (kind === "darkKnight") {
-          b(19 + stepSign * 2, -48, 10, 76, palette.outline);
-          b(22 + stepSign * 2, -42, 5, 60, palette.metal);
           b(-18, 28, 36, 5, palette.shadow, 0.55);
           b(-23, 0, 45, 5, palette.accent, 0.38);
-          greatSword(22 + stepSign * 2, -3, false);
         } else if (kind === "stoneGolem") {
           poly([[-48 - stepSign * 2, 2], [-29 - stepSign * 2, -2], [-20 - stepSign * 2, 13], [-26 - stepSign * 2, 29], [-43 - stepSign * 2, 31], [-55 - stepSign * 2, 13]], palette.outline);
           poly([[29 + stepSign * 2, -2], [48 + stepSign * 2, 2], [55 + stepSign * 2, 13], [43 + stepSign * 2, 31], [26 + stepSign * 2, 29], [20 + stepSign * 2, 13]], palette.outline);
@@ -22724,8 +22731,6 @@
           b(-18, 9, 36, 17, palette.baseDark);
           b(-14 - stepSign * 2, 16, 10, 8, palette.armor);
           b(4 + stepSign * 2, 16, 10, 8, palette.armor);
-          b(18, -45 + (walkFrame === 1 ? -2 : 0), 6, 65, palette.outline);
-          staffWeapon(21, 0, walkFrame === 1);
         } else if (kind === "werewolf") {
           b(-35 - stepSign * 5, 6, 20, 4, palette.bone);
           b(15 + stepSign * 5, 6, 20, 4, palette.bone);
@@ -22740,6 +22745,28 @@
           b(13 + stepSign * 4, 15, 10, 11, palette.baseDark);
           b(-39 - lunge, -6, 20, 4, palette.bone);
           b(19 + lunge, -6, 20, 4, palette.bone);
+        }
+      }
+
+      if (!attacking) {
+        if (kind === "skeletonArcher") {
+          bowWeapon(28, -1, false);
+        } else if (kind === "skeletonWarrior") {
+          shield(-27, 0);
+          shortSword(34 + (moving ? stepSign * 2 : 0), -2, true);
+        } else if (kind === "goblinScout") {
+          dagger(24 + (moving ? stepSign * 2 : 0), -14);
+        } else if (kind === "goblinBomber") {
+          if (moving) {
+            const bombY = -22 + (walkFrame % 2 ? -3 : 2);
+            bombWeapon(25, bombY + 14);
+          } else {
+            bombWeapon(24, -7);
+          }
+        } else if (kind === "darkKnight") {
+          greatSword(22 + (moving ? stepSign * 2 : 0), -3, false);
+        } else if (kind === "necromancer") {
+          staffWeapon(21, 0, moving && walkFrame === 1);
         }
       }
 

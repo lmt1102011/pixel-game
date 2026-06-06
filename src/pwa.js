@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const APP_VERSION = "20260607-replaced-monster-weapons-241";
+  const APP_VERSION = "20260607-single-monster-weapons-242";
   const APP_ICON = "assets/icons/app-icon-20260605-logo-xl-149.svg";
   let deferredInstallPrompt = null;
   let startGame = null;

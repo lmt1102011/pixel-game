@@ -9,7 +9,7 @@
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
   const SIGNAL_REALTIME_RELAY_LIMIT = 2;
   const SIGNAL_REALTIME_TYPES = new Set(["state", "snapshot", "attack", "skill", "collect", "openChest", "dropItem", "damage", "chooseDoor"]);
-  const APP_VERSION = "20260606-mode-transition-lock-206";
+  const APP_VERSION = "20260606-squad-battle-heroes-207";
   const CHANGELOG_ENTRIES = [
     {
       version: APP_VERSION,
@@ -1647,6 +1647,7 @@
         name: this.playerName(),
         powerId,
         characterId: this.game.save?.account?.selectedCharacter || "swordsman",
+        customization: { ...(this.game.save?.customization || {}) },
         powerAwakened: this.game.powerAwakeningActive(powerId)
       };
     }
@@ -2086,6 +2087,7 @@
           vote: this.mapVote,
           powerId: message.powerId || "",
           characterId: message.characterId || "swordsman",
+          customization: message.customization || {},
           powerAwakened: Boolean(message.powerAwakened),
           host: false
         });
@@ -2121,6 +2123,7 @@
           vote: this.mapVote,
           powerId: message.powerId || "",
           characterId: message.characterId || "swordsman",
+          customization: message.customization || {},
           powerAwakened: Boolean(message.powerAwakened),
           host: false
         });
@@ -2303,6 +2306,7 @@
           vote: this.host ? this.mapVote : (message.vote || this.mapVote),
           powerId: message.powerId || "",
           characterId: message.characterId || "swordsman",
+          customization: message.customization || {},
           powerAwakened: Boolean(message.powerAwakened),
           host: Boolean(message.host)
         });
@@ -2317,6 +2321,7 @@
           vote: this.mapVote,
           powerId: message.powerId || "",
           characterId: message.characterId || "swordsman",
+          customization: message.customization || {},
           powerAwakened: Boolean(message.powerAwakened),
           host: false
         });
@@ -4922,6 +4927,7 @@
         if (this.mode === "game" && this.run) this.update(dt);
         this.audio.update(dt);
         this.render();
+        if (this.mode === "play" && this.screen?.classList.contains("valorant-screen")) this.renderSquadHeroCanvases();
       } catch (error) {
         this.reportLoopError(error);
       }
@@ -5449,6 +5455,7 @@
         name: this.save.account.username || "Bạn",
         powerId: selectedPower,
         characterId: this.save.account.selectedCharacter || "swordsman",
+        customization: { ...(this.save.customization || {}) },
         powerAwakened: this.powerAwakeningActive(selectedPower),
         host: Boolean(this.lobby?.host || !this.lobby?.code),
         ready: Boolean(this.lobby?.host || this.lobby?.ready),
@@ -5504,13 +5511,39 @@
       return Boolean(slot.ready || slot.host);
     }
 
+    squadSlotCustomization(slot, self = false) {
+      if (self) return { ...(this.save.customization || {}) };
+      return { ...(slot?.customization || {}) };
+    }
+
+    squadHeroCanvasHtml(slot, self, character, power, custom) {
+      const attr = (name, value = "") => `data-${name}="${escapeHtml(value)}"`;
+      return `
+        <canvas
+          class="squad-hero-canvas"
+          width="260"
+          height="360"
+          ${attr("character", character.id)}
+          ${attr("power", power.id)}
+          ${attr("color", custom.color || character.color)}
+          ${attr("aura", custom.aura || "")}
+          ${attr("eyes", custom.eyes || "")}
+          ${attr("mouth", custom.mouth || "")}
+          ${attr("accessory", custom.accessory || "")}
+          ${attr("trail", custom.trail || "")}
+          ${attr("awakened", slot?.powerAwakened ? "1" : "")}
+          ${attr("self", self ? "1" : "")}
+        ></canvas>
+      `;
+    }
+
     squadMemberCardHtml(slot, options = {}) {
       const empty = !slot;
       const self = Boolean(options.self);
       const leader = Boolean(options.leader || slot?.host);
       const character = characterById(slot?.characterId || this.save.account.selectedCharacter || "swordsman");
       const power = powerById(slot?.powerId || this.save.account.selectedPower || "fire");
-      const custom = self ? this.save.customization : {};
+      const custom = this.squadSlotCustomization(slot, self);
       const stats = this.squadMockStats(slot, options.index || 0);
       const ready = this.squadReady(slot);
       const name = empty ? "OPEN SLOT" : this.lobby.slotName(slot, self ? "Bạn" : "Player");
@@ -5525,7 +5558,8 @@
             ${empty ? `
               <button class="empty-invite" data-action="${inviteAction}" data-view="play">+</button>
             ` : `
-              <div class="member-avatar char-${character.id}">
+              <div class="member-avatar char-${character.id} has-battle-render">
+                ${this.squadHeroCanvasHtml(slot, self, character, power, custom)}
                 <div class="preview-hero">
                   <span class="preview-cloak ${self ? `preview-${custom.accessory}` : ""}"></span>
                   <span class="preview-leg left"></span>
@@ -5775,6 +5809,52 @@
       if (!mount) return false;
       mount.innerHTML = this.squadActionButtonHtml();
       return true;
+    }
+
+    renderSquadHeroCanvases() {
+      const canvases = this.screen?.querySelectorAll(".squad-hero-canvas");
+      if (!canvases?.length) return;
+      const ratio = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
+      for (const canvas of canvases) {
+        const rect = canvas.getBoundingClientRect();
+        if (rect.width < 8 || rect.height < 8) continue;
+        const targetW = Math.round(rect.width * ratio);
+        const targetH = Math.round(rect.height * ratio);
+        if (canvas.width !== targetW || canvas.height !== targetH) {
+          canvas.width = targetW;
+          canvas.height = targetH;
+        }
+        const ctx = canvas.getContext("2d");
+        if (!ctx) continue;
+        ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+        ctx.clearRect(0, 0, rect.width, rect.height);
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = "high";
+        const character = characterById(canvas.dataset.character || "swordsman");
+        const power = powerById(canvas.dataset.power || this.save.account.selectedPower || "fire");
+        const custom = {
+          color: canvas.dataset.color || character.color,
+          aura: canvas.dataset.aura || "",
+          eyes: canvas.dataset.eyes || "",
+          mouth: canvas.dataset.mouth || "",
+          accessory: canvas.dataset.accessory || "",
+          trail: canvas.dataset.trail || ""
+        };
+        const self = canvas.dataset.self === "1";
+        const actor = {
+          characterId: character.id,
+          facing: -0.2,
+          animation: "idle",
+          animTime: this.menuTime,
+          actionTime: 0,
+          actionTotal: 0,
+          hp: 1,
+          powerAwakened: canvas.dataset.awakened === "1"
+        };
+        const baseScale = Math.min(rect.width / 82, rect.height / 96);
+        const scale = clamp(baseScale * (self ? 1.13 : 1.04), 1.18, self ? 2.55 : 2.35);
+        this.drawHero(ctx, rect.width * 0.48, rect.height * 0.66, scale, actor, power, custom);
+      }
     }
 
     refreshValorantLobby(options = {}) {
@@ -8067,7 +8147,7 @@
           maxEnergy: character.stats.energy,
           damage: character.stats.damage,
           crit: character.stats.crit,
-          color: "#d8b46a",
+          color: slot.customization?.color || "#d8b46a",
           characterId: character.id,
           animation: "idle",
           animTime: this.menuTime,

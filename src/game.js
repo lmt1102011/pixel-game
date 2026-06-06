@@ -9,7 +9,7 @@
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
   const SIGNAL_REALTIME_RELAY_LIMIT = 2;
   const SIGNAL_REALTIME_TYPES = new Set(["state", "snapshot", "attack", "skill", "collect", "openChest", "dropItem", "damage", "chooseDoor"]);
-  const APP_VERSION = "20260606-invite-list-only-198";
+  const APP_VERSION = "20260606-squad-start-button-199";
   const CHANGELOG_ENTRIES = [
     {
       version: APP_VERSION,
@@ -5276,16 +5276,21 @@
       if (action === "close-changelog-play") this.closeChangelogAndPlay();
       if (action === "open-lobby-invites") {
         const playView = target?.dataset.view === "play" || this.mode === "play";
+        let createdForInvite = false;
         if (playView && (!this.lobby?.code || this.lobby.joinPending)) {
           this.lobby.runMode = this.lobby.runMode || "gauntlet";
           this.lobby.create({ quiet: true, skipRender: true });
+          createdForInvite = true;
         }
         if (!this.lobby?.code || this.lobby.joinPending || !this.lobby.host) {
           this.toast("Chỉ chủ phòng mới mời bạn bè");
           return;
         }
         this.lobbyFriendInviteOpen = true;
-        if (playView) this.refreshValorantInvitePanel();
+        if (playView) {
+          if (createdForInvite) this.refreshValorantActionButton();
+          this.refreshValorantInvitePanel();
+        }
         else this.refreshValorantInvitePanel() || this.renderLobby();
         return;
       }
@@ -5542,14 +5547,50 @@
       const members = this.squadMembers();
       return {
         members,
-        slotsHtml: members.map((entry) => this.squadMemberCardHtml(entry.slot, entry)).join("")
+        slotsHtml: members.map((entry) => this.squadMemberCardHtml(entry.slot, entry)).join(""),
+        actionHtml: this.squadActionButtonHtml()
       };
+    }
+
+    squadActionButtonHtml() {
+      const inRoom = Boolean(this.lobby?.code && !this.lobby.joinPending);
+      const isHost = Boolean(this.lobby?.host || !inRoom);
+      const slots = Array.isArray(this.lobby?.slots) ? this.lobby.slots.filter(Boolean) : [];
+      const allReady = slots.every((slot) => slot.host || slot.ready);
+      const hasGuest = slots.some((slot) => slot && !slot.host);
+      const hostCanStart = inRoom ? hasGuest && allReady : true;
+      const label = isHost
+        ? "BẮT ĐẦU"
+        : this.lobby.ready ? "ĐÃ SẴN SÀNG" : "SẴN SÀNG";
+      const action = isHost
+        ? inRoom ? "start-room" : "play-gauntlet"
+        : "ready-room";
+      const disabled = isHost && !hostCanStart;
+      const stateClass = isHost ? "start-action" : this.lobby.ready ? "ready-action active" : "ready-action";
+      const iconClass = isHost ? "play" : "ready";
+      return `
+        <button class="valorant-start-btn ${stateClass}" data-action="${action}" ${disabled ? "disabled" : ""}>
+          <span class="start-btn-edge top" aria-hidden="true"></span>
+          <span class="start-btn-core">
+            <span class="start-btn-icon ${iconClass}" aria-hidden="true"></span>
+            <span class="start-btn-label">${label}</span>
+          </span>
+          <span class="start-btn-edge bottom" aria-hidden="true"></span>
+        </button>
+      `;
     }
 
     refreshValorantInvitePanel() {
       const mount = this.screen?.querySelector(".lobby-invite-mount");
       if (!mount) return false;
       mount.innerHTML = this.lobbyFriendInvitePanel();
+      return true;
+    }
+
+    refreshValorantActionButton() {
+      const mount = this.screen?.querySelector(".squad-action-mount");
+      if (!mount) return false;
+      mount.innerHTML = this.squadActionButtonHtml();
       return true;
     }
 
@@ -5563,6 +5604,7 @@
       const data = this.valorantLobbyData();
       const grid = root.querySelector(".valorant-squad-grid");
       if (grid) grid.innerHTML = data.slotsHtml;
+      this.refreshValorantActionButton();
       this.refreshValorantInvitePanel();
       return true;
     }
@@ -5579,6 +5621,7 @@
         <section class="valorant-lobby squad-only-lobby">
           <div class="squad-only-stage">
             <div class="valorant-squad-grid squad-only-grid">${data.slotsHtml}</div>
+            <div class="squad-action-mount">${data.actionHtml}</div>
           </div>
           <div class="lobby-invite-mount">${friendInvitePanel}</div>
         </section>

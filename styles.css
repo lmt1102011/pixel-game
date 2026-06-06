@@ -4829,16 +4829,262 @@ body.is-mobile-ui .touch-actions [data-touch="dash"] {
 .squad-only-stage {
   position: relative;
   z-index: 2;
+  display: grid;
+  justify-items: center;
+  gap: clamp(16px, 2.5vh, 26px);
   width: min(1180px, calc(100vw - clamp(28px, 7vw, 112px)));
 }
 
 .squad-only-grid {
   align-items: center;
-  min-height: min(72vh, 560px);
+  width: 100%;
+  min-height: min(66vh, 520px);
 }
 
 .squad-only-grid .valorant-member {
-  min-height: clamp(410px, 62vh, 540px);
+  min-height: clamp(390px, 58vh, 520px);
+}
+
+.squad-action-mount {
+  position: relative;
+  z-index: 4;
+  display: grid;
+  place-items: center;
+  width: 100%;
+}
+
+.valorant-start-btn {
+  --button-main: #ff4655;
+  --button-ink: #0f1923;
+  --button-paper: #ece8e1;
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: min(470px, 82vw);
+  min-height: 76px;
+  padding: 0 40px;
+  border: 0;
+  color: var(--button-paper);
+  background:
+    linear-gradient(135deg, transparent 0 16px, rgba(236, 232, 225, 0.96) 16px 18px, transparent 18px),
+    linear-gradient(315deg, transparent 0 16px, rgba(236, 232, 225, 0.9) 16px 18px, transparent 18px),
+    linear-gradient(90deg, #d83546 0%, var(--button-main) 50%, #f93449 100%);
+  clip-path: polygon(22px 0, 100% 0, 100% calc(100% - 22px), calc(100% - 22px) 100%, 0 100%, 0 22px);
+  cursor: pointer;
+  isolation: isolate;
+  transform: translateZ(0);
+  box-shadow:
+    0 0 0 1px rgba(236, 232, 225, 0.22),
+    0 0 0 5px rgba(255, 70, 85, 0.1),
+    0 18px 46px rgba(0, 0, 0, 0.62),
+    0 0 34px rgba(255, 70, 85, 0.28);
+  animation: valorantStartIdle 2.4s ease-in-out infinite;
+  transition: transform 170ms ease, filter 170ms ease, box-shadow 170ms ease, background 170ms ease;
+}
+
+.valorant-start-btn::before,
+.valorant-start-btn::after {
+  content: "";
+  position: absolute;
+  pointer-events: none;
+  clip-path: inherit;
+}
+
+.valorant-start-btn::before {
+  inset: 5px;
+  z-index: -1;
+  border: 1px solid rgba(15, 25, 35, 0.76);
+  background:
+    linear-gradient(90deg, rgba(15, 25, 35, 0.12), rgba(236, 232, 225, 0.18), rgba(15, 25, 35, 0.12)),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.16), transparent 42%, rgba(0, 0, 0, 0.18));
+  box-shadow: inset 0 0 0 2px rgba(15, 25, 35, 0.32), inset 0 0 18px rgba(255, 255, 255, 0.1);
+}
+
+.valorant-start-btn::after {
+  inset: 0;
+  z-index: 2;
+  background:
+    repeating-linear-gradient(0deg, transparent 0 9px, rgba(236, 232, 225, 0.16) 10px, transparent 11px),
+    linear-gradient(90deg, transparent, rgba(236, 232, 225, 0.34), transparent);
+  mix-blend-mode: screen;
+  opacity: 0;
+  transform: translateX(-58%);
+}
+
+.valorant-start-btn:not(:disabled):hover {
+  transform: scale(1.03);
+  filter: brightness(1.12) saturate(1.08);
+  box-shadow:
+    0 0 0 1px rgba(236, 232, 225, 0.34),
+    0 0 0 7px rgba(255, 70, 85, 0.16),
+    0 22px 54px rgba(0, 0, 0, 0.68),
+    0 0 46px rgba(255, 70, 85, 0.52);
+}
+
+.valorant-start-btn:not(:disabled):hover::after {
+  opacity: 0.82;
+  animation: valorantStartScan 620ms ease;
+}
+
+.valorant-start-btn:not(:disabled):active {
+  transform: scale(0.985) translateY(2px);
+  animation: valorantStartClick 200ms ease;
+}
+
+.valorant-start-btn:disabled {
+  --button-main: #555d66;
+  color: rgba(236, 232, 225, 0.46);
+  background:
+    linear-gradient(135deg, transparent 0 16px, rgba(236, 232, 225, 0.3) 16px 18px, transparent 18px),
+    linear-gradient(315deg, transparent 0 16px, rgba(236, 232, 225, 0.24) 16px 18px, transparent 18px),
+    linear-gradient(90deg, #343b44, #505862, #343b44);
+  cursor: not-allowed;
+  animation: none;
+  box-shadow: 0 16px 34px rgba(0, 0, 0, 0.46), 0 0 0 1px rgba(236, 232, 225, 0.1);
+}
+
+.start-btn-core {
+  position: relative;
+  z-index: 3;
+  display: inline-grid;
+  grid-template-columns: auto auto;
+  align-items: center;
+  justify-content: center;
+  gap: 15px;
+  min-width: 0;
+}
+
+.start-btn-label {
+  display: block;
+  color: currentColor;
+  font-size: clamp(18px, 2.15vw, 28px);
+  font-weight: 1000;
+  letter-spacing: 0;
+  line-height: 1;
+  text-align: center;
+  text-transform: uppercase;
+  text-shadow: 0 2px 0 rgba(15, 25, 35, 0.45), 0 0 18px rgba(236, 232, 225, 0.2);
+}
+
+.start-btn-icon {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border: 1px solid rgba(236, 232, 225, 0.58);
+  background: rgba(15, 25, 35, 0.28);
+  box-shadow: inset 0 0 12px rgba(15, 25, 35, 0.32), 0 0 14px rgba(236, 232, 225, 0.16);
+  clip-path: polygon(7px 0, 100% 0, 100% calc(100% - 7px), calc(100% - 7px) 100%, 0 100%, 0 7px);
+}
+
+.start-btn-icon.play::before {
+  content: "";
+  width: 0;
+  height: 0;
+  margin-left: 3px;
+  border-top: 8px solid transparent;
+  border-bottom: 8px solid transparent;
+  border-left: 13px solid currentColor;
+  filter: drop-shadow(0 0 7px rgba(236, 232, 225, 0.42));
+}
+
+.start-btn-icon.ready::before {
+  content: "";
+  width: 15px;
+  height: 8px;
+  border-left: 3px solid currentColor;
+  border-bottom: 3px solid currentColor;
+  transform: rotate(-45deg) translate(1px, -1px);
+  filter: drop-shadow(0 0 7px rgba(236, 232, 225, 0.42));
+}
+
+.start-btn-edge {
+  position: absolute;
+  left: 28px;
+  right: 28px;
+  z-index: 4;
+  height: 2px;
+  overflow: hidden;
+  background: linear-gradient(90deg, transparent, rgba(236, 232, 225, 0.62), transparent);
+}
+
+.start-btn-edge::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  width: 42%;
+  background: linear-gradient(90deg, transparent, #ece8e1, transparent);
+  animation: valorantStartEdge 1.55s linear infinite;
+}
+
+.start-btn-edge.top {
+  top: 8px;
+}
+
+.start-btn-edge.bottom {
+  bottom: 8px;
+}
+
+.valorant-start-btn.ready-action.active {
+  background:
+    linear-gradient(135deg, transparent 0 16px, rgba(236, 232, 225, 0.92) 16px 18px, transparent 18px),
+    linear-gradient(315deg, transparent 0 16px, rgba(236, 232, 225, 0.82) 16px 18px, transparent 18px),
+    linear-gradient(90deg, #1f2731, #28313b, #1f2731);
+  box-shadow:
+    0 0 0 1px rgba(236, 232, 225, 0.2),
+    0 18px 46px rgba(0, 0, 0, 0.58),
+    0 0 30px rgba(236, 232, 225, 0.14);
+}
+
+@keyframes valorantStartIdle {
+  0%, 100% {
+    box-shadow:
+      0 0 0 1px rgba(236, 232, 225, 0.22),
+      0 0 0 5px rgba(255, 70, 85, 0.1),
+      0 18px 46px rgba(0, 0, 0, 0.62),
+      0 0 28px rgba(255, 70, 85, 0.23);
+  }
+  50% {
+    box-shadow:
+      0 0 0 1px rgba(236, 232, 225, 0.28),
+      0 0 0 6px rgba(255, 70, 85, 0.15),
+      0 20px 48px rgba(0, 0, 0, 0.66),
+      0 0 40px rgba(255, 70, 85, 0.38);
+  }
+}
+
+@keyframes valorantStartScan {
+  from {
+    transform: translateX(-68%);
+  }
+  to {
+    transform: translateX(68%);
+  }
+}
+
+@keyframes valorantStartClick {
+  0%, 100% {
+    box-shadow:
+      0 0 0 1px rgba(236, 232, 225, 0.34),
+      0 18px 46px rgba(0, 0, 0, 0.62),
+      0 0 34px rgba(255, 70, 85, 0.34);
+  }
+  45% {
+    box-shadow:
+      0 0 0 1px rgba(236, 232, 225, 0.52),
+      0 12px 28px rgba(0, 0, 0, 0.52),
+      0 0 64px rgba(255, 70, 85, 0.74);
+  }
+}
+
+@keyframes valorantStartEdge {
+  from {
+    transform: translateX(-120%);
+  }
+  to {
+    transform: translateX(260%);
+  }
 }
 
 .valorant-member {
@@ -5101,6 +5347,30 @@ body.is-mobile-ui .touch-actions [data-touch="dash"] {
   .squad-only-grid {
     gap: 10px;
     min-height: auto;
+  }
+
+  .squad-action-mount {
+    padding-bottom: max(8px, env(safe-area-inset-bottom));
+  }
+
+  .valorant-start-btn {
+    width: min(360px, calc(100vw - 34px));
+    min-height: 62px;
+    padding: 0 24px;
+  }
+
+  .start-btn-core {
+    gap: 10px;
+  }
+
+  .start-btn-label {
+    font-size: 17px;
+    letter-spacing: 0;
+  }
+
+  .start-btn-icon {
+    width: 26px;
+    height: 26px;
   }
 
   .valorant-squad-grid {

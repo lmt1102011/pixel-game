@@ -9,7 +9,7 @@
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
   const SIGNAL_REALTIME_RELAY_LIMIT = 2;
   const SIGNAL_REALTIME_TYPES = new Set(["state", "snapshot", "attack", "skill", "collect", "openChest", "dropItem", "damage", "chooseDoor"]);
-  const APP_VERSION = "20260606-mode-styled-start-203";
+  const APP_VERSION = "20260606-mode-wipe-start-204";
   const CHANGELOG_ENTRIES = [
     {
       version: APP_VERSION,
@@ -2923,6 +2923,9 @@
       this.roomInviteCooldownTimers = new Map();
       this.lobbyFriendInviteOpen = false;
       this.squadModePickerOpen = false;
+      this.squadModeTransition = null;
+      this.squadModeTransitionTimer = null;
+      this.squadActionRunMode = "";
       this.roomFinderOpen = false;
       this.roomDirectoryTimer = 0;
       this.roomDirectoryBusy = false;
@@ -5636,6 +5639,35 @@
       `;
     }
 
+    squadModeById(runMode = "gauntlet") {
+      const options = this.squadModeOptions();
+      return options.find((mode) => mode.id === runMode) || options[0];
+    }
+
+    squadModeClassSuffix(runMode = "gauntlet") {
+      return runMode.replace(/[A-Z]/g, (letter) => `-${letter.toLowerCase()}`);
+    }
+
+    prepareSquadModeTransition(runMode = "gauntlet") {
+      const nextMode = runMode || "gauntlet";
+      const previousMode = this.squadActionRunMode || nextMode;
+      if (!this.squadActionRunMode) {
+        this.squadActionRunMode = nextMode;
+        return;
+      }
+      if (previousMode === nextMode) return;
+      const token = `${previousMode}:${nextMode}:${Date.now()}`;
+      this.squadModeTransition = { from: previousMode, to: nextMode, token };
+      this.squadActionRunMode = nextMode;
+      if (this.squadModeTransitionTimer) window.clearTimeout(this.squadModeTransitionTimer);
+      this.squadModeTransitionTimer = window.setTimeout(() => {
+        if (this.squadModeTransition?.token !== token) return;
+        this.squadModeTransition = null;
+        this.squadModeTransitionTimer = null;
+        this.refreshValorantActionButton();
+      }, 720);
+    }
+
     squadActionButtonHtml() {
       const inRoom = Boolean(this.lobby?.code && !this.lobby.joinPending);
       const isHost = Boolean(this.lobby?.host || !inRoom);
@@ -5643,6 +5675,7 @@
       const allReady = slots.every((slot) => slot.host || slot.ready);
       const hasGuest = slots.some((slot) => slot && !slot.host);
       const runMode = this.lobby.runMode || "gauntlet";
+      this.prepareSquadModeTransition(runMode);
       const hostCanStart = inRoom ? hasGuest && allReady : runMode !== "playerBoss";
       const label = isHost
         ? "BẮT ĐẦU"
@@ -5653,9 +5686,13 @@
       const disabled = isHost && !hostCanStart;
       const stateClass = isHost ? "start-action" : this.lobby.ready ? "ready-action active" : "ready-action";
       const iconClass = isHost ? "play" : "ready";
-      const modeMeta = this.squadModeOptions().find((mode) => mode.id === runMode) || this.squadModeOptions()[0];
-      const modeClass = `mode-${runMode.replace(/[A-Z]/g, (letter) => `-${letter.toLowerCase()}`)}`;
-      const modeStyle = `--button-main:${modeMeta.color};--mode:${modeMeta.color};`;
+      const transition = this.squadModeTransition?.to === runMode ? this.squadModeTransition : null;
+      const visualMode = transition ? transition.from : runMode;
+      const modeMeta = this.squadModeById(runMode);
+      const visualMeta = this.squadModeById(visualMode);
+      const modeClass = `mode-${this.squadModeClassSuffix(visualMode)}`;
+      const transitionClass = transition ? `mode-switching mode-to-${this.squadModeClassSuffix(runMode)}` : "";
+      const modeStyle = `--button-main:${visualMeta.color};--button-next:${modeMeta.color};--mode:${modeMeta.color};`;
       const modePanel = this.squadModePickerHtml();
       return `
         <div class="squad-action-bar">
@@ -5663,7 +5700,8 @@
             <span class="exit-btn-icon" aria-hidden="true"></span>
             <span>THOÁT</span>
           </button>
-          <button class="valorant-start-btn ${stateClass} ${modeClass}" style="${modeStyle}" data-action="${action}" ${disabled ? "disabled" : ""}>
+          <button class="valorant-start-btn ${stateClass} ${modeClass} ${transitionClass}" style="${modeStyle}" data-action="${action}" ${disabled ? "disabled" : ""}>
+            <span class="start-btn-mode-wipe" aria-hidden="true"></span>
             <span class="start-btn-edge top" aria-hidden="true"></span>
             <span class="start-btn-core">
               <span class="start-btn-icon ${iconClass}" aria-hidden="true"></span>

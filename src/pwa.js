@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const APP_VERSION = "20260606-mode-wipe-start-204";
+  const APP_VERSION = "20260606-smooth-mode-wipe-205";
   const APP_ICON = "assets/icons/app-icon-20260605-logo-xl-149.svg";
   let deferredInstallPrompt = null;
   let startGame = null;

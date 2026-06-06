@@ -4956,6 +4956,10 @@ body.is-mobile-ui .touch-actions [data-touch="dash"] {
 
 .valorant-start-btn {
   --button-main: #ff4655;
+  --button-next: #ff4655;
+  --button-prev: #ff4655;
+  --button-prev-text: #ece8e1;
+  --button-next-text: #ece8e1;
   --button-ink: #0f1923;
   --button-paper: #ece8e1;
   position: relative;
@@ -4975,13 +4979,14 @@ body.is-mobile-ui .touch-actions [data-touch="dash"] {
   cursor: pointer;
   isolation: isolate;
   transform: translateZ(0);
+  will-change: transform, filter;
   box-shadow:
     0 0 0 1px rgba(236, 232, 225, 0.22),
     0 0 0 5px color-mix(in srgb, var(--button-main), transparent 88%),
     0 18px 46px rgba(0, 0, 0, 0.62),
     0 0 34px color-mix(in srgb, var(--button-main), transparent 68%);
   animation: valorantStartIdle 2.4s ease-in-out infinite;
-  transition: transform 170ms ease, filter 170ms ease, box-shadow 170ms ease, background 170ms ease;
+  transition: transform 170ms ease, filter 170ms ease, box-shadow 240ms ease;
 }
 
 .valorant-start-btn::before,
@@ -5019,12 +5024,13 @@ body.is-mobile-ui .touch-actions [data-touch="dash"] {
   z-index: 1;
   pointer-events: none;
   opacity: 0;
-  transform: scaleX(0);
-  transform-origin: left center;
+  transform: scaleX(1);
+  transform-origin: right center;
+  will-change: transform, opacity;
   background:
     linear-gradient(135deg, transparent 0 16px, rgba(236, 232, 225, 0.84) 16px 18px, transparent 18px),
     linear-gradient(315deg, transparent 0 16px, rgba(236, 232, 225, 0.7) 16px 18px, transparent 18px),
-    linear-gradient(90deg, color-mix(in srgb, var(--button-next), #0f1923 30%) 0%, var(--button-next) 52%, color-mix(in srgb, var(--button-next), #ece8e1 16%) 100%);
+    linear-gradient(90deg, color-mix(in srgb, var(--button-prev), #0f1923 30%) 0%, var(--button-prev) 52%, color-mix(in srgb, var(--button-prev), #ece8e1 16%) 100%);
   clip-path: inherit;
   box-shadow: inset 0 0 26px color-mix(in srgb, var(--button-next), transparent 60%);
 }
@@ -5034,50 +5040,59 @@ body.is-mobile-ui .touch-actions [data-touch="dash"] {
   position: absolute;
   top: -12%;
   bottom: -12%;
-  right: -18px;
+  left: -18px;
   width: 44px;
-  background: linear-gradient(90deg, transparent, rgba(236, 232, 225, 0.82), transparent);
+  background: linear-gradient(90deg, transparent, rgba(236, 232, 225, 0.76), transparent);
   filter: blur(1px);
   transform: skewX(-14deg);
 }
 
 .valorant-start-btn.mode-switching .start-btn-mode-wipe {
   opacity: 1;
-  animation: squadStartModeWipe 680ms cubic-bezier(0.2, 0.82, 0.2, 1) both;
+  animation: squadStartModeWipe 1040ms cubic-bezier(0.22, 0.74, 0.16, 1) both;
 }
 
 .valorant-start-btn.mode-switching {
-  transition: transform 170ms ease, filter 170ms ease, box-shadow 260ms ease;
+  color: var(--button-next-text);
+  transition: transform 170ms ease, filter 170ms ease, box-shadow 320ms ease;
 }
 
-.valorant-start-btn.mode-to-gauntlet .start-btn-mode-wipe {
+.valorant-start-btn.mode-switching .start-btn-core {
+  animation: squadStartTextShift 1040ms ease both;
+}
+
+.valorant-start-btn.mode-switching .start-btn-icon {
+  animation: squadStartIconShift 1040ms ease both;
+}
+
+.valorant-start-btn.mode-from-gauntlet .start-btn-mode-wipe {
   background:
     linear-gradient(135deg, transparent 0 16px, rgba(15, 25, 35, 0.78) 16px 18px, transparent 18px),
     linear-gradient(315deg, transparent 0 16px, rgba(236, 232, 225, 0.62) 16px 18px, transparent 18px),
-    linear-gradient(90deg, #3fd6a0 0%, var(--button-next) 48%, #b7ffd0 100%);
+    linear-gradient(90deg, #3fd6a0 0%, var(--button-prev) 48%, #b7ffd0 100%);
 }
 
-.valorant-start-btn.mode-to-awakening-raid .start-btn-mode-wipe {
+.valorant-start-btn.mode-from-awakening-raid .start-btn-mode-wipe {
   background:
     radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.28), transparent 28%),
     linear-gradient(135deg, transparent 0 16px, rgba(15, 25, 35, 0.72) 16px 18px, transparent 18px),
     linear-gradient(315deg, transparent 0 16px, rgba(236, 232, 225, 0.88) 16px 18px, transparent 18px),
-    linear-gradient(90deg, color-mix(in srgb, var(--button-next), #f2bf63 36%) 0%, var(--button-next) 48%, #fff2a8 100%);
+    linear-gradient(90deg, color-mix(in srgb, var(--button-prev), #f2bf63 36%) 0%, var(--button-prev) 48%, #fff2a8 100%);
 }
 
-.valorant-start-btn.mode-to-boss-rush .start-btn-mode-wipe {
+.valorant-start-btn.mode-from-boss-rush .start-btn-mode-wipe {
   background:
     linear-gradient(135deg, transparent 0 16px, rgba(236, 232, 225, 0.92) 16px 18px, transparent 18px),
     linear-gradient(315deg, transparent 0 16px, rgba(15, 25, 35, 0.76) 16px 18px, transparent 18px),
     repeating-linear-gradient(0deg, rgba(15, 25, 35, 0.18) 0 5px, transparent 5px 13px),
-    linear-gradient(90deg, #8f1726 0%, var(--button-next) 50%, #ff7b62 100%);
+    linear-gradient(90deg, #8f1726 0%, var(--button-prev) 50%, #ff7b62 100%);
 }
 
-.valorant-start-btn.mode-to-player-boss .start-btn-mode-wipe {
+.valorant-start-btn.mode-from-player-boss .start-btn-mode-wipe {
   background:
     linear-gradient(135deg, transparent 0 16px, rgba(236, 232, 225, 0.72) 16px 18px, transparent 18px),
     linear-gradient(315deg, transparent 0 16px, rgba(255, 70, 85, 0.72) 16px 18px, transparent 18px),
-    linear-gradient(115deg, #261143 0%, var(--button-next) 46%, #ff4655 100%);
+    linear-gradient(115deg, #261143 0%, var(--button-prev) 46%, #ff4655 100%);
 }
 
 .valorant-start-btn:not(:disabled):hover {
@@ -5455,16 +5470,42 @@ body.is-mobile-ui .touch-actions [data-touch="dash"] {
 
 @keyframes squadStartModeWipe {
   0% {
-    opacity: 0.94;
+    opacity: 0.98;
+    transform: scaleX(1);
+  }
+  12% {
+    opacity: 0.98;
+    transform: scaleX(1);
+  }
+  88% {
+    opacity: 0.96;
     transform: scaleX(0);
   }
-  78% {
-    opacity: 1;
-    transform: scaleX(1);
-  }
   100% {
-    opacity: 1;
-    transform: scaleX(1);
+    opacity: 0;
+    transform: scaleX(0);
+  }
+}
+
+@keyframes squadStartTextShift {
+  0%, 28% {
+    color: var(--button-prev-text);
+    text-shadow: 0 2px 0 rgba(15, 25, 35, 0.45), 0 0 18px rgba(236, 232, 225, 0.18);
+  }
+  72%, 100% {
+    color: var(--button-next-text);
+    text-shadow: 0 2px 0 rgba(15, 25, 35, 0.45), 0 0 18px rgba(236, 232, 225, 0.22);
+  }
+}
+
+@keyframes squadStartIconShift {
+  0%, 28% {
+    color: var(--button-prev-text);
+    transform: translateX(-2px) scale(0.98);
+  }
+  72%, 100% {
+    color: var(--button-next-text);
+    transform: translateX(0) scale(1);
   }
 }
 

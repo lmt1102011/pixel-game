@@ -9,7 +9,7 @@
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
   const SIGNAL_REALTIME_RELAY_LIMIT = 2;
   const SIGNAL_REALTIME_TYPES = new Set(["state", "snapshot", "attack", "skill", "collect", "openChest", "dropItem", "damage", "chooseDoor"]);
-  const APP_VERSION = "20260606-mode-wipe-start-204";
+  const APP_VERSION = "20260606-smooth-mode-wipe-205";
   const CHANGELOG_ENTRIES = [
     {
       version: APP_VERSION,
@@ -5648,6 +5648,10 @@
       return runMode.replace(/[A-Z]/g, (letter) => `-${letter.toLowerCase()}`);
     }
 
+    squadModeTextColor(runMode = "gauntlet") {
+      return runMode === "gauntlet" || runMode === "awakeningRaid" ? "#0f1923" : "#ece8e1";
+    }
+
     prepareSquadModeTransition(runMode = "gauntlet") {
       const nextMode = runMode || "gauntlet";
       const previousMode = this.squadActionRunMode || nextMode;
@@ -5665,7 +5669,7 @@
         this.squadModeTransition = null;
         this.squadModeTransitionTimer = null;
         this.refreshValorantActionButton();
-      }, 720);
+      }, 1080);
     }
 
     squadActionButtonHtml() {
@@ -5687,12 +5691,12 @@
       const stateClass = isHost ? "start-action" : this.lobby.ready ? "ready-action active" : "ready-action";
       const iconClass = isHost ? "play" : "ready";
       const transition = this.squadModeTransition?.to === runMode ? this.squadModeTransition : null;
-      const visualMode = transition ? transition.from : runMode;
       const modeMeta = this.squadModeById(runMode);
-      const visualMeta = this.squadModeById(visualMode);
-      const modeClass = `mode-${this.squadModeClassSuffix(visualMode)}`;
-      const transitionClass = transition ? `mode-switching mode-to-${this.squadModeClassSuffix(runMode)}` : "";
-      const modeStyle = `--button-main:${visualMeta.color};--button-next:${modeMeta.color};--mode:${modeMeta.color};`;
+      const previousMode = transition ? transition.from : runMode;
+      const previousMeta = this.squadModeById(previousMode);
+      const modeClass = `mode-${this.squadModeClassSuffix(runMode)}`;
+      const transitionClass = transition ? `mode-switching mode-from-${this.squadModeClassSuffix(previousMode)} mode-to-${this.squadModeClassSuffix(runMode)}` : "";
+      const modeStyle = `--button-main:${modeMeta.color};--button-next:${modeMeta.color};--button-prev:${previousMeta.color};--button-prev-text:${this.squadModeTextColor(previousMode)};--button-next-text:${this.squadModeTextColor(runMode)};--mode:${modeMeta.color};`;
       const modePanel = this.squadModePickerHtml();
       return `
         <div class="squad-action-bar">

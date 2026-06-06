@@ -5621,8 +5621,8 @@ body.is-mobile-ui .touch-actions [data-touch="dash"] {
 
 .member-avatar {
   position: relative;
-  width: 150px;
-  height: 250px;
+  width: min(100%, 190px);
+  height: min(100%, 270px);
 }
 
 .squad-hero-canvas {

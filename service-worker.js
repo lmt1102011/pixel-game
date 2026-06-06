@@ -1,11 +1,11 @@
-const SOULRIFT_CACHE = "soulrift-pwa-20260606-squad-battle-heroes-207";
+const SOULRIFT_CACHE = "soulrift-pwa-20260606-squad-character-fit-208";
 const SOULRIFT_ASSETS = [
   "./",
   "./index.html",
-  "./styles.css?v=20260606-squad-battle-heroes-207",
-  "./src/pwa.js?v=20260606-squad-battle-heroes-207",
-  "./src/game.js?v=20260606-squad-battle-heroes-207",
-  "./manifest.webmanifest?v=20260606-squad-battle-heroes-207",
+  "./styles.css?v=20260606-squad-character-fit-208",
+  "./src/pwa.js?v=20260606-squad-character-fit-208",
+  "./src/game.js?v=20260606-squad-character-fit-208",
+  "./manifest.webmanifest?v=20260606-squad-character-fit-208",
   "./version.json",
   "./assets/icons/app-icon-20260605-logo-xl-149.svg",
   "./assets/icons/app-icon-20260605-logo-xl-149-192.png",

@@ -9,7 +9,7 @@
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
   const SIGNAL_REALTIME_RELAY_LIMIT = 2;
   const SIGNAL_REALTIME_TYPES = new Set(["state", "snapshot", "attack", "skill", "collect", "openChest", "dropItem", "damage", "chooseDoor"]);
-  const APP_VERSION = "20260606-squad-battle-heroes-207";
+  const APP_VERSION = "20260606-squad-character-fit-208";
   const CHANGELOG_ENTRIES = [
     {
       version: APP_VERSION,
@@ -5441,6 +5441,7 @@
       if (target.dataset.custom) {
         this.save.customization[target.dataset.custom] = target.value;
         this.persist();
+        if (this.lobby?.syncOwnSlot) this.lobby.syncOwnSlot();
         if (this.mode === "custom") this.showCustomization(true);
         else this.showCharacter(true);
       }
@@ -5463,7 +5464,10 @@
         seenAt: now
       };
       const slots = Array.isArray(this.lobby?.slots) ? this.lobby.slots.filter(Boolean) : [];
-      const ownSlot = slots.find((slot) => slot.id === ownId) || ownFallback;
+      const storedOwnSlot = slots.find((slot) => slot.id === ownId);
+      const ownSlot = storedOwnSlot
+        ? { ...storedOwnSlot, ...ownFallback, joinedAt: storedOwnSlot.joinedAt || ownFallback.joinedAt, seenAt: storedOwnSlot.seenAt || ownFallback.seenAt }
+        : ownFallback;
       const hostSlot = slots.find((slot) => slot?.host) || ownSlot;
       const others = slots
         .filter((slot) => slot.id !== ownId)
@@ -5851,9 +5855,18 @@
           hp: 1,
           powerAwakened: canvas.dataset.awakened === "1"
         };
-        const baseScale = Math.min(rect.width / 82, rect.height / 96);
-        const scale = clamp(baseScale * (self ? 1.13 : 1.04), 1.18, self ? 2.55 : 2.35);
-        this.drawHero(ctx, rect.width * 0.48, rect.height * 0.66, scale, actor, power, custom);
+        const fit = {
+          swordsman: { w: 138, h: 104, x: 0.41, y: 0.66 },
+          guardian: { w: 124, h: 104, x: 0.45, y: 0.66 },
+          mage: { w: 104, h: 110, x: 0.49, y: 0.66 },
+          ranger: { w: 138, h: 104, x: 0.41, y: 0.66 },
+          assassin: { w: 122, h: 102, x: 0.44, y: 0.66 },
+          martial: { w: 98, h: 102, x: 0.49, y: 0.66 },
+          spearman: { w: 190, h: 104, x: 0.36, y: 0.66 }
+        }[character.id] || { w: 132, h: 104, x: 0.44, y: 0.66 };
+        const baseScale = Math.min(rect.width / fit.w, rect.height / fit.h);
+        const scale = clamp(baseScale * (self ? 1.08 : 1.0), 0.52, self ? 2.18 : 2.02);
+        this.drawHero(ctx, rect.width * fit.x, rect.height * fit.y, scale, actor, power, custom);
       }
     }
 
@@ -6992,6 +7005,7 @@
       const character = characterById(characterId);
       this.save.account.selectedCharacter = character.id;
       this.persist();
+      if (this.lobby?.syncOwnSlot) this.lobby.syncOwnSlot();
       this.toast(`Đã chọn ${character.name}`);
       this.showCharacter(true);
     }

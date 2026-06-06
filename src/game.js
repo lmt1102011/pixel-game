@@ -9,7 +9,7 @@
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
   const SIGNAL_REALTIME_RELAY_LIMIT = 2;
   const SIGNAL_REALTIME_TYPES = new Set(["state", "snapshot", "attack", "skill", "collect", "openChest", "dropItem", "damage", "chooseDoor"]);
-  const APP_VERSION = "20260607-mobile-ultra-fps-245";
+  const APP_VERSION = "20260607-asset-export-246";
   const CHANGELOG_ENTRIES = [
     {
       version: APP_VERSION,
@@ -3006,7 +3006,8 @@
       this.audio = new AudioEngine(this);
       this.lobby = new PeerLobby(this);
       this.monsterSprites = new Map();
-      this.loadMonsterSprites();
+      this.exportedAssetImages = new Map();
+      if (!window.SOULRIFT_EXPORT_ONLY) this.loadMonsterSprites();
       this.run = null;
       this.mode = "loading";
       this.last = 0;
@@ -3101,6 +3102,11 @@
         avgRenderMs: 0,
         resizeAt: 0
       };
+      if (window.SOULRIFT_EXPORT_ONLY) {
+        this.mode = "asset-export";
+        this.bootReady = true;
+        return;
+      }
       this.updateDeviceUiMode();
       this.bindEvents();
       this.resize();
@@ -4491,11 +4497,14 @@
 
     ultraPerformanceMode() {
       if (!this.run || this.mode !== "game") return false;
-      return this.isMobileDevice()
-        || this.renderPressure() > 0.12
-        || this.performancePressure() > 0.22
-        || (this.graphicsActiveCombat() && this.graphicsCombatLoad() > 0.72)
-        || this.devicePerformanceBias() > 0.5;
+      const renderPressure = this.renderPressure();
+      const pressure = this.performancePressure();
+      const combatLoad = this.graphicsCombatLoad();
+      return this.performancePanic()
+        || renderPressure > 0.62
+        || pressure > 0.62
+        || (this.graphicsActiveCombat() && combatLoad > 1.35 && (renderPressure > 0.34 || pressure > 0.42))
+        || (this.isMobileDevice() && this.devicePerformanceBias() > 0.72 && this.graphicsActiveCombat() && combatLoad > 1.65 && pressure > 0.32);
     }
 
     prettyVisualScale(min = 0.18) {
@@ -20168,6 +20177,352 @@
       }
     }
 
+    exportRenderedAssets(options = {}) {
+      const previous = {
+        menuTime: this.menuTime,
+        mode: this.mode,
+        run: this.run,
+        width: this.width,
+        height: this.height,
+        camera: { ...this.camera },
+        quality: this.perf?.quality ?? 1,
+        particles: this.save?.settings?.particles,
+        screenShake: this.save?.settings?.screenShake
+      };
+      const files = [];
+      const errors = [];
+      const frameScale = clamp(Number(options.frameScale || 1), 0.5, 2);
+      const addFrame = (path, width, height, draw, meta = {}) => {
+        const canvas = document.createElement("canvas");
+        canvas.width = Math.max(1, Math.round(width * frameScale));
+        canvas.height = Math.max(1, Math.round(height * frameScale));
+        const ctx = canvas.getContext("2d");
+        if (!ctx) return;
+        ctx.imageSmoothingEnabled = false;
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.save();
+        ctx.scale(frameScale, frameScale);
+        try {
+          draw(ctx, width, height);
+          files.push({
+            path,
+            width: canvas.width,
+            height: canvas.height,
+            meta,
+            dataUrl: canvas.toDataURL("image/png")
+          });
+        } catch (error) {
+          errors.push({ path, error: error?.message || String(error) });
+        } finally {
+          ctx.restore();
+        }
+      };
+      const setExportRun = (biome = BIOMES[0], power = POWERS[0]) => {
+        this.run = {
+          seed: 0.37,
+          stage: 0,
+          biome,
+          power,
+          effects: [],
+          hazards: [],
+          pickups: [],
+          projectiles: [],
+          slashes: [],
+          shockwaves: [],
+          roomObjects: [],
+          enemies: [],
+          player: {
+            id: "export",
+            x: WORLD_W / 2,
+            y: WORLD_H / 2,
+            radius: 18,
+            hp: 100,
+            maxHp: 100,
+            energy: 100,
+            maxEnergy: 100,
+            characterId: "swordsman",
+            animation: "idle",
+            animTime: 0,
+            actionTime: 0,
+            actionTotal: 0,
+            facing: 0
+          }
+        };
+      };
+      const focusCanvas = (width, height) => {
+        this.width = width;
+        this.height = height;
+        this.camera.x = 0;
+        this.camera.y = 0;
+        this.camera.shake = 0;
+        this.camera.shakeX = 0;
+        this.camera.shakeY = 0;
+      };
+      const monsterTimeFor = (kind, moving, frame, variant = 0) => {
+        if (!moving) return (((frame - variant) % 2 + 2) % 2) / 2 + 0.02;
+        const speed = this.monsterAnimSpeed(kind);
+        return (((frame - variant) % 4 + 4) % 4) / speed + 0.02;
+      };
+      const safeSlug = (value) => String(value || "asset").replace(/[^a-z0-9_-]+/gi, "-");
+      const characterCustom = { color: "#d8b46a", aura: "", eyes: "", mouth: "", accessory: "", trail: "" };
+
+      try {
+        this.mode = "asset-export";
+        this.menuTime = 0;
+        this.perf.quality = 1;
+        this.perf.pressure = 0;
+        this.perf.emergencyHold = 0;
+        this.perf.panicHold = 0;
+        this.save.settings.particles = 1.5;
+        this.save.settings.screenShake = 0;
+        setExportRun();
+
+        for (const [kind, design] of Object.entries(MONSTER_TYPES)) {
+          const palette = this.enemySpritePalette({ kind, elite: false }, design.palette?.base || this.enemyColor(kind), BIOMES[0].accent);
+          const variant = 0;
+          const renderMonster = (state, frame, attackAnim = 0) => {
+            const moving = state === "walk";
+            this.menuTime = monsterTimeFor(kind, moving, frame, variant);
+            const enemy = {
+              kind,
+              x: 0,
+              y: 0,
+              vx: moving ? design.speed || 80 : 0,
+              vy: 0,
+              radius: design.size || 24,
+              attackAnim,
+              flash: 0,
+              launch: 0,
+              elite: false,
+              boss: false,
+              trainingDummy: false,
+              playerBoss: false
+            };
+            addFrame(`monsters/${safeSlug(kind)}/${state}_${String(frame).padStart(2, "0")}.png`, 192, 192, (ctx, width, height) => {
+              ctx.translate(width / 2, height / 2 + 16);
+              ctx.scale(1.55, 1.55);
+              if (!this.drawDesignedMonsterSprite(ctx, enemy, palette, variant)) this.drawPixelMonsterSprite(ctx, enemy, palette, variant);
+            }, { category: "monster", kind, name: design.name, state, frame });
+          };
+          for (let frame = 0; frame < 2; frame++) renderMonster("idle", frame, 0);
+          for (let frame = 0; frame < 4; frame++) renderMonster("walk", frame, 0);
+          [0.34, 0.2, 0.08].forEach((attackAnim, frame) => renderMonster("attack", frame, attackAnim));
+        }
+
+        for (const character of CHARACTER_TYPES) {
+          const power = powerById(character.id === "mage" ? "crystal" : character.id === "guardian" ? "nature" : character.id === "ranger" ? "lightning" : "fire");
+          const states = [
+            { state: "idle", frames: 2, total: 0 },
+            { state: "run", frames: 4, total: 0 },
+            { state: "attack", frames: 4, total: 0.64 },
+            { state: "skill", frames: 4, total: 0.5 },
+            { state: "ultimate", frames: 4, total: 1.0 },
+            { state: "death", frames: 4, total: 0.9 }
+          ];
+          for (const entry of states) {
+            for (let frame = 0; frame < entry.frames; frame++) {
+              const progress = entry.frames <= 1 ? 0 : frame / (entry.frames - 1);
+              const actionTotal = entry.total || 0;
+              const actionTime = actionTotal ? actionTotal * (1 - progress) : 0;
+              this.menuTime = frame * 0.13 + 0.05;
+              const actor = {
+                characterId: character.id,
+                facing: 0,
+                animation: entry.state,
+                animTime: this.menuTime,
+                actionTime,
+                actionTotal,
+                skillCastStyle: { power: power.id, key: entry.state === "ultimate" ? "f" : "q" },
+                hp: 100,
+                maxHp: 100,
+                invuln: 0,
+                powerAwakened: false
+              };
+              addFrame(`characters/${safeSlug(character.id)}/${entry.state}_${String(frame).padStart(2, "0")}.png`, 256, 256, (ctx, width, height) => {
+                this.drawHero(ctx, width / 2 - 8, height / 2 + 52, 3.15, actor, power, { ...characterCustom, color: character.color });
+              }, { category: "character", character: character.id, state: entry.state, frame });
+            }
+          }
+        }
+
+        const doorFrames = [0.2, 0.45, 0.7, 0.9, 1];
+        for (const room of ROOM_TYPES) {
+          const biome = BIOMES[0];
+          setExportRun(biome, POWERS[0]);
+          for (let frame = 0; frame < doorFrames.length; frame++) {
+            this.menuTime = frame * 0.18;
+            addFrame(`doors/${safeSlug(room.id)}/grow_${String(frame).padStart(2, "0")}.png`, 256, 280, (ctx, width, height) => {
+              this.drawDoorObject(ctx, {
+                type: "nextDoor",
+                x: width / 2,
+                y: height / 2 + 16,
+                radius: 54,
+                grow: doorFrames[frame],
+                opened: false,
+                label: "",
+                icon: room.icon,
+                color: room.color,
+                effect: this.doorEffectFor(room)
+              });
+            }, { category: "door", roomType: room.id, frame });
+          }
+        }
+        for (const gate of [
+          { id: "bossGate", type: "bossGate", color: "#ff4655", effect: "boss" },
+          { id: "bossExit", type: "bossExit", color: "#f2bf63", effect: "gold" }
+        ]) {
+          setExportRun(BIOMES[2], POWERS[0]);
+          for (let frame = 0; frame < doorFrames.length; frame++) {
+            this.menuTime = frame * 0.18;
+            addFrame(`doors/${gate.id}/grow_${String(frame).padStart(2, "0")}.png`, 288, 320, (ctx, width, height) => {
+              this.drawDoorObject(ctx, {
+                type: gate.type,
+                x: width / 2,
+                y: height / 2 + 12,
+                radius: gate.type === "bossGate" ? 82 : 62,
+                grow: doorFrames[frame],
+                opened: false,
+                label: "",
+                icon: gate.type === "bossGate" ? "B" : "$",
+                color: gate.color,
+                effect: gate.effect
+              });
+            }, { category: "door", roomType: gate.id, frame });
+          }
+        }
+
+        for (const container of ["woodChest", "goldChest"]) {
+          for (let frame = 0; frame < 6; frame++) {
+            const progress = frame / 5;
+            const openDuration = container === "goldChest" ? 0.62 : 0.42;
+            this.menuTime = frame * 0.1;
+            setExportRun(BIOMES[0], POWERS[0]);
+            addFrame(`chests/${container}/open_${String(frame).padStart(2, "0")}.png`, 192, 160, (ctx, width, height) => {
+              focusCanvas(width, height);
+              this.run.pickups = [{
+                type: "reward",
+                container,
+                x: width / 2,
+                y: height / 2 + 18,
+                radius: container === "goldChest" ? 14 : 12,
+                opening: progress > 0,
+                openTimer: openDuration * (1 - progress),
+                reward: { type: "material", material: "emberGlass" },
+                chestReward: { type: "material" },
+                color: container === "goldChest" ? "#f2bf63" : "#d6a052"
+              }];
+              this.drawPickups(ctx);
+            }, { category: "chest", container, state: "open", frame });
+          }
+        }
+        for (let frame = 0; frame < 6; frame++) {
+          const progress = frame / 5;
+          setExportRun(BIOMES[0], POWERS[0]);
+          this.menuTime = frame * 0.12;
+          addFrame(`chests/treasureChest/open_${String(frame).padStart(2, "0")}.png`, 256, 220, (ctx, width, height) => {
+            this.drawTreasureChest(ctx, {
+              type: "treasureChest",
+              x: width / 2,
+              y: height / 2 + 12,
+              radius: 48,
+              grow: 1,
+              opening: progress > 0,
+              openTimer: 0.85 * (1 - progress),
+              opened: progress >= 1,
+              color: "#f2bf63",
+              label: "",
+              effect: "gold"
+            });
+          }, { category: "chest", container: "treasureChest", state: "open", frame });
+        }
+
+        for (const biome of BIOMES) {
+          setExportRun(biome, POWERS[0]);
+          this.roomBackgroundCache.clear();
+          const bg = this.getRoomBackgroundCanvas(false);
+          if (bg) {
+            addFrame(`backgrounds/${safeSlug(biome.id)}/floor_tile.png`, 256, 256, (ctx) => {
+              ctx.drawImage(bg, ROOM_PAD + 96, ROOM_PAD + 96, 256, 256, 0, 0, 256, 256);
+            }, { category: "background", biome: biome.id, asset: "floorTile" });
+            addFrame(`backgrounds/${safeSlug(biome.id)}/room_crop.png`, 512, 320, (ctx) => {
+              ctx.drawImage(bg, ROOM_PAD, ROOM_PAD, 512, 320, 0, 0, 512, 320);
+            }, { category: "background", biome: biome.id, asset: "roomCrop" });
+          }
+        }
+
+        const hazardTypes = ["thorn", "ice", "lava", "voltage", "blade"];
+        for (const type of hazardTypes) {
+          const biome = BIOMES.find((entry) => entry.hazards.includes(type)) || BIOMES[0];
+          setExportRun(biome, POWERS[0]);
+          for (let frame = 0; frame < 6; frame++) {
+            this.menuTime = frame * 0.12;
+            addFrame(`traps/${type}/active_${String(frame).padStart(2, "0")}.png`, 192, 192, (ctx, width, height) => {
+              focusCanvas(width, height);
+              this.run.hazards = [{ type, x: width / 2, y: height / 2, radius: 54, pulse: frame * 0.35, cooldown: 0 }];
+              this.drawHazards(ctx);
+            }, { category: "trap", type, state: "active", frame });
+          }
+        }
+
+        for (const power of POWERS) {
+          for (const key of ["q", "e", "r", "f"]) {
+            const signature = POWER_SKILL_SIGNATURES[power.id]?.[key];
+            if (!signature) continue;
+            for (const awakened of [false, true]) {
+              const palette = this.powerDesignPalette(power.id, awakened);
+              for (let frame = 0; frame < 4; frame++) {
+                const progress = 0.12 + frame * 0.22;
+                const width = signature.anchor === "line" ? 860 : 640;
+                const height = 560;
+                const x = signature.anchor === "line" ? 120 : width / 2;
+                const y = height / 2;
+                const variant = awakened ? `design-awakened-${power.id}-${key}` : signature.variant;
+                this.menuTime = frame * 0.16;
+                addFrame(`skills/${safeSlug(power.id)}/${key}/${awakened ? "awakened" : "normal"}_${String(frame).padStart(2, "0")}.png`, width, height, (ctx) => {
+                  ctx.save();
+                  this.drawSkillShape(ctx, {
+                    type: "skillShape",
+                    x,
+                    y,
+                    angle: 0,
+                    radius: signature.radius || 180,
+                    length: signature.length || signature.radius || 180,
+                    width: signature.width || 54,
+                    time: Math.max(0.02, (signature.time || 0.5) * (1 - progress)),
+                    maxTime: signature.time || 0.5,
+                    color: palette.color,
+                    accent: palette.accent,
+                    kind: power.id,
+                    variant,
+                    signature,
+                    awakened
+                  });
+                  ctx.restore();
+                }, { category: "skill", power: power.id, key, awakened, frame });
+              }
+            }
+          }
+        }
+      } finally {
+        this.menuTime = previous.menuTime;
+        this.mode = previous.mode;
+        this.run = previous.run;
+        this.width = previous.width;
+        this.height = previous.height;
+        this.camera = previous.camera;
+        this.perf.quality = previous.quality;
+        if (Number.isFinite(previous.particles)) this.save.settings.particles = previous.particles;
+        if (Number.isFinite(previous.screenShake)) this.save.settings.screenShake = previous.screenShake;
+      }
+
+      return {
+        version: APP_VERSION,
+        generatedAt: new Date().toISOString(),
+        files,
+        errors
+      };
+    }
+
     roomBackgroundKey(lowDetail = false) {
       const biome = this.run?.biome || {};
       return [
@@ -22613,6 +22968,43 @@
       return `${kind}|${variant}|${moving ? "m" + walkFrame : "i" + idleFrame}|${attack}|${enemy.elite ? 1 : 0}|${paletteKey}`;
     }
 
+    exportedMonsterFrame(enemy, variant = 0) {
+      const kind = enemy.kind || "";
+      const speed = Math.hypot(enemy.vx || 0, enemy.vy || 0);
+      const moving = speed > 7;
+      if ((enemy.attackAnim || 0) > 0) {
+        return { kind, state: "attack", frame: enemy.attackAnim > 0.24 ? 0 : enemy.attackAnim > 0.12 ? 1 : 2 };
+      }
+      if (moving) {
+        const frame = Math.floor(this.menuTime * this.monsterAnimSpeed(kind) + variant) % 4;
+        return { kind, state: "walk", frame };
+      }
+      return { kind, state: "idle", frame: Math.floor(this.menuTime * 2 + variant) % 2 };
+    }
+
+    drawExportedMonsterSprite(ctx, enemy, variant = 0) {
+      const kind = enemy.kind || "";
+      if (!MONSTER_TYPES[kind] || enemy.boss || enemy.trainingDummy || enemy.flash > 0 || enemy.playerBoss) return false;
+      const frame = this.exportedMonsterFrame(enemy, variant);
+      const file = `${frame.state}_${String(frame.frame).padStart(2, "0")}.png`;
+      const path = `assets/exported/monsters/${kind}/${file}`;
+      let image = this.exportedAssetImages.get(path);
+      if (!image) {
+        image = new Image();
+        image.decoding = "async";
+        image.src = `${path}?v=${APP_VERSION}`;
+        this.exportedAssetImages.set(path, image);
+        return false;
+      }
+      if (!image.complete || !image.naturalWidth) return false;
+      const smoothing = ctx.imageSmoothingEnabled;
+      ctx.imageSmoothingEnabled = false;
+      const exportScale = 1.55;
+      ctx.drawImage(image, -96 / exportScale, -112 / exportScale, 192 / exportScale, 192 / exportScale);
+      ctx.imageSmoothingEnabled = smoothing;
+      return true;
+    }
+
     drawCachedDesignedMonsterSprite(ctx, enemy, palette, variant = 0) {
       const kind = enemy.kind || "";
       if (!MONSTER_TYPES[kind] || enemy.boss || enemy.trainingDummy || enemy.flash > 0 || enemy.playerBoss) return false;
@@ -23745,7 +24137,7 @@
       const variant = this.enemyVariant(enemy);
       const palette = this.enemySpritePalette(enemy, color, accent);
       if (enemy.boss) this.drawPixelBossSprite(ctx, enemy, palette, variant);
-      else if (!this.drawCachedDesignedMonsterSprite(ctx, enemy, palette, variant) && !this.drawDesignedMonsterSprite(ctx, enemy, palette, variant) && !this.drawEnemyAssetSprite(ctx, enemy, palette, variant)) this.drawPixelMonsterSprite(ctx, enemy, palette, variant);
+      else if (!this.drawExportedMonsterSprite(ctx, enemy, variant) && !this.drawCachedDesignedMonsterSprite(ctx, enemy, palette, variant) && !this.drawDesignedMonsterSprite(ctx, enemy, palette, variant) && !this.drawEnemyAssetSprite(ctx, enemy, palette, variant)) this.drawPixelMonsterSprite(ctx, enemy, palette, variant);
       if (enemy.windupTime > 0) {
         const pulse = clamp(enemy.windupTime / (enemy.windupTotal || 1), 0, 1);
         ctx.strokeStyle = "#ff4b55";
@@ -28188,6 +28580,13 @@
     }
   }
 
+  window.SoulriftGame = SoulriftGame;
+  window.SoulriftAssetExporter = {
+    exportAll(options = {}) {
+      if (!window.soulrift) window.soulrift = new SoulriftGame();
+      return window.soulrift.exportRenderedAssets(options);
+    }
+  };
   window.startSoulriftGame = startSoulriftGame;
   window.addEventListener("soulriftbooterror", (event) => {
     if (!window.soulrift || window.soulrift.mode === "loading") renderBootFailure(event.detail);
@@ -28198,8 +28597,10 @@
   window.addEventListener("unhandledrejection", (event) => {
     if (!window.soulrift || window.soulrift.mode === "loading") renderBootFailure(event.reason);
   });
-  window.addEventListener("DOMContentLoaded", () => {
-    if (window.SoulriftPwaGate?.boot) window.SoulriftPwaGate.boot(startSoulriftGame);
-    else startSoulriftGame();
-  });
+  if (!window.SOULRIFT_EXPORT_ONLY) {
+    window.addEventListener("DOMContentLoaded", () => {
+      if (window.SoulriftPwaGate?.boot) window.SoulriftPwaGate.boot(startSoulriftGame);
+      else startSoulriftGame();
+    });
+  }
 })();

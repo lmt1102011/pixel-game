@@ -1,0 +1,8829 @@
+{
+  "version": "20260607-asset-export-246",
+  "generatedAt": "2026-06-06T19:14:24.830Z",
+  "files": [
+    {
+      "path": "monsters/skeletonArcher/idle_00.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "monster",
+        "kind": "skeletonArcher",
+        "name": "Skeleton Archer",
+        "state": "idle",
+        "frame": 0
+      }
+    },
+    {
+      "path": "monsters/skeletonArcher/idle_01.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "monster",
+        "kind": "skeletonArcher",
+        "name": "Skeleton Archer",
+        "state": "idle",
+        "frame": 1
+      }
+    },
+    {
+      "path": "monsters/skeletonArcher/walk_00.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "monster",
+        "kind": "skeletonArcher",
+        "name": "Skeleton Archer",
+        "state": "walk",
+        "frame": 0
+      }
+    },
+    {
+      "path": "monsters/skeletonArcher/walk_01.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "monster",
+        "kind": "skeletonArcher",
+        "name": "Skeleton Archer",
+        "state": "walk",
+        "frame": 1
+      }
+    },
+    {
+      "path": "monsters/skeletonArcher/walk_02.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "monster",
+        "kind": "skeletonArcher",
+        "name": "Skeleton Archer",
+        "state": "walk",
+        "frame": 2
+      }
+    },
+    {
+      "path": "monsters/skeletonArcher/walk_03.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "monster",
+        "kind": "skeletonArcher",
+        "name": "Skeleton Archer",
+        "state": "walk",
+        "frame": 3
+      }
+    },
+    {
+      "path": "monsters/skeletonArcher/attack_00.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "monster",
+        "kind": "skeletonArcher",
+        "name": "Skeleton Archer",
+        "state": "attack",
+        "frame": 0
+      }
+    },
+    {
+      "path": "monsters/skeletonArcher/attack_01.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "monster",
+        "kind": "skeletonArcher",
+        "name": "Skeleton Archer",
+        "state": "attack",
+        "frame": 1
+      }
+    },
+    {
+      "path": "monsters/skeletonArcher/attack_02.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "monster",
+        "kind": "skeletonArcher",
+        "name": "Skeleton Archer",
+        "state": "attack",
+        "frame": 2
+      }
+    },
+    {
+      "path": "monsters/skeletonWarrior/idle_00.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "monster",
+        "kind": "skeletonWarrior",
+        "name": "Skeleton Warrior",
+        "state": "idle",
+        "frame": 0
+      }
+    },
+    {
+      "path": "monsters/skeletonWarrior/idle_01.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "monster",
+        "kind": "skeletonWarrior",
+        "name": "Skeleton Warrior",
+        "state": "idle",
+        "frame": 1
+      }
+    },
+    {
+      "path": "monsters/skeletonWarrior/walk_00.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "monster",
+        "kind": "skeletonWarrior",
+        "name": "Skeleton Warrior",
+        "state": "walk",
+        "frame": 0
+      }
+    },
+    {
+      "path": "monsters/skeletonWarrior/walk_01.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "monster",
+        "kind": "skeletonWarrior",
+        "name": "Skeleton Warrior",
+        "state": "walk",
+        "frame": 1
+      }
+    },
+    {
+      "path": "monsters/skeletonWarrior/walk_02.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "monster",
+        "kind": "skeletonWarrior",
+        "name": "Skeleton Warrior",
+        "state": "walk",
+        "frame": 2
+      }
+    },
+    {
+      "path": "monsters/skeletonWarrior/walk_03.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "monster",
+        "kind": "skeletonWarrior",
+        "name": "Skeleton Warrior",
+        "state": "walk",
+        "frame": 3
+      }
+    },
+    {
+      "path": "monsters/skeletonWarrior/attack_00.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "monster",
+        "kind": "skeletonWarrior",
+        "name": "Skeleton Warrior",
+        "state": "attack",
+        "frame": 0
+      }
+    },
+    {
+      "path": "monsters/skeletonWarrior/attack_01.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "monster",
+        "kind": "skeletonWarrior",
+        "name": "Skeleton Warrior",
+        "state": "attack",
+        "frame": 1
+      }
+    },
+    {
+      "path": "monsters/skeletonWarrior/attack_02.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "monster",
+        "kind": "skeletonWarrior",
+        "name": "Skeleton Warrior",
+        "state": "attack",
+        "frame": 2
+      }
+    },
+    {
+      "path": "monsters/slime/idle_00.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "monster",
+        "kind": "slime",
+        "name": "Slime",
+        "state": "idle",
+        "frame": 0
+      }
+    },
+    {
+      "path": "monsters/slime/idle_01.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "monster",
+        "kind": "slime",
+        "name": "Slime",
+        "state": "idle",
+        "frame": 1
+      }
+    },
+    {
+      "path": "monsters/slime/walk_00.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "monster",
+        "kind": "slime",
+        "name": "Slime",
+        "state": "walk",
+        "frame": 0
+      }
+    },
+    {
+      "path": "monsters/slime/walk_01.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "monster",
+        "kind": "slime",
+        "name": "Slime",
+        "state": "walk",
+        "frame": 1
+      }
+    },
+    {
+      "path": "monsters/slime/walk_02.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "monster",
+        "kind": "slime",
+        "name": "Slime",
+        "state": "walk",
+        "frame": 2
+      }
+    },
+    {
+      "path": "monsters/slime/walk_03.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "monster",
+        "kind": "slime",
+        "name": "Slime",
+        "state": "walk",
+        "frame": 3
+      }
+    },
+    {
+      "path": "monsters/slime/attack_00.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "monster",
+        "kind": "slime",
+        "name": "Slime",
+        "state": "attack",
+        "frame": 0
+      }
+    },
+    {
+      "path": "monsters/slime/attack_01.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "monster",
+        "kind": "slime",
+        "name": "Slime",
+        "state": "attack",
+        "frame": 1
+      }
+    },
+    {
+      "path": "monsters/slime/attack_02.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "monster",
+        "kind": "slime",
+        "name": "Slime",
+        "state": "attack",
+        "frame": 2
+      }
+    },
+    {
+      "path": "monsters/fireSlime/idle_00.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "monster",
+        "kind": "fireSlime",
+        "name": "Fire Slime",
+        "state": "idle",
+        "frame": 0
+      }
+    },
+    {
+      "path": "monsters/fireSlime/idle_01.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "monster",
+        "kind": "fireSlime",
+        "name": "Fire Slime",
+        "state": "idle",
+        "frame": 1
+      }
+    },
+    {
+      "path": "monsters/fireSlime/walk_00.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "monster",
+        "kind": "fireSlime",
+        "name": "Fire Slime",
+        "state": "walk",
+        "frame": 0
+      }
+    },
+    {
+      "path": "monsters/fireSlime/walk_01.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "monster",
+        "kind": "fireSlime",
+        "name": "Fire Slime",
+        "state": "walk",
+        "frame": 1
+      }
+    },
+    {
+      "path": "monsters/fireSlime/walk_02.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "monster",
+        "kind": "fireSlime",
+        "name": "Fire Slime",
+        "state": "walk",
+        "frame": 2
+      }
+    },
+    {
+      "path": "monsters/fireSlime/walk_03.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "monster",
+        "kind": "fireSlime",
+        "name": "Fire Slime",
+        "state": "walk",
+        "frame": 3
+      }
+    },
+    {
+      "path": "monsters/fireSlime/attack_00.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "monster",
+        "kind": "fireSlime",
+        "name": "Fire Slime",
+        "state": "attack",
+        "frame": 0
+      }
+    },
+    {
+      "path": "monsters/fireSlime/attack_01.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "monster",
+        "kind": "fireSlime",
+        "name": "Fire Slime",
+        "state": "attack",
+        "frame": 1
+      }
+    },
+    {
+      "path": "monsters/fireSlime/attack_02.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "monster",
+        "kind": "fireSlime",
+        "name": "Fire Slime",
+        "state": "attack",
+        "frame": 2
+      }
+    },
+    {
+      "path": "monsters/iceSlime/idle_00.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "monster",
+        "kind": "iceSlime",
+        "name": "Ice Slime",
+        "state": "idle",
+        "frame": 0
+      }
+    },
+    {
+      "path": "monsters/iceSlime/idle_01.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "monster",
+        "kind": "iceSlime",
+        "name": "Ice Slime",
+        "state": "idle",
+        "frame": 1
+      }
+    },
+    {
+      "path": "monsters/iceSlime/walk_00.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "monster",
+        "kind": "iceSlime",
+        "name": "Ice Slime",
+        "state": "walk",
+        "frame": 0
+      }
+    },
+    {
+      "path": "monsters/iceSlime/walk_01.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "monster",
+        "kind": "iceSlime",
+        "name": "Ice Slime",
+        "state": "walk",
+        "frame": 1
+      }
+    },
+    {
+      "path": "monsters/iceSlime/walk_02.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "monster",
+        "kind": "iceSlime",
+        "name": "Ice Slime",
+        "state": "walk",
+        "frame": 2
+      }
+    },
+    {
+      "path": "monsters/iceSlime/walk_03.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "monster",
+        "kind": "iceSlime",
+        "name": "Ice Slime",
+        "state": "walk",
+        "frame": 3
+      }
+    },
+    {
+      "path": "monsters/iceSlime/attack_00.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "monster",
+        "kind": "iceSlime",
+        "name": "Ice Slime",
+        "state": "attack",
+        "frame": 0
+      }
+    },
+    {
+      "path": "monsters/iceSlime/attack_01.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "monster",
+        "kind": "iceSlime",
+        "name": "Ice Slime",
+        "state": "attack",
+        "frame": 1
+      }
+    },
+    {
+      "path": "monsters/iceSlime/attack_02.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "monster",
+        "kind": "iceSlime",
+        "name": "Ice Slime",
+        "state": "attack",
+        "frame": 2
+      }
+    },
+    {
+      "path": "monsters/goblinScout/idle_00.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "monster",
+        "kind": "goblinScout",
+        "name": "Goblin Scout",
+        "state": "idle",
+        "frame": 0
+      }
+    },
+    {
+      "path": "monsters/goblinScout/idle_01.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "monster",
+        "kind": "goblinScout",
+        "name": "Goblin Scout",
+        "state": "idle",
+        "frame": 1
+      }
+    },
+    {
+      "path": "monsters/goblinScout/walk_00.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "monster",
+        "kind": "goblinScout",
+        "name": "Goblin Scout",
+        "state": "walk",
+        "frame": 0
+      }
+    },
+    {
+      "path": "monsters/goblinScout/walk_01.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "monster",
+        "kind": "goblinScout",
+        "name": "Goblin Scout",
+        "state": "walk",
+        "frame": 1
+      }
+    },
+    {
+      "path": "monsters/goblinScout/walk_02.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "monster",
+        "kind": "goblinScout",
+        "name": "Goblin Scout",
+        "state": "walk",
+        "frame": 2
+      }
+    },
+    {
+      "path": "monsters/goblinScout/walk_03.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "monster",
+        "kind": "goblinScout",
+        "name": "Goblin Scout",
+        "state": "walk",
+        "frame": 3
+      }
+    },
+    {
+      "path": "monsters/goblinScout/attack_00.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "monster",
+        "kind": "goblinScout",
+        "name": "Goblin Scout",
+        "state": "attack",
+        "frame": 0
+      }
+    },
+    {
+      "path": "monsters/goblinScout/attack_01.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "monster",
+        "kind": "goblinScout",
+        "name": "Goblin Scout",
+        "state": "attack",
+        "frame": 1
+      }
+    },
+    {
+      "path": "monsters/goblinScout/attack_02.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "monster",
+        "kind": "goblinScout",
+        "name": "Goblin Scout",
+        "state": "attack",
+        "frame": 2
+      }
+    },
+    {
+      "path": "monsters/goblinBomber/idle_00.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "monster",
+        "kind": "goblinBomber",
+        "name": "Goblin Bomber",
+        "state": "idle",
+        "frame": 0
+      }
+    },
+    {
+      "path": "monsters/goblinBomber/idle_01.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "monster",
+        "kind": "goblinBomber",
+        "name": "Goblin Bomber",
+        "state": "idle",
+        "frame": 1
+      }
+    },
+    {
+      "path": "monsters/goblinBomber/walk_00.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "monster",
+        "kind": "goblinBomber",
+        "name": "Goblin Bomber",
+        "state": "walk",
+        "frame": 0
+      }
+    },
+    {
+      "path": "monsters/goblinBomber/walk_01.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "monster",
+        "kind": "goblinBomber",
+        "name": "Goblin Bomber",
+        "state": "walk",
+        "frame": 1
+      }
+    },
+    {
+      "path": "monsters/goblinBomber/walk_02.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "monster",
+        "kind": "goblinBomber",
+        "name": "Goblin Bomber",
+        "state": "walk",
+        "frame": 2
+      }
+    },
+    {
+      "path": "monsters/goblinBomber/walk_03.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "monster",
+        "kind": "goblinBomber",
+        "name": "Goblin Bomber",
+        "state": "walk",
+        "frame": 3
+      }
+    },
+    {
+      "path": "monsters/goblinBomber/attack_00.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "monster",
+        "kind": "goblinBomber",
+        "name": "Goblin Bomber",
+        "state": "attack",
+        "frame": 0
+      }
+    },
+    {
+      "path": "monsters/goblinBomber/attack_01.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "monster",
+        "kind": "goblinBomber",
+        "name": "Goblin Bomber",
+        "state": "attack",
+        "frame": 1
+      }
+    },
+    {
+      "path": "monsters/goblinBomber/attack_02.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "monster",
+        "kind": "goblinBomber",
+        "name": "Goblin Bomber",
+        "state": "attack",
+        "frame": 2
+      }
+    },
+    {
+      "path": "monsters/batDemon/idle_00.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "monster",
+        "kind": "batDemon",
+        "name": "Bat Demon",
+        "state": "idle",
+        "frame": 0
+      }
+    },
+    {
+      "path": "monsters/batDemon/idle_01.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "monster",
+        "kind": "batDemon",
+        "name": "Bat Demon",
+        "state": "idle",
+        "frame": 1
+      }
+    },
+    {
+      "path": "monsters/batDemon/walk_00.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "monster",
+        "kind": "batDemon",
+        "name": "Bat Demon",
+        "state": "walk",
+        "frame": 0
+      }
+    },
+    {
+      "path": "monsters/batDemon/walk_01.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "monster",
+        "kind": "batDemon",
+        "name": "Bat Demon",
+        "state": "walk",
+        "frame": 1
+      }
+    },
+    {
+      "path": "monsters/batDemon/walk_02.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "monster",
+        "kind": "batDemon",
+        "name": "Bat Demon",
+        "state": "walk",
+        "frame": 2
+      }
+    },
+    {
+      "path": "monsters/batDemon/walk_03.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "monster",
+        "kind": "batDemon",
+        "name": "Bat Demon",
+        "state": "walk",
+        "frame": 3
+      }
+    },
+    {
+      "path": "monsters/batDemon/attack_00.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "monster",
+        "kind": "batDemon",
+        "name": "Bat Demon",
+        "state": "attack",
+        "frame": 0
+      }
+    },
+    {
+      "path": "monsters/batDemon/attack_01.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "monster",
+        "kind": "batDemon",
+        "name": "Bat Demon",
+        "state": "attack",
+        "frame": 1
+      }
+    },
+    {
+      "path": "monsters/batDemon/attack_02.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "monster",
+        "kind": "batDemon",
+        "name": "Bat Demon",
+        "state": "attack",
+        "frame": 2
+      }
+    },
+    {
+      "path": "monsters/spiderMonster/idle_00.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "monster",
+        "kind": "spiderMonster",
+        "name": "Spider Monster",
+        "state": "idle",
+        "frame": 0
+      }
+    },
+    {
+      "path": "monsters/spiderMonster/idle_01.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "monster",
+        "kind": "spiderMonster",
+        "name": "Spider Monster",
+        "state": "idle",
+        "frame": 1
+      }
+    },
+    {
+      "path": "monsters/spiderMonster/walk_00.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "monster",
+        "kind": "spiderMonster",
+        "name": "Spider Monster",
+        "state": "walk",
+        "frame": 0
+      }
+    },
+    {
+      "path": "monsters/spiderMonster/walk_01.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "monster",
+        "kind": "spiderMonster",
+        "name": "Spider Monster",
+        "state": "walk",
+        "frame": 1
+      }
+    },
+    {
+      "path": "monsters/spiderMonster/walk_02.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "monster",
+        "kind": "spiderMonster",
+        "name": "Spider Monster",
+        "state": "walk",
+        "frame": 2
+      }
+    },
+    {
+      "path": "monsters/spiderMonster/walk_03.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "monster",
+        "kind": "spiderMonster",
+        "name": "Spider Monster",
+        "state": "walk",
+        "frame": 3
+      }
+    },
+    {
+      "path": "monsters/spiderMonster/attack_00.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "monster",
+        "kind": "spiderMonster",
+        "name": "Spider Monster",
+        "state": "attack",
+        "frame": 0
+      }
+    },
+    {
+      "path": "monsters/spiderMonster/attack_01.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "monster",
+        "kind": "spiderMonster",
+        "name": "Spider Monster",
+        "state": "attack",
+        "frame": 1
+      }
+    },
+    {
+      "path": "monsters/spiderMonster/attack_02.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "monster",
+        "kind": "spiderMonster",
+        "name": "Spider Monster",
+        "state": "attack",
+        "frame": 2
+      }
+    },
+    {
+      "path": "monsters/mushroomMonster/idle_00.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "monster",
+        "kind": "mushroomMonster",
+        "name": "Mushroom Monster",
+        "state": "idle",
+        "frame": 0
+      }
+    },
+    {
+      "path": "monsters/mushroomMonster/idle_01.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "monster",
+        "kind": "mushroomMonster",
+        "name": "Mushroom Monster",
+        "state": "idle",
+        "frame": 1
+      }
+    },
+    {
+      "path": "monsters/mushroomMonster/walk_00.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "monster",
+        "kind": "mushroomMonster",
+        "name": "Mushroom Monster",
+        "state": "walk",
+        "frame": 0
+      }
+    },
+    {
+      "path": "monsters/mushroomMonster/walk_01.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "monster",
+        "kind": "mushroomMonster",
+        "name": "Mushroom Monster",
+        "state": "walk",
+        "frame": 1
+      }
+    },
+    {
+      "path": "monsters/mushroomMonster/walk_02.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "monster",
+        "kind": "mushroomMonster",
+        "name": "Mushroom Monster",
+        "state": "walk",
+        "frame": 2
+      }
+    },
+    {
+      "path": "monsters/mushroomMonster/walk_03.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "monster",
+        "kind": "mushroomMonster",
+        "name": "Mushroom Monster",
+        "state": "walk",
+        "frame": 3
+      }
+    },
+    {
+      "path": "monsters/mushroomMonster/attack_00.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "monster",
+        "kind": "mushroomMonster",
+        "name": "Mushroom Monster",
+        "state": "attack",
+        "frame": 0
+      }
+    },
+    {
+      "path": "monsters/mushroomMonster/attack_01.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "monster",
+        "kind": "mushroomMonster",
+        "name": "Mushroom Monster",
+        "state": "attack",
+        "frame": 1
+      }
+    },
+    {
+      "path": "monsters/mushroomMonster/attack_02.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "monster",
+        "kind": "mushroomMonster",
+        "name": "Mushroom Monster",
+        "state": "attack",
+        "frame": 2
+      }
+    },
+    {
+      "path": "monsters/shadowSpirit/idle_00.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "monster",
+        "kind": "shadowSpirit",
+        "name": "Shadow Spirit",
+        "state": "idle",
+        "frame": 0
+      }
+    },
+    {
+      "path": "monsters/shadowSpirit/idle_01.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "monster",
+        "kind": "shadowSpirit",
+        "name": "Shadow Spirit",
+        "state": "idle",
+        "frame": 1
+      }
+    },
+    {
+      "path": "monsters/shadowSpirit/walk_00.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "monster",
+        "kind": "shadowSpirit",
+        "name": "Shadow Spirit",
+        "state": "walk",
+        "frame": 0
+      }
+    },
+    {
+      "path": "monsters/shadowSpirit/walk_01.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "monster",
+        "kind": "shadowSpirit",
+        "name": "Shadow Spirit",
+        "state": "walk",
+        "frame": 1
+      }
+    },
+    {
+      "path": "monsters/shadowSpirit/walk_02.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "monster",
+        "kind": "shadowSpirit",
+        "name": "Shadow Spirit",
+        "state": "walk",
+        "frame": 2
+      }
+    },
+    {
+      "path": "monsters/shadowSpirit/walk_03.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "monster",
+        "kind": "shadowSpirit",
+        "name": "Shadow Spirit",
+        "state": "walk",
+        "frame": 3
+      }
+    },
+    {
+      "path": "monsters/shadowSpirit/attack_00.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "monster",
+        "kind": "shadowSpirit",
+        "name": "Shadow Spirit",
+        "state": "attack",
+        "frame": 0
+      }
+    },
+    {
+      "path": "monsters/shadowSpirit/attack_01.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "monster",
+        "kind": "shadowSpirit",
+        "name": "Shadow Spirit",
+        "state": "attack",
+        "frame": 1
+      }
+    },
+    {
+      "path": "monsters/shadowSpirit/attack_02.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "monster",
+        "kind": "shadowSpirit",
+        "name": "Shadow Spirit",
+        "state": "attack",
+        "frame": 2
+      }
+    },
+    {
+      "path": "monsters/zombie/idle_00.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "monster",
+        "kind": "zombie",
+        "name": "Zombie",
+        "state": "idle",
+        "frame": 0
+      }
+    },
+    {
+      "path": "monsters/zombie/idle_01.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "monster",
+        "kind": "zombie",
+        "name": "Zombie",
+        "state": "idle",
+        "frame": 1
+      }
+    },
+    {
+      "path": "monsters/zombie/walk_00.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "monster",
+        "kind": "zombie",
+        "name": "Zombie",
+        "state": "walk",
+        "frame": 0
+      }
+    },
+    {
+      "path": "monsters/zombie/walk_01.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "monster",
+        "kind": "zombie",
+        "name": "Zombie",
+        "state": "walk",
+        "frame": 1
+      }
+    },
+    {
+      "path": "monsters/zombie/walk_02.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "monster",
+        "kind": "zombie",
+        "name": "Zombie",
+        "state": "walk",
+        "frame": 2
+      }
+    },
+    {
+      "path": "monsters/zombie/walk_03.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "monster",
+        "kind": "zombie",
+        "name": "Zombie",
+        "state": "walk",
+        "frame": 3
+      }
+    },
+    {
+      "path": "monsters/zombie/attack_00.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "monster",
+        "kind": "zombie",
+        "name": "Zombie",
+        "state": "attack",
+        "frame": 0
+      }
+    },
+    {
+      "path": "monsters/zombie/attack_01.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "monster",
+        "kind": "zombie",
+        "name": "Zombie",
+        "state": "attack",
+        "frame": 1
+      }
+    },
+    {
+      "path": "monsters/zombie/attack_02.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "monster",
+        "kind": "zombie",
+        "name": "Zombie",
+        "state": "attack",
+        "frame": 2
+      }
+    },
+    {
+      "path": "monsters/darkKnight/idle_00.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "monster",
+        "kind": "darkKnight",
+        "name": "Dark Knight",
+        "state": "idle",
+        "frame": 0
+      }
+    },
+    {
+      "path": "monsters/darkKnight/idle_01.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "monster",
+        "kind": "darkKnight",
+        "name": "Dark Knight",
+        "state": "idle",
+        "frame": 1
+      }
+    },
+    {
+      "path": "monsters/darkKnight/walk_00.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "monster",
+        "kind": "darkKnight",
+        "name": "Dark Knight",
+        "state": "walk",
+        "frame": 0
+      }
+    },
+    {
+      "path": "monsters/darkKnight/walk_01.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "monster",
+        "kind": "darkKnight",
+        "name": "Dark Knight",
+        "state": "walk",
+        "frame": 1
+      }
+    },
+    {
+      "path": "monsters/darkKnight/walk_02.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "monster",
+        "kind": "darkKnight",
+        "name": "Dark Knight",
+        "state": "walk",
+        "frame": 2
+      }
+    },
+    {
+      "path": "monsters/darkKnight/walk_03.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "monster",
+        "kind": "darkKnight",
+        "name": "Dark Knight",
+        "state": "walk",
+        "frame": 3
+      }
+    },
+    {
+      "path": "monsters/darkKnight/attack_00.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "monster",
+        "kind": "darkKnight",
+        "name": "Dark Knight",
+        "state": "attack",
+        "frame": 0
+      }
+    },
+    {
+      "path": "monsters/darkKnight/attack_01.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "monster",
+        "kind": "darkKnight",
+        "name": "Dark Knight",
+        "state": "attack",
+        "frame": 1
+      }
+    },
+    {
+      "path": "monsters/darkKnight/attack_02.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "monster",
+        "kind": "darkKnight",
+        "name": "Dark Knight",
+        "state": "attack",
+        "frame": 2
+      }
+    },
+    {
+      "path": "monsters/stoneGolem/idle_00.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "monster",
+        "kind": "stoneGolem",
+        "name": "Stone Golem",
+        "state": "idle",
+        "frame": 0
+      }
+    },
+    {
+      "path": "monsters/stoneGolem/idle_01.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "monster",
+        "kind": "stoneGolem",
+        "name": "Stone Golem",
+        "state": "idle",
+        "frame": 1
+      }
+    },
+    {
+      "path": "monsters/stoneGolem/walk_00.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "monster",
+        "kind": "stoneGolem",
+        "name": "Stone Golem",
+        "state": "walk",
+        "frame": 0
+      }
+    },
+    {
+      "path": "monsters/stoneGolem/walk_01.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "monster",
+        "kind": "stoneGolem",
+        "name": "Stone Golem",
+        "state": "walk",
+        "frame": 1
+      }
+    },
+    {
+      "path": "monsters/stoneGolem/walk_02.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "monster",
+        "kind": "stoneGolem",
+        "name": "Stone Golem",
+        "state": "walk",
+        "frame": 2
+      }
+    },
+    {
+      "path": "monsters/stoneGolem/walk_03.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "monster",
+        "kind": "stoneGolem",
+        "name": "Stone Golem",
+        "state": "walk",
+        "frame": 3
+      }
+    },
+    {
+      "path": "monsters/stoneGolem/attack_00.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "monster",
+        "kind": "stoneGolem",
+        "name": "Stone Golem",
+        "state": "attack",
+        "frame": 0
+      }
+    },
+    {
+      "path": "monsters/stoneGolem/attack_01.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "monster",
+        "kind": "stoneGolem",
+        "name": "Stone Golem",
+        "state": "attack",
+        "frame": 1
+      }
+    },
+    {
+      "path": "monsters/stoneGolem/attack_02.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "monster",
+        "kind": "stoneGolem",
+        "name": "Stone Golem",
+        "state": "attack",
+        "frame": 2
+      }
+    },
+    {
+      "path": "monsters/fireDemon/idle_00.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "monster",
+        "kind": "fireDemon",
+        "name": "Fire Demon",
+        "state": "idle",
+        "frame": 0
+      }
+    },
+    {
+      "path": "monsters/fireDemon/idle_01.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "monster",
+        "kind": "fireDemon",
+        "name": "Fire Demon",
+        "state": "idle",
+        "frame": 1
+      }
+    },
+    {
+      "path": "monsters/fireDemon/walk_00.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "monster",
+        "kind": "fireDemon",
+        "name": "Fire Demon",
+        "state": "walk",
+        "frame": 0
+      }
+    },
+    {
+      "path": "monsters/fireDemon/walk_01.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "monster",
+        "kind": "fireDemon",
+        "name": "Fire Demon",
+        "state": "walk",
+        "frame": 1
+      }
+    },
+    {
+      "path": "monsters/fireDemon/walk_02.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "monster",
+        "kind": "fireDemon",
+        "name": "Fire Demon",
+        "state": "walk",
+        "frame": 2
+      }
+    },
+    {
+      "path": "monsters/fireDemon/walk_03.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "monster",
+        "kind": "fireDemon",
+        "name": "Fire Demon",
+        "state": "walk",
+        "frame": 3
+      }
+    },
+    {
+      "path": "monsters/fireDemon/attack_00.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "monster",
+        "kind": "fireDemon",
+        "name": "Fire Demon",
+        "state": "attack",
+        "frame": 0
+      }
+    },
+    {
+      "path": "monsters/fireDemon/attack_01.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "monster",
+        "kind": "fireDemon",
+        "name": "Fire Demon",
+        "state": "attack",
+        "frame": 1
+      }
+    },
+    {
+      "path": "monsters/fireDemon/attack_02.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "monster",
+        "kind": "fireDemon",
+        "name": "Fire Demon",
+        "state": "attack",
+        "frame": 2
+      }
+    },
+    {
+      "path": "monsters/iceGolem/idle_00.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "monster",
+        "kind": "iceGolem",
+        "name": "Ice Golem",
+        "state": "idle",
+        "frame": 0
+      }
+    },
+    {
+      "path": "monsters/iceGolem/idle_01.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "monster",
+        "kind": "iceGolem",
+        "name": "Ice Golem",
+        "state": "idle",
+        "frame": 1
+      }
+    },
+    {
+      "path": "monsters/iceGolem/walk_00.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "monster",
+        "kind": "iceGolem",
+        "name": "Ice Golem",
+        "state": "walk",
+        "frame": 0
+      }
+    },
+    {
+      "path": "monsters/iceGolem/walk_01.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "monster",
+        "kind": "iceGolem",
+        "name": "Ice Golem",
+        "state": "walk",
+        "frame": 1
+      }
+    },
+    {
+      "path": "monsters/iceGolem/walk_02.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "monster",
+        "kind": "iceGolem",
+        "name": "Ice Golem",
+        "state": "walk",
+        "frame": 2
+      }
+    },
+    {
+      "path": "monsters/iceGolem/walk_03.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "monster",
+        "kind": "iceGolem",
+        "name": "Ice Golem",
+        "state": "walk",
+        "frame": 3
+      }
+    },
+    {
+      "path": "monsters/iceGolem/attack_00.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "monster",
+        "kind": "iceGolem",
+        "name": "Ice Golem",
+        "state": "attack",
+        "frame": 0
+      }
+    },
+    {
+      "path": "monsters/iceGolem/attack_01.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "monster",
+        "kind": "iceGolem",
+        "name": "Ice Golem",
+        "state": "attack",
+        "frame": 1
+      }
+    },
+    {
+      "path": "monsters/iceGolem/attack_02.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "monster",
+        "kind": "iceGolem",
+        "name": "Ice Golem",
+        "state": "attack",
+        "frame": 2
+      }
+    },
+    {
+      "path": "monsters/necromancer/idle_00.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "monster",
+        "kind": "necromancer",
+        "name": "Necromancer",
+        "state": "idle",
+        "frame": 0
+      }
+    },
+    {
+      "path": "monsters/necromancer/idle_01.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "monster",
+        "kind": "necromancer",
+        "name": "Necromancer",
+        "state": "idle",
+        "frame": 1
+      }
+    },
+    {
+      "path": "monsters/necromancer/walk_00.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "monster",
+        "kind": "necromancer",
+        "name": "Necromancer",
+        "state": "walk",
+        "frame": 0
+      }
+    },
+    {
+      "path": "monsters/necromancer/walk_01.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "monster",
+        "kind": "necromancer",
+        "name": "Necromancer",
+        "state": "walk",
+        "frame": 1
+      }
+    },
+    {
+      "path": "monsters/necromancer/walk_02.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "monster",
+        "kind": "necromancer",
+        "name": "Necromancer",
+        "state": "walk",
+        "frame": 2
+      }
+    },
+    {
+      "path": "monsters/necromancer/walk_03.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "monster",
+        "kind": "necromancer",
+        "name": "Necromancer",
+        "state": "walk",
+        "frame": 3
+      }
+    },
+    {
+      "path": "monsters/necromancer/attack_00.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "monster",
+        "kind": "necromancer",
+        "name": "Necromancer",
+        "state": "attack",
+        "frame": 0
+      }
+    },
+    {
+      "path": "monsters/necromancer/attack_01.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "monster",
+        "kind": "necromancer",
+        "name": "Necromancer",
+        "state": "attack",
+        "frame": 1
+      }
+    },
+    {
+      "path": "monsters/necromancer/attack_02.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "monster",
+        "kind": "necromancer",
+        "name": "Necromancer",
+        "state": "attack",
+        "frame": 2
+      }
+    },
+    {
+      "path": "monsters/werewolf/idle_00.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "monster",
+        "kind": "werewolf",
+        "name": "Werewolf",
+        "state": "idle",
+        "frame": 0
+      }
+    },
+    {
+      "path": "monsters/werewolf/idle_01.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "monster",
+        "kind": "werewolf",
+        "name": "Werewolf",
+        "state": "idle",
+        "frame": 1
+      }
+    },
+    {
+      "path": "monsters/werewolf/walk_00.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "monster",
+        "kind": "werewolf",
+        "name": "Werewolf",
+        "state": "walk",
+        "frame": 0
+      }
+    },
+    {
+      "path": "monsters/werewolf/walk_01.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "monster",
+        "kind": "werewolf",
+        "name": "Werewolf",
+        "state": "walk",
+        "frame": 1
+      }
+    },
+    {
+      "path": "monsters/werewolf/walk_02.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "monster",
+        "kind": "werewolf",
+        "name": "Werewolf",
+        "state": "walk",
+        "frame": 2
+      }
+    },
+    {
+      "path": "monsters/werewolf/walk_03.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "monster",
+        "kind": "werewolf",
+        "name": "Werewolf",
+        "state": "walk",
+        "frame": 3
+      }
+    },
+    {
+      "path": "monsters/werewolf/attack_00.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "monster",
+        "kind": "werewolf",
+        "name": "Werewolf",
+        "state": "attack",
+        "frame": 0
+      }
+    },
+    {
+      "path": "monsters/werewolf/attack_01.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "monster",
+        "kind": "werewolf",
+        "name": "Werewolf",
+        "state": "attack",
+        "frame": 1
+      }
+    },
+    {
+      "path": "monsters/werewolf/attack_02.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "monster",
+        "kind": "werewolf",
+        "name": "Werewolf",
+        "state": "attack",
+        "frame": 2
+      }
+    },
+    {
+      "path": "monsters/crystalBeast/idle_00.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "monster",
+        "kind": "crystalBeast",
+        "name": "Crystal Beast",
+        "state": "idle",
+        "frame": 0
+      }
+    },
+    {
+      "path": "monsters/crystalBeast/idle_01.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "monster",
+        "kind": "crystalBeast",
+        "name": "Crystal Beast",
+        "state": "idle",
+        "frame": 1
+      }
+    },
+    {
+      "path": "monsters/crystalBeast/walk_00.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "monster",
+        "kind": "crystalBeast",
+        "name": "Crystal Beast",
+        "state": "walk",
+        "frame": 0
+      }
+    },
+    {
+      "path": "monsters/crystalBeast/walk_01.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "monster",
+        "kind": "crystalBeast",
+        "name": "Crystal Beast",
+        "state": "walk",
+        "frame": 1
+      }
+    },
+    {
+      "path": "monsters/crystalBeast/walk_02.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "monster",
+        "kind": "crystalBeast",
+        "name": "Crystal Beast",
+        "state": "walk",
+        "frame": 2
+      }
+    },
+    {
+      "path": "monsters/crystalBeast/walk_03.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "monster",
+        "kind": "crystalBeast",
+        "name": "Crystal Beast",
+        "state": "walk",
+        "frame": 3
+      }
+    },
+    {
+      "path": "monsters/crystalBeast/attack_00.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "monster",
+        "kind": "crystalBeast",
+        "name": "Crystal Beast",
+        "state": "attack",
+        "frame": 0
+      }
+    },
+    {
+      "path": "monsters/crystalBeast/attack_01.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "monster",
+        "kind": "crystalBeast",
+        "name": "Crystal Beast",
+        "state": "attack",
+        "frame": 1
+      }
+    },
+    {
+      "path": "monsters/crystalBeast/attack_02.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "monster",
+        "kind": "crystalBeast",
+        "name": "Crystal Beast",
+        "state": "attack",
+        "frame": 2
+      }
+    },
+    {
+      "path": "monsters/shadowGoblin/idle_00.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "monster",
+        "kind": "shadowGoblin",
+        "name": "Shadow Goblin",
+        "state": "idle",
+        "frame": 0
+      }
+    },
+    {
+      "path": "monsters/shadowGoblin/idle_01.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "monster",
+        "kind": "shadowGoblin",
+        "name": "Shadow Goblin",
+        "state": "idle",
+        "frame": 1
+      }
+    },
+    {
+      "path": "monsters/shadowGoblin/walk_00.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "monster",
+        "kind": "shadowGoblin",
+        "name": "Shadow Goblin",
+        "state": "walk",
+        "frame": 0
+      }
+    },
+    {
+      "path": "monsters/shadowGoblin/walk_01.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "monster",
+        "kind": "shadowGoblin",
+        "name": "Shadow Goblin",
+        "state": "walk",
+        "frame": 1
+      }
+    },
+    {
+      "path": "monsters/shadowGoblin/walk_02.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "monster",
+        "kind": "shadowGoblin",
+        "name": "Shadow Goblin",
+        "state": "walk",
+        "frame": 2
+      }
+    },
+    {
+      "path": "monsters/shadowGoblin/walk_03.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "monster",
+        "kind": "shadowGoblin",
+        "name": "Shadow Goblin",
+        "state": "walk",
+        "frame": 3
+      }
+    },
+    {
+      "path": "monsters/shadowGoblin/attack_00.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "monster",
+        "kind": "shadowGoblin",
+        "name": "Shadow Goblin",
+        "state": "attack",
+        "frame": 0
+      }
+    },
+    {
+      "path": "monsters/shadowGoblin/attack_01.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "monster",
+        "kind": "shadowGoblin",
+        "name": "Shadow Goblin",
+        "state": "attack",
+        "frame": 1
+      }
+    },
+    {
+      "path": "monsters/shadowGoblin/attack_02.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "monster",
+        "kind": "shadowGoblin",
+        "name": "Shadow Goblin",
+        "state": "attack",
+        "frame": 2
+      }
+    },
+    {
+      "path": "characters/swordsman/idle_00.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "character",
+        "character": "swordsman",
+        "state": "idle",
+        "frame": 0
+      }
+    },
+    {
+      "path": "characters/swordsman/idle_01.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "character",
+        "character": "swordsman",
+        "state": "idle",
+        "frame": 1
+      }
+    },
+    {
+      "path": "characters/swordsman/run_00.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "character",
+        "character": "swordsman",
+        "state": "run",
+        "frame": 0
+      }
+    },
+    {
+      "path": "characters/swordsman/run_01.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "character",
+        "character": "swordsman",
+        "state": "run",
+        "frame": 1
+      }
+    },
+    {
+      "path": "characters/swordsman/run_02.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "character",
+        "character": "swordsman",
+        "state": "run",
+        "frame": 2
+      }
+    },
+    {
+      "path": "characters/swordsman/run_03.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "character",
+        "character": "swordsman",
+        "state": "run",
+        "frame": 3
+      }
+    },
+    {
+      "path": "characters/swordsman/attack_00.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "character",
+        "character": "swordsman",
+        "state": "attack",
+        "frame": 0
+      }
+    },
+    {
+      "path": "characters/swordsman/attack_01.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "character",
+        "character": "swordsman",
+        "state": "attack",
+        "frame": 1
+      }
+    },
+    {
+      "path": "characters/swordsman/attack_02.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "character",
+        "character": "swordsman",
+        "state": "attack",
+        "frame": 2
+      }
+    },
+    {
+      "path": "characters/swordsman/attack_03.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "character",
+        "character": "swordsman",
+        "state": "attack",
+        "frame": 3
+      }
+    },
+    {
+      "path": "characters/swordsman/skill_00.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "character",
+        "character": "swordsman",
+        "state": "skill",
+        "frame": 0
+      }
+    },
+    {
+      "path": "characters/swordsman/skill_01.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "character",
+        "character": "swordsman",
+        "state": "skill",
+        "frame": 1
+      }
+    },
+    {
+      "path": "characters/swordsman/skill_02.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "character",
+        "character": "swordsman",
+        "state": "skill",
+        "frame": 2
+      }
+    },
+    {
+      "path": "characters/swordsman/skill_03.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "character",
+        "character": "swordsman",
+        "state": "skill",
+        "frame": 3
+      }
+    },
+    {
+      "path": "characters/swordsman/ultimate_00.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "character",
+        "character": "swordsman",
+        "state": "ultimate",
+        "frame": 0
+      }
+    },
+    {
+      "path": "characters/swordsman/ultimate_01.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "character",
+        "character": "swordsman",
+        "state": "ultimate",
+        "frame": 1
+      }
+    },
+    {
+      "path": "characters/swordsman/ultimate_02.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "character",
+        "character": "swordsman",
+        "state": "ultimate",
+        "frame": 2
+      }
+    },
+    {
+      "path": "characters/swordsman/ultimate_03.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "character",
+        "character": "swordsman",
+        "state": "ultimate",
+        "frame": 3
+      }
+    },
+    {
+      "path": "characters/swordsman/death_00.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "character",
+        "character": "swordsman",
+        "state": "death",
+        "frame": 0
+      }
+    },
+    {
+      "path": "characters/swordsman/death_01.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "character",
+        "character": "swordsman",
+        "state": "death",
+        "frame": 1
+      }
+    },
+    {
+      "path": "characters/swordsman/death_02.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "character",
+        "character": "swordsman",
+        "state": "death",
+        "frame": 2
+      }
+    },
+    {
+      "path": "characters/swordsman/death_03.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "character",
+        "character": "swordsman",
+        "state": "death",
+        "frame": 3
+      }
+    },
+    {
+      "path": "characters/martial/idle_00.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "character",
+        "character": "martial",
+        "state": "idle",
+        "frame": 0
+      }
+    },
+    {
+      "path": "characters/martial/idle_01.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "character",
+        "character": "martial",
+        "state": "idle",
+        "frame": 1
+      }
+    },
+    {
+      "path": "characters/martial/run_00.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "character",
+        "character": "martial",
+        "state": "run",
+        "frame": 0
+      }
+    },
+    {
+      "path": "characters/martial/run_01.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "character",
+        "character": "martial",
+        "state": "run",
+        "frame": 1
+      }
+    },
+    {
+      "path": "characters/martial/run_02.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "character",
+        "character": "martial",
+        "state": "run",
+        "frame": 2
+      }
+    },
+    {
+      "path": "characters/martial/run_03.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "character",
+        "character": "martial",
+        "state": "run",
+        "frame": 3
+      }
+    },
+    {
+      "path": "characters/martial/attack_00.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "character",
+        "character": "martial",
+        "state": "attack",
+        "frame": 0
+      }
+    },
+    {
+      "path": "characters/martial/attack_01.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "character",
+        "character": "martial",
+        "state": "attack",
+        "frame": 1
+      }
+    },
+    {
+      "path": "characters/martial/attack_02.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "character",
+        "character": "martial",
+        "state": "attack",
+        "frame": 2
+      }
+    },
+    {
+      "path": "characters/martial/attack_03.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "character",
+        "character": "martial",
+        "state": "attack",
+        "frame": 3
+      }
+    },
+    {
+      "path": "characters/martial/skill_00.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "character",
+        "character": "martial",
+        "state": "skill",
+        "frame": 0
+      }
+    },
+    {
+      "path": "characters/martial/skill_01.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "character",
+        "character": "martial",
+        "state": "skill",
+        "frame": 1
+      }
+    },
+    {
+      "path": "characters/martial/skill_02.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "character",
+        "character": "martial",
+        "state": "skill",
+        "frame": 2
+      }
+    },
+    {
+      "path": "characters/martial/skill_03.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "character",
+        "character": "martial",
+        "state": "skill",
+        "frame": 3
+      }
+    },
+    {
+      "path": "characters/martial/ultimate_00.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "character",
+        "character": "martial",
+        "state": "ultimate",
+        "frame": 0
+      }
+    },
+    {
+      "path": "characters/martial/ultimate_01.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "character",
+        "character": "martial",
+        "state": "ultimate",
+        "frame": 1
+      }
+    },
+    {
+      "path": "characters/martial/ultimate_02.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "character",
+        "character": "martial",
+        "state": "ultimate",
+        "frame": 2
+      }
+    },
+    {
+      "path": "characters/martial/ultimate_03.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "character",
+        "character": "martial",
+        "state": "ultimate",
+        "frame": 3
+      }
+    },
+    {
+      "path": "characters/martial/death_00.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "character",
+        "character": "martial",
+        "state": "death",
+        "frame": 0
+      }
+    },
+    {
+      "path": "characters/martial/death_01.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "character",
+        "character": "martial",
+        "state": "death",
+        "frame": 1
+      }
+    },
+    {
+      "path": "characters/martial/death_02.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "character",
+        "character": "martial",
+        "state": "death",
+        "frame": 2
+      }
+    },
+    {
+      "path": "characters/martial/death_03.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "character",
+        "character": "martial",
+        "state": "death",
+        "frame": 3
+      }
+    },
+    {
+      "path": "characters/guardian/idle_00.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "character",
+        "character": "guardian",
+        "state": "idle",
+        "frame": 0
+      }
+    },
+    {
+      "path": "characters/guardian/idle_01.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "character",
+        "character": "guardian",
+        "state": "idle",
+        "frame": 1
+      }
+    },
+    {
+      "path": "characters/guardian/run_00.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "character",
+        "character": "guardian",
+        "state": "run",
+        "frame": 0
+      }
+    },
+    {
+      "path": "characters/guardian/run_01.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "character",
+        "character": "guardian",
+        "state": "run",
+        "frame": 1
+      }
+    },
+    {
+      "path": "characters/guardian/run_02.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "character",
+        "character": "guardian",
+        "state": "run",
+        "frame": 2
+      }
+    },
+    {
+      "path": "characters/guardian/run_03.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "character",
+        "character": "guardian",
+        "state": "run",
+        "frame": 3
+      }
+    },
+    {
+      "path": "characters/guardian/attack_00.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "character",
+        "character": "guardian",
+        "state": "attack",
+        "frame": 0
+      }
+    },
+    {
+      "path": "characters/guardian/attack_01.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "character",
+        "character": "guardian",
+        "state": "attack",
+        "frame": 1
+      }
+    },
+    {
+      "path": "characters/guardian/attack_02.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "character",
+        "character": "guardian",
+        "state": "attack",
+        "frame": 2
+      }
+    },
+    {
+      "path": "characters/guardian/attack_03.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "character",
+        "character": "guardian",
+        "state": "attack",
+        "frame": 3
+      }
+    },
+    {
+      "path": "characters/guardian/skill_00.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "character",
+        "character": "guardian",
+        "state": "skill",
+        "frame": 0
+      }
+    },
+    {
+      "path": "characters/guardian/skill_01.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "character",
+        "character": "guardian",
+        "state": "skill",
+        "frame": 1
+      }
+    },
+    {
+      "path": "characters/guardian/skill_02.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "character",
+        "character": "guardian",
+        "state": "skill",
+        "frame": 2
+      }
+    },
+    {
+      "path": "characters/guardian/skill_03.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "character",
+        "character": "guardian",
+        "state": "skill",
+        "frame": 3
+      }
+    },
+    {
+      "path": "characters/guardian/ultimate_00.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "character",
+        "character": "guardian",
+        "state": "ultimate",
+        "frame": 0
+      }
+    },
+    {
+      "path": "characters/guardian/ultimate_01.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "character",
+        "character": "guardian",
+        "state": "ultimate",
+        "frame": 1
+      }
+    },
+    {
+      "path": "characters/guardian/ultimate_02.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "character",
+        "character": "guardian",
+        "state": "ultimate",
+        "frame": 2
+      }
+    },
+    {
+      "path": "characters/guardian/ultimate_03.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "character",
+        "character": "guardian",
+        "state": "ultimate",
+        "frame": 3
+      }
+    },
+    {
+      "path": "characters/guardian/death_00.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "character",
+        "character": "guardian",
+        "state": "death",
+        "frame": 0
+      }
+    },
+    {
+      "path": "characters/guardian/death_01.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "character",
+        "character": "guardian",
+        "state": "death",
+        "frame": 1
+      }
+    },
+    {
+      "path": "characters/guardian/death_02.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "character",
+        "character": "guardian",
+        "state": "death",
+        "frame": 2
+      }
+    },
+    {
+      "path": "characters/guardian/death_03.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "character",
+        "character": "guardian",
+        "state": "death",
+        "frame": 3
+      }
+    },
+    {
+      "path": "characters/spearman/idle_00.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "character",
+        "character": "spearman",
+        "state": "idle",
+        "frame": 0
+      }
+    },
+    {
+      "path": "characters/spearman/idle_01.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "character",
+        "character": "spearman",
+        "state": "idle",
+        "frame": 1
+      }
+    },
+    {
+      "path": "characters/spearman/run_00.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "character",
+        "character": "spearman",
+        "state": "run",
+        "frame": 0
+      }
+    },
+    {
+      "path": "characters/spearman/run_01.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "character",
+        "character": "spearman",
+        "state": "run",
+        "frame": 1
+      }
+    },
+    {
+      "path": "characters/spearman/run_02.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "character",
+        "character": "spearman",
+        "state": "run",
+        "frame": 2
+      }
+    },
+    {
+      "path": "characters/spearman/run_03.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "character",
+        "character": "spearman",
+        "state": "run",
+        "frame": 3
+      }
+    },
+    {
+      "path": "characters/spearman/attack_00.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "character",
+        "character": "spearman",
+        "state": "attack",
+        "frame": 0
+      }
+    },
+    {
+      "path": "characters/spearman/attack_01.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "character",
+        "character": "spearman",
+        "state": "attack",
+        "frame": 1
+      }
+    },
+    {
+      "path": "characters/spearman/attack_02.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "character",
+        "character": "spearman",
+        "state": "attack",
+        "frame": 2
+      }
+    },
+    {
+      "path": "characters/spearman/attack_03.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "character",
+        "character": "spearman",
+        "state": "attack",
+        "frame": 3
+      }
+    },
+    {
+      "path": "characters/spearman/skill_00.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "character",
+        "character": "spearman",
+        "state": "skill",
+        "frame": 0
+      }
+    },
+    {
+      "path": "characters/spearman/skill_01.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "character",
+        "character": "spearman",
+        "state": "skill",
+        "frame": 1
+      }
+    },
+    {
+      "path": "characters/spearman/skill_02.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "character",
+        "character": "spearman",
+        "state": "skill",
+        "frame": 2
+      }
+    },
+    {
+      "path": "characters/spearman/skill_03.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "character",
+        "character": "spearman",
+        "state": "skill",
+        "frame": 3
+      }
+    },
+    {
+      "path": "characters/spearman/ultimate_00.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "character",
+        "character": "spearman",
+        "state": "ultimate",
+        "frame": 0
+      }
+    },
+    {
+      "path": "characters/spearman/ultimate_01.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "character",
+        "character": "spearman",
+        "state": "ultimate",
+        "frame": 1
+      }
+    },
+    {
+      "path": "characters/spearman/ultimate_02.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "character",
+        "character": "spearman",
+        "state": "ultimate",
+        "frame": 2
+      }
+    },
+    {
+      "path": "characters/spearman/ultimate_03.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "character",
+        "character": "spearman",
+        "state": "ultimate",
+        "frame": 3
+      }
+    },
+    {
+      "path": "characters/spearman/death_00.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "character",
+        "character": "spearman",
+        "state": "death",
+        "frame": 0
+      }
+    },
+    {
+      "path": "characters/spearman/death_01.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "character",
+        "character": "spearman",
+        "state": "death",
+        "frame": 1
+      }
+    },
+    {
+      "path": "characters/spearman/death_02.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "character",
+        "character": "spearman",
+        "state": "death",
+        "frame": 2
+      }
+    },
+    {
+      "path": "characters/spearman/death_03.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "character",
+        "character": "spearman",
+        "state": "death",
+        "frame": 3
+      }
+    },
+    {
+      "path": "characters/mage/idle_00.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "character",
+        "character": "mage",
+        "state": "idle",
+        "frame": 0
+      }
+    },
+    {
+      "path": "characters/mage/idle_01.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "character",
+        "character": "mage",
+        "state": "idle",
+        "frame": 1
+      }
+    },
+    {
+      "path": "characters/mage/run_00.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "character",
+        "character": "mage",
+        "state": "run",
+        "frame": 0
+      }
+    },
+    {
+      "path": "characters/mage/run_01.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "character",
+        "character": "mage",
+        "state": "run",
+        "frame": 1
+      }
+    },
+    {
+      "path": "characters/mage/run_02.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "character",
+        "character": "mage",
+        "state": "run",
+        "frame": 2
+      }
+    },
+    {
+      "path": "characters/mage/run_03.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "character",
+        "character": "mage",
+        "state": "run",
+        "frame": 3
+      }
+    },
+    {
+      "path": "characters/mage/attack_00.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "character",
+        "character": "mage",
+        "state": "attack",
+        "frame": 0
+      }
+    },
+    {
+      "path": "characters/mage/attack_01.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "character",
+        "character": "mage",
+        "state": "attack",
+        "frame": 1
+      }
+    },
+    {
+      "path": "characters/mage/attack_02.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "character",
+        "character": "mage",
+        "state": "attack",
+        "frame": 2
+      }
+    },
+    {
+      "path": "characters/mage/attack_03.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "character",
+        "character": "mage",
+        "state": "attack",
+        "frame": 3
+      }
+    },
+    {
+      "path": "characters/mage/skill_00.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "character",
+        "character": "mage",
+        "state": "skill",
+        "frame": 0
+      }
+    },
+    {
+      "path": "characters/mage/skill_01.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "character",
+        "character": "mage",
+        "state": "skill",
+        "frame": 1
+      }
+    },
+    {
+      "path": "characters/mage/skill_02.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "character",
+        "character": "mage",
+        "state": "skill",
+        "frame": 2
+      }
+    },
+    {
+      "path": "characters/mage/skill_03.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "character",
+        "character": "mage",
+        "state": "skill",
+        "frame": 3
+      }
+    },
+    {
+      "path": "characters/mage/ultimate_00.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "character",
+        "character": "mage",
+        "state": "ultimate",
+        "frame": 0
+      }
+    },
+    {
+      "path": "characters/mage/ultimate_01.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "character",
+        "character": "mage",
+        "state": "ultimate",
+        "frame": 1
+      }
+    },
+    {
+      "path": "characters/mage/ultimate_02.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "character",
+        "character": "mage",
+        "state": "ultimate",
+        "frame": 2
+      }
+    },
+    {
+      "path": "characters/mage/ultimate_03.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "character",
+        "character": "mage",
+        "state": "ultimate",
+        "frame": 3
+      }
+    },
+    {
+      "path": "characters/mage/death_00.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "character",
+        "character": "mage",
+        "state": "death",
+        "frame": 0
+      }
+    },
+    {
+      "path": "characters/mage/death_01.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "character",
+        "character": "mage",
+        "state": "death",
+        "frame": 1
+      }
+    },
+    {
+      "path": "characters/mage/death_02.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "character",
+        "character": "mage",
+        "state": "death",
+        "frame": 2
+      }
+    },
+    {
+      "path": "characters/mage/death_03.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "character",
+        "character": "mage",
+        "state": "death",
+        "frame": 3
+      }
+    },
+    {
+      "path": "characters/ranger/idle_00.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "character",
+        "character": "ranger",
+        "state": "idle",
+        "frame": 0
+      }
+    },
+    {
+      "path": "characters/ranger/idle_01.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "character",
+        "character": "ranger",
+        "state": "idle",
+        "frame": 1
+      }
+    },
+    {
+      "path": "characters/ranger/run_00.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "character",
+        "character": "ranger",
+        "state": "run",
+        "frame": 0
+      }
+    },
+    {
+      "path": "characters/ranger/run_01.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "character",
+        "character": "ranger",
+        "state": "run",
+        "frame": 1
+      }
+    },
+    {
+      "path": "characters/ranger/run_02.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "character",
+        "character": "ranger",
+        "state": "run",
+        "frame": 2
+      }
+    },
+    {
+      "path": "characters/ranger/run_03.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "character",
+        "character": "ranger",
+        "state": "run",
+        "frame": 3
+      }
+    },
+    {
+      "path": "characters/ranger/attack_00.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "character",
+        "character": "ranger",
+        "state": "attack",
+        "frame": 0
+      }
+    },
+    {
+      "path": "characters/ranger/attack_01.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "character",
+        "character": "ranger",
+        "state": "attack",
+        "frame": 1
+      }
+    },
+    {
+      "path": "characters/ranger/attack_02.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "character",
+        "character": "ranger",
+        "state": "attack",
+        "frame": 2
+      }
+    },
+    {
+      "path": "characters/ranger/attack_03.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "character",
+        "character": "ranger",
+        "state": "attack",
+        "frame": 3
+      }
+    },
+    {
+      "path": "characters/ranger/skill_00.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "character",
+        "character": "ranger",
+        "state": "skill",
+        "frame": 0
+      }
+    },
+    {
+      "path": "characters/ranger/skill_01.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "character",
+        "character": "ranger",
+        "state": "skill",
+        "frame": 1
+      }
+    },
+    {
+      "path": "characters/ranger/skill_02.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "character",
+        "character": "ranger",
+        "state": "skill",
+        "frame": 2
+      }
+    },
+    {
+      "path": "characters/ranger/skill_03.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "character",
+        "character": "ranger",
+        "state": "skill",
+        "frame": 3
+      }
+    },
+    {
+      "path": "characters/ranger/ultimate_00.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "character",
+        "character": "ranger",
+        "state": "ultimate",
+        "frame": 0
+      }
+    },
+    {
+      "path": "characters/ranger/ultimate_01.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "character",
+        "character": "ranger",
+        "state": "ultimate",
+        "frame": 1
+      }
+    },
+    {
+      "path": "characters/ranger/ultimate_02.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "character",
+        "character": "ranger",
+        "state": "ultimate",
+        "frame": 2
+      }
+    },
+    {
+      "path": "characters/ranger/ultimate_03.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "character",
+        "character": "ranger",
+        "state": "ultimate",
+        "frame": 3
+      }
+    },
+    {
+      "path": "characters/ranger/death_00.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "character",
+        "character": "ranger",
+        "state": "death",
+        "frame": 0
+      }
+    },
+    {
+      "path": "characters/ranger/death_01.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "character",
+        "character": "ranger",
+        "state": "death",
+        "frame": 1
+      }
+    },
+    {
+      "path": "characters/ranger/death_02.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "character",
+        "character": "ranger",
+        "state": "death",
+        "frame": 2
+      }
+    },
+    {
+      "path": "characters/ranger/death_03.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "character",
+        "character": "ranger",
+        "state": "death",
+        "frame": 3
+      }
+    },
+    {
+      "path": "characters/assassin/idle_00.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "character",
+        "character": "assassin",
+        "state": "idle",
+        "frame": 0
+      }
+    },
+    {
+      "path": "characters/assassin/idle_01.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "character",
+        "character": "assassin",
+        "state": "idle",
+        "frame": 1
+      }
+    },
+    {
+      "path": "characters/assassin/run_00.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "character",
+        "character": "assassin",
+        "state": "run",
+        "frame": 0
+      }
+    },
+    {
+      "path": "characters/assassin/run_01.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "character",
+        "character": "assassin",
+        "state": "run",
+        "frame": 1
+      }
+    },
+    {
+      "path": "characters/assassin/run_02.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "character",
+        "character": "assassin",
+        "state": "run",
+        "frame": 2
+      }
+    },
+    {
+      "path": "characters/assassin/run_03.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "character",
+        "character": "assassin",
+        "state": "run",
+        "frame": 3
+      }
+    },
+    {
+      "path": "characters/assassin/attack_00.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "character",
+        "character": "assassin",
+        "state": "attack",
+        "frame": 0
+      }
+    },
+    {
+      "path": "characters/assassin/attack_01.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "character",
+        "character": "assassin",
+        "state": "attack",
+        "frame": 1
+      }
+    },
+    {
+      "path": "characters/assassin/attack_02.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "character",
+        "character": "assassin",
+        "state": "attack",
+        "frame": 2
+      }
+    },
+    {
+      "path": "characters/assassin/attack_03.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "character",
+        "character": "assassin",
+        "state": "attack",
+        "frame": 3
+      }
+    },
+    {
+      "path": "characters/assassin/skill_00.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "character",
+        "character": "assassin",
+        "state": "skill",
+        "frame": 0
+      }
+    },
+    {
+      "path": "characters/assassin/skill_01.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "character",
+        "character": "assassin",
+        "state": "skill",
+        "frame": 1
+      }
+    },
+    {
+      "path": "characters/assassin/skill_02.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "character",
+        "character": "assassin",
+        "state": "skill",
+        "frame": 2
+      }
+    },
+    {
+      "path": "characters/assassin/skill_03.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "character",
+        "character": "assassin",
+        "state": "skill",
+        "frame": 3
+      }
+    },
+    {
+      "path": "characters/assassin/ultimate_00.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "character",
+        "character": "assassin",
+        "state": "ultimate",
+        "frame": 0
+      }
+    },
+    {
+      "path": "characters/assassin/ultimate_01.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "character",
+        "character": "assassin",
+        "state": "ultimate",
+        "frame": 1
+      }
+    },
+    {
+      "path": "characters/assassin/ultimate_02.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "character",
+        "character": "assassin",
+        "state": "ultimate",
+        "frame": 2
+      }
+    },
+    {
+      "path": "characters/assassin/ultimate_03.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "character",
+        "character": "assassin",
+        "state": "ultimate",
+        "frame": 3
+      }
+    },
+    {
+      "path": "characters/assassin/death_00.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "character",
+        "character": "assassin",
+        "state": "death",
+        "frame": 0
+      }
+    },
+    {
+      "path": "characters/assassin/death_01.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "character",
+        "character": "assassin",
+        "state": "death",
+        "frame": 1
+      }
+    },
+    {
+      "path": "characters/assassin/death_02.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "character",
+        "character": "assassin",
+        "state": "death",
+        "frame": 2
+      }
+    },
+    {
+      "path": "characters/assassin/death_03.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "character",
+        "character": "assassin",
+        "state": "death",
+        "frame": 3
+      }
+    },
+    {
+      "path": "doors/normal/grow_00.png",
+      "width": 256,
+      "height": 280,
+      "meta": {
+        "category": "door",
+        "roomType": "normal",
+        "frame": 0
+      }
+    },
+    {
+      "path": "doors/normal/grow_01.png",
+      "width": 256,
+      "height": 280,
+      "meta": {
+        "category": "door",
+        "roomType": "normal",
+        "frame": 1
+      }
+    },
+    {
+      "path": "doors/normal/grow_02.png",
+      "width": 256,
+      "height": 280,
+      "meta": {
+        "category": "door",
+        "roomType": "normal",
+        "frame": 2
+      }
+    },
+    {
+      "path": "doors/normal/grow_03.png",
+      "width": 256,
+      "height": 280,
+      "meta": {
+        "category": "door",
+        "roomType": "normal",
+        "frame": 3
+      }
+    },
+    {
+      "path": "doors/normal/grow_04.png",
+      "width": 256,
+      "height": 280,
+      "meta": {
+        "category": "door",
+        "roomType": "normal",
+        "frame": 4
+      }
+    },
+    {
+      "path": "doors/elite/grow_00.png",
+      "width": 256,
+      "height": 280,
+      "meta": {
+        "category": "door",
+        "roomType": "elite",
+        "frame": 0
+      }
+    },
+    {
+      "path": "doors/elite/grow_01.png",
+      "width": 256,
+      "height": 280,
+      "meta": {
+        "category": "door",
+        "roomType": "elite",
+        "frame": 1
+      }
+    },
+    {
+      "path": "doors/elite/grow_02.png",
+      "width": 256,
+      "height": 280,
+      "meta": {
+        "category": "door",
+        "roomType": "elite",
+        "frame": 2
+      }
+    },
+    {
+      "path": "doors/elite/grow_03.png",
+      "width": 256,
+      "height": 280,
+      "meta": {
+        "category": "door",
+        "roomType": "elite",
+        "frame": 3
+      }
+    },
+    {
+      "path": "doors/elite/grow_04.png",
+      "width": 256,
+      "height": 280,
+      "meta": {
+        "category": "door",
+        "roomType": "elite",
+        "frame": 4
+      }
+    },
+    {
+      "path": "doors/treasure/grow_00.png",
+      "width": 256,
+      "height": 280,
+      "meta": {
+        "category": "door",
+        "roomType": "treasure",
+        "frame": 0
+      }
+    },
+    {
+      "path": "doors/treasure/grow_01.png",
+      "width": 256,
+      "height": 280,
+      "meta": {
+        "category": "door",
+        "roomType": "treasure",
+        "frame": 1
+      }
+    },
+    {
+      "path": "doors/treasure/grow_02.png",
+      "width": 256,
+      "height": 280,
+      "meta": {
+        "category": "door",
+        "roomType": "treasure",
+        "frame": 2
+      }
+    },
+    {
+      "path": "doors/treasure/grow_03.png",
+      "width": 256,
+      "height": 280,
+      "meta": {
+        "category": "door",
+        "roomType": "treasure",
+        "frame": 3
+      }
+    },
+    {
+      "path": "doors/treasure/grow_04.png",
+      "width": 256,
+      "height": 280,
+      "meta": {
+        "category": "door",
+        "roomType": "treasure",
+        "frame": 4
+      }
+    },
+    {
+      "path": "doors/healing/grow_00.png",
+      "width": 256,
+      "height": 280,
+      "meta": {
+        "category": "door",
+        "roomType": "healing",
+        "frame": 0
+      }
+    },
+    {
+      "path": "doors/healing/grow_01.png",
+      "width": 256,
+      "height": 280,
+      "meta": {
+        "category": "door",
+        "roomType": "healing",
+        "frame": 1
+      }
+    },
+    {
+      "path": "doors/healing/grow_02.png",
+      "width": 256,
+      "height": 280,
+      "meta": {
+        "category": "door",
+        "roomType": "healing",
+        "frame": 2
+      }
+    },
+    {
+      "path": "doors/healing/grow_03.png",
+      "width": 256,
+      "height": 280,
+      "meta": {
+        "category": "door",
+        "roomType": "healing",
+        "frame": 3
+      }
+    },
+    {
+      "path": "doors/healing/grow_04.png",
+      "width": 256,
+      "height": 280,
+      "meta": {
+        "category": "door",
+        "roomType": "healing",
+        "frame": 4
+      }
+    },
+    {
+      "path": "doors/merchant/grow_00.png",
+      "width": 256,
+      "height": 280,
+      "meta": {
+        "category": "door",
+        "roomType": "merchant",
+        "frame": 0
+      }
+    },
+    {
+      "path": "doors/merchant/grow_01.png",
+      "width": 256,
+      "height": 280,
+      "meta": {
+        "category": "door",
+        "roomType": "merchant",
+        "frame": 1
+      }
+    },
+    {
+      "path": "doors/merchant/grow_02.png",
+      "width": 256,
+      "height": 280,
+      "meta": {
+        "category": "door",
+        "roomType": "merchant",
+        "frame": 2
+      }
+    },
+    {
+      "path": "doors/merchant/grow_03.png",
+      "width": 256,
+      "height": 280,
+      "meta": {
+        "category": "door",
+        "roomType": "merchant",
+        "frame": 3
+      }
+    },
+    {
+      "path": "doors/merchant/grow_04.png",
+      "width": 256,
+      "height": 280,
+      "meta": {
+        "category": "door",
+        "roomType": "merchant",
+        "frame": 4
+      }
+    },
+    {
+      "path": "doors/challenge/grow_00.png",
+      "width": 256,
+      "height": 280,
+      "meta": {
+        "category": "door",
+        "roomType": "challenge",
+        "frame": 0
+      }
+    },
+    {
+      "path": "doors/challenge/grow_01.png",
+      "width": 256,
+      "height": 280,
+      "meta": {
+        "category": "door",
+        "roomType": "challenge",
+        "frame": 1
+      }
+    },
+    {
+      "path": "doors/challenge/grow_02.png",
+      "width": 256,
+      "height": 280,
+      "meta": {
+        "category": "door",
+        "roomType": "challenge",
+        "frame": 2
+      }
+    },
+    {
+      "path": "doors/challenge/grow_03.png",
+      "width": 256,
+      "height": 280,
+      "meta": {
+        "category": "door",
+        "roomType": "challenge",
+        "frame": 3
+      }
+    },
+    {
+      "path": "doors/challenge/grow_04.png",
+      "width": 256,
+      "height": 280,
+      "meta": {
+        "category": "door",
+        "roomType": "challenge",
+        "frame": 4
+      }
+    },
+    {
+      "path": "doors/curse/grow_00.png",
+      "width": 256,
+      "height": 280,
+      "meta": {
+        "category": "door",
+        "roomType": "curse",
+        "frame": 0
+      }
+    },
+    {
+      "path": "doors/curse/grow_01.png",
+      "width": 256,
+      "height": 280,
+      "meta": {
+        "category": "door",
+        "roomType": "curse",
+        "frame": 1
+      }
+    },
+    {
+      "path": "doors/curse/grow_02.png",
+      "width": 256,
+      "height": 280,
+      "meta": {
+        "category": "door",
+        "roomType": "curse",
+        "frame": 2
+      }
+    },
+    {
+      "path": "doors/curse/grow_03.png",
+      "width": 256,
+      "height": 280,
+      "meta": {
+        "category": "door",
+        "roomType": "curse",
+        "frame": 3
+      }
+    },
+    {
+      "path": "doors/curse/grow_04.png",
+      "width": 256,
+      "height": 280,
+      "meta": {
+        "category": "door",
+        "roomType": "curse",
+        "frame": 4
+      }
+    },
+    {
+      "path": "doors/secret/grow_00.png",
+      "width": 256,
+      "height": 280,
+      "meta": {
+        "category": "door",
+        "roomType": "secret",
+        "frame": 0
+      }
+    },
+    {
+      "path": "doors/secret/grow_01.png",
+      "width": 256,
+      "height": 280,
+      "meta": {
+        "category": "door",
+        "roomType": "secret",
+        "frame": 1
+      }
+    },
+    {
+      "path": "doors/secret/grow_02.png",
+      "width": 256,
+      "height": 280,
+      "meta": {
+        "category": "door",
+        "roomType": "secret",
+        "frame": 2
+      }
+    },
+    {
+      "path": "doors/secret/grow_03.png",
+      "width": 256,
+      "height": 280,
+      "meta": {
+        "category": "door",
+        "roomType": "secret",
+        "frame": 3
+      }
+    },
+    {
+      "path": "doors/secret/grow_04.png",
+      "width": 256,
+      "height": 280,
+      "meta": {
+        "category": "door",
+        "roomType": "secret",
+        "frame": 4
+      }
+    },
+    {
+      "path": "doors/bossGate/grow_00.png",
+      "width": 288,
+      "height": 320,
+      "meta": {
+        "category": "door",
+        "roomType": "bossGate",
+        "frame": 0
+      }
+    },
+    {
+      "path": "doors/bossGate/grow_01.png",
+      "width": 288,
+      "height": 320,
+      "meta": {
+        "category": "door",
+        "roomType": "bossGate",
+        "frame": 1
+      }
+    },
+    {
+      "path": "doors/bossGate/grow_02.png",
+      "width": 288,
+      "height": 320,
+      "meta": {
+        "category": "door",
+        "roomType": "bossGate",
+        "frame": 2
+      }
+    },
+    {
+      "path": "doors/bossGate/grow_03.png",
+      "width": 288,
+      "height": 320,
+      "meta": {
+        "category": "door",
+        "roomType": "bossGate",
+        "frame": 3
+      }
+    },
+    {
+      "path": "doors/bossGate/grow_04.png",
+      "width": 288,
+      "height": 320,
+      "meta": {
+        "category": "door",
+        "roomType": "bossGate",
+        "frame": 4
+      }
+    },
+    {
+      "path": "doors/bossExit/grow_00.png",
+      "width": 288,
+      "height": 320,
+      "meta": {
+        "category": "door",
+        "roomType": "bossExit",
+        "frame": 0
+      }
+    },
+    {
+      "path": "doors/bossExit/grow_01.png",
+      "width": 288,
+      "height": 320,
+      "meta": {
+        "category": "door",
+        "roomType": "bossExit",
+        "frame": 1
+      }
+    },
+    {
+      "path": "doors/bossExit/grow_02.png",
+      "width": 288,
+      "height": 320,
+      "meta": {
+        "category": "door",
+        "roomType": "bossExit",
+        "frame": 2
+      }
+    },
+    {
+      "path": "doors/bossExit/grow_03.png",
+      "width": 288,
+      "height": 320,
+      "meta": {
+        "category": "door",
+        "roomType": "bossExit",
+        "frame": 3
+      }
+    },
+    {
+      "path": "doors/bossExit/grow_04.png",
+      "width": 288,
+      "height": 320,
+      "meta": {
+        "category": "door",
+        "roomType": "bossExit",
+        "frame": 4
+      }
+    },
+    {
+      "path": "chests/woodChest/open_00.png",
+      "width": 192,
+      "height": 160,
+      "meta": {
+        "category": "chest",
+        "container": "woodChest",
+        "state": "open",
+        "frame": 0
+      }
+    },
+    {
+      "path": "chests/woodChest/open_01.png",
+      "width": 192,
+      "height": 160,
+      "meta": {
+        "category": "chest",
+        "container": "woodChest",
+        "state": "open",
+        "frame": 1
+      }
+    },
+    {
+      "path": "chests/woodChest/open_02.png",
+      "width": 192,
+      "height": 160,
+      "meta": {
+        "category": "chest",
+        "container": "woodChest",
+        "state": "open",
+        "frame": 2
+      }
+    },
+    {
+      "path": "chests/woodChest/open_03.png",
+      "width": 192,
+      "height": 160,
+      "meta": {
+        "category": "chest",
+        "container": "woodChest",
+        "state": "open",
+        "frame": 3
+      }
+    },
+    {
+      "path": "chests/woodChest/open_04.png",
+      "width": 192,
+      "height": 160,
+      "meta": {
+        "category": "chest",
+        "container": "woodChest",
+        "state": "open",
+        "frame": 4
+      }
+    },
+    {
+      "path": "chests/woodChest/open_05.png",
+      "width": 192,
+      "height": 160,
+      "meta": {
+        "category": "chest",
+        "container": "woodChest",
+        "state": "open",
+        "frame": 5
+      }
+    },
+    {
+      "path": "chests/goldChest/open_00.png",
+      "width": 192,
+      "height": 160,
+      "meta": {
+        "category": "chest",
+        "container": "goldChest",
+        "state": "open",
+        "frame": 0
+      }
+    },
+    {
+      "path": "chests/goldChest/open_01.png",
+      "width": 192,
+      "height": 160,
+      "meta": {
+        "category": "chest",
+        "container": "goldChest",
+        "state": "open",
+        "frame": 1
+      }
+    },
+    {
+      "path": "chests/goldChest/open_02.png",
+      "width": 192,
+      "height": 160,
+      "meta": {
+        "category": "chest",
+        "container": "goldChest",
+        "state": "open",
+        "frame": 2
+      }
+    },
+    {
+      "path": "chests/goldChest/open_03.png",
+      "width": 192,
+      "height": 160,
+      "meta": {
+        "category": "chest",
+        "container": "goldChest",
+        "state": "open",
+        "frame": 3
+      }
+    },
+    {
+      "path": "chests/goldChest/open_04.png",
+      "width": 192,
+      "height": 160,
+      "meta": {
+        "category": "chest",
+        "container": "goldChest",
+        "state": "open",
+        "frame": 4
+      }
+    },
+    {
+      "path": "chests/goldChest/open_05.png",
+      "width": 192,
+      "height": 160,
+      "meta": {
+        "category": "chest",
+        "container": "goldChest",
+        "state": "open",
+        "frame": 5
+      }
+    },
+    {
+      "path": "chests/treasureChest/open_00.png",
+      "width": 256,
+      "height": 220,
+      "meta": {
+        "category": "chest",
+        "container": "treasureChest",
+        "state": "open",
+        "frame": 0
+      }
+    },
+    {
+      "path": "chests/treasureChest/open_01.png",
+      "width": 256,
+      "height": 220,
+      "meta": {
+        "category": "chest",
+        "container": "treasureChest",
+        "state": "open",
+        "frame": 1
+      }
+    },
+    {
+      "path": "chests/treasureChest/open_02.png",
+      "width": 256,
+      "height": 220,
+      "meta": {
+        "category": "chest",
+        "container": "treasureChest",
+        "state": "open",
+        "frame": 2
+      }
+    },
+    {
+      "path": "chests/treasureChest/open_03.png",
+      "width": 256,
+      "height": 220,
+      "meta": {
+        "category": "chest",
+        "container": "treasureChest",
+        "state": "open",
+        "frame": 3
+      }
+    },
+    {
+      "path": "chests/treasureChest/open_04.png",
+      "width": 256,
+      "height": 220,
+      "meta": {
+        "category": "chest",
+        "container": "treasureChest",
+        "state": "open",
+        "frame": 4
+      }
+    },
+    {
+      "path": "chests/treasureChest/open_05.png",
+      "width": 256,
+      "height": 220,
+      "meta": {
+        "category": "chest",
+        "container": "treasureChest",
+        "state": "open",
+        "frame": 5
+      }
+    },
+    {
+      "path": "backgrounds/forest/floor_tile.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "background",
+        "biome": "forest",
+        "asset": "floorTile"
+      }
+    },
+    {
+      "path": "backgrounds/forest/room_crop.png",
+      "width": 512,
+      "height": 320,
+      "meta": {
+        "category": "background",
+        "biome": "forest",
+        "asset": "roomCrop"
+      }
+    },
+    {
+      "path": "backgrounds/frozen/floor_tile.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "background",
+        "biome": "frozen",
+        "asset": "floorTile"
+      }
+    },
+    {
+      "path": "backgrounds/frozen/room_crop.png",
+      "width": 512,
+      "height": 320,
+      "meta": {
+        "category": "background",
+        "biome": "frozen",
+        "asset": "roomCrop"
+      }
+    },
+    {
+      "path": "backgrounds/lava/floor_tile.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "background",
+        "biome": "lava",
+        "asset": "floorTile"
+      }
+    },
+    {
+      "path": "backgrounds/lava/room_crop.png",
+      "width": 512,
+      "height": 320,
+      "meta": {
+        "category": "background",
+        "biome": "lava",
+        "asset": "roomCrop"
+      }
+    },
+    {
+      "path": "backgrounds/neon/floor_tile.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "background",
+        "biome": "neon",
+        "asset": "floorTile"
+      }
+    },
+    {
+      "path": "backgrounds/neon/room_crop.png",
+      "width": 512,
+      "height": 320,
+      "meta": {
+        "category": "background",
+        "biome": "neon",
+        "asset": "roomCrop"
+      }
+    },
+    {
+      "path": "backgrounds/temple/floor_tile.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "background",
+        "biome": "temple",
+        "asset": "floorTile"
+      }
+    },
+    {
+      "path": "backgrounds/temple/room_crop.png",
+      "width": 512,
+      "height": 320,
+      "meta": {
+        "category": "background",
+        "biome": "temple",
+        "asset": "roomCrop"
+      }
+    },
+    {
+      "path": "traps/thorn/active_00.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "trap",
+        "type": "thorn",
+        "state": "active",
+        "frame": 0
+      }
+    },
+    {
+      "path": "traps/thorn/active_01.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "trap",
+        "type": "thorn",
+        "state": "active",
+        "frame": 1
+      }
+    },
+    {
+      "path": "traps/thorn/active_02.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "trap",
+        "type": "thorn",
+        "state": "active",
+        "frame": 2
+      }
+    },
+    {
+      "path": "traps/thorn/active_03.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "trap",
+        "type": "thorn",
+        "state": "active",
+        "frame": 3
+      }
+    },
+    {
+      "path": "traps/thorn/active_04.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "trap",
+        "type": "thorn",
+        "state": "active",
+        "frame": 4
+      }
+    },
+    {
+      "path": "traps/thorn/active_05.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "trap",
+        "type": "thorn",
+        "state": "active",
+        "frame": 5
+      }
+    },
+    {
+      "path": "traps/ice/active_00.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "trap",
+        "type": "ice",
+        "state": "active",
+        "frame": 0
+      }
+    },
+    {
+      "path": "traps/ice/active_01.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "trap",
+        "type": "ice",
+        "state": "active",
+        "frame": 1
+      }
+    },
+    {
+      "path": "traps/ice/active_02.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "trap",
+        "type": "ice",
+        "state": "active",
+        "frame": 2
+      }
+    },
+    {
+      "path": "traps/ice/active_03.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "trap",
+        "type": "ice",
+        "state": "active",
+        "frame": 3
+      }
+    },
+    {
+      "path": "traps/ice/active_04.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "trap",
+        "type": "ice",
+        "state": "active",
+        "frame": 4
+      }
+    },
+    {
+      "path": "traps/ice/active_05.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "trap",
+        "type": "ice",
+        "state": "active",
+        "frame": 5
+      }
+    },
+    {
+      "path": "traps/lava/active_00.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "trap",
+        "type": "lava",
+        "state": "active",
+        "frame": 0
+      }
+    },
+    {
+      "path": "traps/lava/active_01.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "trap",
+        "type": "lava",
+        "state": "active",
+        "frame": 1
+      }
+    },
+    {
+      "path": "traps/lava/active_02.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "trap",
+        "type": "lava",
+        "state": "active",
+        "frame": 2
+      }
+    },
+    {
+      "path": "traps/lava/active_03.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "trap",
+        "type": "lava",
+        "state": "active",
+        "frame": 3
+      }
+    },
+    {
+      "path": "traps/lava/active_04.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "trap",
+        "type": "lava",
+        "state": "active",
+        "frame": 4
+      }
+    },
+    {
+      "path": "traps/lava/active_05.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "trap",
+        "type": "lava",
+        "state": "active",
+        "frame": 5
+      }
+    },
+    {
+      "path": "traps/voltage/active_00.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "trap",
+        "type": "voltage",
+        "state": "active",
+        "frame": 0
+      }
+    },
+    {
+      "path": "traps/voltage/active_01.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "trap",
+        "type": "voltage",
+        "state": "active",
+        "frame": 1
+      }
+    },
+    {
+      "path": "traps/voltage/active_02.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "trap",
+        "type": "voltage",
+        "state": "active",
+        "frame": 2
+      }
+    },
+    {
+      "path": "traps/voltage/active_03.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "trap",
+        "type": "voltage",
+        "state": "active",
+        "frame": 3
+      }
+    },
+    {
+      "path": "traps/voltage/active_04.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "trap",
+        "type": "voltage",
+        "state": "active",
+        "frame": 4
+      }
+    },
+    {
+      "path": "traps/voltage/active_05.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "trap",
+        "type": "voltage",
+        "state": "active",
+        "frame": 5
+      }
+    },
+    {
+      "path": "traps/blade/active_00.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "trap",
+        "type": "blade",
+        "state": "active",
+        "frame": 0
+      }
+    },
+    {
+      "path": "traps/blade/active_01.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "trap",
+        "type": "blade",
+        "state": "active",
+        "frame": 1
+      }
+    },
+    {
+      "path": "traps/blade/active_02.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "trap",
+        "type": "blade",
+        "state": "active",
+        "frame": 2
+      }
+    },
+    {
+      "path": "traps/blade/active_03.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "trap",
+        "type": "blade",
+        "state": "active",
+        "frame": 3
+      }
+    },
+    {
+      "path": "traps/blade/active_04.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "trap",
+        "type": "blade",
+        "state": "active",
+        "frame": 4
+      }
+    },
+    {
+      "path": "traps/blade/active_05.png",
+      "width": 192,
+      "height": 192,
+      "meta": {
+        "category": "trap",
+        "type": "blade",
+        "state": "active",
+        "frame": 5
+      }
+    },
+    {
+      "path": "skills/fire/q/normal_00.png",
+      "width": 860,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "fire",
+        "key": "q",
+        "awakened": false,
+        "frame": 0
+      }
+    },
+    {
+      "path": "skills/fire/q/normal_01.png",
+      "width": 860,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "fire",
+        "key": "q",
+        "awakened": false,
+        "frame": 1
+      }
+    },
+    {
+      "path": "skills/fire/q/normal_02.png",
+      "width": 860,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "fire",
+        "key": "q",
+        "awakened": false,
+        "frame": 2
+      }
+    },
+    {
+      "path": "skills/fire/q/normal_03.png",
+      "width": 860,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "fire",
+        "key": "q",
+        "awakened": false,
+        "frame": 3
+      }
+    },
+    {
+      "path": "skills/fire/q/awakened_00.png",
+      "width": 860,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "fire",
+        "key": "q",
+        "awakened": true,
+        "frame": 0
+      }
+    },
+    {
+      "path": "skills/fire/q/awakened_01.png",
+      "width": 860,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "fire",
+        "key": "q",
+        "awakened": true,
+        "frame": 1
+      }
+    },
+    {
+      "path": "skills/fire/q/awakened_02.png",
+      "width": 860,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "fire",
+        "key": "q",
+        "awakened": true,
+        "frame": 2
+      }
+    },
+    {
+      "path": "skills/fire/q/awakened_03.png",
+      "width": 860,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "fire",
+        "key": "q",
+        "awakened": true,
+        "frame": 3
+      }
+    },
+    {
+      "path": "skills/fire/e/normal_00.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "fire",
+        "key": "e",
+        "awakened": false,
+        "frame": 0
+      }
+    },
+    {
+      "path": "skills/fire/e/normal_01.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "fire",
+        "key": "e",
+        "awakened": false,
+        "frame": 1
+      }
+    },
+    {
+      "path": "skills/fire/e/normal_02.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "fire",
+        "key": "e",
+        "awakened": false,
+        "frame": 2
+      }
+    },
+    {
+      "path": "skills/fire/e/normal_03.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "fire",
+        "key": "e",
+        "awakened": false,
+        "frame": 3
+      }
+    },
+    {
+      "path": "skills/fire/e/awakened_00.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "fire",
+        "key": "e",
+        "awakened": true,
+        "frame": 0
+      }
+    },
+    {
+      "path": "skills/fire/e/awakened_01.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "fire",
+        "key": "e",
+        "awakened": true,
+        "frame": 1
+      }
+    },
+    {
+      "path": "skills/fire/e/awakened_02.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "fire",
+        "key": "e",
+        "awakened": true,
+        "frame": 2
+      }
+    },
+    {
+      "path": "skills/fire/e/awakened_03.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "fire",
+        "key": "e",
+        "awakened": true,
+        "frame": 3
+      }
+    },
+    {
+      "path": "skills/fire/r/normal_00.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "fire",
+        "key": "r",
+        "awakened": false,
+        "frame": 0
+      }
+    },
+    {
+      "path": "skills/fire/r/normal_01.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "fire",
+        "key": "r",
+        "awakened": false,
+        "frame": 1
+      }
+    },
+    {
+      "path": "skills/fire/r/normal_02.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "fire",
+        "key": "r",
+        "awakened": false,
+        "frame": 2
+      }
+    },
+    {
+      "path": "skills/fire/r/normal_03.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "fire",
+        "key": "r",
+        "awakened": false,
+        "frame": 3
+      }
+    },
+    {
+      "path": "skills/fire/r/awakened_00.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "fire",
+        "key": "r",
+        "awakened": true,
+        "frame": 0
+      }
+    },
+    {
+      "path": "skills/fire/r/awakened_01.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "fire",
+        "key": "r",
+        "awakened": true,
+        "frame": 1
+      }
+    },
+    {
+      "path": "skills/fire/r/awakened_02.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "fire",
+        "key": "r",
+        "awakened": true,
+        "frame": 2
+      }
+    },
+    {
+      "path": "skills/fire/r/awakened_03.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "fire",
+        "key": "r",
+        "awakened": true,
+        "frame": 3
+      }
+    },
+    {
+      "path": "skills/fire/f/normal_00.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "fire",
+        "key": "f",
+        "awakened": false,
+        "frame": 0
+      }
+    },
+    {
+      "path": "skills/fire/f/normal_01.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "fire",
+        "key": "f",
+        "awakened": false,
+        "frame": 1
+      }
+    },
+    {
+      "path": "skills/fire/f/normal_02.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "fire",
+        "key": "f",
+        "awakened": false,
+        "frame": 2
+      }
+    },
+    {
+      "path": "skills/fire/f/normal_03.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "fire",
+        "key": "f",
+        "awakened": false,
+        "frame": 3
+      }
+    },
+    {
+      "path": "skills/fire/f/awakened_00.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "fire",
+        "key": "f",
+        "awakened": true,
+        "frame": 0
+      }
+    },
+    {
+      "path": "skills/fire/f/awakened_01.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "fire",
+        "key": "f",
+        "awakened": true,
+        "frame": 1
+      }
+    },
+    {
+      "path": "skills/fire/f/awakened_02.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "fire",
+        "key": "f",
+        "awakened": true,
+        "frame": 2
+      }
+    },
+    {
+      "path": "skills/fire/f/awakened_03.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "fire",
+        "key": "f",
+        "awakened": true,
+        "frame": 3
+      }
+    },
+    {
+      "path": "skills/ice/q/normal_00.png",
+      "width": 860,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "ice",
+        "key": "q",
+        "awakened": false,
+        "frame": 0
+      }
+    },
+    {
+      "path": "skills/ice/q/normal_01.png",
+      "width": 860,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "ice",
+        "key": "q",
+        "awakened": false,
+        "frame": 1
+      }
+    },
+    {
+      "path": "skills/ice/q/normal_02.png",
+      "width": 860,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "ice",
+        "key": "q",
+        "awakened": false,
+        "frame": 2
+      }
+    },
+    {
+      "path": "skills/ice/q/normal_03.png",
+      "width": 860,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "ice",
+        "key": "q",
+        "awakened": false,
+        "frame": 3
+      }
+    },
+    {
+      "path": "skills/ice/q/awakened_00.png",
+      "width": 860,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "ice",
+        "key": "q",
+        "awakened": true,
+        "frame": 0
+      }
+    },
+    {
+      "path": "skills/ice/q/awakened_01.png",
+      "width": 860,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "ice",
+        "key": "q",
+        "awakened": true,
+        "frame": 1
+      }
+    },
+    {
+      "path": "skills/ice/q/awakened_02.png",
+      "width": 860,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "ice",
+        "key": "q",
+        "awakened": true,
+        "frame": 2
+      }
+    },
+    {
+      "path": "skills/ice/q/awakened_03.png",
+      "width": 860,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "ice",
+        "key": "q",
+        "awakened": true,
+        "frame": 3
+      }
+    },
+    {
+      "path": "skills/ice/e/normal_00.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "ice",
+        "key": "e",
+        "awakened": false,
+        "frame": 0
+      }
+    },
+    {
+      "path": "skills/ice/e/normal_01.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "ice",
+        "key": "e",
+        "awakened": false,
+        "frame": 1
+      }
+    },
+    {
+      "path": "skills/ice/e/normal_02.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "ice",
+        "key": "e",
+        "awakened": false,
+        "frame": 2
+      }
+    },
+    {
+      "path": "skills/ice/e/normal_03.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "ice",
+        "key": "e",
+        "awakened": false,
+        "frame": 3
+      }
+    },
+    {
+      "path": "skills/ice/e/awakened_00.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "ice",
+        "key": "e",
+        "awakened": true,
+        "frame": 0
+      }
+    },
+    {
+      "path": "skills/ice/e/awakened_01.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "ice",
+        "key": "e",
+        "awakened": true,
+        "frame": 1
+      }
+    },
+    {
+      "path": "skills/ice/e/awakened_02.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "ice",
+        "key": "e",
+        "awakened": true,
+        "frame": 2
+      }
+    },
+    {
+      "path": "skills/ice/e/awakened_03.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "ice",
+        "key": "e",
+        "awakened": true,
+        "frame": 3
+      }
+    },
+    {
+      "path": "skills/ice/r/normal_00.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "ice",
+        "key": "r",
+        "awakened": false,
+        "frame": 0
+      }
+    },
+    {
+      "path": "skills/ice/r/normal_01.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "ice",
+        "key": "r",
+        "awakened": false,
+        "frame": 1
+      }
+    },
+    {
+      "path": "skills/ice/r/normal_02.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "ice",
+        "key": "r",
+        "awakened": false,
+        "frame": 2
+      }
+    },
+    {
+      "path": "skills/ice/r/normal_03.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "ice",
+        "key": "r",
+        "awakened": false,
+        "frame": 3
+      }
+    },
+    {
+      "path": "skills/ice/r/awakened_00.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "ice",
+        "key": "r",
+        "awakened": true,
+        "frame": 0
+      }
+    },
+    {
+      "path": "skills/ice/r/awakened_01.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "ice",
+        "key": "r",
+        "awakened": true,
+        "frame": 1
+      }
+    },
+    {
+      "path": "skills/ice/r/awakened_02.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "ice",
+        "key": "r",
+        "awakened": true,
+        "frame": 2
+      }
+    },
+    {
+      "path": "skills/ice/r/awakened_03.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "ice",
+        "key": "r",
+        "awakened": true,
+        "frame": 3
+      }
+    },
+    {
+      "path": "skills/ice/f/normal_00.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "ice",
+        "key": "f",
+        "awakened": false,
+        "frame": 0
+      }
+    },
+    {
+      "path": "skills/ice/f/normal_01.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "ice",
+        "key": "f",
+        "awakened": false,
+        "frame": 1
+      }
+    },
+    {
+      "path": "skills/ice/f/normal_02.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "ice",
+        "key": "f",
+        "awakened": false,
+        "frame": 2
+      }
+    },
+    {
+      "path": "skills/ice/f/normal_03.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "ice",
+        "key": "f",
+        "awakened": false,
+        "frame": 3
+      }
+    },
+    {
+      "path": "skills/ice/f/awakened_00.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "ice",
+        "key": "f",
+        "awakened": true,
+        "frame": 0
+      }
+    },
+    {
+      "path": "skills/ice/f/awakened_01.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "ice",
+        "key": "f",
+        "awakened": true,
+        "frame": 1
+      }
+    },
+    {
+      "path": "skills/ice/f/awakened_02.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "ice",
+        "key": "f",
+        "awakened": true,
+        "frame": 2
+      }
+    },
+    {
+      "path": "skills/ice/f/awakened_03.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "ice",
+        "key": "f",
+        "awakened": true,
+        "frame": 3
+      }
+    },
+    {
+      "path": "skills/lightning/q/normal_00.png",
+      "width": 860,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "lightning",
+        "key": "q",
+        "awakened": false,
+        "frame": 0
+      }
+    },
+    {
+      "path": "skills/lightning/q/normal_01.png",
+      "width": 860,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "lightning",
+        "key": "q",
+        "awakened": false,
+        "frame": 1
+      }
+    },
+    {
+      "path": "skills/lightning/q/normal_02.png",
+      "width": 860,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "lightning",
+        "key": "q",
+        "awakened": false,
+        "frame": 2
+      }
+    },
+    {
+      "path": "skills/lightning/q/normal_03.png",
+      "width": 860,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "lightning",
+        "key": "q",
+        "awakened": false,
+        "frame": 3
+      }
+    },
+    {
+      "path": "skills/lightning/q/awakened_00.png",
+      "width": 860,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "lightning",
+        "key": "q",
+        "awakened": true,
+        "frame": 0
+      }
+    },
+    {
+      "path": "skills/lightning/q/awakened_01.png",
+      "width": 860,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "lightning",
+        "key": "q",
+        "awakened": true,
+        "frame": 1
+      }
+    },
+    {
+      "path": "skills/lightning/q/awakened_02.png",
+      "width": 860,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "lightning",
+        "key": "q",
+        "awakened": true,
+        "frame": 2
+      }
+    },
+    {
+      "path": "skills/lightning/q/awakened_03.png",
+      "width": 860,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "lightning",
+        "key": "q",
+        "awakened": true,
+        "frame": 3
+      }
+    },
+    {
+      "path": "skills/lightning/e/normal_00.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "lightning",
+        "key": "e",
+        "awakened": false,
+        "frame": 0
+      }
+    },
+    {
+      "path": "skills/lightning/e/normal_01.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "lightning",
+        "key": "e",
+        "awakened": false,
+        "frame": 1
+      }
+    },
+    {
+      "path": "skills/lightning/e/normal_02.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "lightning",
+        "key": "e",
+        "awakened": false,
+        "frame": 2
+      }
+    },
+    {
+      "path": "skills/lightning/e/normal_03.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "lightning",
+        "key": "e",
+        "awakened": false,
+        "frame": 3
+      }
+    },
+    {
+      "path": "skills/lightning/e/awakened_00.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "lightning",
+        "key": "e",
+        "awakened": true,
+        "frame": 0
+      }
+    },
+    {
+      "path": "skills/lightning/e/awakened_01.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "lightning",
+        "key": "e",
+        "awakened": true,
+        "frame": 1
+      }
+    },
+    {
+      "path": "skills/lightning/e/awakened_02.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "lightning",
+        "key": "e",
+        "awakened": true,
+        "frame": 2
+      }
+    },
+    {
+      "path": "skills/lightning/e/awakened_03.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "lightning",
+        "key": "e",
+        "awakened": true,
+        "frame": 3
+      }
+    },
+    {
+      "path": "skills/lightning/r/normal_00.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "lightning",
+        "key": "r",
+        "awakened": false,
+        "frame": 0
+      }
+    },
+    {
+      "path": "skills/lightning/r/normal_01.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "lightning",
+        "key": "r",
+        "awakened": false,
+        "frame": 1
+      }
+    },
+    {
+      "path": "skills/lightning/r/normal_02.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "lightning",
+        "key": "r",
+        "awakened": false,
+        "frame": 2
+      }
+    },
+    {
+      "path": "skills/lightning/r/normal_03.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "lightning",
+        "key": "r",
+        "awakened": false,
+        "frame": 3
+      }
+    },
+    {
+      "path": "skills/lightning/r/awakened_00.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "lightning",
+        "key": "r",
+        "awakened": true,
+        "frame": 0
+      }
+    },
+    {
+      "path": "skills/lightning/r/awakened_01.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "lightning",
+        "key": "r",
+        "awakened": true,
+        "frame": 1
+      }
+    },
+    {
+      "path": "skills/lightning/r/awakened_02.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "lightning",
+        "key": "r",
+        "awakened": true,
+        "frame": 2
+      }
+    },
+    {
+      "path": "skills/lightning/r/awakened_03.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "lightning",
+        "key": "r",
+        "awakened": true,
+        "frame": 3
+      }
+    },
+    {
+      "path": "skills/lightning/f/normal_00.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "lightning",
+        "key": "f",
+        "awakened": false,
+        "frame": 0
+      }
+    },
+    {
+      "path": "skills/lightning/f/normal_01.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "lightning",
+        "key": "f",
+        "awakened": false,
+        "frame": 1
+      }
+    },
+    {
+      "path": "skills/lightning/f/normal_02.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "lightning",
+        "key": "f",
+        "awakened": false,
+        "frame": 2
+      }
+    },
+    {
+      "path": "skills/lightning/f/normal_03.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "lightning",
+        "key": "f",
+        "awakened": false,
+        "frame": 3
+      }
+    },
+    {
+      "path": "skills/lightning/f/awakened_00.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "lightning",
+        "key": "f",
+        "awakened": true,
+        "frame": 0
+      }
+    },
+    {
+      "path": "skills/lightning/f/awakened_01.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "lightning",
+        "key": "f",
+        "awakened": true,
+        "frame": 1
+      }
+    },
+    {
+      "path": "skills/lightning/f/awakened_02.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "lightning",
+        "key": "f",
+        "awakened": true,
+        "frame": 2
+      }
+    },
+    {
+      "path": "skills/lightning/f/awakened_03.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "lightning",
+        "key": "f",
+        "awakened": true,
+        "frame": 3
+      }
+    },
+    {
+      "path": "skills/shadow/q/normal_00.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "shadow",
+        "key": "q",
+        "awakened": false,
+        "frame": 0
+      }
+    },
+    {
+      "path": "skills/shadow/q/normal_01.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "shadow",
+        "key": "q",
+        "awakened": false,
+        "frame": 1
+      }
+    },
+    {
+      "path": "skills/shadow/q/normal_02.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "shadow",
+        "key": "q",
+        "awakened": false,
+        "frame": 2
+      }
+    },
+    {
+      "path": "skills/shadow/q/normal_03.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "shadow",
+        "key": "q",
+        "awakened": false,
+        "frame": 3
+      }
+    },
+    {
+      "path": "skills/shadow/q/awakened_00.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "shadow",
+        "key": "q",
+        "awakened": true,
+        "frame": 0
+      }
+    },
+    {
+      "path": "skills/shadow/q/awakened_01.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "shadow",
+        "key": "q",
+        "awakened": true,
+        "frame": 1
+      }
+    },
+    {
+      "path": "skills/shadow/q/awakened_02.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "shadow",
+        "key": "q",
+        "awakened": true,
+        "frame": 2
+      }
+    },
+    {
+      "path": "skills/shadow/q/awakened_03.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "shadow",
+        "key": "q",
+        "awakened": true,
+        "frame": 3
+      }
+    },
+    {
+      "path": "skills/shadow/e/normal_00.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "shadow",
+        "key": "e",
+        "awakened": false,
+        "frame": 0
+      }
+    },
+    {
+      "path": "skills/shadow/e/normal_01.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "shadow",
+        "key": "e",
+        "awakened": false,
+        "frame": 1
+      }
+    },
+    {
+      "path": "skills/shadow/e/normal_02.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "shadow",
+        "key": "e",
+        "awakened": false,
+        "frame": 2
+      }
+    },
+    {
+      "path": "skills/shadow/e/normal_03.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "shadow",
+        "key": "e",
+        "awakened": false,
+        "frame": 3
+      }
+    },
+    {
+      "path": "skills/shadow/e/awakened_00.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "shadow",
+        "key": "e",
+        "awakened": true,
+        "frame": 0
+      }
+    },
+    {
+      "path": "skills/shadow/e/awakened_01.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "shadow",
+        "key": "e",
+        "awakened": true,
+        "frame": 1
+      }
+    },
+    {
+      "path": "skills/shadow/e/awakened_02.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "shadow",
+        "key": "e",
+        "awakened": true,
+        "frame": 2
+      }
+    },
+    {
+      "path": "skills/shadow/e/awakened_03.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "shadow",
+        "key": "e",
+        "awakened": true,
+        "frame": 3
+      }
+    },
+    {
+      "path": "skills/shadow/r/normal_00.png",
+      "width": 860,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "shadow",
+        "key": "r",
+        "awakened": false,
+        "frame": 0
+      }
+    },
+    {
+      "path": "skills/shadow/r/normal_01.png",
+      "width": 860,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "shadow",
+        "key": "r",
+        "awakened": false,
+        "frame": 1
+      }
+    },
+    {
+      "path": "skills/shadow/r/normal_02.png",
+      "width": 860,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "shadow",
+        "key": "r",
+        "awakened": false,
+        "frame": 2
+      }
+    },
+    {
+      "path": "skills/shadow/r/normal_03.png",
+      "width": 860,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "shadow",
+        "key": "r",
+        "awakened": false,
+        "frame": 3
+      }
+    },
+    {
+      "path": "skills/shadow/r/awakened_00.png",
+      "width": 860,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "shadow",
+        "key": "r",
+        "awakened": true,
+        "frame": 0
+      }
+    },
+    {
+      "path": "skills/shadow/r/awakened_01.png",
+      "width": 860,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "shadow",
+        "key": "r",
+        "awakened": true,
+        "frame": 1
+      }
+    },
+    {
+      "path": "skills/shadow/r/awakened_02.png",
+      "width": 860,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "shadow",
+        "key": "r",
+        "awakened": true,
+        "frame": 2
+      }
+    },
+    {
+      "path": "skills/shadow/r/awakened_03.png",
+      "width": 860,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "shadow",
+        "key": "r",
+        "awakened": true,
+        "frame": 3
+      }
+    },
+    {
+      "path": "skills/shadow/f/normal_00.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "shadow",
+        "key": "f",
+        "awakened": false,
+        "frame": 0
+      }
+    },
+    {
+      "path": "skills/shadow/f/normal_01.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "shadow",
+        "key": "f",
+        "awakened": false,
+        "frame": 1
+      }
+    },
+    {
+      "path": "skills/shadow/f/normal_02.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "shadow",
+        "key": "f",
+        "awakened": false,
+        "frame": 2
+      }
+    },
+    {
+      "path": "skills/shadow/f/normal_03.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "shadow",
+        "key": "f",
+        "awakened": false,
+        "frame": 3
+      }
+    },
+    {
+      "path": "skills/shadow/f/awakened_00.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "shadow",
+        "key": "f",
+        "awakened": true,
+        "frame": 0
+      }
+    },
+    {
+      "path": "skills/shadow/f/awakened_01.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "shadow",
+        "key": "f",
+        "awakened": true,
+        "frame": 1
+      }
+    },
+    {
+      "path": "skills/shadow/f/awakened_02.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "shadow",
+        "key": "f",
+        "awakened": true,
+        "frame": 2
+      }
+    },
+    {
+      "path": "skills/shadow/f/awakened_03.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "shadow",
+        "key": "f",
+        "awakened": true,
+        "frame": 3
+      }
+    },
+    {
+      "path": "skills/blood/q/normal_00.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "blood",
+        "key": "q",
+        "awakened": false,
+        "frame": 0
+      }
+    },
+    {
+      "path": "skills/blood/q/normal_01.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "blood",
+        "key": "q",
+        "awakened": false,
+        "frame": 1
+      }
+    },
+    {
+      "path": "skills/blood/q/normal_02.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "blood",
+        "key": "q",
+        "awakened": false,
+        "frame": 2
+      }
+    },
+    {
+      "path": "skills/blood/q/normal_03.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "blood",
+        "key": "q",
+        "awakened": false,
+        "frame": 3
+      }
+    },
+    {
+      "path": "skills/blood/q/awakened_00.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "blood",
+        "key": "q",
+        "awakened": true,
+        "frame": 0
+      }
+    },
+    {
+      "path": "skills/blood/q/awakened_01.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "blood",
+        "key": "q",
+        "awakened": true,
+        "frame": 1
+      }
+    },
+    {
+      "path": "skills/blood/q/awakened_02.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "blood",
+        "key": "q",
+        "awakened": true,
+        "frame": 2
+      }
+    },
+    {
+      "path": "skills/blood/q/awakened_03.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "blood",
+        "key": "q",
+        "awakened": true,
+        "frame": 3
+      }
+    },
+    {
+      "path": "skills/blood/e/normal_00.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "blood",
+        "key": "e",
+        "awakened": false,
+        "frame": 0
+      }
+    },
+    {
+      "path": "skills/blood/e/normal_01.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "blood",
+        "key": "e",
+        "awakened": false,
+        "frame": 1
+      }
+    },
+    {
+      "path": "skills/blood/e/normal_02.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "blood",
+        "key": "e",
+        "awakened": false,
+        "frame": 2
+      }
+    },
+    {
+      "path": "skills/blood/e/normal_03.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "blood",
+        "key": "e",
+        "awakened": false,
+        "frame": 3
+      }
+    },
+    {
+      "path": "skills/blood/e/awakened_00.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "blood",
+        "key": "e",
+        "awakened": true,
+        "frame": 0
+      }
+    },
+    {
+      "path": "skills/blood/e/awakened_01.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "blood",
+        "key": "e",
+        "awakened": true,
+        "frame": 1
+      }
+    },
+    {
+      "path": "skills/blood/e/awakened_02.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "blood",
+        "key": "e",
+        "awakened": true,
+        "frame": 2
+      }
+    },
+    {
+      "path": "skills/blood/e/awakened_03.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "blood",
+        "key": "e",
+        "awakened": true,
+        "frame": 3
+      }
+    },
+    {
+      "path": "skills/blood/r/normal_00.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "blood",
+        "key": "r",
+        "awakened": false,
+        "frame": 0
+      }
+    },
+    {
+      "path": "skills/blood/r/normal_01.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "blood",
+        "key": "r",
+        "awakened": false,
+        "frame": 1
+      }
+    },
+    {
+      "path": "skills/blood/r/normal_02.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "blood",
+        "key": "r",
+        "awakened": false,
+        "frame": 2
+      }
+    },
+    {
+      "path": "skills/blood/r/normal_03.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "blood",
+        "key": "r",
+        "awakened": false,
+        "frame": 3
+      }
+    },
+    {
+      "path": "skills/blood/r/awakened_00.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "blood",
+        "key": "r",
+        "awakened": true,
+        "frame": 0
+      }
+    },
+    {
+      "path": "skills/blood/r/awakened_01.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "blood",
+        "key": "r",
+        "awakened": true,
+        "frame": 1
+      }
+    },
+    {
+      "path": "skills/blood/r/awakened_02.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "blood",
+        "key": "r",
+        "awakened": true,
+        "frame": 2
+      }
+    },
+    {
+      "path": "skills/blood/r/awakened_03.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "blood",
+        "key": "r",
+        "awakened": true,
+        "frame": 3
+      }
+    },
+    {
+      "path": "skills/blood/f/normal_00.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "blood",
+        "key": "f",
+        "awakened": false,
+        "frame": 0
+      }
+    },
+    {
+      "path": "skills/blood/f/normal_01.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "blood",
+        "key": "f",
+        "awakened": false,
+        "frame": 1
+      }
+    },
+    {
+      "path": "skills/blood/f/normal_02.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "blood",
+        "key": "f",
+        "awakened": false,
+        "frame": 2
+      }
+    },
+    {
+      "path": "skills/blood/f/normal_03.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "blood",
+        "key": "f",
+        "awakened": false,
+        "frame": 3
+      }
+    },
+    {
+      "path": "skills/blood/f/awakened_00.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "blood",
+        "key": "f",
+        "awakened": true,
+        "frame": 0
+      }
+    },
+    {
+      "path": "skills/blood/f/awakened_01.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "blood",
+        "key": "f",
+        "awakened": true,
+        "frame": 1
+      }
+    },
+    {
+      "path": "skills/blood/f/awakened_02.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "blood",
+        "key": "f",
+        "awakened": true,
+        "frame": 2
+      }
+    },
+    {
+      "path": "skills/blood/f/awakened_03.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "blood",
+        "key": "f",
+        "awakened": true,
+        "frame": 3
+      }
+    },
+    {
+      "path": "skills/gravity/q/normal_00.png",
+      "width": 860,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "gravity",
+        "key": "q",
+        "awakened": false,
+        "frame": 0
+      }
+    },
+    {
+      "path": "skills/gravity/q/normal_01.png",
+      "width": 860,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "gravity",
+        "key": "q",
+        "awakened": false,
+        "frame": 1
+      }
+    },
+    {
+      "path": "skills/gravity/q/normal_02.png",
+      "width": 860,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "gravity",
+        "key": "q",
+        "awakened": false,
+        "frame": 2
+      }
+    },
+    {
+      "path": "skills/gravity/q/normal_03.png",
+      "width": 860,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "gravity",
+        "key": "q",
+        "awakened": false,
+        "frame": 3
+      }
+    },
+    {
+      "path": "skills/gravity/q/awakened_00.png",
+      "width": 860,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "gravity",
+        "key": "q",
+        "awakened": true,
+        "frame": 0
+      }
+    },
+    {
+      "path": "skills/gravity/q/awakened_01.png",
+      "width": 860,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "gravity",
+        "key": "q",
+        "awakened": true,
+        "frame": 1
+      }
+    },
+    {
+      "path": "skills/gravity/q/awakened_02.png",
+      "width": 860,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "gravity",
+        "key": "q",
+        "awakened": true,
+        "frame": 2
+      }
+    },
+    {
+      "path": "skills/gravity/q/awakened_03.png",
+      "width": 860,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "gravity",
+        "key": "q",
+        "awakened": true,
+        "frame": 3
+      }
+    },
+    {
+      "path": "skills/gravity/e/normal_00.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "gravity",
+        "key": "e",
+        "awakened": false,
+        "frame": 0
+      }
+    },
+    {
+      "path": "skills/gravity/e/normal_01.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "gravity",
+        "key": "e",
+        "awakened": false,
+        "frame": 1
+      }
+    },
+    {
+      "path": "skills/gravity/e/normal_02.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "gravity",
+        "key": "e",
+        "awakened": false,
+        "frame": 2
+      }
+    },
+    {
+      "path": "skills/gravity/e/normal_03.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "gravity",
+        "key": "e",
+        "awakened": false,
+        "frame": 3
+      }
+    },
+    {
+      "path": "skills/gravity/e/awakened_00.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "gravity",
+        "key": "e",
+        "awakened": true,
+        "frame": 0
+      }
+    },
+    {
+      "path": "skills/gravity/e/awakened_01.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "gravity",
+        "key": "e",
+        "awakened": true,
+        "frame": 1
+      }
+    },
+    {
+      "path": "skills/gravity/e/awakened_02.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "gravity",
+        "key": "e",
+        "awakened": true,
+        "frame": 2
+      }
+    },
+    {
+      "path": "skills/gravity/e/awakened_03.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "gravity",
+        "key": "e",
+        "awakened": true,
+        "frame": 3
+      }
+    },
+    {
+      "path": "skills/gravity/r/normal_00.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "gravity",
+        "key": "r",
+        "awakened": false,
+        "frame": 0
+      }
+    },
+    {
+      "path": "skills/gravity/r/normal_01.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "gravity",
+        "key": "r",
+        "awakened": false,
+        "frame": 1
+      }
+    },
+    {
+      "path": "skills/gravity/r/normal_02.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "gravity",
+        "key": "r",
+        "awakened": false,
+        "frame": 2
+      }
+    },
+    {
+      "path": "skills/gravity/r/normal_03.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "gravity",
+        "key": "r",
+        "awakened": false,
+        "frame": 3
+      }
+    },
+    {
+      "path": "skills/gravity/r/awakened_00.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "gravity",
+        "key": "r",
+        "awakened": true,
+        "frame": 0
+      }
+    },
+    {
+      "path": "skills/gravity/r/awakened_01.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "gravity",
+        "key": "r",
+        "awakened": true,
+        "frame": 1
+      }
+    },
+    {
+      "path": "skills/gravity/r/awakened_02.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "gravity",
+        "key": "r",
+        "awakened": true,
+        "frame": 2
+      }
+    },
+    {
+      "path": "skills/gravity/r/awakened_03.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "gravity",
+        "key": "r",
+        "awakened": true,
+        "frame": 3
+      }
+    },
+    {
+      "path": "skills/gravity/f/normal_00.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "gravity",
+        "key": "f",
+        "awakened": false,
+        "frame": 0
+      }
+    },
+    {
+      "path": "skills/gravity/f/normal_01.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "gravity",
+        "key": "f",
+        "awakened": false,
+        "frame": 1
+      }
+    },
+    {
+      "path": "skills/gravity/f/normal_02.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "gravity",
+        "key": "f",
+        "awakened": false,
+        "frame": 2
+      }
+    },
+    {
+      "path": "skills/gravity/f/normal_03.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "gravity",
+        "key": "f",
+        "awakened": false,
+        "frame": 3
+      }
+    },
+    {
+      "path": "skills/gravity/f/awakened_00.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "gravity",
+        "key": "f",
+        "awakened": true,
+        "frame": 0
+      }
+    },
+    {
+      "path": "skills/gravity/f/awakened_01.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "gravity",
+        "key": "f",
+        "awakened": true,
+        "frame": 1
+      }
+    },
+    {
+      "path": "skills/gravity/f/awakened_02.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "gravity",
+        "key": "f",
+        "awakened": true,
+        "frame": 2
+      }
+    },
+    {
+      "path": "skills/gravity/f/awakened_03.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "gravity",
+        "key": "f",
+        "awakened": true,
+        "frame": 3
+      }
+    },
+    {
+      "path": "skills/crystal/q/normal_00.png",
+      "width": 860,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "crystal",
+        "key": "q",
+        "awakened": false,
+        "frame": 0
+      }
+    },
+    {
+      "path": "skills/crystal/q/normal_01.png",
+      "width": 860,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "crystal",
+        "key": "q",
+        "awakened": false,
+        "frame": 1
+      }
+    },
+    {
+      "path": "skills/crystal/q/normal_02.png",
+      "width": 860,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "crystal",
+        "key": "q",
+        "awakened": false,
+        "frame": 2
+      }
+    },
+    {
+      "path": "skills/crystal/q/normal_03.png",
+      "width": 860,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "crystal",
+        "key": "q",
+        "awakened": false,
+        "frame": 3
+      }
+    },
+    {
+      "path": "skills/crystal/q/awakened_00.png",
+      "width": 860,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "crystal",
+        "key": "q",
+        "awakened": true,
+        "frame": 0
+      }
+    },
+    {
+      "path": "skills/crystal/q/awakened_01.png",
+      "width": 860,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "crystal",
+        "key": "q",
+        "awakened": true,
+        "frame": 1
+      }
+    },
+    {
+      "path": "skills/crystal/q/awakened_02.png",
+      "width": 860,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "crystal",
+        "key": "q",
+        "awakened": true,
+        "frame": 2
+      }
+    },
+    {
+      "path": "skills/crystal/q/awakened_03.png",
+      "width": 860,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "crystal",
+        "key": "q",
+        "awakened": true,
+        "frame": 3
+      }
+    },
+    {
+      "path": "skills/crystal/e/normal_00.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "crystal",
+        "key": "e",
+        "awakened": false,
+        "frame": 0
+      }
+    },
+    {
+      "path": "skills/crystal/e/normal_01.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "crystal",
+        "key": "e",
+        "awakened": false,
+        "frame": 1
+      }
+    },
+    {
+      "path": "skills/crystal/e/normal_02.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "crystal",
+        "key": "e",
+        "awakened": false,
+        "frame": 2
+      }
+    },
+    {
+      "path": "skills/crystal/e/normal_03.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "crystal",
+        "key": "e",
+        "awakened": false,
+        "frame": 3
+      }
+    },
+    {
+      "path": "skills/crystal/e/awakened_00.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "crystal",
+        "key": "e",
+        "awakened": true,
+        "frame": 0
+      }
+    },
+    {
+      "path": "skills/crystal/e/awakened_01.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "crystal",
+        "key": "e",
+        "awakened": true,
+        "frame": 1
+      }
+    },
+    {
+      "path": "skills/crystal/e/awakened_02.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "crystal",
+        "key": "e",
+        "awakened": true,
+        "frame": 2
+      }
+    },
+    {
+      "path": "skills/crystal/e/awakened_03.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "crystal",
+        "key": "e",
+        "awakened": true,
+        "frame": 3
+      }
+    },
+    {
+      "path": "skills/crystal/r/normal_00.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "crystal",
+        "key": "r",
+        "awakened": false,
+        "frame": 0
+      }
+    },
+    {
+      "path": "skills/crystal/r/normal_01.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "crystal",
+        "key": "r",
+        "awakened": false,
+        "frame": 1
+      }
+    },
+    {
+      "path": "skills/crystal/r/normal_02.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "crystal",
+        "key": "r",
+        "awakened": false,
+        "frame": 2
+      }
+    },
+    {
+      "path": "skills/crystal/r/normal_03.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "crystal",
+        "key": "r",
+        "awakened": false,
+        "frame": 3
+      }
+    },
+    {
+      "path": "skills/crystal/r/awakened_00.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "crystal",
+        "key": "r",
+        "awakened": true,
+        "frame": 0
+      }
+    },
+    {
+      "path": "skills/crystal/r/awakened_01.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "crystal",
+        "key": "r",
+        "awakened": true,
+        "frame": 1
+      }
+    },
+    {
+      "path": "skills/crystal/r/awakened_02.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "crystal",
+        "key": "r",
+        "awakened": true,
+        "frame": 2
+      }
+    },
+    {
+      "path": "skills/crystal/r/awakened_03.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "crystal",
+        "key": "r",
+        "awakened": true,
+        "frame": 3
+      }
+    },
+    {
+      "path": "skills/crystal/f/normal_00.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "crystal",
+        "key": "f",
+        "awakened": false,
+        "frame": 0
+      }
+    },
+    {
+      "path": "skills/crystal/f/normal_01.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "crystal",
+        "key": "f",
+        "awakened": false,
+        "frame": 1
+      }
+    },
+    {
+      "path": "skills/crystal/f/normal_02.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "crystal",
+        "key": "f",
+        "awakened": false,
+        "frame": 2
+      }
+    },
+    {
+      "path": "skills/crystal/f/normal_03.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "crystal",
+        "key": "f",
+        "awakened": false,
+        "frame": 3
+      }
+    },
+    {
+      "path": "skills/crystal/f/awakened_00.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "crystal",
+        "key": "f",
+        "awakened": true,
+        "frame": 0
+      }
+    },
+    {
+      "path": "skills/crystal/f/awakened_01.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "crystal",
+        "key": "f",
+        "awakened": true,
+        "frame": 1
+      }
+    },
+    {
+      "path": "skills/crystal/f/awakened_02.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "crystal",
+        "key": "f",
+        "awakened": true,
+        "frame": 2
+      }
+    },
+    {
+      "path": "skills/crystal/f/awakened_03.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "crystal",
+        "key": "f",
+        "awakened": true,
+        "frame": 3
+      }
+    },
+    {
+      "path": "skills/nature/q/normal_00.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "nature",
+        "key": "q",
+        "awakened": false,
+        "frame": 0
+      }
+    },
+    {
+      "path": "skills/nature/q/normal_01.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "nature",
+        "key": "q",
+        "awakened": false,
+        "frame": 1
+      }
+    },
+    {
+      "path": "skills/nature/q/normal_02.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "nature",
+        "key": "q",
+        "awakened": false,
+        "frame": 2
+      }
+    },
+    {
+      "path": "skills/nature/q/normal_03.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "nature",
+        "key": "q",
+        "awakened": false,
+        "frame": 3
+      }
+    },
+    {
+      "path": "skills/nature/q/awakened_00.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "nature",
+        "key": "q",
+        "awakened": true,
+        "frame": 0
+      }
+    },
+    {
+      "path": "skills/nature/q/awakened_01.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "nature",
+        "key": "q",
+        "awakened": true,
+        "frame": 1
+      }
+    },
+    {
+      "path": "skills/nature/q/awakened_02.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "nature",
+        "key": "q",
+        "awakened": true,
+        "frame": 2
+      }
+    },
+    {
+      "path": "skills/nature/q/awakened_03.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "nature",
+        "key": "q",
+        "awakened": true,
+        "frame": 3
+      }
+    },
+    {
+      "path": "skills/nature/e/normal_00.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "nature",
+        "key": "e",
+        "awakened": false,
+        "frame": 0
+      }
+    },
+    {
+      "path": "skills/nature/e/normal_01.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "nature",
+        "key": "e",
+        "awakened": false,
+        "frame": 1
+      }
+    },
+    {
+      "path": "skills/nature/e/normal_02.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "nature",
+        "key": "e",
+        "awakened": false,
+        "frame": 2
+      }
+    },
+    {
+      "path": "skills/nature/e/normal_03.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "nature",
+        "key": "e",
+        "awakened": false,
+        "frame": 3
+      }
+    },
+    {
+      "path": "skills/nature/e/awakened_00.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "nature",
+        "key": "e",
+        "awakened": true,
+        "frame": 0
+      }
+    },
+    {
+      "path": "skills/nature/e/awakened_01.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "nature",
+        "key": "e",
+        "awakened": true,
+        "frame": 1
+      }
+    },
+    {
+      "path": "skills/nature/e/awakened_02.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "nature",
+        "key": "e",
+        "awakened": true,
+        "frame": 2
+      }
+    },
+    {
+      "path": "skills/nature/e/awakened_03.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "nature",
+        "key": "e",
+        "awakened": true,
+        "frame": 3
+      }
+    },
+    {
+      "path": "skills/nature/r/normal_00.png",
+      "width": 860,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "nature",
+        "key": "r",
+        "awakened": false,
+        "frame": 0
+      }
+    },
+    {
+      "path": "skills/nature/r/normal_01.png",
+      "width": 860,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "nature",
+        "key": "r",
+        "awakened": false,
+        "frame": 1
+      }
+    },
+    {
+      "path": "skills/nature/r/normal_02.png",
+      "width": 860,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "nature",
+        "key": "r",
+        "awakened": false,
+        "frame": 2
+      }
+    },
+    {
+      "path": "skills/nature/r/normal_03.png",
+      "width": 860,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "nature",
+        "key": "r",
+        "awakened": false,
+        "frame": 3
+      }
+    },
+    {
+      "path": "skills/nature/r/awakened_00.png",
+      "width": 860,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "nature",
+        "key": "r",
+        "awakened": true,
+        "frame": 0
+      }
+    },
+    {
+      "path": "skills/nature/r/awakened_01.png",
+      "width": 860,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "nature",
+        "key": "r",
+        "awakened": true,
+        "frame": 1
+      }
+    },
+    {
+      "path": "skills/nature/r/awakened_02.png",
+      "width": 860,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "nature",
+        "key": "r",
+        "awakened": true,
+        "frame": 2
+      }
+    },
+    {
+      "path": "skills/nature/r/awakened_03.png",
+      "width": 860,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "nature",
+        "key": "r",
+        "awakened": true,
+        "frame": 3
+      }
+    },
+    {
+      "path": "skills/nature/f/normal_00.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "nature",
+        "key": "f",
+        "awakened": false,
+        "frame": 0
+      }
+    },
+    {
+      "path": "skills/nature/f/normal_01.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "nature",
+        "key": "f",
+        "awakened": false,
+        "frame": 1
+      }
+    },
+    {
+      "path": "skills/nature/f/normal_02.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "nature",
+        "key": "f",
+        "awakened": false,
+        "frame": 2
+      }
+    },
+    {
+      "path": "skills/nature/f/normal_03.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "nature",
+        "key": "f",
+        "awakened": false,
+        "frame": 3
+      }
+    },
+    {
+      "path": "skills/nature/f/awakened_00.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "nature",
+        "key": "f",
+        "awakened": true,
+        "frame": 0
+      }
+    },
+    {
+      "path": "skills/nature/f/awakened_01.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "nature",
+        "key": "f",
+        "awakened": true,
+        "frame": 1
+      }
+    },
+    {
+      "path": "skills/nature/f/awakened_02.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "nature",
+        "key": "f",
+        "awakened": true,
+        "frame": 2
+      }
+    },
+    {
+      "path": "skills/nature/f/awakened_03.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "nature",
+        "key": "f",
+        "awakened": true,
+        "frame": 3
+      }
+    },
+    {
+      "path": "skills/void/q/normal_00.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "void",
+        "key": "q",
+        "awakened": false,
+        "frame": 0
+      }
+    },
+    {
+      "path": "skills/void/q/normal_01.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "void",
+        "key": "q",
+        "awakened": false,
+        "frame": 1
+      }
+    },
+    {
+      "path": "skills/void/q/normal_02.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "void",
+        "key": "q",
+        "awakened": false,
+        "frame": 2
+      }
+    },
+    {
+      "path": "skills/void/q/normal_03.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "void",
+        "key": "q",
+        "awakened": false,
+        "frame": 3
+      }
+    },
+    {
+      "path": "skills/void/q/awakened_00.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "void",
+        "key": "q",
+        "awakened": true,
+        "frame": 0
+      }
+    },
+    {
+      "path": "skills/void/q/awakened_01.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "void",
+        "key": "q",
+        "awakened": true,
+        "frame": 1
+      }
+    },
+    {
+      "path": "skills/void/q/awakened_02.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "void",
+        "key": "q",
+        "awakened": true,
+        "frame": 2
+      }
+    },
+    {
+      "path": "skills/void/q/awakened_03.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "void",
+        "key": "q",
+        "awakened": true,
+        "frame": 3
+      }
+    },
+    {
+      "path": "skills/void/e/normal_00.png",
+      "width": 860,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "void",
+        "key": "e",
+        "awakened": false,
+        "frame": 0
+      }
+    },
+    {
+      "path": "skills/void/e/normal_01.png",
+      "width": 860,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "void",
+        "key": "e",
+        "awakened": false,
+        "frame": 1
+      }
+    },
+    {
+      "path": "skills/void/e/normal_02.png",
+      "width": 860,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "void",
+        "key": "e",
+        "awakened": false,
+        "frame": 2
+      }
+    },
+    {
+      "path": "skills/void/e/normal_03.png",
+      "width": 860,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "void",
+        "key": "e",
+        "awakened": false,
+        "frame": 3
+      }
+    },
+    {
+      "path": "skills/void/e/awakened_00.png",
+      "width": 860,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "void",
+        "key": "e",
+        "awakened": true,
+        "frame": 0
+      }
+    },
+    {
+      "path": "skills/void/e/awakened_01.png",
+      "width": 860,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "void",
+        "key": "e",
+        "awakened": true,
+        "frame": 1
+      }
+    },
+    {
+      "path": "skills/void/e/awakened_02.png",
+      "width": 860,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "void",
+        "key": "e",
+        "awakened": true,
+        "frame": 2
+      }
+    },
+    {
+      "path": "skills/void/e/awakened_03.png",
+      "width": 860,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "void",
+        "key": "e",
+        "awakened": true,
+        "frame": 3
+      }
+    },
+    {
+      "path": "skills/void/r/normal_00.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "void",
+        "key": "r",
+        "awakened": false,
+        "frame": 0
+      }
+    },
+    {
+      "path": "skills/void/r/normal_01.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "void",
+        "key": "r",
+        "awakened": false,
+        "frame": 1
+      }
+    },
+    {
+      "path": "skills/void/r/normal_02.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "void",
+        "key": "r",
+        "awakened": false,
+        "frame": 2
+      }
+    },
+    {
+      "path": "skills/void/r/normal_03.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "void",
+        "key": "r",
+        "awakened": false,
+        "frame": 3
+      }
+    },
+    {
+      "path": "skills/void/r/awakened_00.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "void",
+        "key": "r",
+        "awakened": true,
+        "frame": 0
+      }
+    },
+    {
+      "path": "skills/void/r/awakened_01.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "void",
+        "key": "r",
+        "awakened": true,
+        "frame": 1
+      }
+    },
+    {
+      "path": "skills/void/r/awakened_02.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "void",
+        "key": "r",
+        "awakened": true,
+        "frame": 2
+      }
+    },
+    {
+      "path": "skills/void/r/awakened_03.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "void",
+        "key": "r",
+        "awakened": true,
+        "frame": 3
+      }
+    },
+    {
+      "path": "skills/void/f/normal_00.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "void",
+        "key": "f",
+        "awakened": false,
+        "frame": 0
+      }
+    },
+    {
+      "path": "skills/void/f/normal_01.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "void",
+        "key": "f",
+        "awakened": false,
+        "frame": 1
+      }
+    },
+    {
+      "path": "skills/void/f/normal_02.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "void",
+        "key": "f",
+        "awakened": false,
+        "frame": 2
+      }
+    },
+    {
+      "path": "skills/void/f/normal_03.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "void",
+        "key": "f",
+        "awakened": false,
+        "frame": 3
+      }
+    },
+    {
+      "path": "skills/void/f/awakened_00.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "void",
+        "key": "f",
+        "awakened": true,
+        "frame": 0
+      }
+    },
+    {
+      "path": "skills/void/f/awakened_01.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "void",
+        "key": "f",
+        "awakened": true,
+        "frame": 1
+      }
+    },
+    {
+      "path": "skills/void/f/awakened_02.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "void",
+        "key": "f",
+        "awakened": true,
+        "frame": 2
+      }
+    },
+    {
+      "path": "skills/void/f/awakened_03.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "void",
+        "key": "f",
+        "awakened": true,
+        "frame": 3
+      }
+    },
+    {
+      "path": "skills/time/q/normal_00.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "time",
+        "key": "q",
+        "awakened": false,
+        "frame": 0
+      }
+    },
+    {
+      "path": "skills/time/q/normal_01.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "time",
+        "key": "q",
+        "awakened": false,
+        "frame": 1
+      }
+    },
+    {
+      "path": "skills/time/q/normal_02.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "time",
+        "key": "q",
+        "awakened": false,
+        "frame": 2
+      }
+    },
+    {
+      "path": "skills/time/q/normal_03.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "time",
+        "key": "q",
+        "awakened": false,
+        "frame": 3
+      }
+    },
+    {
+      "path": "skills/time/q/awakened_00.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "time",
+        "key": "q",
+        "awakened": true,
+        "frame": 0
+      }
+    },
+    {
+      "path": "skills/time/q/awakened_01.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "time",
+        "key": "q",
+        "awakened": true,
+        "frame": 1
+      }
+    },
+    {
+      "path": "skills/time/q/awakened_02.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "time",
+        "key": "q",
+        "awakened": true,
+        "frame": 2
+      }
+    },
+    {
+      "path": "skills/time/q/awakened_03.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "time",
+        "key": "q",
+        "awakened": true,
+        "frame": 3
+      }
+    },
+    {
+      "path": "skills/time/e/normal_00.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "time",
+        "key": "e",
+        "awakened": false,
+        "frame": 0
+      }
+    },
+    {
+      "path": "skills/time/e/normal_01.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "time",
+        "key": "e",
+        "awakened": false,
+        "frame": 1
+      }
+    },
+    {
+      "path": "skills/time/e/normal_02.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "time",
+        "key": "e",
+        "awakened": false,
+        "frame": 2
+      }
+    },
+    {
+      "path": "skills/time/e/normal_03.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "time",
+        "key": "e",
+        "awakened": false,
+        "frame": 3
+      }
+    },
+    {
+      "path": "skills/time/e/awakened_00.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "time",
+        "key": "e",
+        "awakened": true,
+        "frame": 0
+      }
+    },
+    {
+      "path": "skills/time/e/awakened_01.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "time",
+        "key": "e",
+        "awakened": true,
+        "frame": 1
+      }
+    },
+    {
+      "path": "skills/time/e/awakened_02.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "time",
+        "key": "e",
+        "awakened": true,
+        "frame": 2
+      }
+    },
+    {
+      "path": "skills/time/e/awakened_03.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "time",
+        "key": "e",
+        "awakened": true,
+        "frame": 3
+      }
+    },
+    {
+      "path": "skills/time/r/normal_00.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "time",
+        "key": "r",
+        "awakened": false,
+        "frame": 0
+      }
+    },
+    {
+      "path": "skills/time/r/normal_01.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "time",
+        "key": "r",
+        "awakened": false,
+        "frame": 1
+      }
+    },
+    {
+      "path": "skills/time/r/normal_02.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "time",
+        "key": "r",
+        "awakened": false,
+        "frame": 2
+      }
+    },
+    {
+      "path": "skills/time/r/normal_03.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "time",
+        "key": "r",
+        "awakened": false,
+        "frame": 3
+      }
+    },
+    {
+      "path": "skills/time/r/awakened_00.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "time",
+        "key": "r",
+        "awakened": true,
+        "frame": 0
+      }
+    },
+    {
+      "path": "skills/time/r/awakened_01.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "time",
+        "key": "r",
+        "awakened": true,
+        "frame": 1
+      }
+    },
+    {
+      "path": "skills/time/r/awakened_02.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "time",
+        "key": "r",
+        "awakened": true,
+        "frame": 2
+      }
+    },
+    {
+      "path": "skills/time/r/awakened_03.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "time",
+        "key": "r",
+        "awakened": true,
+        "frame": 3
+      }
+    },
+    {
+      "path": "skills/time/f/normal_00.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "time",
+        "key": "f",
+        "awakened": false,
+        "frame": 0
+      }
+    },
+    {
+      "path": "skills/time/f/normal_01.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "time",
+        "key": "f",
+        "awakened": false,
+        "frame": 1
+      }
+    },
+    {
+      "path": "skills/time/f/normal_02.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "time",
+        "key": "f",
+        "awakened": false,
+        "frame": 2
+      }
+    },
+    {
+      "path": "skills/time/f/normal_03.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "time",
+        "key": "f",
+        "awakened": false,
+        "frame": 3
+      }
+    },
+    {
+      "path": "skills/time/f/awakened_00.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "time",
+        "key": "f",
+        "awakened": true,
+        "frame": 0
+      }
+    },
+    {
+      "path": "skills/time/f/awakened_01.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "time",
+        "key": "f",
+        "awakened": true,
+        "frame": 1
+      }
+    },
+    {
+      "path": "skills/time/f/awakened_02.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "time",
+        "key": "f",
+        "awakened": true,
+        "frame": 2
+      }
+    },
+    {
+      "path": "skills/time/f/awakened_03.png",
+      "width": 640,
+      "height": 560,
+      "meta": {
+        "category": "skill",
+        "power": "time",
+        "key": "f",
+        "awakened": true,
+        "frame": 3
+      }
+    }
+  ],
+  "errors": []
+}

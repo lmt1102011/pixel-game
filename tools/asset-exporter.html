@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Soulrift Asset Exporter</title>
+    <script>
+      window.SOULRIFT_EXPORT_ONLY = true;
+    </script>
+    <style>
+      html,
+      body {
+        margin: 0;
+        background: #05070b;
+        color: #ece8e1;
+        font: 14px ui-sans-serif, system-ui, sans-serif;
+      }
+
+      #gameCanvas,
+      #screen,
+      #hud,
+      #touchLayer,
+      #toast,
+      #inviteNotifications,
+      #quickActions,
+      #mobileGate {
+        position: fixed;
+        inset: auto;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        opacity: 0;
+        pointer-events: none;
+      }
+
+      main {
+        padding: 24px;
+      }
+    </style>
+  </head>
+  <body>
+    <main>Exporter san sang. Tool Node se goi window.SoulriftAssetExporter.exportAll().</main>
+    <canvas id="gameCanvas" width="16" height="16"></canvas>
+    <div id="screen"></div>
+    <div id="hud"></div>
+    <div id="toast"></div>
+    <div id="inviteNotifications"></div>
+    <div id="quickActions"></div>
+    <div id="touchLayer"></div>
+    <div id="mobileGate"><button id="mobileGateButton" type="button"></button></div>
+    <script src="../src/game.js"></script>
+  </body>
+</html>

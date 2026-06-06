@@ -9,7 +9,7 @@
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
   const SIGNAL_REALTIME_RELAY_LIMIT = 2;
   const SIGNAL_REALTIME_TYPES = new Set(["state", "snapshot", "attack", "skill", "collect", "openChest", "dropItem", "damage", "chooseDoor"]);
-  const APP_VERSION = "20260606-squad-mode-repair-227";
+  const APP_VERSION = "20260606-shadow-goblin-228";
   const CHANGELOG_ENTRIES = [
     {
       version: APP_VERSION,
@@ -384,7 +384,7 @@
       haze: "rgba(45, 110, 66, 0.18)",
       music: [110, 146.83, 164.81, 196],
       hazards: ["thorn"],
-      enemies: ["thornReaver", "rotArcher", "mossKnight", "thornSkirmisher", "rotBomber"],
+      enemies: ["shadowGoblin", "rotArcher", "mossKnight", "thornSkirmisher", "rotBomber"],
       boss: "Hộ Vệ Vương Miện Rễ"
     },
     {
@@ -396,7 +396,7 @@
       haze: "rgba(80, 180, 230, 0.15)",
       music: [82.41, 123.47, 164.81, 220],
       hazards: ["ice"],
-      enemies: ["frostDuelist", "graveMarksman", "iceBulwark", "frostSkirmisher", "graveShaman"],
+      enemies: ["shadowGoblin", "graveMarksman", "iceBulwark", "frostSkirmisher", "graveShaman"],
       boss: "Thánh Đen Mùa Đông"
     },
     {
@@ -408,7 +408,7 @@
       haze: "rgba(210, 70, 25, 0.15)",
       music: [98, 130.81, 185, 246.94],
       hazards: ["lava"],
-      enemies: ["emberButcher", "slagCaster", "chainBrute", "emberBomber", "ashSkirmisher"],
+      enemies: ["shadowGoblin", "slagCaster", "chainBrute", "emberBomber", "ashSkirmisher"],
       boss: "Varkul, Bạo Chúa Lò Lửa"
     },
     {
@@ -420,7 +420,7 @@
       haze: "rgba(80, 80, 220, 0.16)",
       music: [123.47, 155.56, 207.65, 311.13],
       hazards: ["voltage"],
-      enemies: ["riftRonin", "pulseAcolyte", "chromeOgre", "pulseBomber", "riftSkirmisher"],
+      enemies: ["shadowGoblin", "pulseAcolyte", "chromeOgre", "pulseBomber", "riftSkirmisher"],
       boss: "Tín Hiệu Săn Mồi"
     },
     {
@@ -432,7 +432,7 @@
       haze: "rgba(210, 180, 85, 0.14)",
       music: [73.42, 110, 146.83, 196],
       hazards: ["blade"],
-      enemies: ["sunWarden", "idolSeer", "obsidianGuard", "sunShaman", "obsidianSkirmisher"],
+      enemies: ["shadowGoblin", "idolSeer", "obsidianGuard", "sunShaman", "obsidianSkirmisher"],
       boss: "Astrax, Thần Tượng Cuối"
     }
   ];
@@ -2916,6 +2916,8 @@
       this.save = defaultSave();
       this.audio = new AudioEngine(this);
       this.lobby = new PeerLobby(this);
+      this.monsterSprites = new Map();
+      this.loadMonsterSprites();
       this.run = null;
       this.mode = "loading";
       this.last = 0;
@@ -3007,6 +3009,18 @@
       this.showBootScreen();
       this.startLoop();
       this.init().catch((error) => this.handleBootError(error));
+    }
+
+    loadMonsterSprites() {
+      const sprites = {
+        shadowGoblin: "assets/sprites/monsters/shadow-goblin.png"
+      };
+      for (const [id, path] of Object.entries(sprites)) {
+        const image = new Image();
+        image.decoding = "async";
+        image.src = `${path}?v=${APP_VERSION}`;
+        this.monsterSprites.set(id, image);
+      }
     }
 
     async init() {
@@ -21847,6 +21861,22 @@
 
     enemySpritePalette(enemy, color, accent) {
       const kind = `${enemy.kind || ""}`;
+      if (/shadowGoblin/i.test(kind)) {
+        return {
+          outline: enemy.flash > 0 ? "#ffffff" : "#0d0514",
+          dark: "#1f0e38",
+          shadow: "#05030a",
+          armor: "#5d36a0",
+          metal: "#e7d7ff",
+          bone: "#ead7ff",
+          eye: enemy.flash > 0 ? "#0b0d13" : "#ff2338",
+          danger: "#ff2338",
+          base: "#3d1c62",
+          baseDark: "#201038",
+          accent: "#ff2338",
+          glow: enemy.elite ? "#ffbd5e" : "#ff4058"
+        };
+      }
       const biomeId = this.run?.biome?.id || "";
       const biomeDark = biomeId === "frozen" ? "#132436"
         : biomeId === "lava" ? "#29110f"
@@ -21883,6 +21913,34 @@
         this.spriteBlock(ctx, 4, eyeY - 3, 7, 2, palette.outline);
       }
       this.spriteBlock(ctx, -5, eyeY + 9, 10, 2, palette.outline, 0.85);
+    }
+
+    enemyAssetSprite(enemy) {
+      if (/shadowGoblin/i.test(enemy.kind || "")) return this.monsterSprites.get("shadowGoblin") || null;
+      return null;
+    }
+
+    drawEnemyAssetSprite(ctx, enemy, palette, variant = 0) {
+      const sprite = this.enemyAssetSprite(enemy);
+      if (!sprite || !sprite.complete || !sprite.naturalWidth) return false;
+      const pulse = Math.round(Math.sin(this.menuTime * 5 + variant * 1.7) * 1);
+      const attackKick = enemy.attackAnim > 0 ? Math.round(Math.sin(clamp(enemy.attackAnim / 0.32, 0, 1) * Math.PI) * -3) : 0;
+      ctx.save();
+      this.spriteBlock(ctx, -22, 17, 44, 6, palette.shadow, 0.42);
+      const previousSmoothing = ctx.imageSmoothingEnabled;
+      const previousFilter = ctx.filter || "none";
+      ctx.imageSmoothingEnabled = false;
+      if (enemy.flash > 0) ctx.filter = "brightness(2.4) saturate(0.65)";
+      ctx.drawImage(sprite, -25, -37 + pulse + attackKick, 50, 50);
+      ctx.filter = previousFilter;
+      ctx.imageSmoothingEnabled = previousSmoothing;
+      if (enemy.elite && !enemy.boss) {
+        this.spriteBlock(ctx, -19, -36 + pulse, 6, 6, "#ffbd5e");
+        this.spriteBlock(ctx, 13, -36 + pulse, 6, 6, "#ffbd5e");
+        this.spriteBlock(ctx, -5, -42 + pulse, 10, 5, "#fff0a8");
+      }
+      ctx.restore();
+      return true;
     }
 
     drawPixelMonsterSprite(ctx, enemy, palette, variant = 0) {
@@ -22114,7 +22172,7 @@
       const variant = this.enemyVariant(enemy);
       const palette = this.enemySpritePalette(enemy, color, accent);
       if (enemy.boss) this.drawPixelBossSprite(ctx, enemy, palette, variant);
-      else this.drawPixelMonsterSprite(ctx, enemy, palette, variant);
+      else if (!this.drawEnemyAssetSprite(ctx, enemy, palette, variant)) this.drawPixelMonsterSprite(ctx, enemy, palette, variant);
       if (enemy.windupTime > 0) {
         const pulse = clamp(enemy.windupTime / (enemy.windupTotal || 1), 0, 1);
         ctx.strokeStyle = "#ff4b55";
@@ -22263,6 +22321,7 @@
     }
 
     enemyColor(kind) {
+      if (/shadowGoblin/i.test(kind)) return "#7d53c4";
       if (/frost|grave|ice/i.test(kind)) return "#83e8ff";
       if (/ember|slag|chain/i.test(kind)) return "#ff6b3a";
       if (/rift|pulse|chrome/i.test(kind)) return "#fd57ff";

@@ -1,11 +1,11 @@
-const SOULRIFT_CACHE = "soulrift-pwa-20260606-squad-start-button-199";
+const SOULRIFT_CACHE = "soulrift-pwa-20260606-mobile-squad-fix-200";
 const SOULRIFT_ASSETS = [
   "./",
   "./index.html",
-  "./styles.css?v=20260606-squad-start-button-199",
-  "./src/pwa.js?v=20260606-squad-start-button-199",
-  "./src/game.js?v=20260606-squad-start-button-199",
-  "./manifest.webmanifest?v=20260606-squad-start-button-199",
+  "./styles.css?v=20260606-mobile-squad-fix-200",
+  "./src/pwa.js?v=20260606-mobile-squad-fix-200",
+  "./src/game.js?v=20260606-mobile-squad-fix-200",
+  "./manifest.webmanifest?v=20260606-mobile-squad-fix-200",
   "./version.json",
   "./assets/icons/app-icon-20260605-logo-xl-149.svg",
   "./assets/icons/app-icon-20260605-logo-xl-149-192.png",

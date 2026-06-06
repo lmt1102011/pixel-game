@@ -5326,27 +5326,36 @@ body.is-mobile-ui .touch-actions [data-touch="dash"] {
 
 @media (max-width: 760px) {
   .screen.valorant-screen {
-    overflow-y: auto;
+    overflow: hidden;
   }
 
   .valorant-lobby {
-    min-height: 100%;
-    overflow: visible;
+    min-height: var(--app-height);
+    overflow: hidden;
   }
 
   .squad-only-lobby {
-    place-items: start center;
+    place-items: center;
     padding: 12px;
-    overflow-y: auto;
   }
 
   .squad-only-stage {
     width: 100%;
+    max-height: calc(var(--app-height) - 24px);
+    gap: 12px;
   }
 
   .squad-only-grid {
+    grid-template-columns: repeat(5, minmax(218px, 238px));
+    justify-content: start;
     gap: 10px;
     min-height: auto;
+    max-width: 100%;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding: 0 4px 8px;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: thin;
   }
 
   .squad-action-mount {
@@ -5373,14 +5382,10 @@ body.is-mobile-ui .touch-actions [data-touch="dash"] {
     height: 26px;
   }
 
-  .valorant-squad-grid {
-    grid-template-columns: 1fr;
-    min-height: auto;
-  }
-
   .valorant-member {
-    grid-template-rows: 250px auto;
-    min-height: 370px;
+    grid-template-rows: 235px auto;
+    min-height: min(390px, calc(var(--app-height) - 102px));
+    scroll-snap-align: center;
   }
 
   .member-avatar .preview-hero,
@@ -5388,4 +5393,148 @@ body.is-mobile-ui .touch-actions [data-touch="dash"] {
     transform: translate(-50%, -50%) scale(1.14);
   }
 
+}
+
+@media (max-height: 540px) and (orientation: landscape) {
+  .screen.valorant-screen {
+    overflow: hidden;
+  }
+
+  .valorant-lobby {
+    min-height: var(--app-height);
+    overflow: hidden;
+  }
+
+  .squad-only-lobby {
+    place-items: center;
+    padding: max(6px, env(safe-area-inset-top)) max(10px, env(safe-area-inset-right)) max(8px, env(safe-area-inset-bottom)) max(10px, env(safe-area-inset-left));
+  }
+
+  .squad-only-stage {
+    width: min(980px, calc(100vw - 20px));
+    max-height: calc(var(--app-height) - 14px);
+    gap: 8px;
+  }
+
+  .squad-only-grid {
+    grid-template-columns: repeat(5, minmax(108px, 1fr));
+    gap: 8px;
+    min-height: auto;
+  }
+
+  .squad-only-grid .valorant-member,
+  .valorant-member {
+    grid-template-rows: minmax(128px, 1fr) auto;
+    min-height: min(258px, calc(var(--app-height) - 76px));
+  }
+
+  .member-frame {
+    margin: 7px;
+  }
+
+  .member-avatar {
+    width: 92px;
+    height: 138px;
+  }
+
+  .member-avatar .preview-hero,
+  .valorant-member.self .member-avatar .preview-hero {
+    transform: translate(-50%, -50%) scale(0.78);
+  }
+
+  .leader-crown {
+    left: 8px;
+    top: 8px;
+    width: 26px;
+    height: 24px;
+    font-size: 15px;
+  }
+
+  .ready-check {
+    right: 8px;
+    top: 8px;
+    width: 25px;
+    height: 25px;
+    font-size: 13px;
+  }
+
+  .empty-invite {
+    width: 58px;
+    height: 58px;
+    font-size: 39px;
+  }
+
+  .member-info {
+    gap: 5px;
+    padding: 7px;
+  }
+
+  .member-title {
+    gap: 5px;
+  }
+
+  .member-title b {
+    font-size: 11px;
+  }
+
+  .member-title span {
+    font-size: 9px;
+  }
+
+  .member-meta,
+  .member-state {
+    grid-template-columns: 1fr 1fr;
+    gap: 4px;
+  }
+
+  .member-meta span,
+  .member-state span {
+    min-height: 20px;
+    padding: 4px 3px;
+    font-size: 8px;
+  }
+
+  .valorant-member::after {
+    bottom: 91px;
+  }
+
+  .squad-action-mount {
+    padding-bottom: 0;
+  }
+
+  .valorant-start-btn {
+    width: min(330px, 58vw);
+    min-height: 48px;
+    padding: 0 20px;
+    clip-path: polygon(15px 0, 100% 0, 100% calc(100% - 15px), calc(100% - 15px) 100%, 0 100%, 0 15px);
+  }
+
+  .start-btn-core {
+    gap: 9px;
+  }
+
+  .start-btn-label {
+    font-size: 15px;
+  }
+
+  .start-btn-icon {
+    width: 23px;
+    height: 23px;
+  }
+
+  .start-btn-icon.play::before {
+    border-top-width: 6px;
+    border-bottom-width: 6px;
+    border-left-width: 10px;
+  }
+
+  .start-btn-icon.ready::before {
+    width: 12px;
+    height: 7px;
+  }
+
+  .start-btn-edge {
+    left: 20px;
+    right: 20px;
+  }
 }

@@ -9,7 +9,7 @@
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
   const SIGNAL_REALTIME_RELAY_LIMIT = 2;
   const SIGNAL_REALTIME_TYPES = new Set(["state", "snapshot", "attack", "skill", "collect", "openChest", "dropItem", "damage", "chooseDoor"]);
-  const APP_VERSION = "20260607-combat-fps-budget-243";
+  const APP_VERSION = "20260607-combat-render-cache-244";
   const CHANGELOG_ENTRIES = [
     {
       version: APP_VERSION,
@@ -3068,6 +3068,11 @@
       this.hudStatusMarkup = "";
       this.quickActionSignature = "";
       this.renderActorBuffer = [];
+      this.roomBackgroundCache = new Map();
+      this.enemySpriteCache = new Map();
+      this.hudElements = {};
+      this.touchButtons = [];
+      this.frameIndex = 0;
       this.updateTimer = null;
       this.updateInProgress = false;
       this.bootReady = false;
@@ -4270,9 +4275,9 @@
       const avgDt = this.perf.avgDt || frame;
       const fastDt = this.perf.fastDt || frame;
       const renderMs = Number(this.perf.avgRenderMs || this.perf.renderMs || 0);
-      const renderBudget = this.isMobileDevice() ? 11.5 : 10.5;
+      const renderBudget = this.isMobileDevice() ? 8.7 : 8.0;
       const renderLag = stressActive && renderMs > renderBudget;
-      const renderSevere = stressActive && renderMs > (this.isMobileDevice() ? 19 : 17);
+      const renderSevere = stressActive && renderMs > (this.isMobileDevice() ? 14.5 : 13.2);
       this.perf.skillQuietTime = skillActive ? 0 : Math.min(8, (this.perf.skillQuietTime || 0) + frame);
       const heavyFrame = frame > (this.isMobileDevice() ? 0.04 : 0.034) || renderLag;
       const sustainedSlow = (this.perf.fastDt || frame) > targetDt + (this.isMobileDevice() ? 0.012 : 0.01)
@@ -4350,7 +4355,7 @@
       if (Math.abs(this.perf.autoLevel - baseLevel) < 0.02 && targetLevel === baseLevel) this.perf.autoLevel = baseLevel;
       this.perf.displayedAutoLevel = Math.round(this.perf.autoLevel * 100) / 100;
       this.perf.quality = this.graphicsQualityFromLevel(this.perf.displayedAutoLevel);
-      this.updateRenderScale(overloaded && (panicLag || emergencyLag || (activeCombat && this.perf.overloadTime > 1.2)));
+      this.updateRenderScale(overloaded && (panicLag || emergencyLag || this.renderPressure() > 0.22 || (activeCombat && this.perf.overloadTime > 1.2)));
     }
 
     graphicsActiveCombat() {
@@ -4439,8 +4444,8 @@
 
     renderPressure() {
       const ms = Number(this.perf?.avgRenderMs || this.perf?.renderMs || 0);
-      const start = this.isMobileDevice() ? 8.8 : 8.0;
-      const range = this.isMobileDevice() ? 15 : 13;
+      const start = this.isMobileDevice() ? 5.8 : 5.4;
+      const range = this.isMobileDevice() ? 11.5 : 10.5;
       return clamp((ms - start) / range, 0, 1);
     }
 
@@ -4449,11 +4454,11 @@
     }
 
     performanceEmergency() {
-      return (this.perf?.emergencyHold || 0) > 0 || this.performancePressure() > 0.22;
+      return (this.perf?.emergencyHold || 0) > 0 || this.performancePressure() > 0.22 || this.renderPressure() > 0.24;
     }
 
     performancePanic() {
-      return (this.perf?.panicHold || 0) > 0 || this.performancePressure() > 0.62;
+      return (this.perf?.panicHold || 0) > 0 || this.performancePressure() > 0.62 || this.renderPressure() > 0.62;
     }
 
     visualBudgetScale() {
@@ -4462,7 +4467,7 @@
       const renderPressure = this.renderPressure();
       const loadTrim = clamp(this.graphicsCombatLoad() * (0.09 + weakBias * 0.13), 0, 0.28 + weakBias * 0.12);
       const floor = this.performancePanic() ? 0.05 : this.performanceEmergency() ? 0.09 : 0.14;
-      return clamp(1 - pressure * 0.86 - renderPressure * 0.5 - weakBias * 0.22 - loadTrim, floor, 1);
+      return clamp(1 - pressure * 0.86 - renderPressure * 0.72 - weakBias * 0.22 - loadTrim, floor, 1);
     }
 
     visualStress() {
@@ -4478,9 +4483,9 @@
       const quality = this.perf?.quality ?? 1;
       const load = this.graphicsCombatLoad();
       return this.performancePanic()
-        || this.renderPressure() > 0.38
-        || this.performancePressure() > 0.34
-        || (this.graphicsActiveCombat() && (load > 0.95 || quality < 0.58));
+        || this.renderPressure() > 0.18
+        || this.performancePressure() > 0.26
+        || (this.graphicsActiveCombat() && (load > 0.65 || quality < 0.66));
     }
 
     prettyVisualScale(min = 0.18) {
@@ -4903,7 +4908,8 @@
       }, { passive: false });
       this.canvas.addEventListener("touchend", maybeResetStick);
       this.canvas.addEventListener("touchcancel", maybeResetStick);
-      for (const button of document.querySelectorAll("[data-touch]")) {
+      this.touchButtons = Array.from(document.querySelectorAll("[data-touch]"));
+      for (const button of this.touchButtons) {
         button.addEventListener("touchstart", (event) => {
           event.preventDefault();
           event.stopPropagation();
@@ -5069,6 +5075,7 @@
         const rawDt = this.last ? (time - this.last) / 1000 || 0 : 1 / 60;
         const dt = Math.min(0.033, rawDt);
         this.last = time;
+        this.frameIndex = (this.frameIndex + 1) % 1000000;
         this.updatePerformanceState(rawDt || dt);
         this.menuTime += dt;
         if (this.toastTimer > 0) {
@@ -18187,16 +18194,26 @@
       const t = lenSq > 0 ? clamp(((cx - x1) * sx + (cy - y1) * sy) / lenSq, 0, 1) : 1;
       const x = x1 + sx * t;
       const y = y1 + sy * t;
-      const d = Math.hypot(cx - x, cy - y);
-      return d <= radius ? { t, x, y, d } : null;
+      const dx = cx - x;
+      const dy = cy - y;
+      const dSq = dx * dx + dy * dy;
+      return dSq <= radius * radius ? { t, x, y, d: Math.sqrt(dSq) } : null;
     }
 
     firstProjectileEnemyHit(projectile, fromX, fromY) {
       let best = null;
+      const hitPadding = projectile.kind === "rangerBasic" ? 10 : projectile.kind === "mageBasic" ? 6 : 4;
+      const baseRadius = (projectile.radius || 0) + hitPadding;
+      const minX = Math.min(fromX, projectile.x) - baseRadius - 42;
+      const maxX = Math.max(fromX, projectile.x) + baseRadius + 42;
+      const minY = Math.min(fromY, projectile.y) - baseRadius - 42;
+      const maxY = Math.max(fromY, projectile.y) + baseRadius + 42;
       for (const enemy of this.run.enemies) {
+        if (!enemy || enemy.dead || enemy.hp <= 0) continue;
         if (projectile.hitIds?.includes(enemy.id)) continue;
-        const hitPadding = projectile.kind === "rangerBasic" ? 10 : projectile.kind === "mageBasic" ? 6 : 4;
-        const hit = this.segmentCircleHit(fromX, fromY, projectile.x, projectile.y, enemy.x, enemy.y, enemy.radius + projectile.radius + hitPadding);
+        const hitRadius = enemy.radius + baseRadius;
+        if (enemy.x < minX - enemy.radius || enemy.x > maxX + enemy.radius || enemy.y < minY - enemy.radius || enemy.y > maxY + enemy.radius) continue;
+        const hit = this.segmentCircleHit(fromX, fromY, projectile.x, projectile.y, enemy.x, enemy.y, hitRadius);
         if (hit && (!best || hit.t < best.t)) best = { ...hit, enemy };
       }
       return best;
@@ -18410,9 +18427,11 @@
 
     nearestEnemy(x, y, range) {
       let best = null;
-      let bestD = range;
+      let bestD = range * range;
       for (const enemy of this.run.enemies) {
-        const d = Math.hypot(enemy.x - x, enemy.y - y);
+        const dx = enemy.x - x;
+        const dy = enemy.y - y;
+        const d = dx * dx + dy * dy;
         if (d < bestD) {
           bestD = d;
           best = enemy;
@@ -19777,17 +19796,22 @@
       };
     }
 
+    hudElement(id) {
+      if (!this.hudElements[id]) this.hudElements[id] = document.getElementById(id);
+      return this.hudElements[id];
+    }
+
     updateHud() {
       if (!this.run) return;
       const p = this.run.player;
-      const hpBar = document.getElementById("hpBar");
-      const energyBar = document.getElementById("energyBar");
-      const hpText = document.getElementById("hpText");
-      const energyText = document.getElementById("energyText");
-      const statusStrip = document.getElementById("statusStrip");
-      const roomPill = document.getElementById("roomPill");
-      const objectivePill = document.getElementById("objectivePill");
-      const networkPill = document.getElementById("networkPill");
+      const hpBar = this.hudElement("hpBar");
+      const energyBar = this.hudElement("energyBar");
+      const hpText = this.hudElement("hpText");
+      const energyText = this.hudElement("energyText");
+      const statusStrip = this.hudElement("statusStrip");
+      const roomPill = this.hudElement("roomPill");
+      const objectivePill = this.hudElement("objectivePill");
+      const networkPill = this.hudElement("networkPill");
       const hpWidth = `${clamp((p.hp / p.maxHp) * 100, 0, 100).toFixed(1)}%`;
       const energyWidth = `${clamp((p.energy / p.maxEnergy) * 100, 0, 100).toFixed(1)}%`;
       const hpLabel = `${Math.ceil(p.hp)} / ${Math.ceil(p.maxHp)}`;
@@ -19846,7 +19870,8 @@
         this.updateTouchCooldowns(skills);
         if (this.hudSkillMarkup !== "") {
           this.hudSkillMarkup = "";
-          document.getElementById("skillStrip").innerHTML = "";
+          const skillStrip = this.hudElement("skillStrip");
+          if (skillStrip) skillStrip.innerHTML = "";
         }
         return;
       }
@@ -19859,7 +19884,8 @@
       `).join("");
       if (markup !== this.hudSkillMarkup) {
         this.hudSkillMarkup = markup;
-        document.getElementById("skillStrip").innerHTML = markup;
+        const skillStrip = this.hudElement("skillStrip");
+        if (skillStrip) skillStrip.innerHTML = markup;
       }
     }
 
@@ -19872,7 +19898,7 @@
         ["f", skills[4]],
         ["dash", ["LƯỚT", "Lướt", this.run.player.dashCd, 0.7]]
       ]);
-      for (const button of document.querySelectorAll("[data-touch]")) {
+      for (const button of this.touchButtons) {
         const data = map.get(button.dataset.touch);
         if (!data) continue;
         const [label, , cd, max] = data;
@@ -19987,7 +20013,11 @@
       const localHiddenBoss = this.isPlayerBossId(this.lobby.id) && bossProxyVisible;
       const actors = this.renderActorBuffer;
       actors.length = 0;
-      for (const enemy of this.run.enemies) actors.push(enemy);
+      for (const enemy of this.run.enemies) {
+        const enemyX = Number.isFinite(enemy.displayX) ? enemy.displayX : enemy.x;
+        const enemyY = Number.isFinite(enemy.displayY) ? enemy.displayY : enemy.y;
+        if (this.inView(enemyX, enemyY, enemy.radius + 130)) actors.push(enemy);
+      }
       if (!localGhost && !localHiddenBoss) actors.push(this.run.player);
       actors.sort((a, b) => actorY(a) - actorY(b));
       for (const actor of actors) {
@@ -20055,6 +20085,81 @@
       this.drawDomainCutinOverlay(ctx);
     }
 
+    createRenderCanvas(width, height) {
+      if (typeof OffscreenCanvas === "function") return new OffscreenCanvas(width, height);
+      const canvas = document.createElement("canvas");
+      canvas.width = width;
+      canvas.height = height;
+      return canvas;
+    }
+
+    trimCache(cache, limit) {
+      while (cache.size > limit) {
+        const first = cache.keys().next().value;
+        if (first === undefined) break;
+        cache.delete(first);
+      }
+    }
+
+    roomBackgroundKey(lowDetail = false) {
+      const biome = this.run?.biome || {};
+      return [
+        lowDetail ? "low" : "full",
+        biome.id || "",
+        biome.floor || "",
+        biome.wall || "",
+        biome.accent || "",
+        Math.round((this.run?.seed || 0) * 1000)
+      ].join("|");
+    }
+
+    getRoomBackgroundCanvas(lowDetail = false) {
+      if (!this.run?.biome) return null;
+      const key = this.roomBackgroundKey(lowDetail);
+      const cached = this.roomBackgroundCache.get(key);
+      if (cached) return cached;
+      const biome = this.run.biome;
+      const canvas = this.createRenderCanvas(WORLD_W, WORLD_H);
+      const bg = canvas.getContext("2d");
+      if (!bg) return null;
+      bg.imageSmoothingEnabled = false;
+      bg.fillStyle = "#05070b";
+      bg.fillRect(0, 0, WORLD_W, WORLD_H);
+      bg.fillStyle = biome.floor;
+      bg.fillRect(ROOM_PAD, ROOM_PAD, WORLD_W - ROOM_PAD * 2, WORLD_H - ROOM_PAD * 2);
+      if (!lowDetail) {
+        const tile = 64;
+        for (let x = ROOM_PAD; x < WORLD_W - ROOM_PAD; x += tile) {
+          for (let y = ROOM_PAD; y < WORLD_H - ROOM_PAD; y += tile) {
+            const n = Math.sin(x * 0.04 + y * 0.03 + this.run.seed * 10);
+            bg.fillStyle = n > 0 ? "rgba(255,255,255,0.025)" : "rgba(0,0,0,0.08)";
+            bg.fillRect(x, y, tile - 2, tile - 2);
+            if ((x + y) % 192 === 0) {
+              bg.fillStyle = biome.accent;
+              bg.globalAlpha = 0.1;
+              bg.fillRect(x + 18, y + 18, 8, 8);
+              bg.globalAlpha = 1;
+            }
+          }
+        }
+      }
+      bg.fillStyle = biome.wall;
+      bg.fillRect(0, 0, WORLD_W, ROOM_PAD);
+      bg.fillRect(0, WORLD_H - ROOM_PAD, WORLD_W, ROOM_PAD);
+      bg.fillRect(0, 0, ROOM_PAD, WORLD_H);
+      bg.fillRect(WORLD_W - ROOM_PAD, 0, ROOM_PAD, WORLD_H);
+      if (!lowDetail) {
+        bg.fillStyle = "rgba(0,0,0,0.28)";
+        bg.fillRect(ROOM_PAD, ROOM_PAD, WORLD_W - ROOM_PAD * 2, 18);
+        bg.fillRect(ROOM_PAD, WORLD_H - ROOM_PAD - 18, WORLD_W - ROOM_PAD * 2, 18);
+        bg.fillRect(ROOM_PAD, ROOM_PAD, 18, WORLD_H - ROOM_PAD * 2);
+        bg.fillRect(WORLD_W - ROOM_PAD - 18, ROOM_PAD, 18, WORLD_H - ROOM_PAD * 2);
+      }
+      this.roomBackgroundCache.set(key, canvas);
+      this.trimCache(this.roomBackgroundCache, 5);
+      return canvas;
+    }
+
     drawRoom(ctx, lowDetail = false) {
       const biome = this.run.biome;
       const bounds = this.viewBounds(120);
@@ -20064,50 +20169,24 @@
       const viewBottom = Math.min(WORLD_H, bounds.bottom);
       const viewW = Math.max(1, viewRight - viewLeft);
       const viewH = Math.max(1, viewBottom - viewTop);
-      ctx.fillStyle = "#05070b";
-      ctx.fillRect(viewLeft, viewTop, viewW, viewH);
-      ctx.fillStyle = biome.floor;
-      const floorLeft = Math.max(ROOM_PAD, viewLeft);
-      const floorTop = Math.max(ROOM_PAD, viewTop);
-      const floorRight = Math.min(WORLD_W - ROOM_PAD, viewRight);
-      const floorBottom = Math.min(WORLD_H - ROOM_PAD, viewBottom);
-      if (floorRight > floorLeft && floorBottom > floorTop) ctx.fillRect(floorLeft, floorTop, floorRight - floorLeft, floorBottom - floorTop);
-      if (lowDetail) {
-        ctx.fillStyle = biome.wall;
-        ctx.fillRect(0, 0, WORLD_W, ROOM_PAD);
-        ctx.fillRect(0, WORLD_H - ROOM_PAD, WORLD_W, ROOM_PAD);
-        ctx.fillRect(0, 0, ROOM_PAD, WORLD_H);
-        ctx.fillRect(WORLD_W - ROOM_PAD, 0, ROOM_PAD, WORLD_H);
-        return;
+      const background = this.getRoomBackgroundCanvas(lowDetail);
+      if (background) {
+        const smoothing = ctx.imageSmoothingEnabled;
+        ctx.imageSmoothingEnabled = false;
+        ctx.drawImage(background, viewLeft, viewTop, viewW, viewH, viewLeft, viewTop, viewW, viewH);
+        ctx.imageSmoothingEnabled = smoothing;
+      } else {
+        ctx.fillStyle = "#05070b";
+        ctx.fillRect(viewLeft, viewTop, viewW, viewH);
+        ctx.fillStyle = biome.floor;
+        const floorLeft = Math.max(ROOM_PAD, viewLeft);
+        const floorTop = Math.max(ROOM_PAD, viewTop);
+        const floorRight = Math.min(WORLD_W - ROOM_PAD, viewRight);
+        const floorBottom = Math.min(WORLD_H - ROOM_PAD, viewBottom);
+        if (floorRight > floorLeft && floorBottom > floorTop) ctx.fillRect(floorLeft, floorTop, floorRight - floorLeft, floorBottom - floorTop);
       }
-      const tile = this.performanceEmergency() ? 96 : (this.perf?.quality ?? 1) < 0.58 ? 80 : 64;
-      const startX = Math.max(ROOM_PAD, ROOM_PAD + Math.floor((bounds.left - ROOM_PAD) / tile) * tile);
-      const endX = Math.min(WORLD_W - ROOM_PAD, bounds.right + 64);
-      const startY = Math.max(ROOM_PAD, ROOM_PAD + Math.floor((bounds.top - ROOM_PAD) / tile) * tile);
-      const endY = Math.min(WORLD_H - ROOM_PAD, bounds.bottom + 64);
-      for (let x = startX; x < endX; x += tile) {
-        for (let y = startY; y < endY; y += tile) {
-          const n = Math.sin(x * 0.04 + y * 0.03 + this.run.seed * 10);
-          ctx.fillStyle = n > 0 ? "rgba(255,255,255,0.025)" : "rgba(0,0,0,0.08)";
-          ctx.fillRect(x, y, tile - 2, tile - 2);
-          if ((x + y) % 192 === 0) {
-            ctx.fillStyle = biome.accent;
-            ctx.globalAlpha = 0.1;
-            ctx.fillRect(x + 18, y + 18, 8, 8);
-            ctx.globalAlpha = 1;
-          }
-        }
-      }
-      ctx.fillStyle = biome.wall;
-      ctx.fillRect(0, 0, WORLD_W, ROOM_PAD);
-      ctx.fillRect(0, WORLD_H - ROOM_PAD, WORLD_W, ROOM_PAD);
-      ctx.fillRect(0, 0, ROOM_PAD, WORLD_H);
-      ctx.fillRect(WORLD_W - ROOM_PAD, 0, ROOM_PAD, WORLD_H);
-      ctx.fillStyle = "rgba(0,0,0,0.28)";
-      ctx.fillRect(ROOM_PAD, ROOM_PAD, WORLD_W - ROOM_PAD * 2, 18);
-      ctx.fillRect(ROOM_PAD, WORLD_H - ROOM_PAD - 18, WORLD_W - ROOM_PAD * 2, 18);
-      ctx.fillRect(ROOM_PAD, ROOM_PAD, 18, WORLD_H - ROOM_PAD * 2);
-      ctx.fillRect(WORLD_W - ROOM_PAD - 18, ROOM_PAD, 18, WORLD_H - ROOM_PAD * 2);
+      if (lowDetail) return;
+      if (this.fastVisualMode() && this.renderPressure() > 0.2) return;
       ctx.fillStyle = biome.haze;
       for (let i = 0; i < 8; i++) {
         const x = ROOM_PAD + ((i * 317 + this.menuTime * 18) % (WORLD_W - ROOM_PAD * 2));
@@ -22230,18 +22309,69 @@
       return true;
     }
 
+    monsterAnimSpeed(kind) {
+      if (kind === "zombie") return 3.2;
+      if (kind === "stoneGolem" || kind === "iceGolem" || kind === "darkKnight") return 4.2;
+      if (kind === "slime" || kind === "fireSlime" || kind === "iceSlime") return 5.6;
+      if (MONSTER_TYPES[kind]?.flying) return 7.5;
+      if (kind === "goblinScout" || kind === "werewolf") return 8.5;
+      if (kind === "spiderMonster") return 9;
+      return 6;
+    }
+
+    enemySpriteCacheKey(enemy, palette, variant = 0) {
+      const kind = enemy.kind || "";
+      const speed = Math.hypot(enemy.vx || 0, enemy.vy || 0);
+      const moving = speed > 7;
+      const animSpeed = this.monsterAnimSpeed(kind);
+      const walkFrame = moving ? (Math.floor(this.menuTime * animSpeed + variant) % 4) : 0;
+      const idleFrame = Math.floor(this.menuTime * 2 + variant) % 2;
+      const attack = enemy.attackAnim > 0 ? enemy.attackAnim > 0.24 ? 3 : enemy.attackAnim > 0.12 ? 2 : 1 : 0;
+      const paletteKey = [
+        palette.outline,
+        palette.base,
+        palette.baseDark,
+        palette.armor,
+        palette.metal,
+        palette.bone,
+        palette.eye,
+        palette.accent,
+        palette.glow
+      ].join(",");
+      return `${kind}|${variant}|${moving ? "m" + walkFrame : "i" + idleFrame}|${attack}|${enemy.elite ? 1 : 0}|${paletteKey}`;
+    }
+
+    drawCachedDesignedMonsterSprite(ctx, enemy, palette, variant = 0) {
+      const kind = enemy.kind || "";
+      if (!MONSTER_TYPES[kind] || enemy.boss || enemy.trainingDummy || enemy.flash > 0 || enemy.playerBoss) return false;
+      const key = this.enemySpriteCacheKey(enemy, palette, variant);
+      let sprite = this.enemySpriteCache.get(key);
+      if (!sprite) {
+        const size = 172;
+        const origin = size / 2;
+        const canvas = this.createRenderCanvas(size, size);
+        const spriteCtx = canvas.getContext("2d");
+        if (!spriteCtx) return false;
+        spriteCtx.imageSmoothingEnabled = false;
+        spriteCtx.translate(origin, origin);
+        this.drawDesignedMonsterSprite(spriteCtx, enemy, palette, variant);
+        sprite = { canvas, origin };
+        this.enemySpriteCache.set(key, sprite);
+        this.trimCache(this.enemySpriteCache, 520);
+      }
+      const smoothing = ctx.imageSmoothingEnabled;
+      ctx.imageSmoothingEnabled = false;
+      ctx.drawImage(sprite.canvas, -sprite.origin, -sprite.origin);
+      ctx.imageSmoothingEnabled = smoothing;
+      return true;
+    }
+
     drawDesignedMonsterSprite(ctx, enemy, palette, variant = 0) {
       const kind = enemy.kind || "";
       if (!MONSTER_TYPES[kind]) return false;
       const speed = Math.hypot(enemy.vx || 0, enemy.vy || 0);
       const moving = speed > 7;
-      const animSpeed = kind === "zombie" ? 3.2
-        : kind === "stoneGolem" || kind === "iceGolem" || kind === "darkKnight" ? 4.2
-        : kind === "slime" || kind === "fireSlime" || kind === "iceSlime" ? 5.6
-        : MONSTER_TYPES[kind].flying ? 7.5
-        : kind === "goblinScout" || kind === "werewolf" ? 8.5
-        : kind === "spiderMonster" ? 9
-        : 6;
+      const animSpeed = this.monsterAnimSpeed(kind);
       const walkFrame = moving ? (Math.floor(this.menuTime * animSpeed + variant) % 4) : 0;
       const idleFrame = Math.floor(this.menuTime * 2 + variant) % 2;
       const stepSign = walkFrame % 2 === 0 ? -1 : 1;
@@ -23343,7 +23473,7 @@
       const variant = this.enemyVariant(enemy);
       const palette = this.enemySpritePalette(enemy, color, accent);
       if (enemy.boss) this.drawPixelBossSprite(ctx, enemy, palette, variant);
-      else if (!this.drawDesignedMonsterSprite(ctx, enemy, palette, variant) && !this.drawEnemyAssetSprite(ctx, enemy, palette, variant)) this.drawPixelMonsterSprite(ctx, enemy, palette, variant);
+      else if (!this.drawCachedDesignedMonsterSprite(ctx, enemy, palette, variant) && !this.drawDesignedMonsterSprite(ctx, enemy, palette, variant) && !this.drawEnemyAssetSprite(ctx, enemy, palette, variant)) this.drawPixelMonsterSprite(ctx, enemy, palette, variant);
       if (enemy.windupTime > 0) {
         const pulse = clamp(enemy.windupTime / (enemy.windupTotal || 1), 0, 1);
         ctx.strokeStyle = "#ff4b55";

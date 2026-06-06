@@ -9,7 +9,7 @@
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
   const SIGNAL_REALTIME_RELAY_LIMIT = 2;
   const SIGNAL_REALTIME_TYPES = new Set(["state", "snapshot", "attack", "skill", "collect", "openChest", "dropItem", "damage", "chooseDoor"]);
-  const APP_VERSION = "20260606-squad-level-plus-212";
+  const APP_VERSION = "20260606-aaa-main-menu-213";
   const CHANGELOG_ENTRIES = [
     {
       version: APP_VERSION,
@@ -4933,6 +4933,7 @@
         if (this.mode === "game" && this.run) this.update(dt);
         this.audio.update(dt);
         this.render();
+        if (this.mode === "menu" && this.screen?.classList.contains("aaa-menu-screen")) this.renderMainMenuHero();
         if (this.mode === "play" && this.screen?.classList.contains("valorant-screen")) this.renderSquadHeroCanvases();
       } catch (error) {
         this.reportLoopError(error);
@@ -4944,6 +4945,7 @@
       this.screen.innerHTML = html;
       this.screen.classList.toggle("hidden", !html);
       this.screen.classList.toggle("valorant-screen", html.includes("valorant-lobby"));
+      this.screen.classList.toggle("aaa-menu-screen", html.includes("aaa-main-menu"));
     }
 
     updateAccountCloudCheck(dt) {
@@ -5059,6 +5061,283 @@
       this.showMainMenu();
     }
 
+    shortNumber(value = 0) {
+      const number = Math.max(0, Math.floor(Number(value) || 0));
+      if (number >= 1000000) return `${(number / 1000000).toFixed(number >= 10000000 ? 0 : 1)}M`;
+      if (number >= 10000) return `${(number / 1000).toFixed(number >= 100000 ? 0 : 1)}K`;
+      return number.toLocaleString("vi-VN");
+    }
+
+    mainMenuRank(score = 0, level = 1) {
+      const tier = [
+        { min: 0, name: "IRON", short: "IR", color: "#9aa1aa" },
+        { min: 1200, name: "BRONZE", short: "BR", color: "#bd8157" },
+        { min: 2200, name: "SILVER", short: "SV", color: "#d8e3ec" },
+        { min: 3400, name: "GOLD", short: "GD", color: "#f2bf63" },
+        { min: 4800, name: "PLATINUM", short: "PL", color: "#35d6c9" },
+        { min: 6600, name: "DIAMOND", short: "DM", color: "#a169ff" },
+        { min: 8600, name: "IMMORTAL", short: "IM", color: "#ff4655" }
+      ];
+      const value = Math.max(score, level * 120);
+      return [...tier].reverse().find((rank) => value >= rank.min) || tier[0];
+    }
+
+    mainMenuProfile() {
+      const character = characterById(this.save.account.selectedCharacter || "swordsman");
+      const selectedPowerId = this.save.account.selectedPower || "";
+      const power = selectedPowerId ? powerById(selectedPowerId) : powerById("fire");
+      const powerMeta = this.save.powers?.[power.id] || {};
+      const stats = this.effectiveCharacterStats(character);
+      const level = Math.max(1, Math.floor(Number(this.save.progression?.level || 1)));
+      const powerLevel = Math.max(1, Math.floor(Number(powerMeta.level || 1)));
+      const awakened = selectedPowerId ? this.powerAwakeningActive(power.id) : false;
+      const score = Math.round(
+        level * 86
+        + powerLevel * 120
+        + stats.hp * 2.05
+        + stats.energy * 1.38
+        + stats.speed * 1.08
+        + stats.damage * 42
+        + (stats.crit || 0) * 980
+        + (awakened ? 520 : 0)
+      );
+      const rank = this.mainMenuRank(score, level);
+      const tagSeed = hashText(`${this.save.auth?.currentUser || this.save.account.username || "soulrift"}:${level}`);
+      const gemCount = Object.entries(this.save.materials || {})
+        .filter(([key]) => key.endsWith("Gem"))
+        .reduce((total, [, amount]) => total + Math.max(0, Math.floor(Number(amount) || 0)), 0);
+      return {
+        username: this.save.account.username || "Player",
+        tag: `SR-${tagSeed.slice(0, 4).toUpperCase()}`,
+        character,
+        power,
+        hasPower: Boolean(selectedPowerId),
+        level,
+        rank,
+        score,
+        stats,
+        awakened,
+        gold: Math.max(0, Math.floor(Number(this.save.materials?.gold || 0))),
+        gems: gemCount,
+        energy: Math.max(0, Math.round(stats.energy || 0)),
+        spins: Math.max(0, Math.floor(Number(this.save.account.powerSpins || 0)))
+      };
+    }
+
+    mainMenuNavHtml() {
+      const navItem = (action, label, icon, primary = false) => `
+        <button class="aaa-nav-btn ${primary ? "primary" : ""}" data-action="${action}">
+          <span class="aaa-nav-icon ${icon}" aria-hidden="true"></span>
+          <span>${label}</span>
+        </button>
+      `;
+      return `
+        <nav class="aaa-main-nav" aria-label="Menu chinh">
+          ${navItem("play", "CH&#416;I", "play", true)}
+          ${navItem("character", "NH&#194;N V&#7852;T", "agent")}
+          ${navItem("friends", "B&#7840;N B&#200;", "friends")}
+          ${navItem("settings", "C&#192;I &#272;&#7862;T", "settings")}
+        </nav>
+      `;
+    }
+
+    mainMenuResourceBarHtml(profile) {
+      const resource = (kind, label, value) => `
+        <div class="aaa-resource ${kind}">
+          <span class="aaa-resource-icon" aria-hidden="true"></span>
+          <div><b>${this.shortNumber(value)}</b><small>${label}</small></div>
+        </div>
+      `;
+      return `
+        <div class="aaa-resource-bar">
+          ${resource("gold", "GOLD", profile.gold)}
+          ${resource("gem", "GEM", profile.gems)}
+          ${resource("energy", "ENERGY", profile.energy)}
+          ${resource("ticket", "V&#201; QUAY", profile.spins)}
+        </div>
+      `;
+    }
+
+    mainMenuAccountHtml(profile) {
+      return `
+        <aside class="aaa-account-card" style="--rank:${profile.rank.color}">
+          <div class="aaa-account-avatar">${escapeHtml(profile.username.slice(0, 1).toUpperCase() || "S")}</div>
+          <div class="aaa-account-main">
+            <b>${escapeHtml(profile.username)}</b>
+            <span>ID ${escapeHtml(profile.tag)}</span>
+          </div>
+          <div class="aaa-account-meta">
+            <b>LV ${profile.level}</b>
+            <span>${profile.rank.name}</span>
+          </div>
+        </aside>
+      `;
+    }
+
+    mainMenuEventsHtml(profile) {
+      const cards = [
+        { action: "updates", tag: "UPDATE", title: "B&#7843;n m&#7899;i", text: "Xem thay &#273;&#7893;i, skill v&#224; c&#226;n b&#7857;ng m&#7899;i.", tone: "red" },
+        { action: "missions", tag: "PASS", title: "Nhi&#7879;m v&#7909;", text: "Ho&#224;n th&#224;nh m&#7909;c ti&#234;u &#273;&#7875; nh&#7853;n v&#224;ng v&#224; XP.", tone: "gold" },
+        { action: "play-awakening-raid", tag: "RAID", title: profile.hasPower ? `Raid ${escapeHtml(profile.power.name)}` : "Raid A", text: "S&#259;n ng&#7885;c th&#7913;c t&#7881;nh v&#224; l&#245;i tr&#249;m.", tone: "teal" }
+      ];
+      return `
+        <div class="aaa-event-stack">
+          ${cards.map((card) => `
+            <button class="aaa-event-card ${card.tone}" data-action="${card.action}">
+              <span>${card.tag}</span>
+              <b>${card.title}</b>
+              <small>${card.text}</small>
+            </button>
+          `).join("")}
+        </div>
+      `;
+    }
+
+    mainMenuQuickFriendsHtml() {
+      const account = this.currentAccountRecord();
+      const friends = this.socialEntries(account?.friends).slice(0, 2);
+      const rows = friends.length ? friends.map(([key, friend], index) => {
+        const name = String(friend?.username || key).trim() || key;
+        const status = index % 3 === 1 ? "Away" : "Online";
+        return `
+          <button class="aaa-friend-chip" data-action="friends">
+            <span class="aaa-friend-avatar">${escapeHtml(name.slice(0, 1).toUpperCase())}</span>
+            <span><b>${escapeHtml(name)}</b><small>${status}</small></span>
+          </button>
+        `;
+      }).join("") : `<div class="aaa-friend-empty">Ch&#432;a c&#243; b&#7841;n online</div>`;
+      return `
+        <section class="aaa-quick-friends">
+          <div class="aaa-block-title">
+            <b>B&#7840;N B&#200;</b>
+            <button data-action="friends">M&#7902;</button>
+          </div>
+          <div class="aaa-friend-row">${rows}</div>
+        </section>
+      `;
+    }
+
+    mainMenuHeroHtml(profile) {
+      const custom = this.save.customization || {};
+      const attr = (name, value = "") => `data-${name}="${escapeHtml(value)}"`;
+      return `
+        <section class="aaa-hero-stage" style="--hero:${profile.character.color};--power:${profile.power.color};--rank:${profile.rank.color}">
+          <div class="aaa-hero-light"></div>
+          <canvas
+            class="aaa-hero-canvas"
+            width="520"
+            height="680"
+            ${attr("character", profile.character.id)}
+            ${attr("power", profile.power.id)}
+            ${attr("color", custom.color || profile.character.color)}
+            ${attr("aura", custom.aura || "")}
+            ${attr("eyes", custom.eyes || "")}
+            ${attr("mouth", custom.mouth || "")}
+            ${attr("accessory", custom.accessory || "")}
+            ${attr("trail", custom.trail || "")}
+            ${attr("awakened", profile.awakened ? "1" : "")}
+          ></canvas>
+          <div class="aaa-hero-info">
+            <span>&#272;ANG S&#7916; D&#7908;NG</span>
+            <h2>${escapeHtml(profile.character.name)}</h2>
+            <div class="aaa-hero-tags">
+              <b>LV ${profile.level}</b>
+              <b>${escapeHtml(profile.power.name)}</b>
+              <b>${profile.rank.name}</b>
+            </div>
+          </div>
+          <div class="aaa-power-score">
+            <small>POWER SCORE</small>
+            <b>${this.shortNumber(profile.score)}</b>
+          </div>
+        </section>
+      `;
+    }
+
+    mainMenuHtml(profile) {
+      return `
+        <section class="aaa-main-menu">
+          <div class="aaa-bg-grid"></div>
+          <div class="aaa-bg-layer layer-one"></div>
+          <div class="aaa-bg-layer layer-two"></div>
+          <div class="aaa-bg-particles" aria-hidden="true">
+            ${Array.from({ length: 18 }, (_, i) => `<span style="--i:${i};--x:${(i * 53) % 100}%;--y:${(i * 37) % 100}%;--dur:${(4.6 + i * 0.19).toFixed(2)}s"></span>`).join("")}
+          </div>
+          ${this.mainMenuResourceBarHtml(profile)}
+          ${this.mainMenuAccountHtml(profile)}
+          <aside class="aaa-menu-left">
+            <div class="aaa-brand">
+              <span>ONLINE RIFT ARENA</span>
+              <h1>SOULRIFT</h1>
+              <p>V&#432;&#7907;t &#7843;i, raid boss, th&#7913;c t&#7881;nh power v&#224; chi&#7871;n &#273;&#7845;u c&#249;ng &#273;&#7897;i.</p>
+            </div>
+            ${this.mainMenuNavHtml()}
+            <button class="aaa-play-cta" data-action="play">
+              <span class="aaa-play-icon" aria-hidden="true"></span>
+              <span>CH&#416;I</span>
+              <small>V&#224;o s&#7843;nh &#273;&#7897;i v&#224; ch&#7885;n ch&#7871; &#273;&#7897;</small>
+            </button>
+            ${this.mainMenuEventsHtml(profile)}
+          </aside>
+          ${this.mainMenuHeroHtml(profile)}
+          ${this.mainMenuQuickFriendsHtml()}
+        </section>
+      `;
+    }
+
+    renderMainMenuHero() {
+      const canvas = this.screen?.querySelector(".aaa-hero-canvas");
+      if (!canvas) return;
+      const rect = canvas.getBoundingClientRect();
+      if (rect.width < 8 || rect.height < 8) return;
+      const ratio = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
+      const targetW = Math.round(rect.width * ratio);
+      const targetH = Math.round(rect.height * ratio);
+      if (canvas.width !== targetW || canvas.height !== targetH) {
+        canvas.width = targetW;
+        canvas.height = targetH;
+      }
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return;
+      ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+      ctx.clearRect(0, 0, rect.width, rect.height);
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = "high";
+      const character = characterById(canvas.dataset.character || "swordsman");
+      const power = powerById(canvas.dataset.power || this.save.account.selectedPower || "fire");
+      const custom = {
+        color: canvas.dataset.color || character.color,
+        aura: canvas.dataset.aura || "",
+        eyes: canvas.dataset.eyes || "",
+        mouth: canvas.dataset.mouth || "",
+        accessory: canvas.dataset.accessory || "",
+        trail: canvas.dataset.trail || ""
+      };
+      const actor = {
+        characterId: character.id,
+        facing: -0.16,
+        animation: "idle",
+        animTime: this.menuTime,
+        actionTime: 0,
+        actionTotal: 0,
+        hp: 1,
+        powerAwakened: canvas.dataset.awakened === "1"
+      };
+      const fit = {
+        swordsman: { w: 98, h: 118, x: 0.52, y: 0.67 },
+        guardian: { w: 106, h: 122, x: 0.52, y: 0.67 },
+        mage: { w: 98, h: 132, x: 0.53, y: 0.67 },
+        ranger: { w: 118, h: 118, x: 0.5, y: 0.67 },
+        assassin: { w: 102, h: 112, x: 0.52, y: 0.67 },
+        martial: { w: 88, h: 112, x: 0.54, y: 0.67 },
+        spearman: { w: 154, h: 118, x: 0.45, y: 0.67 }
+      }[character.id] || { w: 104, h: 120, x: 0.52, y: 0.67 };
+      const baseScale = Math.min(rect.width / fit.w, rect.height / fit.h);
+      const scale = clamp(baseScale * 0.92, 2.45, 4.85);
+      const sway = Math.sin(this.menuTime * 0.9) * 3;
+      this.drawHero(ctx, rect.width * fit.x + sway, rect.height * fit.y, scale, actor, power, custom);
+    }
+
     showMainMenu() {
       if (!this.hasAccount()) {
         this.showAccountGate();
@@ -5075,11 +5354,9 @@
       this.hud.classList.add("hidden");
       this.touchLayer.classList.add("hidden");
       this.roomFinderOpen = false;
-      this.setScreen(`
-        <section class="menu-only">
-          ${this.navHtml("home")}
-        </section>
-      `);
+      const profile = this.mainMenuProfile();
+      this.setScreen(this.mainMenuHtml(profile));
+      requestAnimationFrame(() => this.renderMainMenuHero());
     }
 
     navHtml(active) {

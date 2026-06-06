@@ -9,7 +9,7 @@
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
   const SIGNAL_REALTIME_RELAY_LIMIT = 2;
   const SIGNAL_REALTIME_TYPES = new Set(["state", "snapshot", "attack", "skill", "collect", "openChest", "dropItem", "damage", "chooseDoor"]);
-  const APP_VERSION = "20260606-mobile-fit-full-ui-224";
+  const APP_VERSION = "20260606-quiet-squad-mode-225";
   const CHANGELOG_ENTRIES = [
     {
       version: APP_VERSION,
@@ -2488,7 +2488,7 @@
       this.renderLobbyIfVisible();
     }
 
-    setVote(biomeId) {
+    setVote(biomeId, options = {}) {
       if (!this.host && this.code) {
         this.game.toast("Chỉ chủ phòng được chọn ải");
         return;
@@ -2498,10 +2498,10 @@
       this.syncOwnSlot();
       this.broadcastReady();
       this.broadcastLobby();
-      this.renderLobbyIfVisible();
+      if (options.render !== false) this.renderLobbyIfVisible();
     }
 
-    setDifficulty(difficultyId) {
+    setDifficulty(difficultyId, options = {}) {
       const difficulty = DIFFICULTIES.find((entry) => entry.id === difficultyId);
       if (!difficulty) return;
       if (!this.host && this.code) {
@@ -2511,7 +2511,7 @@
       this.difficultyVote = difficulty.id;
       this.syncOwnSlot();
       this.broadcastLobby();
-      this.renderLobbyIfVisible();
+      if (options.render !== false) this.renderLobbyIfVisible();
     }
 
     broadcastReady() {
@@ -5703,11 +5703,21 @@
       }
       if (action === "ready-room") this.lobby.toggleReady();
       if (action === "vote-map") {
-        this.lobby.setVote(target.dataset.biome);
+        const quietSquadMode = Boolean(target.closest(".squad-mode-panel"));
+        this.lobby.setVote(target.dataset.biome, { render: !quietSquadMode });
+        if (quietSquadMode) {
+          this.syncSquadModePickerDom();
+          this.syncSquadActionButtonDom();
+        }
         return;
       }
       if (action === "vote-difficulty") {
-        this.lobby.setDifficulty(target.dataset.difficulty);
+        const quietSquadMode = Boolean(target.closest(".squad-mode-panel"));
+        this.lobby.setDifficulty(target.dataset.difficulty, { render: !quietSquadMode });
+        if (quietSquadMode) {
+          this.syncSquadModePickerDom();
+          this.syncSquadActionButtonDom();
+        }
         return;
       }
       if (action === "start-room") {
@@ -5996,6 +6006,7 @@
       const selectedBiomeId = this.lobby.mapVote || "forest";
       const selectedDifficultyId = this.lobby.difficultyVote || "normal";
       const modeMeta = this.squadModeById(runMode);
+      const sectionHidden = (modes) => modes.includes(runMode) ? "" : "hidden";
       const mapButtons = BIOMES.map((biome) => `
         <button class="squad-setting-pill ${selectedBiomeId === biome.id ? "active" : ""}" style="--pill:${biome.accent}" data-action="vote-map" data-biome="${biome.id}" ${canChoose ? "" : "disabled"}>
           <span>${biome.name}</span>
@@ -6010,53 +6021,41 @@
       const raidBiome = selectedPower ? (BIOMES.find((entry) => entry.id === awakeningRaidBiomeId(selectedPower.id)) || BIOMES[0]) : BIOMES[0];
       const raidGem = selectedPower ? materialLabel(awakeningGemMaterial(selectedPower.id)) : "Ngọc power";
       const lockedNotice = canChoose ? "" : `<p class="squad-setting-note">Chỉ chủ phòng được điều chỉnh chế độ.</p>`;
-      const mapSection = runMode === "awakeningRaid" ? "" : `
-        <div class="squad-setting-group">
-          <div class="squad-setting-title">
-            <b>Khu vực</b>
-            <span>${runMode === "playerBoss" ? "Nơi player boss xuất hiện" : runMode === "bossRush" ? "Sàn boss đầu tiên" : "Khu khởi đầu"}</span>
-          </div>
-          <div class="squad-setting-row map">${mapButtons}</div>
-        </div>
-      `;
-      const difficultySection = (runMode === "awakeningRaid" || runMode === "playerBoss") ? "" : `
-        <div class="squad-setting-group">
-          <div class="squad-setting-title">
-            <b>Độ khó</b>
-            <span>${runMode === "bossRush" ? "Chỉ ảnh hưởng trận boss" : "Áp dụng cho toàn lượt vượt ải"}</span>
-          </div>
-          <div class="squad-setting-row difficulty">${difficultyButtons}</div>
-        </div>
-      `;
-      const raidSection = runMode === "awakeningRaid" ? `
-        <div class="squad-setting-locked" style="--pill:${selectedPower?.color || modeMeta.color}">
-          <div class="squad-setting-title">
-            <b>${selectedPower ? `Raid ${selectedPower.name}` : "Raid A"}</b>
-            <span>${selectedPower ? `Khu ${raidBiome.name} - thưởng ${raidGem}` : "Chọn power trước khi bắt đầu"}</span>
-          </div>
-          <p>Raid thức tỉnh khóa map và độ khó để boss bắt đúng hệ power đang chọn.</p>
-        </div>
-      ` : "";
-      const playerBossNotice = runMode === "playerBoss" ? `
-        <div class="squad-setting-locked" style="--pill:${modeMeta.color}">
-          <div class="squad-setting-title">
-            <b>Hóa boss</b>
-            <span>Không có chọn độ khó</span>
-          </div>
-          <p>Chế độ này cần phòng nhiều người. Khi bắt đầu, hệ thống random một player làm boss.</p>
-        </div>
-      ` : "";
       return `
-        <div class="squad-mode-settings" style="--mode:${modeMeta.color}">
+        <div class="squad-mode-settings" data-run-mode="${runMode}" style="--mode:${modeMeta.color}">
           <div class="squad-setting-title main">
             <b>Thiết lập</b>
-            <span>${modeMeta.title}</span>
+            <span data-squad-setting-current>${modeMeta.title}</span>
           </div>
           ${lockedNotice}
-          ${raidSection}
-          ${mapSection}
-          ${difficultySection}
-          ${playerBossNotice}
+          <div class="squad-setting-locked" data-mode-section="awakeningRaid" style="--pill:${selectedPower?.color || modeMeta.color}" ${sectionHidden(["awakeningRaid"])}>
+            <div class="squad-setting-title">
+              <b>${selectedPower ? `Raid ${selectedPower.name}` : "Raid A"}</b>
+              <span>${selectedPower ? `Khu ${raidBiome.name} - thưởng ${raidGem}` : "Chọn power trước khi bắt đầu"}</span>
+            </div>
+            <p>Raid thức tỉnh khóa map và độ khó để boss bắt đúng hệ power đang chọn.</p>
+          </div>
+          <div class="squad-setting-group" data-mode-section="gauntlet bossRush playerBoss" ${sectionHidden(["gauntlet", "bossRush", "playerBoss"])}>
+            <div class="squad-setting-title">
+              <b>Khu vực</b>
+              <span data-map-setting-caption>${runMode === "playerBoss" ? "Nơi player boss xuất hiện" : runMode === "bossRush" ? "Sàn boss đầu tiên" : "Khu khởi đầu"}</span>
+            </div>
+            <div class="squad-setting-row map">${mapButtons}</div>
+          </div>
+          <div class="squad-setting-group" data-mode-section="gauntlet bossRush" ${sectionHidden(["gauntlet", "bossRush"])}>
+            <div class="squad-setting-title">
+              <b>Độ khó</b>
+              <span data-difficulty-setting-caption>${runMode === "bossRush" ? "Chỉ ảnh hưởng trận boss" : "Áp dụng cho toàn lượt vượt ải"}</span>
+            </div>
+            <div class="squad-setting-row difficulty">${difficultyButtons}</div>
+          </div>
+          <div class="squad-setting-locked" data-mode-section="playerBoss" style="--pill:${modeMeta.color}" ${sectionHidden(["playerBoss"])}>
+            <div class="squad-setting-title">
+              <b>Hóa boss</b>
+              <span>Không có chọn độ khó</span>
+            </div>
+            <p>Chế độ này cần phòng nhiều người. Khi bắt đầu, hệ thống random một player làm boss.</p>
+          </div>
         </div>
       `;
     }
@@ -6148,6 +6147,96 @@
       `;
     }
 
+    syncSquadModePickerDom() {
+      const panel = this.screen?.querySelector(".squad-mode-panel");
+      if (!panel) return false;
+      const runMode = this.lobby.runMode || "gauntlet";
+      const modeMeta = this.squadModeById(runMode);
+      panel.dataset.runMode = runMode;
+      panel.style.setProperty("--mode", modeMeta.color);
+      for (const card of panel.querySelectorAll(".squad-mode-card[data-run-mode]")) {
+        const selected = card.dataset.runMode === runMode;
+        card.classList.toggle("selected", selected);
+        let mark = card.querySelector(".squad-mode-mark");
+        if (selected && !mark) {
+          mark = document.createElement("span");
+          mark.className = "squad-mode-mark";
+          mark.textContent = "Đang chọn";
+          card.appendChild(mark);
+        } else if (!selected && mark) {
+          mark.remove();
+        }
+      }
+      const settings = panel.querySelector(".squad-mode-settings");
+      if (settings) {
+        settings.dataset.runMode = runMode;
+        settings.style.setProperty("--mode", modeMeta.color);
+        const current = settings.querySelector("[data-squad-setting-current]");
+        if (current) current.textContent = modeMeta.title;
+        const mapCaption = settings.querySelector("[data-map-setting-caption]");
+        if (mapCaption) mapCaption.textContent = runMode === "playerBoss" ? "Nơi player boss xuất hiện" : runMode === "bossRush" ? "Sàn boss đầu tiên" : "Khu khởi đầu";
+        const difficultyCaption = settings.querySelector("[data-difficulty-setting-caption]");
+        if (difficultyCaption) difficultyCaption.textContent = runMode === "bossRush" ? "Chỉ ảnh hưởng trận boss" : "Áp dụng cho toàn lượt vượt ải";
+        for (const section of settings.querySelectorAll("[data-mode-section]")) {
+          const modes = String(section.dataset.modeSection || "").split(/\s+/).filter(Boolean);
+          section.hidden = !modes.includes(runMode);
+          if (section.classList.contains("squad-setting-locked")) {
+            const selectedPower = this.save.account.selectedPower ? powerById(this.save.account.selectedPower) : null;
+            const pill = section.dataset.modeSection === "awakeningRaid" ? selectedPower?.color || modeMeta.color : modeMeta.color;
+            section.style.setProperty("--pill", pill);
+          }
+        }
+        for (const button of settings.querySelectorAll("[data-action='vote-map']")) {
+          button.classList.toggle("active", button.dataset.biome === (this.lobby.mapVote || "forest"));
+        }
+        for (const button of settings.querySelectorAll("[data-action='vote-difficulty']")) {
+          button.classList.toggle("active", button.dataset.difficulty === (this.lobby.difficultyVote || "normal"));
+          button.style.setProperty("--pill", modeMeta.color);
+        }
+      }
+      return true;
+    }
+
+    syncSquadActionButtonDom() {
+      const start = this.screen?.querySelector(".valorant-start-btn");
+      const modeButton = this.screen?.querySelector(".valorant-mode-btn");
+      if (!start && !modeButton) return false;
+      if (this.squadModeTransitionTimer) window.clearTimeout(this.squadModeTransitionTimer);
+      this.squadModeTransition = null;
+      this.squadModeTransitionTimer = null;
+      const inRoom = Boolean(this.lobby?.code && !this.lobby.joinPending);
+      const isHost = Boolean(this.lobby?.host || !inRoom);
+      const slots = Array.isArray(this.lobby?.slots) ? this.lobby.slots.filter(Boolean) : [];
+      const allReady = slots.every((slot) => slot.host || slot.ready);
+      const hasGuest = slots.some((slot) => slot && !slot.host);
+      const runMode = this.lobby.runMode || "gauntlet";
+      this.squadActionRunMode = runMode;
+      const hostCanStart = inRoom ? hasGuest && allReady : runMode !== "playerBoss";
+      const label = isHost ? "BẮT ĐẦU" : this.lobby.ready ? "ĐÃ SẴN SÀNG" : "SẴN SÀNG";
+      const action = isHost ? inRoom ? "start-room" : "start-squad-mode" : "ready-room";
+      const disabled = isHost && !hostCanStart;
+      const stateClass = isHost ? "start-action" : this.lobby.ready ? "ready-action active" : "ready-action";
+      const iconClass = isHost ? "play" : "ready";
+      const modeMeta = this.squadModeById(runMode);
+      const modeClass = `mode-${this.squadModeClassSuffix(runMode)}`;
+      const modeStyle = `--button-main:${modeMeta.color};--button-next:${modeMeta.color};--button-prev:${modeMeta.color};--button-prev-text:${this.squadModeTextColor(runMode)};--button-next-text:${this.squadModeTextColor(runMode)};--mode:${modeMeta.color};`;
+      if (start) {
+        start.className = `valorant-start-btn ${stateClass} ${modeClass}`;
+        start.setAttribute("style", modeStyle);
+        start.setAttribute("data-action", action);
+        start.toggleAttribute("disabled", disabled);
+        const labelNode = start.querySelector(".start-btn-label");
+        if (labelNode) labelNode.textContent = label;
+        const iconNode = start.querySelector(".start-btn-icon");
+        if (iconNode) iconNode.className = `start-btn-icon ${iconClass}`;
+      }
+      if (modeButton) {
+        modeButton.classList.toggle("active", this.squadModePickerOpen);
+        modeButton.style.setProperty("--mode", modeMeta.color);
+      }
+      return true;
+    }
+
     selectSquadMode(runMode = "gauntlet") {
       if (this.squadModeTransitionActive()) return;
       const allowed = new Set(this.squadModeOptions().map((mode) => mode.id));
@@ -6159,7 +6248,8 @@
       this.lobby.runMode = nextMode;
       this.squadModePickerOpen = true;
       if (this.lobby?.host) this.lobby.broadcastLobby();
-      this.refreshValorantActionButton();
+      this.syncSquadModePickerDom();
+      this.syncSquadActionButtonDom();
     }
 
     startSelectedSquadMode() {

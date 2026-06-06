@@ -1,11 +1,11 @@
-const SOULRIFT_CACHE = "soulrift-pwa-20260606-mobile-fit-full-ui-224";
+const SOULRIFT_CACHE = "soulrift-pwa-20260606-quiet-squad-mode-225";
 const SOULRIFT_ASSETS = [
   "./",
   "./index.html",
-  "./styles.css?v=20260606-mobile-fit-full-ui-224",
-  "./src/pwa.js?v=20260606-mobile-fit-full-ui-224",
-  "./src/game.js?v=20260606-mobile-fit-full-ui-224",
-  "./manifest.webmanifest?v=20260606-mobile-fit-full-ui-224",
+  "./styles.css?v=20260606-quiet-squad-mode-225",
+  "./src/pwa.js?v=20260606-quiet-squad-mode-225",
+  "./src/game.js?v=20260606-quiet-squad-mode-225",
+  "./manifest.webmanifest?v=20260606-quiet-squad-mode-225",
   "./version.json",
   "./assets/icons/app-icon-20260605-logo-xl-149.svg",
   "./assets/icons/app-icon-20260605-logo-xl-149-192.png",

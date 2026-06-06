@@ -9676,15 +9676,17 @@ body.is-mobile-ui .friends-big-btn {
   }
 
   body.is-mobile-ui .squad-action-bar {
-    grid-template-columns: minmax(68px, 96px) minmax(240px, 390px) minmax(76px, 104px);
-    width: min(660px, 94vw);
+    grid-template-columns: minmax(92px, 116px) minmax(240px, 390px) minmax(98px, 124px);
+    width: min(720px, 96vw);
     gap: 7px;
   }
 
   body.is-mobile-ui .valorant-exit-btn,
   body.is-mobile-ui .valorant-mode-btn {
     min-height: 44px;
-    padding: 0 8px;
+    min-width: 0;
+    padding: 0 10px;
+    white-space: nowrap;
   }
 
   body.is-mobile-ui .valorant-start-btn {
@@ -9894,12 +9896,14 @@ body.is-mobile-ui .friends-big-btn {
   }
 
   body.is-mobile-ui .squad-action-bar {
-    grid-template-columns: minmax(58px, 82px) minmax(220px, 350px) minmax(64px, 90px);
+    grid-template-columns: minmax(82px, 100px) minmax(210px, 1fr) minmax(92px, 112px);
+    width: min(700px, 96vw);
   }
 
   body.is-mobile-ui .valorant-exit-btn,
   body.is-mobile-ui .valorant-mode-btn {
     min-height: 38px;
+    padding: 0 8px;
   }
 
   body.is-mobile-ui .valorant-start-btn {

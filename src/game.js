@@ -9,7 +9,7 @@
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
   const SIGNAL_REALTIME_RELAY_LIMIT = 2;
   const SIGNAL_REALTIME_TYPES = new Set(["state", "snapshot", "attack", "skill", "collect", "openChest", "dropItem", "damage", "chooseDoor"]);
-  const APP_VERSION = "20260606-touch-buttons-polish-226";
+  const APP_VERSION = "20260606-squad-mode-repair-227";
   const CHANGELOG_ENTRIES = [
     {
       version: APP_VERSION,
@@ -5510,19 +5510,17 @@
         return;
       }
       if (action === "open-squad-modes") {
-        if (this.squadModeTransitionActive()) return;
         this.squadModePickerOpen = !this.squadModePickerOpen;
         if (this.squadModePickerOpen) {
           this.lobbyFriendInviteOpen = false;
           this.refreshValorantInvitePanel();
         }
-        this.refreshValorantActionButton();
+        this.refreshValorantActionButton({ force: true });
         return;
       }
       if (action === "close-squad-modes") {
-        if (this.squadModeTransitionActive()) return;
         this.squadModePickerOpen = false;
-        this.refreshValorantActionButton();
+        this.refreshValorantActionButton({ force: true });
         return;
       }
       if (action === "select-squad-mode") {
@@ -5973,8 +5971,8 @@
     squadModePickerHtml() {
       if (!this.squadModePickerOpen) return "";
       const current = this.lobby.runMode || "gauntlet";
-      const transitionLocked = this.squadModeTransitionActive();
-      const canChoose = Boolean(this.lobby?.host || !this.lobby?.code) && !transitionLocked;
+      const transitionLocked = false;
+      const canChoose = Boolean(this.lobby?.host || !this.lobby?.code);
       const cards = this.squadModeOptions().map((mode) => {
         const selected = mode.id === current;
         return `
@@ -6077,6 +6075,28 @@
       return Boolean(this.squadModeTransition);
     }
 
+    startSquadModeTransition(fromMode = "gauntlet", toMode = "gauntlet") {
+      const previousMode = fromMode || toMode || "gauntlet";
+      const nextMode = toMode || "gauntlet";
+      if (this.squadModeTransitionTimer) window.clearTimeout(this.squadModeTransitionTimer);
+      if (previousMode === nextMode) {
+        this.squadModeTransition = null;
+        this.squadModeTransitionTimer = null;
+        this.squadActionRunMode = nextMode;
+        return null;
+      }
+      const token = `${previousMode}:${nextMode}:${Date.now()}`;
+      this.squadModeTransition = { from: previousMode, to: nextMode, token };
+      this.squadActionRunMode = nextMode;
+      this.squadModeTransitionTimer = window.setTimeout(() => {
+        if (this.squadModeTransition?.token !== token) return;
+        this.squadModeTransition = null;
+        this.squadModeTransitionTimer = null;
+        this.syncSquadActionButtonDom({ finalizeTransition: true });
+      }, 1080);
+      return this.squadModeTransition;
+    }
+
     prepareSquadModeTransition(runMode = "gauntlet") {
       const nextMode = runMode || "gauntlet";
       const previousMode = this.squadActionRunMode || nextMode;
@@ -6085,16 +6105,7 @@
         return;
       }
       if (previousMode === nextMode) return;
-      const token = `${previousMode}:${nextMode}:${Date.now()}`;
-      this.squadModeTransition = { from: previousMode, to: nextMode, token };
-      this.squadActionRunMode = nextMode;
-      if (this.squadModeTransitionTimer) window.clearTimeout(this.squadModeTransitionTimer);
-      this.squadModeTransitionTimer = window.setTimeout(() => {
-        if (this.squadModeTransition?.token !== token) return;
-        this.squadModeTransition = null;
-        this.squadModeTransitionTimer = null;
-        this.refreshValorantActionButton({ force: true });
-      }, 1080);
+      this.startSquadModeTransition(previousMode, nextMode);
     }
 
     squadActionButtonHtml() {
@@ -6197,13 +6208,10 @@
       return true;
     }
 
-    syncSquadActionButtonDom() {
+    syncSquadActionButtonDom(options = {}) {
       const start = this.screen?.querySelector(".valorant-start-btn");
       const modeButton = this.screen?.querySelector(".valorant-mode-btn");
       if (!start && !modeButton) return false;
-      if (this.squadModeTransitionTimer) window.clearTimeout(this.squadModeTransitionTimer);
-      this.squadModeTransition = null;
-      this.squadModeTransitionTimer = null;
       const inRoom = Boolean(this.lobby?.code && !this.lobby.joinPending);
       const isHost = Boolean(this.lobby?.host || !inRoom);
       const slots = Array.isArray(this.lobby?.slots) ? this.lobby.slots.filter(Boolean) : [];
@@ -6218,10 +6226,19 @@
       const stateClass = isHost ? "start-action" : this.lobby.ready ? "ready-action active" : "ready-action";
       const iconClass = isHost ? "play" : "ready";
       const modeMeta = this.squadModeById(runMode);
+      const transition = options.transition || this.squadModeTransition;
+      const showTransition = Boolean((options.animate || options.preserveTransition) && transition?.from && transition?.to === runMode && transition.from !== runMode);
+      const restartTransition = Boolean(options.animate && showTransition);
+      const keepTransition = Boolean(options.preserveTransition && showTransition);
+      const animate = restartTransition || keepTransition;
+      const previousMode = animate ? transition.from : runMode;
+      const previousMeta = this.squadModeById(previousMode);
       const modeClass = `mode-${this.squadModeClassSuffix(runMode)}`;
-      const modeStyle = `--button-main:${modeMeta.color};--button-next:${modeMeta.color};--button-prev:${modeMeta.color};--button-prev-text:${this.squadModeTextColor(runMode)};--button-next-text:${this.squadModeTextColor(runMode)};--mode:${modeMeta.color};`;
+      const transitionClass = animate ? `mode-switching mode-from-${this.squadModeClassSuffix(previousMode)} mode-to-${this.squadModeClassSuffix(runMode)}` : "";
+      const modeStyle = `--button-main:${modeMeta.color};--button-next:${modeMeta.color};--button-prev:${previousMeta.color};--button-prev-text:${this.squadModeTextColor(previousMode)};--button-next-text:${this.squadModeTextColor(runMode)};--mode:${modeMeta.color};`;
       if (start) {
-        start.className = `valorant-start-btn ${stateClass} ${modeClass}`;
+        const baseClass = `valorant-start-btn ${stateClass} ${modeClass}`;
+        start.className = baseClass;
         start.setAttribute("style", modeStyle);
         start.setAttribute("data-action", action);
         start.toggleAttribute("disabled", disabled);
@@ -6229,27 +6246,35 @@
         if (labelNode) labelNode.textContent = label;
         const iconNode = start.querySelector(".start-btn-icon");
         if (iconNode) iconNode.className = `start-btn-icon ${iconClass}`;
+        if (restartTransition) {
+          void start.offsetWidth;
+          start.className = `${baseClass} ${transitionClass}`;
+        } else if (keepTransition) {
+          start.className = `${baseClass} ${transitionClass}`;
+        }
       }
       if (modeButton) {
         modeButton.classList.toggle("active", this.squadModePickerOpen);
         modeButton.style.setProperty("--mode", modeMeta.color);
       }
+      this.squadActionRunMode = runMode;
       return true;
     }
 
     selectSquadMode(runMode = "gauntlet") {
-      if (this.squadModeTransitionActive()) return;
       const allowed = new Set(this.squadModeOptions().map((mode) => mode.id));
       const nextMode = allowed.has(runMode) ? runMode : "gauntlet";
       if (this.lobby?.code && !this.lobby.host) {
         this.toast("Chỉ chủ phòng được chọn chế độ");
         return;
       }
+      const previousMode = this.squadActionRunMode || this.lobby.runMode || "gauntlet";
       this.lobby.runMode = nextMode;
       this.squadModePickerOpen = true;
+      const transition = this.startSquadModeTransition(previousMode, nextMode);
       if (this.lobby?.host) this.lobby.broadcastLobby();
       this.syncSquadModePickerDom();
-      this.syncSquadActionButtonDom();
+      this.syncSquadActionButtonDom({ animate: Boolean(transition), transition });
     }
 
     startSelectedSquadMode() {
@@ -6281,7 +6306,10 @@
     }
 
     refreshValorantActionButton(options = {}) {
-      if (!options.force && this.squadModeTransitionActive()) return true;
+      if (!options.force && this.squadModeTransitionActive()) {
+        this.syncSquadActionButtonDom({ preserveTransition: true });
+        return true;
+      }
       const mount = this.screen?.querySelector(".squad-action-mount");
       if (!mount) return false;
       mount.innerHTML = this.squadActionButtonHtml();

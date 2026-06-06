@@ -1,11 +1,11 @@
-const SOULRIFT_CACHE = "soulrift-pwa-20260606-aaa-main-menu-213";
+const SOULRIFT_CACHE = "soulrift-pwa-20260606-clean-main-menu-214";
 const SOULRIFT_ASSETS = [
   "./",
   "./index.html",
-  "./styles.css?v=20260606-aaa-main-menu-213",
-  "./src/pwa.js?v=20260606-aaa-main-menu-213",
-  "./src/game.js?v=20260606-aaa-main-menu-213",
-  "./manifest.webmanifest?v=20260606-aaa-main-menu-213",
+  "./styles.css?v=20260606-clean-main-menu-214",
+  "./src/pwa.js?v=20260606-clean-main-menu-214",
+  "./src/game.js?v=20260606-clean-main-menu-214",
+  "./manifest.webmanifest?v=20260606-clean-main-menu-214",
   "./version.json",
   "./assets/icons/app-icon-20260605-logo-xl-149.svg",
   "./assets/icons/app-icon-20260605-logo-xl-149-192.png",

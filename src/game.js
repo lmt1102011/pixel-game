@@ -9,7 +9,7 @@
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
   const SIGNAL_REALTIME_RELAY_LIMIT = 2;
   const SIGNAL_REALTIME_TYPES = new Set(["state", "snapshot", "attack", "skill", "collect", "openChest", "dropItem", "damage", "chooseDoor"]);
-  const APP_VERSION = "20260606-aaa-main-menu-213";
+  const APP_VERSION = "20260606-clean-main-menu-214";
   const CHANGELOG_ENTRIES = [
     {
       version: APP_VERSION,
@@ -5125,15 +5125,14 @@
     }
 
     mainMenuNavHtml() {
-      const navItem = (action, label, icon, primary = false) => `
-        <button class="aaa-nav-btn ${primary ? "primary" : ""}" data-action="${action}">
+      const navItem = (action, label, icon) => `
+        <button class="aaa-nav-btn" data-action="${action}">
           <span class="aaa-nav-icon ${icon}" aria-hidden="true"></span>
           <span>${label}</span>
         </button>
       `;
       return `
-        <nav class="aaa-main-nav" aria-label="Menu chinh">
-          ${navItem("play", "CH&#416;I", "play", true)}
+        <nav class="aaa-main-nav" aria-label="Menu phu">
           ${navItem("character", "NH&#194;N V&#7852;T", "agent")}
           ${navItem("friends", "B&#7840;N B&#200;", "friends")}
           ${navItem("settings", "C&#192;I &#272;&#7862;T", "settings")}
@@ -5176,18 +5175,17 @@
 
     mainMenuEventsHtml(profile) {
       const cards = [
-        { action: "updates", tag: "UPDATE", title: "B&#7843;n m&#7899;i", text: "Xem thay &#273;&#7893;i, skill v&#224; c&#226;n b&#7857;ng m&#7899;i.", tone: "red" },
-        { action: "missions", tag: "PASS", title: "Nhi&#7879;m v&#7909;", text: "Ho&#224;n th&#224;nh m&#7909;c ti&#234;u &#273;&#7875; nh&#7853;n v&#224;ng v&#224; XP.", tone: "gold" },
-        { action: "play-awakening-raid", tag: "RAID", title: profile.hasPower ? `Raid ${escapeHtml(profile.power.name)}` : "Raid A", text: "S&#259;n ng&#7885;c th&#7913;c t&#7881;nh v&#224; l&#245;i tr&#249;m.", tone: "teal" }
+        { tag: "LIVE", title: "M&#249;a gi&#7843;i Soulrift", text: "V&#432;&#7907;t &#7843;i, raid v&#224; mini game &#273;&#432;&#7907;c gom trong s&#7843;nh ch&#417;i.", tone: "red" },
+        { tag: "RAID", title: profile.hasPower ? `Raid ${escapeHtml(profile.power.name)}` : "Raid A", text: "Ng&#7885;c th&#7913;c t&#7881;nh ph&#7909; thu&#7897;c power &#273;ang ch&#7885;n.", tone: "teal" }
       ];
       return `
         <div class="aaa-event-stack">
           ${cards.map((card) => `
-            <button class="aaa-event-card ${card.tone}" data-action="${card.action}">
+            <div class="aaa-event-card ${card.tone}">
               <span>${card.tag}</span>
               <b>${card.title}</b>
               <small>${card.text}</small>
-            </button>
+            </div>
           `).join("")}
         </div>
       `;
@@ -5271,16 +5269,15 @@
               <h1>SOULRIFT</h1>
               <p>V&#432;&#7907;t &#7843;i, raid boss, th&#7913;c t&#7881;nh power v&#224; chi&#7871;n &#273;&#7845;u c&#249;ng &#273;&#7897;i.</p>
             </div>
-            ${this.mainMenuNavHtml()}
             <button class="aaa-play-cta" data-action="play">
               <span class="aaa-play-icon" aria-hidden="true"></span>
               <span>CH&#416;I</span>
               <small>V&#224;o s&#7843;nh &#273;&#7897;i v&#224; ch&#7885;n ch&#7871; &#273;&#7897;</small>
             </button>
+            ${this.mainMenuNavHtml()}
             ${this.mainMenuEventsHtml(profile)}
           </aside>
           ${this.mainMenuHeroHtml(profile)}
-          ${this.mainMenuQuickFriendsHtml()}
         </section>
       `;
     }

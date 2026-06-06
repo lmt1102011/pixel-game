@@ -1403,7 +1403,7 @@ body.pwa-landing-active .screen {
   min-height: var(--app-height);
   display: grid;
   grid-template-columns: minmax(300px, 390px) minmax(0, 1fr) minmax(260px, 330px);
-  grid-template-rows: 76px minmax(0, 1fr) minmax(118px, 156px);
+  grid-template-rows: auto minmax(0, 1fr) auto;
   gap: 16px;
   padding: max(20px, env(safe-area-inset-top)) max(22px, env(safe-area-inset-right)) max(20px, env(safe-area-inset-bottom)) max(22px, env(safe-area-inset-left));
   overflow: hidden;
@@ -1585,6 +1585,7 @@ body.pwa-landing-active .screen {
   background: rgba(15, 25, 35, 0.82);
   box-shadow: 0 14px 34px rgba(0, 0, 0, 0.38), inset 0 0 24px color-mix(in srgb, var(--rank), transparent 88%);
   clip-path: polygon(14px 0, 100% 0, 100% calc(100% - 14px), calc(100% - 14px) 100%, 0 100%, 0 14px);
+  align-self: start;
 }
 
 .aaa-account-avatar {
@@ -1689,12 +1690,12 @@ body.pwa-landing-active .screen {
 
 .aaa-main-nav {
   display: grid;
-  gap: 9px;
+  gap: 8px;
 }
 
 .aaa-nav-btn {
   position: relative;
-  min-height: 58px;
+  min-height: 52px;
   display: grid;
   grid-template-columns: 42px 1fr;
   align-items: center;
@@ -1728,8 +1729,7 @@ body.pwa-landing-active .screen {
   letter-spacing: 1.4px;
 }
 
-.aaa-nav-btn:hover,
-.aaa-nav-btn.primary {
+.aaa-nav-btn:hover {
   transform: translateX(8px);
   border-color: rgba(255, 70, 85, 0.75);
   background:
@@ -1738,8 +1738,7 @@ body.pwa-landing-active .screen {
   box-shadow: 0 0 22px rgba(255, 70, 85, 0.18), inset 0 0 18px rgba(255, 70, 85, 0.08);
 }
 
-.aaa-nav-btn:hover::after,
-.aaa-nav-btn.primary::after {
+.aaa-nav-btn:hover::after {
   background: #ff4655;
   box-shadow: 0 0 18px rgba(255, 70, 85, 0.72);
 }
@@ -1903,7 +1902,7 @@ body.pwa-landing-active .screen {
 
 .aaa-event-card {
   position: relative;
-  min-height: 72px;
+  min-height: 64px;
   display: grid;
   grid-template-columns: 64px 1fr;
   gap: 3px 12px;
@@ -1915,13 +1914,13 @@ body.pwa-landing-active .screen {
   box-shadow: inset 0 0 22px rgba(255, 255, 255, 0.025);
   clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
   text-align: left;
-  transition: transform 150ms ease, border-color 150ms ease, background 150ms ease;
+  cursor: default;
 }
 
 .aaa-event-card:hover {
-  transform: translateY(-2px);
-  border-color: rgba(255, 70, 85, 0.58);
-  background: rgba(31, 39, 49, 0.78);
+  transform: none;
+  border-color: rgba(236, 232, 225, 0.12);
+  background: rgba(15, 25, 35, 0.58);
 }
 
 .aaa-event-card span {
@@ -7043,7 +7042,7 @@ body.is-mobile-ui .touch-actions [data-touch="dash"] {
 @media (max-width: 1120px) {
   .aaa-main-menu {
     grid-template-columns: minmax(280px, 340px) minmax(0, 1fr);
-    grid-template-rows: 72px minmax(0, 1fr) 132px;
+    grid-template-rows: auto minmax(0, 1fr);
   }
 
   .aaa-resource-bar {
@@ -7057,11 +7056,6 @@ body.is-mobile-ui .touch-actions [data-touch="dash"] {
 
   .aaa-hero-stage {
     grid-column: 2;
-  }
-
-  .aaa-quick-friends {
-    grid-column: 2;
-    width: min(300px, 100%);
   }
 
   .aaa-brand h1 {
@@ -7084,7 +7078,7 @@ body.is-mobile-ui .touch-actions [data-touch="dash"] {
   .aaa-main-menu {
     min-height: var(--app-height);
     grid-template-columns: 1fr;
-    grid-template-rows: auto auto auto auto auto;
+    grid-template-rows: auto auto auto auto;
     gap: 12px;
     padding: calc(12px + env(safe-area-inset-top)) calc(12px + env(safe-area-inset-right)) calc(14px + env(safe-area-inset-bottom)) calc(12px + env(safe-area-inset-left));
     overflow-y: auto;
@@ -7093,8 +7087,7 @@ body.is-mobile-ui .touch-actions [data-touch="dash"] {
   .aaa-resource-bar,
   .aaa-account-card,
   .aaa-menu-left,
-  .aaa-hero-stage,
-  .aaa-quick-friends {
+  .aaa-hero-stage {
     grid-column: 1;
   }
 
@@ -7175,19 +7168,20 @@ body.is-mobile-ui .touch-actions [data-touch="dash"] {
   }
 
   .aaa-main-nav {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 8px;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 7px;
   }
 
   .aaa-nav-btn {
     min-height: 52px;
-    grid-template-columns: 34px 1fr;
-    gap: 8px;
-    padding: 0 10px;
+    grid-template-columns: 1fr;
+    justify-items: center;
+    gap: 4px;
+    padding: 6px 8px;
+    text-align: center;
   }
 
-  .aaa-nav-btn:hover,
-  .aaa-nav-btn.primary {
+  .aaa-nav-btn:hover {
     transform: translateX(0);
   }
 
@@ -7197,7 +7191,7 @@ body.is-mobile-ui .touch-actions [data-touch="dash"] {
   }
 
   .aaa-nav-btn span:last-child {
-    font-size: 12px;
+    font-size: 10px;
     letter-spacing: 0.8px;
   }
 
@@ -7289,11 +7283,6 @@ body.is-mobile-ui .touch-actions [data-touch="dash"] {
     font-size: 22px;
   }
 
-  .aaa-quick-friends {
-    grid-row: 5;
-    justify-self: stretch;
-    width: 100%;
-  }
 }
 
 @media (max-height: 540px) and (orientation: landscape) {

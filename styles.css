@@ -5701,6 +5701,8 @@ body.is-mobile-ui .touch-actions [data-touch="dash"] {
 }
 
 .empty-invite {
+  padding: 0;
+  appearance: none;
   display: grid;
   place-items: center;
   width: 84px;
@@ -5708,12 +5710,22 @@ body.is-mobile-ui .touch-actions [data-touch="dash"] {
   border: 1px solid rgba(236, 232, 225, 0.16);
   background: rgba(15, 25, 35, 0.34);
   color: rgba(236, 232, 225, 0.82);
-  font-size: 58px;
+  font-size: 0;
   font-weight: 900;
-  line-height: 1;
+  line-height: 0;
   box-shadow: none;
   cursor: pointer;
   transition: transform 160ms ease, border-color 160ms ease, color 160ms ease, box-shadow 160ms ease;
+}
+
+.empty-invite::before {
+  content: "+";
+  display: block;
+  color: currentColor;
+  font-size: 54px;
+  font-weight: 900;
+  line-height: 0.82;
+  transform: translateY(-2px);
 }
 
 .empty-invite:hover {
@@ -6003,7 +6015,11 @@ body.is-mobile-ui .touch-actions [data-touch="dash"] {
   .empty-invite {
     width: 54px;
     height: 54px;
-    font-size: 38px;
+  }
+
+  .empty-invite::before {
+    font-size: 35px;
+    transform: translateY(-1px);
   }
 
   .member-info {

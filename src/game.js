@@ -9,7 +9,7 @@
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
   const SIGNAL_REALTIME_RELAY_LIMIT = 2;
   const SIGNAL_REALTIME_TYPES = new Set(["state", "snapshot", "attack", "skill", "collect", "openChest", "dropItem", "damage", "chooseDoor"]);
-  const APP_VERSION = "20260606-clean-empty-slots-211";
+  const APP_VERSION = "20260606-squad-level-plus-212";
   const CHANGELOG_ENTRIES = [
     {
       version: APP_VERSION,
@@ -1647,6 +1647,7 @@
         name: this.playerName(),
         powerId,
         characterId: this.game.save?.account?.selectedCharacter || "swordsman",
+        level: Math.max(1, Math.floor(Number(this.game.save?.progression?.level || 1))),
         customization: { ...(this.game.save?.customization || {}) },
         powerAwakened: this.game.powerAwakeningActive(powerId)
       };
@@ -2087,6 +2088,7 @@
           vote: this.mapVote,
           powerId: message.powerId || "",
           characterId: message.characterId || "swordsman",
+          level: message.level,
           customization: message.customization || {},
           powerAwakened: Boolean(message.powerAwakened),
           host: false
@@ -2123,6 +2125,7 @@
           vote: this.mapVote,
           powerId: message.powerId || "",
           characterId: message.characterId || "swordsman",
+          level: message.level,
           customization: message.customization || {},
           powerAwakened: Boolean(message.powerAwakened),
           host: false
@@ -2306,6 +2309,7 @@
           vote: this.host ? this.mapVote : (message.vote || this.mapVote),
           powerId: message.powerId || "",
           characterId: message.characterId || "swordsman",
+          level: message.level,
           customization: message.customization || {},
           powerAwakened: Boolean(message.powerAwakened),
           host: Boolean(message.host)
@@ -2321,6 +2325,7 @@
           vote: this.mapVote,
           powerId: message.powerId || "",
           characterId: message.characterId || "swordsman",
+          level: message.level,
           customization: message.customization || {},
           powerAwakened: Boolean(message.powerAwakened),
           host: false
@@ -2418,7 +2423,8 @@
       const fallback = existing?.name || `Người chơi ${this.slots.length + 1}`;
       const now = Date.now();
       const joinedAt = Number(existing?.joinedAt || slot.joinedAt || now);
-      const cleanSlot = { ...slot, name: this.slotName(slot, fallback), joinedAt, seenAt: now };
+      const level = Math.max(1, Math.floor(Number(slot.level || existing?.level || 1)));
+      const cleanSlot = { ...slot, name: this.slotName(slot, fallback), level, joinedAt, seenAt: now };
       if (existing) {
         Object.assign(existing, cleanSlot);
       } else if (this.slots.length < LOBBY_MAX_PLAYERS) {
@@ -5456,6 +5462,7 @@
         name: this.save.account.username || "Bạn",
         powerId: selectedPower,
         characterId: this.save.account.selectedCharacter || "swordsman",
+        level: Math.max(1, Math.floor(Number(this.save.progression?.level || 1))),
         customization: { ...(this.save.customization || {}) },
         powerAwakened: this.powerAwakeningActive(selectedPower),
         host: Boolean(this.lobby?.host || !this.lobby?.code),
@@ -5520,6 +5527,11 @@
       return { ...(slot?.customization || {}) };
     }
 
+    squadSlotLevel(slot, self = false) {
+      const fallback = self ? this.save.progression?.level : 1;
+      return Math.max(1, Math.floor(Number(slot?.level || fallback || 1)));
+    }
+
     squadHeroCanvasHtml(slot, self, character, power, custom) {
       const attr = (name, value = "") => `data-${name}="${escapeHtml(value)}"`;
       return `
@@ -5549,6 +5561,7 @@
       const power = powerById(slot?.powerId || this.save.account.selectedPower || "fire");
       const custom = this.squadSlotCustomization(slot, self);
       const stats = this.squadMockStats(slot, options.index || 0);
+      const level = this.squadSlotLevel(slot, self);
       const ready = this.squadReady(slot);
       const inviteAction = "open-lobby-invites";
       if (empty) {
@@ -5591,7 +5604,7 @@
           </div>
           <div class="member-info">
             <div class="member-loadout">
-              <span class="member-loadout-chip level"><b>LV</b><small>${empty ? "--" : stats.level}</small></span>
+              <span class="member-loadout-chip level"><b>LV</b><small>${level}</small></span>
               <span class="member-loadout-chip power"><b>POWER</b><small>${empty ? "--" : escapeHtml(power.name)}</small></span>
               <span class="member-loadout-chip character"><b>NHÂN VẬT</b><small>${empty ? "--" : escapeHtml(character.name)}</small></span>
             </div>

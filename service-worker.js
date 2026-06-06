@@ -1,11 +1,11 @@
-const SOULRIFT_CACHE = "soulrift-pwa-20260606-core-upgrades-192";
+const SOULRIFT_CACHE = "soulrift-pwa-20260606-squad-play-193";
 const SOULRIFT_ASSETS = [
   "./",
   "./index.html",
-  "./styles.css?v=20260606-core-upgrades-192",
-  "./src/pwa.js?v=20260606-core-upgrades-192",
-  "./src/game.js?v=20260606-core-upgrades-192",
-  "./manifest.webmanifest?v=20260606-core-upgrades-192",
+  "./styles.css?v=20260606-squad-play-193",
+  "./src/pwa.js?v=20260606-squad-play-193",
+  "./src/game.js?v=20260606-squad-play-193",
+  "./manifest.webmanifest?v=20260606-squad-play-193",
   "./version.json",
   "./assets/icons/app-icon-20260605-logo-xl-149.svg",
   "./assets/icons/app-icon-20260605-logo-xl-149-192.png",

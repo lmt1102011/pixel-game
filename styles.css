@@ -515,6 +515,236 @@ body.pwa-landing-active .screen {
   background: linear-gradient(90deg, #35d6c9, #f2bf63);
 }
 
+.play-squad-panel {
+  overflow: hidden;
+}
+
+.squad-room-code {
+  display: inline-grid;
+  place-items: center;
+  min-height: 34px;
+  padding: 6px 11px;
+  border: 1px solid rgba(242, 191, 99, 0.36);
+  background: rgba(242, 191, 99, 0.09);
+  color: var(--gold);
+  font-size: 12px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.squad-stage {
+  position: relative;
+  min-height: 430px;
+  margin: 10px 0 14px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background:
+    radial-gradient(circle at 50% 18%, rgba(242, 191, 99, 0.18), transparent 26%),
+    linear-gradient(180deg, rgba(53, 214, 201, 0.08), transparent 42%),
+    linear-gradient(180deg, rgba(10, 13, 20, 0.96), rgba(6, 7, 11, 0.98));
+}
+
+.squad-stage::before {
+  content: "";
+  position: absolute;
+  left: 6%;
+  right: 6%;
+  bottom: 46px;
+  height: 120px;
+  background:
+    linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.06), transparent),
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.08) 0 1px, transparent 1px 96px);
+  transform: perspective(420px) rotateX(62deg);
+  transform-origin: bottom;
+  opacity: 0.72;
+}
+
+.squad-backlight {
+  position: absolute;
+  left: 50%;
+  top: 47%;
+  width: 68%;
+  height: 280px;
+  transform: translate(-50%, -50%);
+  background: radial-gradient(ellipse, rgba(53, 214, 201, 0.18), transparent 68%);
+  pointer-events: none;
+}
+
+.squad-grid {
+  position: absolute;
+  inset: 28px 20px 18px;
+  display: grid;
+  grid-template-columns: repeat(5, minmax(108px, 1fr));
+  gap: 12px;
+  align-items: end;
+}
+
+.squad-slot {
+  position: relative;
+  display: grid;
+  grid-template-rows: 1fr auto;
+  justify-items: center;
+  min-width: 0;
+  height: 340px;
+  --slot-scale: 0.68;
+  opacity: 0.94;
+}
+
+.squad-slot.left-2,
+.squad-slot.right-2 {
+  --slot-scale: 0.58;
+  height: 310px;
+  opacity: 0.78;
+}
+
+.squad-slot.center {
+  --slot-scale: 0.86;
+  height: 384px;
+  opacity: 1;
+}
+
+.squad-pedestal {
+  position: absolute;
+  left: 50%;
+  bottom: 58px;
+  width: 112px;
+  height: 26px;
+  transform: translateX(-50%);
+  border: 1px solid color-mix(in srgb, var(--aura), transparent 45%);
+  border-radius: 50%;
+  background: radial-gradient(ellipse, color-mix(in srgb, var(--aura), transparent 54%), rgba(255, 255, 255, 0.035) 62%, transparent 70%);
+  box-shadow: 0 0 24px color-mix(in srgb, var(--aura), transparent 64%);
+}
+
+.squad-slot.empty .squad-pedestal {
+  opacity: 0.42;
+  filter: grayscale(0.5);
+}
+
+.squad-avatar {
+  position: relative;
+  align-self: end;
+  width: 150px;
+  height: 250px;
+  z-index: 2;
+}
+
+.squad-avatar .preview-hero {
+  left: 50%;
+  top: 48%;
+  transform: translate(-50%, -50%) scale(var(--slot-scale));
+}
+
+.squad-slot.center .preview-hero {
+  filter: drop-shadow(0 18px 18px rgba(0, 0, 0, 0.4));
+}
+
+.squad-slot.filled::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 34px;
+  width: 92px;
+  height: 170px;
+  transform: translateX(-50%);
+  background: radial-gradient(ellipse, color-mix(in srgb, var(--aura), transparent 72%), transparent 68%);
+  opacity: 0.8;
+}
+
+.squad-empty-mark {
+  position: absolute;
+  left: 50%;
+  top: 47%;
+  display: grid;
+  place-items: center;
+  width: 72px;
+  height: 72px;
+  transform: translate(-50%, -50%);
+  border: 1px dashed rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  color: rgba(255, 255, 255, 0.62);
+  font-size: 34px;
+  font-weight: 900;
+}
+
+.squad-invite-btn {
+  width: 100%;
+  height: 100%;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(242, 191, 99, 0.14);
+  color: var(--gold);
+  font-size: 34px;
+  font-weight: 900;
+}
+
+.squad-nameplate {
+  position: relative;
+  z-index: 3;
+  width: min(150px, 100%);
+  padding: 8px 9px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(8, 10, 16, 0.76);
+  text-align: center;
+}
+
+.squad-nameplate b,
+.squad-nameplate span {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.squad-nameplate b {
+  color: var(--text);
+  font-size: 12px;
+}
+
+.squad-nameplate span {
+  margin-top: 3px;
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.squad-slot.self .squad-nameplate {
+  border-color: rgba(242, 191, 99, 0.4);
+  background: rgba(242, 191, 99, 0.12);
+}
+
+.squad-command {
+  display: grid;
+  grid-template-columns: minmax(180px, 0.8fr) minmax(0, 1.2fr);
+  gap: 12px;
+  align-items: center;
+  padding: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.squad-command h3 {
+  margin: 0 0 5px;
+  color: var(--text);
+  font-size: 16px;
+}
+
+.squad-command p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.squad-mode-grid,
+.squad-room-actions {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.squad-room-actions {
+  margin-top: 10px;
+}
+
 .menu-tool-btn:hover {
   border-color: rgba(242, 191, 99, 0.72);
   background: rgba(242, 191, 99, 0.12);
@@ -3859,6 +4089,26 @@ body.is-mobile-ui .toast.combat-toast {
     padding: 14px;
   }
 
+  .squad-stage {
+    min-height: 360px;
+    overflow-x: auto;
+    overflow-y: hidden;
+  }
+
+  .squad-grid {
+    min-width: 720px;
+    inset: 18px 14px 12px;
+  }
+
+  .squad-command {
+    grid-template-columns: 1fr;
+  }
+
+  .squad-mode-grid,
+  .squad-room-actions {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .main-nav {
     max-height: none;
     padding: 12px;
@@ -4219,6 +4469,46 @@ body.is-mobile-ui .icon-btn {
   padding: 8px 9px;
   font-size: 12px;
   text-align: center;
+}
+
+body.is-mobile-ui .squad-stage {
+  min-height: 330px;
+  margin-top: 6px;
+}
+
+body.is-mobile-ui .squad-grid {
+  min-width: 660px;
+  gap: 8px;
+}
+
+body.is-mobile-ui .squad-slot {
+  height: 278px;
+  --slot-scale: 0.54;
+}
+
+body.is-mobile-ui .squad-slot.left-2,
+body.is-mobile-ui .squad-slot.right-2 {
+  --slot-scale: 0.48;
+  height: 258px;
+}
+
+body.is-mobile-ui .squad-slot.center {
+  --slot-scale: 0.66;
+  height: 304px;
+}
+
+body.is-mobile-ui .squad-avatar {
+  height: 206px;
+}
+
+body.is-mobile-ui .squad-pedestal {
+  bottom: 52px;
+  width: 94px;
+}
+
+body.is-mobile-ui .squad-nameplate {
+  width: 126px;
+  padding: 7px;
 }
 
 body.is-mobile-ui .mission-card {

@@ -9,7 +9,7 @@
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
   const SIGNAL_REALTIME_RELAY_LIMIT = 2;
   const SIGNAL_REALTIME_TYPES = new Set(["state", "snapshot", "attack", "skill", "collect", "openChest", "dropItem", "damage", "chooseDoor"]);
-  const APP_VERSION = "20260606-core-upgrades-192";
+  const APP_VERSION = "20260606-squad-play-193";
   const CHANGELOG_ENTRIES = [
     {
       version: APP_VERSION,
@@ -52,6 +52,7 @@
   const FRIEND_INVITE_TTL_MS = 15 * 60 * 1000;
   const FRIEND_REQUEST_TTL_MS = 7 * 24 * 60 * 60 * 1000;
   const ROOM_INVITE_COOLDOWN_MS = 5000;
+  const LOBBY_MAX_PLAYERS = 5;
   const SIGNAL_HISTORY = "2m";
   const DIRECTORY_HISTORY = "75s";
   const RUN_ITEM_LIMIT = 10;
@@ -2403,6 +2404,7 @@
 
     renderLobbyIfVisible() {
       if (this.game.mode === "lobby" || this.game.roomFinderOpen) this.game.renderLobby();
+      else if (this.game.mode === "play" && this.game.screen?.querySelector(".play-squad-panel")) this.game.showPlayMenu();
     }
 
     upsertSlot(slot) {
@@ -2413,7 +2415,7 @@
       const cleanSlot = { ...slot, name: this.slotName(slot, fallback), joinedAt, seenAt: now };
       if (existing) {
         Object.assign(existing, cleanSlot);
-      } else if (this.slots.length < 4) {
+      } else if (this.slots.length < LOBBY_MAX_PLAYERS) {
         this.slots.push(cleanSlot);
       }
     }
@@ -5264,13 +5266,17 @@
       if (action === "close-changelog") this.closeChangelog();
       if (action === "close-changelog-play") this.closeChangelogAndPlay();
       if (action === "open-lobby-invites") {
+        const playView = target?.dataset.view === "play" || this.mode === "play";
         this.lobbyFriendInviteOpen = true;
-        this.renderLobby();
+        if (playView) this.showPlayMenu();
+        else this.renderLobby();
         return;
       }
       if (action === "close-lobby-invites") {
+        const playView = target?.dataset.view === "play" || this.mode === "play";
         this.lobbyFriendInviteOpen = false;
-        this.renderLobby();
+        if (playView) this.showPlayMenu();
+        else this.renderLobby();
         return;
       }
       if (action === "add-friend") this.addFriendFromInput();
@@ -5336,6 +5342,18 @@
       if (action === "unequip-run-item") this.unequipRunItem(target.dataset.uid);
       if (action === "drop-run-item") this.dropRunItem(target.dataset.uid);
       if (action === "awaken-power") this.awakenPower(target.dataset.power);
+      if (action === "play-create-room") {
+        this.lobby.runMode = this.lobby.runMode || "gauntlet";
+        this.lobby.create();
+        this.showPlayMenu();
+        return;
+      }
+      if (action === "play-leave-room") {
+        if (this.lobby?.code || this.lobby?.joinPending) this.lobby.leaveRoom();
+        this.lobbyFriendInviteOpen = false;
+        this.showPlayMenu();
+        return;
+      }
       if (action === "create-room") this.lobby.create();
       if (action === "join-room") {
         if (target.dataset.runMode) this.lobby.runMode = target.dataset.runMode;
@@ -5373,49 +5391,136 @@
       }
     }
 
+    playSquadSlotData() {
+      const ownId = this.lobby?.id || "self";
+      const selectedPower = this.save.account.selectedPower || "fire";
+      const ownFallback = {
+        id: ownId,
+        name: this.save.account.username || "Bạn",
+        powerId: selectedPower,
+        characterId: this.save.account.selectedCharacter || "swordsman",
+        powerAwakened: this.powerAwakeningActive(selectedPower),
+        host: Boolean(this.lobby?.host),
+        ready: Boolean(this.lobby?.host || this.lobby?.ready),
+        joinedAt: Date.now()
+      };
+      const slots = Array.isArray(this.lobby?.slots) ? this.lobby.slots.filter(Boolean) : [];
+      const ownSlot = slots.find((slot) => slot.id === ownId) || ownFallback;
+      const others = slots
+        .filter((slot) => slot.id !== ownId)
+        .sort((a, b) => Number(a.joinedAt || 0) - Number(b.joinedAt || 0));
+      return [
+        { key: "left-2", side: "left", slot: others[1] || null, index: 1 },
+        { key: "left-1", side: "left", slot: others[0] || null, index: 0 },
+        { key: "center", side: "center", slot: ownSlot, self: true, index: 2 },
+        { key: "right-1", side: "right", slot: others[2] || null, index: 3 },
+        { key: "right-2", side: "right", slot: others[3] || null, index: 4 }
+      ];
+    }
+
+    squadAvatarHtml(slot, options = {}) {
+      const self = Boolean(options.self);
+      const empty = !slot;
+      const character = characterById(slot?.characterId || this.save.account.selectedCharacter || "swordsman");
+      const power = powerById(slot?.powerId || this.save.account.selectedPower || "fire");
+      const custom = self ? this.save.customization : {};
+      const hero = custom.color || character.color || "#d8b46a";
+      const aura = slot?.powerAwakened ? (power.accent || power.color) : power.color;
+      const status = empty
+        ? "Đang trống"
+        : slot.host
+          ? "Chủ phòng"
+          : slot.ready
+            ? "Sẵn sàng"
+            : "Chưa sẵn sàng";
+      const name = empty ? "Mời bạn" : this.lobby.slotName(slot, self ? "Bạn" : "Người chơi");
+      const inviteButton = empty && this.lobby?.code && this.lobby.host
+        ? `<button class="squad-invite-btn" data-action="open-lobby-invites" data-view="play">+</button>`
+        : "";
+      return `
+        <div class="squad-slot ${options.key || ""} ${self ? "self" : ""} ${empty ? "empty" : "filled"}" style="--hero:${hero}; --power:${power.color}; --aura:${aura}; --char:${character.color}">
+          <div class="squad-pedestal"></div>
+          <div class="squad-avatar char-${character.id}">
+            ${empty ? `<div class="squad-empty-mark">${inviteButton || "+"}</div>` : `
+              <div class="preview-hero">
+                <span class="preview-cloak ${self ? `preview-${custom.accessory}` : ""}"></span>
+                <span class="preview-leg left"></span>
+                <span class="preview-leg right"></span>
+                <span class="preview-body"></span>
+                <span class="preview-armor"></span>
+                <span class="preview-helmet"></span>
+                <span class="preview-face"></span>
+                <span class="preview-eye left ${self ? `preview-${custom.eyes}` : ""}"></span>
+                <span class="preview-eye right ${self ? `preview-${custom.eyes}` : ""}"></span>
+                <span class="preview-mouth ${self ? `preview-${custom.mouth}` : ""}"></span>
+                <span class="preview-accessory ${self ? `preview-${custom.accessory}` : ""}"></span>
+                <span class="preview-weapon"></span>
+                <span class="preview-hand main"></span>
+                <span class="preview-hand off"></span>
+              </div>
+            `}
+          </div>
+          <div class="squad-nameplate">
+            <b>${escapeHtml(name)}</b>
+            <span>${empty ? status : `${status} - ${character.name} - ${power.name}`}</span>
+          </div>
+        </div>
+      `;
+    }
+
     showPlayMenu() {
       this.mode = "play";
       this.roomFinderOpen = false;
       this.hud.classList.add("hidden");
       this.touchLayer.classList.add("hidden");
+      if (this.lobby?.code) this.lobby.syncOwnSlot();
+      const slots = this.playSquadSlotData().map((entry) => this.squadAvatarHtml(entry.slot, entry)).join("");
+      const inRoom = Boolean(this.lobby?.code);
+      const isHost = Boolean(this.lobby?.host);
+      const roomLabel = inRoom ? `Phòng ${escapeHtml(this.lobby.code)}` : "Chưa tạo phòng";
+      const readyLabel = this.lobby.ready ? "BỎ SẴN SÀNG" : "SẴN SÀNG";
+      const roomActions = inRoom
+        ? `
+          ${isHost ? `<button class="btn primary" data-action="start-room">BẮT ĐẦU</button>` : `<button class="btn primary" data-action="ready-room">${readyLabel}</button>`}
+          ${isHost ? `<button class="btn" data-action="open-lobby-invites" data-view="play">MỜI BẠN</button>` : ""}
+          <button class="btn" data-action="multiplayer">THIẾT LẬP</button>
+          <button class="btn danger" data-action="play-leave-room">RỜI PHÒNG</button>
+        `
+        : `
+          <button class="btn primary" data-action="play-create-room">TẠO PHÒNG</button>
+          <button class="btn" data-action="find-room">TÌM PHÒNG</button>
+        `;
+      const friendInvitePanel = this.lobbyFriendInvitePanel();
       this.setScreen(`
-        <section class="shell">
+        <section class="shell play-shell">
           ${this.navHtml("play")}
-          <div class="panel">
+          <div class="panel play-squad-panel">
             <div class="panel-header">
               <div>
                 <h2 class="panel-title">Chơi</h2>
-                <p class="panel-subtitle">Chọn nội dung muốn vào. Vượt ải sẽ tách tiếp thành chơi đơn hoặc chơi nhiều người.</p>
+                <p class="panel-subtitle">${roomLabel}. Đội hình tối đa ${LOBBY_MAX_PLAYERS} người, bạn luôn đứng ở vị trí trung tâm.</p>
+              </div>
+              <span class="squad-room-code">${roomLabel}</span>
+            </div>
+            <div class="squad-stage">
+              <div class="squad-backlight"></div>
+              <div class="squad-grid">${slots}</div>
+            </div>
+            <div class="squad-command">
+              <div>
+                <h3>Chọn chế độ</h3>
+                <p>Vào vượt ải, mini game, hướng dẫn hoặc phòng test chiêu.</p>
+              </div>
+              <div class="squad-mode-grid">
+                <button class="btn primary" data-action="play-gauntlet">VƯỢT ẢI</button>
+                <button class="btn" data-action="play-minigames">MINI GAME</button>
+                <button class="btn" data-action="play-tutorial">HƯỚNG DẪN</button>
+                <button class="btn" data-action="play-training">HUẤN LUYỆN</button>
               </div>
             </div>
-            <div class="grid cols-2">
-              <button class="choice-card" data-action="play-gauntlet">
-                <div class="card-icon">ẢI</div>
-                <h3>Vượt ải</h3>
-                <p>Vào ải một mình hoặc cùng bạn trong phòng.</p>
-              </button>
-              <button class="choice-card" data-action="play-tutorial">
-                <div class="card-icon">HD</div>
-                <h3>Hướng dẫn</h3>
-                <p>Làm quen di chuyển, đánh thường và dùng skill trong một phòng an toàn.</p>
-              </button>
-              <button class="choice-card" data-action="play-minigames">
-                <div class="card-icon">B</div>
-                <h3>Mini game</h3>
-                <p>Các chế độ ngắn, tập trung vào boss fight hoặc luật riêng.</p>
-              </button>
-              <button class="choice-card" data-action="play-training">
-                <div class="card-icon">T</div>
-                <h3>Phòng huấn luyện</h3>
-                <p>Chỉnh luật test chiêu, stamina, cooldown rồi thử với 5 dummy.</p>
-              </button>
-              <button class="choice-card" data-action="find-room">
-                <div class="card-icon">ID</div>
-                <h3>Phòng online</h3>
-                <p>Xem nhanh các phòng vượt ải đang mở hoặc nhập ID.</p>
-              </button>
-            </div>
+            <div class="squad-room-actions">${roomActions}</div>
           </div>
+          ${friendInvitePanel}
         </section>
       `);
     }
@@ -7151,7 +7256,7 @@
       const raidBiome = BIOMES.find((entry) => entry.id === awakeningRaidBiomeId(raidPower.id)) || BIOMES[0];
       const raidGem = materialLabel(awakeningGemMaterial(raidPower.id));
       if (!this.lobby.code || !isHost) this.lobbyFriendInviteOpen = false;
-      const slots = Array.from({ length: 4 }, (_, index) => {
+      const slots = Array.from({ length: LOBBY_MAX_PLAYERS }, (_, index) => {
         const slot = this.lobby.slots[index];
         const powerName = slot?.powerId ? powerById(slot.powerId).name : "Chưa chọn power";
         const characterName = slot?.characterId ? characterById(slot.characterId).name : "Chưa chọn nhân vật";
@@ -7160,7 +7265,7 @@
           <div class="lobby-slot">
             <h3>${slot ? `${displayName}${slot.host ? " - Chủ phòng" : ""}` : `Người chơi ${index + 1}`}</h3>
             <p>${slot ? (slot.host ? "Điều phối ải" : slot.ready ? "Sẵn sàng" : "Chưa sẵn sàng") : "Đang trống"}</p>
-            <p class="small">${slot ? `${characterName} - ${powerName}` : "Hỗ trợ 2-4 người chơi"}</p>
+            <p class="small">${slot ? `${characterName} - ${powerName}` : `Hỗ trợ tối đa ${LOBBY_MAX_PLAYERS} người chơi`}</p>
           </div>
         `;
       }).join("");

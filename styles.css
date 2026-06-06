@@ -3299,7 +3299,7 @@ body.pwa-landing-active .screen {
 
 .friends-search-box {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 90px 126px;
+  grid-template-columns: minmax(0, 1fr) 126px;
   gap: 8px;
 }
 
@@ -3466,7 +3466,7 @@ body.pwa-landing-active .screen {
 
 .friends-stat-strip {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 8px;
 }
 
@@ -8195,14 +8195,14 @@ body.is-mobile-ui .touch-actions [data-touch="dash"] {
 body.is-mobile-ui .screen.aaa-menu-screen {
   padding: 0;
   place-items: stretch;
-  overflow: hidden;
+  overflow: auto;
 }
 
 body.is-mobile-ui .aaa-main-menu {
   width: 100%;
-  height: var(--app-height);
   min-height: var(--app-height);
-  max-height: var(--app-height);
+  height: auto;
+  max-height: none;
   grid-template-columns: minmax(218px, 292px) minmax(0, 1fr);
   grid-template-rows: auto minmax(0, 1fr);
   grid-template-areas:
@@ -8210,7 +8210,7 @@ body.is-mobile-ui .aaa-main-menu {
     "left hero";
   gap: 8px;
   padding: max(7px, env(safe-area-inset-top)) max(9px, env(safe-area-inset-right)) max(7px, env(safe-area-inset-bottom)) max(9px, env(safe-area-inset-left));
-  overflow: hidden;
+  overflow: auto;
 }
 
 body.is-mobile-ui .aaa-bg-layer.layer-two,
@@ -8255,6 +8255,7 @@ body.is-mobile-ui .aaa-menu-left {
   max-width: none;
   min-width: 0;
   gap: 8px;
+  overflow: visible;
 }
 
 body.is-mobile-ui .aaa-brand h1 {
@@ -8298,6 +8299,7 @@ body.is-mobile-ui .aaa-main-nav {
 }
 
 body.is-mobile-ui .aaa-nav-btn {
+  min-width: 0;
   min-height: 42px;
   grid-template-columns: 1fr;
   justify-items: center;
@@ -8305,6 +8307,7 @@ body.is-mobile-ui .aaa-nav-btn {
   padding: 5px 4px;
   text-align: center;
   transform: none;
+  overflow: hidden;
 }
 
 body.is-mobile-ui .aaa-nav-btn:hover {
@@ -8320,6 +8323,9 @@ body.is-mobile-ui .aaa-nav-btn span:last-child {
   max-width: 100%;
   font-size: 8px;
   letter-spacing: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 body.is-mobile-ui .aaa-nav-icon.agent::before {
@@ -8355,7 +8361,7 @@ body.is-mobile-ui .aaa-nav-icon.settings::after {
 body.is-mobile-ui .aaa-hero-stage {
   grid-area: hero;
   min-height: 0;
-  height: 100%;
+  height: auto;
   border: 1px solid rgba(236, 232, 225, 0.08);
   background: rgba(15, 25, 35, 0.2);
 }
@@ -8371,7 +8377,7 @@ body.is-mobile-ui .aaa-hero-canvas {
   right: 50%;
   bottom: 0;
   width: min(420px, 58vw);
-  height: 100%;
+  height: min(100%, 380px);
   max-height: none;
   transform: translateX(50%);
 }
@@ -8404,6 +8410,252 @@ body.is-mobile-ui .aaa-hero-tags b {
   letter-spacing: 0;
 }
 
+body.is-mobile-ui .friends-arena {
+  width: 100%;
+  max-width: 100vw;
+  min-height: var(--app-height);
+  max-height: none;
+  grid-template-columns: 1fr;
+  grid-template-rows: auto auto auto minmax(220px, auto) auto auto;
+  grid-template-areas:
+    "top"
+    "search"
+    "controls"
+    "list"
+    "queue"
+    "detail";
+  gap: 8px;
+  padding: max(8px, env(safe-area-inset-top)) max(8px, env(safe-area-inset-right)) max(8px, env(safe-area-inset-bottom)) max(8px, env(safe-area-inset-left));
+  overflow: auto;
+  border: 0;
+  box-shadow: none;
+}
+
+body.is-mobile-ui .friends-arena > * {
+  min-width: 0;
+  max-width: 100%;
+}
+
+body.is-mobile-ui .friends-topbar,
+body.is-mobile-ui .friends-search-panel,
+body.is-mobile-ui .friends-control-panel,
+body.is-mobile-ui .friends-list-panel,
+body.is-mobile-ui .friends-queue-panel,
+body.is-mobile-ui .friend-detail-panel {
+  clip-path: none;
+}
+
+body.is-mobile-ui .friends-topbar {
+  min-height: auto;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+  padding: 10px;
+}
+
+body.is-mobile-ui .friends-topbar span {
+  font-size: 8px;
+  letter-spacing: 0.8px;
+}
+
+body.is-mobile-ui .friends-topbar h2 {
+  font-size: 24px;
+  letter-spacing: 1px;
+}
+
+body.is-mobile-ui .friends-topbar p {
+  display: none;
+}
+
+body.is-mobile-ui .friends-top-actions {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(82px, 100px);
+  width: 100%;
+  justify-content: stretch;
+  gap: 6px;
+}
+
+body.is-mobile-ui .friends-room-chip,
+body.is-mobile-ui .friends-exit-btn {
+  flex: 1 1 0;
+  min-width: 0;
+  min-height: 36px;
+  padding: 0 8px;
+  font-size: 10px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+body.is-mobile-ui .friends-search-panel,
+body.is-mobile-ui .friends-control-panel,
+body.is-mobile-ui .friends-list-panel,
+body.is-mobile-ui .friends-queue-panel,
+body.is-mobile-ui .friend-detail-panel {
+  padding: 9px;
+}
+
+body.is-mobile-ui .friends-search-box {
+  grid-template-columns: 1fr;
+  gap: 7px;
+}
+
+body.is-mobile-ui .friends-search-box input,
+body.is-mobile-ui .friends-search-box button,
+body.is-mobile-ui .friends-sort-box select {
+  min-width: 0;
+  min-height: 42px;
+  font-size: 12px;
+}
+
+body.is-mobile-ui .friends-search-results {
+  min-height: 42px;
+}
+
+body.is-mobile-ui .friends-search-empty,
+body.is-mobile-ui .friends-empty-state {
+  min-height: 42px;
+  padding: 8px;
+  text-align: center;
+  font-size: 11px;
+}
+
+body.is-mobile-ui .friends-stat-strip {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+}
+
+body.is-mobile-ui .friends-stat-strip div {
+  min-width: 0;
+  padding: 8px 6px;
+  text-align: center;
+}
+
+body.is-mobile-ui .friends-stat-strip b {
+  font-size: 17px;
+}
+
+body.is-mobile-ui .friends-stat-strip span {
+  font-size: 8px;
+}
+
+body.is-mobile-ui .friends-section-head {
+  padding-bottom: 7px;
+}
+
+body.is-mobile-ui .friends-section-head b {
+  font-size: 14px;
+}
+
+body.is-mobile-ui .friends-player-list,
+body.is-mobile-ui .friends-queue-list {
+  max-height: none;
+  overflow: visible;
+  padding-right: 0;
+}
+
+body.is-mobile-ui .friends-search-result,
+body.is-mobile-ui .friend-player-card,
+body.is-mobile-ui .friend-request-card,
+body.is-mobile-ui .party-invite-card {
+  grid-template-columns: 42px minmax(0, 1fr);
+  gap: 8px;
+}
+
+body.is-mobile-ui .friend-player-card {
+  min-height: auto;
+  padding: 9px;
+}
+
+body.is-mobile-ui .friend-card-actions {
+  grid-column: 1 / -1;
+  justify-content: stretch;
+}
+
+body.is-mobile-ui .friends-mini-btn {
+  flex: 1 1 80px;
+  min-height: 34px;
+}
+
+body.is-mobile-ui .friend-name-line {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+}
+
+body.is-mobile-ui .friend-meta-line {
+  gap: 5px;
+}
+
+body.is-mobile-ui .friend-meta-line > span,
+body.is-mobile-ui .friend-rank,
+body.is-mobile-ui .friend-status {
+  max-width: 100%;
+  font-size: 9px;
+  white-space: normal;
+}
+
+body.is-mobile-ui .friend-detail-panel {
+  grid-template-columns: 1fr;
+  grid-template-rows: 58px auto auto auto;
+  gap: 8px;
+  overflow: visible;
+}
+
+body.is-mobile-ui .friend-profile-banner {
+  min-height: 58px;
+  grid-row: auto;
+}
+
+body.is-mobile-ui .friend-profile-head {
+  grid-template-columns: 58px minmax(0, 1fr);
+  gap: 9px;
+}
+
+body.is-mobile-ui .friends-avatar.hero {
+  width: 56px;
+  height: 56px;
+  font-size: 22px;
+}
+
+body.is-mobile-ui .friend-profile-head h3 {
+  font-size: 18px;
+}
+
+body.is-mobile-ui .friend-profile-stats {
+  grid-template-columns: 1fr;
+  gap: 6px;
+}
+
+body.is-mobile-ui .friend-profile-stats div {
+  min-height: 48px;
+}
+
+body.is-mobile-ui .friend-detail-actions {
+  grid-template-columns: 1fr 1fr;
+}
+
+body.is-mobile-ui .friends-big-btn {
+  min-width: 0;
+  min-height: 40px;
+  padding: 0 8px;
+  font-size: 11px;
+}
+
+@media (max-width: 640px) {
+  body.is-mobile-ui .friends-top-actions {
+    grid-template-columns: 1fr;
+  }
+
+  body.is-mobile-ui .friends-stat-strip {
+    grid-template-columns: 1fr;
+  }
+
+  body.is-mobile-ui .friend-detail-actions {
+    grid-template-columns: 1fr;
+  }
+}
+
 @media (max-width: 780px) {
   body.is-mobile-ui .screen.aaa-menu-screen {
     overflow-y: auto;
@@ -8433,6 +8685,24 @@ body.is-mobile-ui .aaa-hero-tags b {
 
   body.is-mobile-ui .aaa-brand h1 {
     font-size: 38px;
+  }
+
+  body.is-mobile-ui .aaa-main-nav {
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+
+  body.is-mobile-ui .aaa-nav-btn {
+    min-height: 38px;
+    grid-template-columns: 28px minmax(0, 1fr);
+    justify-items: start;
+    padding: 5px 8px;
+    text-align: left;
+  }
+
+  body.is-mobile-ui .aaa-nav-btn span:last-child {
+    font-size: 10px;
+    text-align: left;
   }
 
   body.is-mobile-ui .aaa-hero-stage {

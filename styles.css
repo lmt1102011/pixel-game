@@ -8191,3 +8191,255 @@ body.is-mobile-ui .touch-actions [data-touch="dash"] {
     grid-template-columns: 1fr 1fr;
   }
 }
+
+body.is-mobile-ui .screen.aaa-menu-screen {
+  padding: 0;
+  place-items: stretch;
+  overflow: hidden;
+}
+
+body.is-mobile-ui .aaa-main-menu {
+  width: 100%;
+  height: var(--app-height);
+  min-height: var(--app-height);
+  max-height: var(--app-height);
+  grid-template-columns: minmax(218px, 292px) minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr);
+  grid-template-areas:
+    "left account"
+    "left hero";
+  gap: 8px;
+  padding: max(7px, env(safe-area-inset-top)) max(9px, env(safe-area-inset-right)) max(7px, env(safe-area-inset-bottom)) max(9px, env(safe-area-inset-left));
+  overflow: hidden;
+}
+
+body.is-mobile-ui .aaa-bg-layer.layer-two,
+body.is-mobile-ui .aaa-event-stack,
+body.is-mobile-ui .aaa-power-score,
+body.is-mobile-ui .aaa-brand span,
+body.is-mobile-ui .aaa-brand p {
+  display: none;
+}
+
+body.is-mobile-ui .aaa-account-card {
+  grid-area: account;
+  justify-self: end;
+  width: min(330px, 100%);
+  min-height: 46px;
+  grid-template-columns: 36px minmax(0, 1fr) auto;
+  gap: 8px;
+  padding: 6px 8px;
+}
+
+body.is-mobile-ui .aaa-account-avatar {
+  width: 34px;
+  height: 34px;
+  font-size: 15px;
+}
+
+body.is-mobile-ui .aaa-account-main b,
+body.is-mobile-ui .aaa-account-meta b {
+  font-size: 11px;
+}
+
+body.is-mobile-ui .aaa-account-main span,
+body.is-mobile-ui .aaa-account-meta span {
+  font-size: 8px;
+  letter-spacing: 0;
+}
+
+body.is-mobile-ui .aaa-menu-left {
+  grid-area: left;
+  align-self: stretch;
+  align-content: center;
+  max-width: none;
+  min-width: 0;
+  gap: 8px;
+}
+
+body.is-mobile-ui .aaa-brand h1 {
+  font-size: clamp(30px, 7vw, 42px);
+  letter-spacing: 1px;
+}
+
+body.is-mobile-ui .aaa-play-cta {
+  min-height: 54px;
+  grid-template-columns: 30px minmax(0, 1fr);
+  padding: 8px 10px;
+  column-gap: 9px;
+}
+
+body.is-mobile-ui .aaa-play-icon {
+  width: 28px;
+  height: 28px;
+}
+
+body.is-mobile-ui .aaa-play-icon::before {
+  left: 10px;
+  top: 8px;
+  border-top-width: 6px;
+  border-bottom-width: 6px;
+  border-left-width: 10px;
+}
+
+body.is-mobile-ui .aaa-play-cta span:not(.aaa-play-icon) {
+  font-size: 16px;
+  letter-spacing: 1px;
+}
+
+body.is-mobile-ui .aaa-play-cta small {
+  font-size: 8px;
+  letter-spacing: 0;
+}
+
+body.is-mobile-ui .aaa-main-nav {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+}
+
+body.is-mobile-ui .aaa-nav-btn {
+  min-height: 42px;
+  grid-template-columns: 1fr;
+  justify-items: center;
+  gap: 3px;
+  padding: 5px 4px;
+  text-align: center;
+  transform: none;
+}
+
+body.is-mobile-ui .aaa-nav-btn:hover {
+  transform: none;
+}
+
+body.is-mobile-ui .aaa-nav-icon {
+  width: 24px;
+  height: 24px;
+}
+
+body.is-mobile-ui .aaa-nav-btn span:last-child {
+  max-width: 100%;
+  font-size: 8px;
+  letter-spacing: 0;
+}
+
+body.is-mobile-ui .aaa-nav-icon.agent::before {
+  top: 5px;
+  width: 8px;
+  height: 8px;
+}
+
+body.is-mobile-ui .aaa-nav-icon.agent::after {
+  bottom: 5px;
+  width: 14px;
+  height: 6px;
+}
+
+body.is-mobile-ui .aaa-nav-icon.friends::before,
+body.is-mobile-ui .aaa-nav-icon.friends::after {
+  width: 8px;
+  height: 14px;
+}
+
+body.is-mobile-ui .aaa-nav-icon.settings::before {
+  width: 13px;
+  height: 13px;
+  border-width: 2px;
+}
+
+body.is-mobile-ui .aaa-nav-icon.settings::after {
+  width: 18px;
+  height: 2px;
+  box-shadow: 0 -7px 0 rgba(236, 232, 225, 0.45), 0 7px 0 rgba(236, 232, 225, 0.45);
+}
+
+body.is-mobile-ui .aaa-hero-stage {
+  grid-area: hero;
+  min-height: 0;
+  height: 100%;
+  border: 1px solid rgba(236, 232, 225, 0.08);
+  background: rgba(15, 25, 35, 0.2);
+}
+
+body.is-mobile-ui .aaa-hero-light {
+  right: 8%;
+  bottom: 4%;
+  width: 74%;
+  height: 92%;
+}
+
+body.is-mobile-ui .aaa-hero-canvas {
+  right: 50%;
+  bottom: 0;
+  width: min(420px, 58vw);
+  height: 100%;
+  max-height: none;
+  transform: translateX(50%);
+}
+
+body.is-mobile-ui .aaa-hero-info {
+  left: 6px;
+  bottom: 6px;
+  max-width: min(230px, 66%);
+  gap: 5px;
+  padding: 8px 9px;
+}
+
+body.is-mobile-ui .aaa-hero-info span {
+  font-size: 8px;
+  letter-spacing: 0.6px;
+}
+
+body.is-mobile-ui .aaa-hero-info h2 {
+  font-size: 18px;
+  letter-spacing: 0.4px;
+}
+
+body.is-mobile-ui .aaa-hero-tags {
+  gap: 4px;
+}
+
+body.is-mobile-ui .aaa-hero-tags b {
+  padding: 4px 5px;
+  font-size: 8px;
+  letter-spacing: 0;
+}
+
+@media (max-width: 780px) {
+  body.is-mobile-ui .screen.aaa-menu-screen {
+    overflow-y: auto;
+  }
+
+  body.is-mobile-ui .aaa-main-menu {
+    height: auto;
+    min-height: var(--app-height);
+    max-height: none;
+    grid-template-columns: 1fr;
+    grid-template-rows: auto auto minmax(220px, 34vh);
+    grid-template-areas:
+      "account"
+      "left"
+      "hero";
+    overflow-y: auto;
+  }
+
+  body.is-mobile-ui .aaa-account-card {
+    justify-self: stretch;
+    width: 100%;
+  }
+
+  body.is-mobile-ui .aaa-menu-left {
+    align-content: start;
+  }
+
+  body.is-mobile-ui .aaa-brand h1 {
+    font-size: 38px;
+  }
+
+  body.is-mobile-ui .aaa-hero-stage {
+    min-height: 220px;
+  }
+
+  body.is-mobile-ui .aaa-hero-canvas {
+    width: min(360px, 92vw);
+  }
+}

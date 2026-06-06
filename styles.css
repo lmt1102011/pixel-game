@@ -4886,7 +4886,9 @@ body.is-mobile-ui .touch-actions [data-touch="dash"] {
 }
 
 .valorant-mode-btn {
-  border-color: rgba(255, 70, 85, 0.28);
+  --mode: #ff4655;
+  border-color: color-mix(in srgb, var(--mode), transparent 58%);
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.48), inset 0 0 0 1px color-mix(in srgb, var(--mode), transparent 86%);
 }
 
 .valorant-exit-btn::after,
@@ -4903,12 +4905,12 @@ body.is-mobile-ui .touch-actions [data-touch="dash"] {
 .valorant-mode-btn:hover,
 .valorant-mode-btn.active {
   transform: translateY(-1px);
-  border-color: rgba(255, 70, 85, 0.58);
+  border-color: color-mix(in srgb, var(--mode), transparent 26%);
   background:
     linear-gradient(135deg, transparent 0 13px, rgba(236, 232, 225, 0.34) 13px 15px, transparent 15px),
-    linear-gradient(315deg, transparent 0 13px, rgba(255, 70, 85, 0.5) 13px 15px, transparent 15px),
+    linear-gradient(315deg, transparent 0 13px, color-mix(in srgb, var(--mode), transparent 44%) 13px 15px, transparent 15px),
     linear-gradient(180deg, rgba(38, 47, 59, 0.96), rgba(15, 25, 35, 0.94));
-  box-shadow: 0 16px 38px rgba(0, 0, 0, 0.52), 0 0 20px rgba(255, 70, 85, 0.18);
+  box-shadow: 0 16px 38px rgba(0, 0, 0, 0.52), 0 0 22px color-mix(in srgb, var(--mode), transparent 76%);
 }
 
 .valorant-exit-btn:hover::after,
@@ -4949,7 +4951,7 @@ body.is-mobile-ui .touch-actions [data-touch="dash"] {
 .mode-btn-icon {
   border: 2px solid currentColor;
   transform: rotate(45deg);
-  box-shadow: inset 0 0 0 3px rgba(255, 70, 85, 0.12), 0 0 10px rgba(255, 70, 85, 0.18);
+  box-shadow: inset 0 0 0 3px color-mix(in srgb, var(--mode), transparent 88%), 0 0 10px color-mix(in srgb, var(--mode), transparent 78%);
 }
 
 .valorant-start-btn {
@@ -4968,16 +4970,16 @@ body.is-mobile-ui .touch-actions [data-touch="dash"] {
   background:
     linear-gradient(135deg, transparent 0 16px, rgba(236, 232, 225, 0.96) 16px 18px, transparent 18px),
     linear-gradient(315deg, transparent 0 16px, rgba(236, 232, 225, 0.9) 16px 18px, transparent 18px),
-    linear-gradient(90deg, #d83546 0%, var(--button-main) 50%, #f93449 100%);
+    linear-gradient(90deg, color-mix(in srgb, var(--button-main), #0f1923 30%) 0%, var(--button-main) 50%, color-mix(in srgb, var(--button-main), #ece8e1 16%) 100%);
   clip-path: polygon(22px 0, 100% 0, 100% calc(100% - 22px), calc(100% - 22px) 100%, 0 100%, 0 22px);
   cursor: pointer;
   isolation: isolate;
   transform: translateZ(0);
   box-shadow:
     0 0 0 1px rgba(236, 232, 225, 0.22),
-    0 0 0 5px rgba(255, 70, 85, 0.1),
+    0 0 0 5px color-mix(in srgb, var(--button-main), transparent 88%),
     0 18px 46px rgba(0, 0, 0, 0.62),
-    0 0 34px rgba(255, 70, 85, 0.28);
+    0 0 34px color-mix(in srgb, var(--button-main), transparent 68%);
   animation: valorantStartIdle 2.4s ease-in-out infinite;
   transition: transform 170ms ease, filter 170ms ease, box-shadow 170ms ease, background 170ms ease;
 }
@@ -4995,7 +4997,7 @@ body.is-mobile-ui .touch-actions [data-touch="dash"] {
   z-index: -1;
   border: 1px solid rgba(15, 25, 35, 0.76);
   background:
-    linear-gradient(90deg, rgba(15, 25, 35, 0.12), rgba(236, 232, 225, 0.18), rgba(15, 25, 35, 0.12)),
+    linear-gradient(90deg, color-mix(in srgb, var(--button-main), transparent 92%), rgba(236, 232, 225, 0.18), color-mix(in srgb, var(--button-main), transparent 92%)),
     linear-gradient(180deg, rgba(255, 255, 255, 0.16), transparent 42%, rgba(0, 0, 0, 0.18));
   box-shadow: inset 0 0 0 2px rgba(15, 25, 35, 0.32), inset 0 0 18px rgba(255, 255, 255, 0.1);
 }
@@ -5016,9 +5018,9 @@ body.is-mobile-ui .touch-actions [data-touch="dash"] {
   filter: brightness(1.12) saturate(1.08);
   box-shadow:
     0 0 0 1px rgba(236, 232, 225, 0.34),
-    0 0 0 7px rgba(255, 70, 85, 0.16),
+    0 0 0 7px color-mix(in srgb, var(--button-main), transparent 80%),
     0 22px 54px rgba(0, 0, 0, 0.68),
-    0 0 46px rgba(255, 70, 85, 0.52);
+    0 0 46px color-mix(in srgb, var(--button-main), transparent 42%);
 }
 
 .valorant-start-btn:not(:disabled):hover::after {
@@ -5032,7 +5034,6 @@ body.is-mobile-ui .touch-actions [data-touch="dash"] {
 }
 
 .valorant-start-btn:disabled {
-  --button-main: #555d66;
   color: rgba(236, 232, 225, 0.46);
   background:
     linear-gradient(135deg, transparent 0 16px, rgba(236, 232, 225, 0.3) 16px 18px, transparent 18px),
@@ -5040,7 +5041,7 @@ body.is-mobile-ui .touch-actions [data-touch="dash"] {
     linear-gradient(90deg, #343b44, #505862, #343b44);
   cursor: not-allowed;
   animation: none;
-  box-shadow: 0 16px 34px rgba(0, 0, 0, 0.46), 0 0 0 1px rgba(236, 232, 225, 0.1);
+  box-shadow: 0 16px 34px rgba(0, 0, 0, 0.46), 0 0 0 1px rgba(236, 232, 225, 0.1), 0 0 18px color-mix(in srgb, var(--button-main), transparent 86%);
 }
 
 .start-btn-core {
@@ -5130,11 +5131,79 @@ body.is-mobile-ui .touch-actions [data-touch="dash"] {
   background:
     linear-gradient(135deg, transparent 0 16px, rgba(236, 232, 225, 0.92) 16px 18px, transparent 18px),
     linear-gradient(315deg, transparent 0 16px, rgba(236, 232, 225, 0.82) 16px 18px, transparent 18px),
-    linear-gradient(90deg, #1f2731, #28313b, #1f2731);
+    linear-gradient(90deg, color-mix(in srgb, var(--button-main), #1f2731 70%), #28313b, color-mix(in srgb, var(--button-main), #1f2731 70%));
   box-shadow:
     0 0 0 1px rgba(236, 232, 225, 0.2),
     0 18px 46px rgba(0, 0, 0, 0.58),
-    0 0 30px rgba(236, 232, 225, 0.14);
+    0 0 30px color-mix(in srgb, var(--button-main), transparent 78%);
+}
+
+.valorant-start-btn.mode-gauntlet {
+  color: #0f1923;
+  background:
+    linear-gradient(135deg, transparent 0 16px, rgba(15, 25, 35, 0.78) 16px 18px, transparent 18px),
+    linear-gradient(315deg, transparent 0 16px, rgba(236, 232, 225, 0.62) 16px 18px, transparent 18px),
+    linear-gradient(90deg, #3fd6a0 0%, var(--button-main) 48%, #b7ffd0 100%);
+}
+
+.valorant-start-btn.mode-gauntlet::before {
+  background:
+    repeating-linear-gradient(135deg, rgba(15, 25, 35, 0.08) 0 8px, transparent 8px 18px),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.22), transparent 46%, rgba(15, 25, 35, 0.18));
+}
+
+.valorant-start-btn.mode-awakening-raid {
+  color: #0f1923;
+  background:
+    radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.28), transparent 28%),
+    linear-gradient(135deg, transparent 0 16px, rgba(15, 25, 35, 0.72) 16px 18px, transparent 18px),
+    linear-gradient(315deg, transparent 0 16px, rgba(236, 232, 225, 0.88) 16px 18px, transparent 18px),
+    linear-gradient(90deg, color-mix(in srgb, var(--button-main), #f2bf63 36%) 0%, var(--button-main) 48%, #fff2a8 100%);
+}
+
+.valorant-start-btn.mode-awakening-raid::before {
+  box-shadow:
+    inset 0 0 0 2px rgba(15, 25, 35, 0.28),
+    inset 0 0 18px rgba(255, 255, 255, 0.2),
+    inset 0 0 34px color-mix(in srgb, var(--button-main), transparent 64%);
+}
+
+.valorant-start-btn.mode-boss-rush {
+  background:
+    linear-gradient(135deg, transparent 0 16px, rgba(236, 232, 225, 0.92) 16px 18px, transparent 18px),
+    linear-gradient(315deg, transparent 0 16px, rgba(15, 25, 35, 0.76) 16px 18px, transparent 18px),
+    repeating-linear-gradient(0deg, rgba(15, 25, 35, 0.18) 0 5px, transparent 5px 13px),
+    linear-gradient(90deg, #8f1726 0%, var(--button-main) 50%, #ff7b62 100%);
+}
+
+.valorant-start-btn.mode-boss-rush .start-btn-edge::before {
+  animation-duration: 0.92s;
+}
+
+.valorant-start-btn.mode-player-boss {
+  background:
+    linear-gradient(135deg, transparent 0 16px, rgba(236, 232, 225, 0.72) 16px 18px, transparent 18px),
+    linear-gradient(315deg, transparent 0 16px, rgba(255, 70, 85, 0.72) 16px 18px, transparent 18px),
+    linear-gradient(115deg, #261143 0%, var(--button-main) 46%, #ff4655 100%);
+}
+
+.valorant-start-btn.mode-player-boss::before {
+  background:
+    radial-gradient(circle at 24% 50%, rgba(255, 70, 85, 0.26), transparent 30%),
+    radial-gradient(circle at 78% 50%, color-mix(in srgb, var(--button-main), transparent 48%), transparent 32%),
+    linear-gradient(90deg, rgba(15, 25, 35, 0.28), rgba(236, 232, 225, 0.12), rgba(15, 25, 35, 0.28));
+}
+
+.valorant-start-btn.mode-gauntlet .start-btn-icon,
+.valorant-start-btn.mode-awakening-raid .start-btn-icon {
+  border-color: rgba(15, 25, 35, 0.46);
+  background: rgba(236, 232, 225, 0.24);
+}
+
+.valorant-start-btn.mode-boss-rush .start-btn-icon,
+.valorant-start-btn.mode-player-boss .start-btn-icon {
+  border-color: rgba(236, 232, 225, 0.68);
+  background: rgba(15, 25, 35, 0.34);
 }
 
 .squad-mode-panel {
@@ -5295,16 +5364,16 @@ body.is-mobile-ui .touch-actions [data-touch="dash"] {
   0%, 100% {
     box-shadow:
       0 0 0 1px rgba(236, 232, 225, 0.22),
-      0 0 0 5px rgba(255, 70, 85, 0.1),
+      0 0 0 5px color-mix(in srgb, var(--button-main), transparent 88%),
       0 18px 46px rgba(0, 0, 0, 0.62),
-      0 0 28px rgba(255, 70, 85, 0.23);
+      0 0 28px color-mix(in srgb, var(--button-main), transparent 76%);
   }
   50% {
     box-shadow:
       0 0 0 1px rgba(236, 232, 225, 0.28),
-      0 0 0 6px rgba(255, 70, 85, 0.15),
+      0 0 0 6px color-mix(in srgb, var(--button-main), transparent 82%),
       0 20px 48px rgba(0, 0, 0, 0.66),
-      0 0 40px rgba(255, 70, 85, 0.38);
+      0 0 40px color-mix(in srgb, var(--button-main), transparent 58%);
   }
 }
 
@@ -5322,13 +5391,13 @@ body.is-mobile-ui .touch-actions [data-touch="dash"] {
     box-shadow:
       0 0 0 1px rgba(236, 232, 225, 0.34),
       0 18px 46px rgba(0, 0, 0, 0.62),
-      0 0 34px rgba(255, 70, 85, 0.34);
+      0 0 34px color-mix(in srgb, var(--button-main), transparent 62%);
   }
   45% {
     box-shadow:
       0 0 0 1px rgba(236, 232, 225, 0.52),
       0 12px 28px rgba(0, 0, 0, 0.52),
-      0 0 64px rgba(255, 70, 85, 0.74);
+      0 0 64px color-mix(in srgb, var(--button-main), transparent 24%);
   }
 }
 

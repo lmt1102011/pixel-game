@@ -9,7 +9,7 @@
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
   const SIGNAL_REALTIME_RELAY_LIMIT = 2;
   const SIGNAL_REALTIME_TYPES = new Set(["state", "snapshot", "attack", "skill", "collect", "openChest", "dropItem", "damage", "chooseDoor"]);
-  const APP_VERSION = "20260606-squad-mode-picker-202";
+  const APP_VERSION = "20260606-mode-styled-start-203";
   const CHANGELOG_ENTRIES = [
     {
       version: APP_VERSION,
@@ -5653,6 +5653,9 @@
       const disabled = isHost && !hostCanStart;
       const stateClass = isHost ? "start-action" : this.lobby.ready ? "ready-action active" : "ready-action";
       const iconClass = isHost ? "play" : "ready";
+      const modeMeta = this.squadModeOptions().find((mode) => mode.id === runMode) || this.squadModeOptions()[0];
+      const modeClass = `mode-${runMode.replace(/[A-Z]/g, (letter) => `-${letter.toLowerCase()}`)}`;
+      const modeStyle = `--button-main:${modeMeta.color};--mode:${modeMeta.color};`;
       const modePanel = this.squadModePickerHtml();
       return `
         <div class="squad-action-bar">
@@ -5660,7 +5663,7 @@
             <span class="exit-btn-icon" aria-hidden="true"></span>
             <span>THOÁT</span>
           </button>
-          <button class="valorant-start-btn ${stateClass}" data-action="${action}" ${disabled ? "disabled" : ""}>
+          <button class="valorant-start-btn ${stateClass} ${modeClass}" style="${modeStyle}" data-action="${action}" ${disabled ? "disabled" : ""}>
             <span class="start-btn-edge top" aria-hidden="true"></span>
             <span class="start-btn-core">
               <span class="start-btn-icon ${iconClass}" aria-hidden="true"></span>
@@ -5668,7 +5671,7 @@
             </span>
             <span class="start-btn-edge bottom" aria-hidden="true"></span>
           </button>
-          <button class="valorant-mode-btn ${this.squadModePickerOpen ? "active" : ""}" data-action="open-squad-modes">
+          <button class="valorant-mode-btn ${this.squadModePickerOpen ? "active" : ""}" style="--mode:${modeMeta.color}" data-action="open-squad-modes">
             <span class="mode-btn-icon" aria-hidden="true"></span>
             <span>CHẾ ĐỘ</span>
           </button>

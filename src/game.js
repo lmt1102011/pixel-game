@@ -9,7 +9,7 @@
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
   const SIGNAL_REALTIME_RELAY_LIMIT = 2;
   const SIGNAL_REALTIME_TYPES = new Set(["state", "snapshot", "attack", "skill", "collect", "openChest", "dropItem", "damage", "chooseDoor"]);
-  const APP_VERSION = "20260607-mobile-clarity-247";
+  const APP_VERSION = "20260607-image-runtime-248";
   const CHANGELOG_ENTRIES = [
     {
       version: APP_VERSION,
@@ -3126,6 +3126,275 @@
         image.src = `${path}?v=${APP_VERSION}`;
         this.monsterSprites.set(id, image);
       }
+    }
+
+    exportedImage(path) {
+      if (!path) return null;
+      let image = this.exportedAssetImages.get(path);
+      if (!image) {
+        image = new Image();
+        image.decoding = "async";
+        image.src = `${path}?v=${APP_VERSION}`;
+        this.exportedAssetImages.set(path, image);
+        return null;
+      }
+      return image.complete && image.naturalWidth ? image : null;
+    }
+
+    drawExportedImage(ctx, path, x, y, w, h) {
+      const image = this.exportedImage(path);
+      if (!image) return false;
+      const smoothing = ctx.imageSmoothingEnabled;
+      ctx.imageSmoothingEnabled = false;
+      ctx.drawImage(image, x, y, w, h);
+      ctx.imageSmoothingEnabled = smoothing;
+      return true;
+    }
+
+    exportedAnimationFrame(progress, frames) {
+      return clamp(Math.floor(clamp(progress, 0, 0.999) * frames), 0, frames - 1);
+    }
+
+    drawExportedRoomBackground(ctx, biome, viewLeft, viewTop, viewRight, viewBottom, lowDetail = false) {
+      const tile = this.exportedImage(`assets/exported/backgrounds/${biome?.id || "forest"}/floor_tile.png`);
+      if (!tile) return false;
+      const viewW = Math.max(1, viewRight - viewLeft);
+      const viewH = Math.max(1, viewBottom - viewTop);
+      const tileSize = 256;
+      ctx.fillStyle = "#05070b";
+      ctx.fillRect(viewLeft, viewTop, viewW, viewH);
+      const floorLeft = Math.max(ROOM_PAD, viewLeft);
+      const floorTop = Math.max(ROOM_PAD, viewTop);
+      const floorRight = Math.min(WORLD_W - ROOM_PAD, viewRight);
+      const floorBottom = Math.min(WORLD_H - ROOM_PAD, viewBottom);
+      if (floorRight > floorLeft && floorBottom > floorTop) {
+        ctx.save();
+        ctx.beginPath();
+        ctx.rect(floorLeft, floorTop, floorRight - floorLeft, floorBottom - floorTop);
+        ctx.clip();
+        const smoothing = ctx.imageSmoothingEnabled;
+        ctx.imageSmoothingEnabled = false;
+        const startX = Math.floor(floorLeft / tileSize) * tileSize;
+        const startY = Math.floor(floorTop / tileSize) * tileSize;
+        for (let y = startY; y < floorBottom; y += tileSize) {
+          for (let x = startX; x < floorRight; x += tileSize) {
+            ctx.drawImage(tile, x, y, tileSize, tileSize);
+          }
+        }
+        ctx.imageSmoothingEnabled = smoothing;
+        ctx.restore();
+      }
+      ctx.fillStyle = biome?.wall || "#121823";
+      if (viewTop < ROOM_PAD) ctx.fillRect(viewLeft, viewTop, viewW, Math.min(ROOM_PAD, viewBottom) - viewTop);
+      if (viewBottom > WORLD_H - ROOM_PAD) ctx.fillRect(viewLeft, Math.max(viewTop, WORLD_H - ROOM_PAD), viewW, viewBottom - Math.max(viewTop, WORLD_H - ROOM_PAD));
+      if (viewLeft < ROOM_PAD) ctx.fillRect(viewLeft, viewTop, Math.min(ROOM_PAD, viewRight) - viewLeft, viewH);
+      if (viewRight > WORLD_W - ROOM_PAD) ctx.fillRect(Math.max(viewLeft, WORLD_W - ROOM_PAD), viewTop, viewRight - Math.max(viewLeft, WORLD_W - ROOM_PAD), viewH);
+      if (!lowDetail) {
+        ctx.fillStyle = "rgba(0,0,0,0.22)";
+        ctx.fillRect(Math.max(ROOM_PAD, viewLeft), ROOM_PAD, Math.max(0, Math.min(WORLD_W - ROOM_PAD, viewRight) - Math.max(ROOM_PAD, viewLeft)), 18);
+        ctx.fillRect(Math.max(ROOM_PAD, viewLeft), WORLD_H - ROOM_PAD - 18, Math.max(0, Math.min(WORLD_W - ROOM_PAD, viewRight) - Math.max(ROOM_PAD, viewLeft)), 18);
+        ctx.fillRect(ROOM_PAD, Math.max(ROOM_PAD, viewTop), 18, Math.max(0, Math.min(WORLD_H - ROOM_PAD, viewBottom) - Math.max(ROOM_PAD, viewTop)));
+        ctx.fillRect(WORLD_W - ROOM_PAD - 18, Math.max(ROOM_PAD, viewTop), 18, Math.max(0, Math.min(WORLD_H - ROOM_PAD, viewBottom) - Math.max(ROOM_PAD, viewTop)));
+      }
+      return true;
+    }
+
+    drawExportedTrapSprite(ctx, hazard) {
+      const type = hazard?.type || "blade";
+      const frame = Math.floor(Math.abs((hazard?.pulse || this.menuTime) * 2.8)) % 6;
+      const path = `assets/exported/traps/${type}/active_${String(frame).padStart(2, "0")}.png`;
+      const image = this.exportedImage(path);
+      if (!image) return false;
+      const scale = Math.max(0.55, Number(hazard.radius || 54) / 54);
+      const size = 192 * scale;
+      ctx.save();
+      const smoothing = ctx.imageSmoothingEnabled;
+      ctx.imageSmoothingEnabled = false;
+      ctx.drawImage(image, hazard.x - size / 2, hazard.y - size / 2, size, size);
+      ctx.imageSmoothingEnabled = smoothing;
+      ctx.restore();
+      return true;
+    }
+
+    doorExportId(object) {
+      if (object.type === "bossGate") return "bossGate";
+      if (object.type === "bossExit") return "bossExit";
+      return object.roomType || "normal";
+    }
+
+    drawExportedDoorObject(ctx, object, grow, y, w, h) {
+      const id = this.doorExportId(object);
+      const frame = Math.round(clamp(grow, 0, 1) * 4);
+      const path = `assets/exported/doors/${id}/grow_${String(frame).padStart(2, "0")}.png`;
+      const image = this.exportedImage(path);
+      if (!image) return false;
+      const boss = object.type === "bossGate";
+      const scale = 1;
+      const originX = boss ? 144 : 128;
+      const originY = boss ? 172 : 156;
+      const width = boss ? 288 : 256;
+      const height = boss ? 320 : 280;
+      this.drawObjectAmbient(ctx, { ...object, y }, Math.max(w, h) * 0.62);
+      ctx.save();
+      ctx.translate(object.x, y);
+      ctx.scale(scale, scale);
+      const smoothing = ctx.imageSmoothingEnabled;
+      ctx.imageSmoothingEnabled = false;
+      ctx.drawImage(image, -originX, -originY, width, height);
+      ctx.imageSmoothingEnabled = smoothing;
+      if (object.enterProgress > 0) {
+        ctx.strokeStyle = "#fff0ad";
+        ctx.lineWidth = 4 / scale;
+        ctx.beginPath();
+        ctx.arc(0, h * 0.1, Math.max(w, h) * 0.38, -Math.PI / 2, -Math.PI / 2 + TAU * clamp(object.enterProgress, 0, 1));
+        ctx.stroke();
+      }
+      if (object.label) {
+        ctx.shadowBlur = 0;
+        ctx.font = this.readableFont(900, 12 / scale);
+        ctx.textAlign = "center";
+        this.drawReadableText(ctx, String(object.label).slice(0, 18), 0, h * 0.68, {
+          fill: "#fff4d6",
+          stroke: "rgba(3,5,10,0.96)",
+          strokeWidth: 3.4 / scale
+        });
+      }
+      ctx.restore();
+      return true;
+    }
+
+    drawExportedPickupChest(ctx, pickup) {
+      const gold = pickup.container === "goldChest";
+      const openDuration = gold ? 0.62 : 0.42;
+      const rawOpening = pickup.opening ? clamp(1 - Number(pickup.openTimer ?? openDuration) / openDuration, 0, 1) : 0;
+      const frame = this.exportedAnimationFrame(rawOpening, 6);
+      const type = gold ? "goldChest" : "woodChest";
+      const path = `assets/exported/chests/${type}/open_${String(frame).padStart(2, "0")}.png`;
+      const image = this.exportedImage(path);
+      if (!image) return false;
+      const smoothing = ctx.imageSmoothingEnabled;
+      ctx.imageSmoothingEnabled = false;
+      ctx.drawImage(image, -96, -98, 192, 160);
+      ctx.imageSmoothingEnabled = smoothing;
+      return true;
+    }
+
+    drawExportedTreasureChest(ctx, object, grow, y, rawOpening) {
+      const frame = this.exportedAnimationFrame(rawOpening, 6);
+      const path = `assets/exported/chests/treasureChest/open_${String(frame).padStart(2, "0")}.png`;
+      const image = this.exportedImage(path);
+      if (!image) return false;
+      this.drawObjectAmbient(ctx, { ...object, y }, 74);
+      ctx.save();
+      ctx.translate(object.x, y);
+      ctx.scale(Math.max(0.28, grow || 0.001), Math.max(0.28, grow || 0.001));
+      const smoothing = ctx.imageSmoothingEnabled;
+      ctx.imageSmoothingEnabled = false;
+      ctx.drawImage(image, -128, -122, 256, 220);
+      ctx.imageSmoothingEnabled = smoothing;
+      ctx.restore();
+      return true;
+    }
+
+    exportedHeroFrame(actor = {}) {
+      const animation = actor.animation || "idle";
+      if (actor.dead || animation === "death") return { state: "death", frame: 3 };
+      if (animation === "ultimate" || actor.domainCasting) {
+        const progress = actor.actionTotal ? clamp(1 - Number(actor.actionTime || 0) / Number(actor.actionTotal || 1), 0, 1) : (this.menuTime * 0.8) % 1;
+        return { state: "ultimate", frame: this.exportedAnimationFrame(progress, 4) };
+      }
+      if (animation === "skill" || animation === "cast") {
+        const progress = actor.actionTotal ? clamp(1 - Number(actor.actionTime || 0) / Number(actor.actionTotal || 1), 0, 1) : (this.menuTime * 0.9) % 1;
+        return { state: "skill", frame: this.exportedAnimationFrame(progress, 4) };
+      }
+      if (animation === "attack" || (actor.actionTime || 0) > 0) {
+        const progress = actor.actionTotal ? clamp(1 - Number(actor.actionTime || 0) / Number(actor.actionTotal || 1), 0, 1) : (this.menuTime * 1.2) % 1;
+        return { state: "attack", frame: this.exportedAnimationFrame(progress, 4) };
+      }
+      const speed = Math.hypot(actor.vx || 0, actor.vy || 0);
+      if (animation === "run" || animation === "walk" || animation === "dash" || speed > 8) {
+        return { state: "run", frame: Math.floor(this.menuTime * 8) % 4 };
+      }
+      return { state: "idle", frame: Math.floor(this.menuTime * 2) % 2 };
+    }
+
+    drawExportedHeroSprite(ctx, x, y, scale, actor = {}, power = null, custom = {}) {
+      const character = characterById(actor.characterId || this.save?.account?.selectedCharacter || "swordsman");
+      if (!character?.id) return false;
+      const frame = this.exportedHeroFrame(actor);
+      const path = `assets/exported/characters/${character.id}/${frame.state}_${String(frame.frame).padStart(2, "0")}.png`;
+      const image = this.exportedImage(path);
+      if (!image) return false;
+      const exportScale = 3.15;
+      const runtimeScale = Math.max(0.2, scale / exportScale);
+      const facing = Number.isFinite(actor.facing) ? actor.facing : 0;
+      const flip = Math.cos(facing) < 0;
+      ctx.save();
+      ctx.translate(x, y);
+      if (flip) ctx.scale(-1, 1);
+      ctx.scale(runtimeScale, runtimeScale);
+      if ((actor.invuln || 0) > 0) ctx.globalAlpha = 0.72 + Math.sin(this.menuTime * 30) * 0.18;
+      const smoothing = ctx.imageSmoothingEnabled;
+      ctx.imageSmoothingEnabled = false;
+      ctx.drawImage(image, -120, -180, 256, 256);
+      ctx.imageSmoothingEnabled = smoothing;
+      ctx.restore();
+      const awakenedActive = Boolean(actor.powerAwakened ?? (actor === this.run?.player && power?.id && this.powerAwakeningActive(power.id)));
+      if (awakenedActive) {
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.scale(scale, scale);
+        this.drawAwakenedPowerAura(ctx, power, this.menuTime, "front");
+        ctx.restore();
+      }
+      return true;
+    }
+
+    skillExportKey(effect) {
+      const kind = effect?.kind;
+      if (!kind) return null;
+      const direct = effect.skillKey || effect.key || "";
+      if (/^[qerf]$/i.test(direct)) return direct.toLowerCase();
+      const variant = String(effect.variant || "");
+      const awakenedVariant = variant.match(/^awakened-([qerf])$/i) || variant.match(/^design-awakened-[^-]+-([qerf])$/i);
+      if (awakenedVariant) return awakenedVariant[1].toLowerCase();
+      if (/domain|ultimate/i.test(variant)) return "f";
+      const signatures = POWER_SKILL_SIGNATURES[kind] || {};
+      for (const [key, signature] of Object.entries(signatures)) {
+        if (effect.signature === signature || (signature.variant && signature.variant === variant)) return key;
+      }
+      return null;
+    }
+
+    drawExportedSkillShape(ctx, effect, progress, fade, r) {
+      const kind = effect?.kind;
+      const key = this.skillExportKey(effect);
+      if (!kind || !key) return false;
+      const awakened = Boolean(effect.awakened || String(effect.variant || "").startsWith("awakened-") || String(effect.variant || "").startsWith("design-awakened-"));
+      const frame = this.exportedAnimationFrame(progress, 4);
+      const path = `assets/exported/skills/${kind}/${key}/${awakened ? "awakened" : "normal"}_${String(frame).padStart(2, "0")}.png`;
+      const image = this.exportedImage(path);
+      if (!image) return false;
+      const signature = effect.signature || (POWER_SKILL_SIGNATURES[kind] || {})[key] || {};
+      const line = signature.anchor === "line";
+      const width = line ? 860 : 640;
+      const height = 560;
+      const originX = line ? 120 : width / 2;
+      const originY = height / 2;
+      const baseRadius = signature.radius || r || 160;
+      const scale = Math.max(0.45, Number(effect.radius || baseRadius) / baseRadius);
+      ctx.save();
+      ctx.translate(effect.x, effect.y);
+      ctx.rotate(effect.angle || 0);
+      ctx.scale(scale, scale);
+      ctx.globalAlpha = Math.min(0.92, fade * 0.96);
+      ctx.globalCompositeOperation = "source-over";
+      const smoothing = ctx.imageSmoothingEnabled;
+      ctx.imageSmoothingEnabled = false;
+      ctx.drawImage(image, -originX, -originY, width, height);
+      ctx.imageSmoothingEnabled = smoothing;
+      ctx.restore();
+      return true;
     }
 
     async init() {
@@ -20080,8 +20349,10 @@
       actors.sort((a, b) => actorY(a) - actorY(b));
       for (const actor of actors) {
         if (actor === this.run.player) {
-          if (ultra) this.drawHeroLite(ctx, actor.x, actor.y, 2.2, actor, this.run.power, this.save.customization);
-          else this.drawHero(ctx, actor.x, actor.y, 2.2, actor, this.run.power, this.save.customization);
+          if (!this.drawExportedHeroSprite(ctx, actor.x, actor.y, 2.2, actor, this.run.power, this.save.customization)) {
+            if (ultra) this.drawHeroLite(ctx, actor.x, actor.y, 2.2, actor, this.run.power, this.save.customization);
+            else this.drawHero(ctx, actor.x, actor.y, 2.2, actor, this.run.power, this.save.customization);
+          }
           if (this.isMultiplayerRun()) this.drawNameTag(ctx, actor.x, actor.y - 58, actor.name || this.save.account.username || "Bạn", true, actor.hp, actor.maxHp);
         } else {
           const enemyX = Number.isFinite(actor.displayX) ? actor.displayX : actor.x;
@@ -20100,7 +20371,25 @@
           continue;
         }
         if (!this.inView(remoteX, remoteY, 120)) continue;
+        const remotePower = powerById(remote.power);
+        const remoteCustom = { ...this.save.customization, color: remote.color };
+        const remoteActor = {
+          facing: remote.facing,
+          animation: remote.dead ? "death" : remote.animation || "run",
+          animTime: remote.animTime || this.menuTime,
+          actionTime: remote.actionTime || 0,
+          actionTotal: remote.actionTotal || 0,
+          skillCastStyle: remote.skillCastStyle || null,
+          invuln: remote.invuln || 0,
+          hp: remote.hp,
+          dead: remote.dead,
+          characterId: remote.characterId,
+          powerAwakened: Boolean(remote.powerAwakened),
+          shadowWeapon: remote.shadowWeapon || 0,
+          shadowWeaponDamageMult: remote.shadowWeaponDamageMult || 1
+        };
         if (ultra) {
+          if (!this.drawExportedHeroSprite(ctx, remoteX, remoteY, 2.0, remoteActor, remotePower, remoteCustom)) {
           this.drawHeroLite(ctx, remoteX, remoteY, 2.0, {
             facing: remote.facing,
             animation: remote.dead ? "death" : remote.animation || "run",
@@ -20115,10 +20404,12 @@
             powerAwakened: Boolean(remote.powerAwakened),
             shadowWeapon: remote.shadowWeapon || 0,
             shadowWeaponDamageMult: remote.shadowWeaponDamageMult || 1
-          }, powerById(remote.power), { ...this.save.customization, color: remote.color });
+          }, remotePower, remoteCustom);
+          }
           this.drawNameTagLite(ctx, remoteX, remoteY - 54, remote.name || "NgÆ°á»i chÆ¡i", false, remote.hp, remote.maxHp);
           continue;
         }
+        if (!this.drawExportedHeroSprite(ctx, remoteX, remoteY, 2.0, remoteActor, remotePower, remoteCustom)) {
         this.drawHero(ctx, remoteX, remoteY, 2.0, {
           facing: remote.facing,
           animation: remote.dead ? "death" : remote.animation || "run",
@@ -20133,7 +20424,8 @@
           powerAwakened: Boolean(remote.powerAwakened),
           shadowWeapon: remote.shadowWeapon || 0,
           shadowWeaponDamageMult: remote.shadowWeaponDamageMult || 1
-        }, powerById(remote.power), { ...this.save.customization, color: remote.color });
+        }, remotePower, remoteCustom);
+        }
         this.drawNameTag(ctx, remoteX, remoteY - 54, remote.name || "Người chơi", false, remote.hp, remote.maxHp);
       }
       if (localGhost) {
@@ -20593,6 +20885,17 @@
       const viewBottom = Math.min(WORLD_H, bounds.bottom);
       const viewW = Math.max(1, viewRight - viewLeft);
       const viewH = Math.max(1, viewBottom - viewTop);
+      if (this.drawExportedRoomBackground(ctx, biome, viewLeft, viewTop, viewRight, viewBottom, lowDetail || this.ultraPerformanceMode())) {
+        if (lowDetail || this.ultraPerformanceMode() || (this.fastVisualMode() && this.renderPressure() > 0.2)) return;
+        ctx.fillStyle = biome.haze;
+        for (let i = 0; i < 6; i++) {
+          const x = ROOM_PAD + ((i * 317 + this.menuTime * 18) % (WORLD_W - ROOM_PAD * 2));
+          const y = ROOM_PAD + ((i * 181 + Math.sin(this.menuTime + i) * 80) % (WORLD_H - ROOM_PAD * 2));
+          if (!this.inView(x + 90, y + 12, 220)) continue;
+          ctx.fillRect(x, y, 180, 24);
+        }
+        return;
+      }
       if (this.ultraPerformanceMode()) {
         ctx.fillStyle = "#05070b";
         ctx.fillRect(viewLeft, viewTop, viewW, viewH);
@@ -20649,6 +20952,7 @@
           blade: "#f4d26f"
         }[hazard.type] || this.run.biome.accent;
         const r = hazard.radius + Math.sin(hazard.pulse * 3) * 6;
+        if (this.drawExportedTrapSprite(ctx, hazard)) continue;
         if (this.ultraPerformanceMode()) {
           ctx.save();
           ctx.translate(hazard.x, hazard.y);
@@ -20846,6 +21150,7 @@
             ctx.fill();
             ctx.globalAlpha = 0.92;
           } else if (pickup.container === "woodChest" || pickup.container === "goldChest") {
+            if (!this.drawExportedPickupChest(ctx, pickup)) {
             const gold = pickup.container === "goldChest";
             const openDuration = gold ? 0.62 : 0.42;
             const rawOpening = pickup.opening ? clamp(1 - Number(pickup.openTimer ?? openDuration) / openDuration, 0, 1) : 0;
@@ -20936,6 +21241,7 @@
             ctx.textAlign = "center";
             ctx.fillStyle = "#fff6d2";
             ctx.fillText(pickup.chestReward?.type === "material" ? "NL" : "PT", 0, 22);
+            }
           } else if (pickup.container === "looseItem" || pickup.reward?.type === "item") {
             const item = pickup.reward?.item;
             ctx.fillStyle = color;
@@ -21056,6 +21362,7 @@
       const w = object.type === "bossGate" ? 118 : object.type === "bossExit" ? 92 : 84;
       const h = object.type === "bossGate" ? 146 : object.type === "bossExit" ? 112 : 120;
       const y = object.y + (1 - grow) * 54;
+      if (this.drawExportedDoorObject(ctx, object, grow, y, w, h)) return;
       this.drawObjectAmbient(ctx, { ...object, y }, Math.max(w, h) * 0.62);
       ctx.save();
       ctx.translate(object.x, y);
@@ -21192,6 +21499,7 @@
       const rawOpening = object.opened ? 1 : object.opening ? clamp(1 - Number(object.openTimer ?? openDuration) / openDuration, 0, 1) : 0;
       const opening = 1 - Math.pow(1 - rawOpening, 2.6);
       const y = object.y + (1 - grow) * 34 - Math.sin(rawOpening * Math.PI) * 4;
+      if (this.drawExportedTreasureChest(ctx, object, grow, y, rawOpening)) return;
       this.drawObjectAmbient(ctx, { ...object, y }, 74);
       ctx.save();
       ctx.translate(object.x, y);
@@ -22986,23 +23294,19 @@
 
     drawExportedMonsterSprite(ctx, enemy, variant = 0) {
       const kind = enemy.kind || "";
-      if (!MONSTER_TYPES[kind] || enemy.boss || enemy.trainingDummy || enemy.flash > 0 || enemy.playerBoss) return false;
+      if (!MONSTER_TYPES[kind] || enemy.boss || enemy.trainingDummy || enemy.playerBoss) return false;
       const frame = this.exportedMonsterFrame(enemy, variant);
       const file = `${frame.state}_${String(frame.frame).padStart(2, "0")}.png`;
       const path = `assets/exported/monsters/${kind}/${file}`;
-      let image = this.exportedAssetImages.get(path);
-      if (!image) {
-        image = new Image();
-        image.decoding = "async";
-        image.src = `${path}?v=${APP_VERSION}`;
-        this.exportedAssetImages.set(path, image);
-        return false;
-      }
-      if (!image.complete || !image.naturalWidth) return false;
+      const image = this.exportedImage(path);
+      if (!image) return false;
       const smoothing = ctx.imageSmoothingEnabled;
+      const previousFilter = ctx.filter || "none";
       ctx.imageSmoothingEnabled = false;
+      if (enemy.flash > 0) ctx.filter = "brightness(2.25) saturate(0.75)";
       const exportScale = 1.55;
       ctx.drawImage(image, -96 / exportScale, -112 / exportScale, 192 / exportScale, 192 / exportScale);
+      ctx.filter = previousFilter;
       ctx.imageSmoothingEnabled = smoothing;
       return true;
     }
@@ -25443,6 +25747,7 @@
       const quality = this.perf?.quality ?? 1;
       const lowDetail = this.isMobileDevice() || quality < 0.74;
       if (quality < 0.52 && effect.variant !== "ultimate" && progress > 0.62) return;
+      if (this.drawExportedSkillShape(ctx, effect, progress, fade, r)) return;
       ctx.translate(effect.x, effect.y);
       ctx.rotate(effect.angle || 0);
       ctx.globalCompositeOperation = "source-over";

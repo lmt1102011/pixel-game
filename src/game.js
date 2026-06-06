@@ -9,7 +9,7 @@
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
   const SIGNAL_REALTIME_RELAY_LIMIT = 2;
   const SIGNAL_REALTIME_TYPES = new Set(["state", "snapshot", "attack", "skill", "collect", "openChest", "dropItem", "damage", "chooseDoor"]);
-  const APP_VERSION = "20260606-squad-loadout-info-209";
+  const APP_VERSION = "20260606-squad-hero-scale-210";
   const CHANGELOG_ENTRIES = [
     {
       version: APP_VERSION,
@@ -5846,16 +5846,16 @@
           powerAwakened: canvas.dataset.awakened === "1"
         };
         const fit = {
-          swordsman: { w: 138, h: 104, x: 0.41, y: 0.66 },
-          guardian: { w: 124, h: 104, x: 0.45, y: 0.66 },
-          mage: { w: 104, h: 110, x: 0.49, y: 0.66 },
-          ranger: { w: 138, h: 104, x: 0.41, y: 0.66 },
-          assassin: { w: 122, h: 102, x: 0.44, y: 0.66 },
-          martial: { w: 98, h: 102, x: 0.49, y: 0.66 },
-          spearman: { w: 190, h: 104, x: 0.36, y: 0.66 }
-        }[character.id] || { w: 132, h: 104, x: 0.44, y: 0.66 };
+          swordsman: { w: 92, h: 92, x: 0.42, y: 0.69 },
+          guardian: { w: 96, h: 94, x: 0.46, y: 0.69 },
+          mage: { w: 88, h: 100, x: 0.49, y: 0.69 },
+          ranger: { w: 108, h: 92, x: 0.42, y: 0.69 },
+          assassin: { w: 96, h: 90, x: 0.45, y: 0.69 },
+          martial: { w: 76, h: 90, x: 0.5, y: 0.69 },
+          spearman: { w: 145, h: 92, x: 0.39, y: 0.69 }
+        }[character.id] || { w: 96, h: 92, x: 0.44, y: 0.69 };
         const baseScale = Math.min(rect.width / fit.w, rect.height / fit.h);
-        const scale = clamp(baseScale * (self ? 1.08 : 1.0), 0.52, self ? 2.18 : 2.02);
+        const scale = clamp(baseScale * (self ? 1.18 : 1.1), 0.82, self ? 3.05 : 2.85);
         this.drawHero(ctx, rect.width * fit.x, rect.height * fit.y, scale, actor, power, custom);
       }
     }

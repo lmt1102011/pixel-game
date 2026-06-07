@@ -9,7 +9,7 @@
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
   const SIGNAL_REALTIME_RELAY_LIMIT = 2;
   const SIGNAL_REALTIME_TYPES = new Set(["state", "snapshot", "attack", "skill", "collect", "openChest", "dropItem", "damage", "chooseDoor"]);
-  const APP_VERSION = "20260607-enemy-spatial-grid-291";
+  const APP_VERSION = "20260607-realistic-audio-textures-292";
   const CHANGELOG_ENTRIES = [
     {
       version: APP_VERSION,
@@ -1848,6 +1848,7 @@
       const vol = spatial.gain;
       if (weapon === "guardian") {
         this.tone(108, "square", 0.08, 0.11 * vol, now, { pan, slideTo: 82, reverb: 0.04 });
+        this.stoneTexture(now + 0.002, 0.06 * vol, { pan, heavy: true });
         this.impactBoom(now + 0.01, 0.074 * vol, { pan, freq: 76, slideTo: 48, length: 0.12 });
         this.noiseBurst(now + 0.018, 0.055, 0.044 * vol, { filterType: "lowpass", frequency: 760, frequencyEnd: 220, q: 0.85, pan, decay: 2.4 });
       } else if (weapon === "mage") {
@@ -1856,23 +1857,24 @@
         this.materialWhoosh(now + 0.006, 0.055, 0.028 * vol, { pan, filterType: "bandpass", frequency: 620, frequencyEnd: 1680, q: 0.7, reverb: 0.08 });
       } else if (weapon === "ranger") {
         this.stringSnap(now, 0.075 * vol, { pan });
+        this.noiseBurst(now + 0.008, 0.026, 0.022 * vol, { color: "pink", filterType: "bandpass", frequency: 360, frequencyEnd: 120, q: 0.42, pan, decay: 1.4 });
         this.tone(1460, "sine", 0.035, 0.05 * vol, now + 0.042, { pan, slideTo: 920 });
         this.noiseBurst(now + 0.038, 0.028, 0.025 * vol, { filterType: "highpass", frequency: 3600, frequencyEnd: 1500, q: 1.4, pan, decay: 0.7 });
       } else if (weapon === "assassin") {
         this.tone(720, "triangle", 0.035, 0.05 * vol, now, { pan, slideTo: 1180 });
         this.tone(980, "square", 0.03, 0.034 * vol, now + 0.04, { pan, slideTo: 1420 });
-        this.metalSlice(now, 0.04 * vol, { pan: pan - 0.04, sharp: 1.24 });
-        this.metalSlice(now + 0.035, 0.032 * vol, { pan: pan + 0.04, sharp: 1.1 });
+        this.bladeEdge(now, 0.043 * vol, { pan: pan - 0.04, sharp: 1.28, length: 0.035 });
+        this.bladeEdge(now + 0.035, 0.036 * vol, { pan: pan + 0.04, sharp: 1.18, length: 0.032 });
       } else if (weapon === "martial") {
         this.tone(150, "sine", 0.045, 0.076 * vol, now, { pan, slideTo: 118 });
         this.impactBoom(now + 0.004, 0.052 * vol, { pan, freq: 98, slideTo: 72, length: 0.07 });
         this.noiseBurst(now + 0.006, 0.026, 0.034 * vol, { filterType: "bandpass", frequency: 820, frequencyEnd: 520, q: 1.05, pan, decay: 1.8 });
       } else if (weapon === "spearman") {
         this.tone(390, "triangle", 0.04, 0.058 * vol, now, { pan, slideTo: 640 });
-        this.metalSlice(now + 0.004, 0.034 * vol, { pan, sharp: 1.12, length: 0.036, frequency: 3100, frequencyEnd: 780 });
+        this.bladeEdge(now + 0.004, 0.037 * vol, { pan, sharp: 1.16, length: 0.036, frequency: 3300, frequencyEnd: 780 });
       } else {
         this.tone(520, "sawtooth", 0.043, 0.066 * vol, now, { pan, slideTo: 330 });
-        this.metalSlice(now + 0.004, 0.044 * vol, { pan, sharp: 1.05, length: 0.04, frequency: 2800, frequencyEnd: 720 });
+        this.bladeEdge(now + 0.004, 0.046 * vol, { pan, sharp: 1.1, length: 0.04, frequency: 3000, frequencyEnd: 720 });
       }
     }
 
@@ -1890,6 +1892,7 @@
       this.tone(crit ? 620 : heavy ? 180 : 340, crit ? "square" : "triangle", crit ? 0.075 : 0.052, (crit ? 0.14 : heavy ? 0.12 : 0.08) * vol, now, { pan, slideTo: crit ? 980 : heavy ? 118 : 260, reverb: crit ? 0.08 : 0.03 });
       this.noiseBurst(now, crit ? 0.05 : 0.03, (crit ? 0.068 : 0.04) * vol, { filterType: crit ? "highpass" : "bandpass", frequency: crit ? 3200 : 1250, frequencyEnd: crit ? 1300 : 520, q: crit ? 1.7 : 0.95, pan, decay: crit ? 0.85 : 1.45 });
       this.impactBoom(now + 0.006, (heavy ? 0.06 : crit ? 0.04 : 0.026) * vol, { pan, freq: heavy ? 74 : 105, slideTo: heavy ? 46 : 72, length: heavy ? 0.14 : 0.08 });
+      this.materialHitLayer(options.kind || "basic", now + 0.006, (heavy ? 0.072 : crit ? 0.062 : 0.04) * vol, { pan, heavy, crit });
       if (crit) this.tone(1680, "sine", 0.09, 0.05 * vol, now + 0.018, { pan, slideTo: 2100, reverb: 0.12 });
       if (heavy) this.tone(78, "sine", 0.12, 0.09 * vol, now + 0.006, { pan, slideTo: 54 });
     }
@@ -1979,9 +1982,11 @@
       const ghost = /ghost|spirit|shadow/.test(kind);
       const demon = /demon|dragon|boss|knight/.test(kind) || enemy.boss;
       const golem = /golem|stone|crystal|ice/.test(kind);
+      const materialFlags = { skeleton, slime, spider, ghost, demon, golem };
       if (action === "spawn") {
         this.tone(demon ? 90 : ghost ? 110 : skeleton ? 360 : 220, demon ? "sawtooth" : "triangle", 0.12, (demon ? 0.11 : 0.055) * vol, now, { pan, slideTo: demon ? 62 : ghost ? 70 : 260, reverb: 0.14 });
         this.noiseBurst(now + 0.02, 0.045, 0.03 * vol, { filterType: ghost ? "highpass" : "bandpass", frequency: ghost ? 1200 : 700, frequencyEnd: ghost ? 520 : 360, q: 0.6, pan, decay: 1.4 });
+        this.enemyMaterialLayer(enemy, action, now + 0.01, vol, pan, materialFlags);
         if (skeleton) this.materialCrackle(now + 0.015, 3, 0.018 * vol, { pan, duration: 0.08, low: 950, high: 2400, filterType: "bandpass", reverb: 0.06 });
         else if (golem || demon) this.impactBoom(now + 0.025, (enemy.boss ? 0.085 : 0.045) * vol, { pan, freq: demon ? 72 : 64, slideTo: 42, length: enemy.boss ? 0.18 : 0.11, reverb: 0.12 });
         return;
@@ -1989,6 +1994,7 @@
       if (action === "attack") {
         this.tone(demon ? 128 : golem ? 92 : skeleton ? 540 : slime ? 210 : 330, demon || golem ? "sawtooth" : "triangle", 0.07, (demon ? 0.11 : 0.07) * vol, now, { pan, slideTo: demon ? 86 : golem ? 62 : 260, reverb: 0.05 });
         this.noiseBurst(now, 0.035, 0.034 * vol, { filterType: "bandpass", frequency: skeleton ? 1750 : slime ? 420 : 980, frequencyEnd: skeleton ? 920 : slime ? 220 : 420, q: 0.75, pan, decay: slime ? 2.4 : 1.1 });
+        this.enemyMaterialLayer(enemy, action, now + 0.006, vol, pan, materialFlags);
         if (skeleton) this.materialCrackle(now + 0.012, 2, 0.015 * vol, { pan, duration: 0.055, low: 1200, high: 2800, filterType: "bandpass" });
         else if (golem) this.impactBoom(now + 0.01, 0.052 * vol, { pan, freq: 72, slideTo: 44, length: 0.11 });
         else if (demon) this.materialWhoosh(now + 0.006, 0.07, 0.038 * vol, { pan, filterType: "lowpass", frequency: 340, frequencyEnd: 860, q: 0.52, reverb: 0.08 });
@@ -1997,10 +2003,12 @@
       if (action === "death") {
         this.tone(demon ? 120 : golem ? 84 : ghost ? 180 : skeleton ? 390 : 210, demon || golem ? "sawtooth" : "triangle", enemy.boss ? 0.22 : 0.12, (enemy.boss ? 0.18 : 0.085) * vol, now, { pan, slideTo: demon || golem ? 48 : 120, reverb: enemy.boss ? 0.24 : 0.1 });
         this.noiseBurst(now + 0.02, enemy.boss ? 0.16 : 0.055, (enemy.boss ? 0.08 : 0.042) * vol, { filterType: golem ? "lowpass" : "bandpass", frequency: golem ? 420 : skeleton ? 2100 : 760, frequencyEnd: golem ? 90 : skeleton ? 820 : 260, q: 0.65, pan, decay: golem || enemy.boss ? 2.6 : 1.3 });
+        this.enemyMaterialLayer(enemy, action, now + 0.016, vol, pan, materialFlags);
         if (skeleton) this.materialCrackle(now + 0.02, 4, 0.024 * vol, { pan, duration: 0.12, low: 850, high: 2600, filterType: "bandpass" });
         else if (golem || enemy.boss) this.impactBoom(now + 0.035, (enemy.boss ? 0.1 : 0.054) * vol, { pan, freq: enemy.boss ? 58 : 70, slideTo: 34, length: enemy.boss ? 0.26 : 0.14, reverb: enemy.boss ? 0.2 : 0.1 });
         return;
       }
+      this.enemyMaterialLayer(enemy, action, now + 0.004, vol, pan, materialFlags);
       if (slime) {
         this.tone(160, "sine", 0.055, 0.052 * vol, now, { pan, slideTo: 110 });
         this.noiseBurst(now, 0.032, 0.028 * vol, { filterType: "lowpass", frequency: 540, frequencyEnd: 180, q: 0.5, pan, decay: 2.7 });
@@ -2232,6 +2240,385 @@
       });
     }
 
+    thunderCrack(now, volume = 0.08, options = {}) {
+      const pan = Number(options.pan || 0);
+      const heavy = Boolean(options.heavy || options.ultimate);
+      const awakened = Boolean(options.awakened);
+      const snap = volume * (heavy ? 0.74 : 0.52);
+      this.noiseBurst(now, heavy ? 0.018 : 0.012, snap, {
+        color: "white",
+        filterType: "highpass",
+        frequency: heavy ? 6800 : 5600,
+        frequencyEnd: heavy ? 2300 : 3100,
+        q: heavy ? 2.6 : 2.1,
+        pan,
+        attack: 0,
+        decay: 0.38,
+        reverb: 0.04
+      });
+      this.materialCrackle(now + 0.002, heavy ? 8 : 5, volume * (awakened ? 0.18 : 0.13), {
+        pan,
+        duration: heavy ? 0.18 : 0.095,
+        low: 2200,
+        high: awakened ? 8600 : 7200,
+        filterType: "highpass",
+        reverb: 0.07
+      });
+      const rumbleAt = now + (heavy ? 0.052 : 0.026);
+      this.tone(heavy ? 56 : 74, "sine", heavy ? 0.4 : 0.22, volume * (heavy ? 0.82 : 0.48), rumbleAt, {
+        pan,
+        slideTo: heavy ? 28 : 44,
+        reverb: heavy ? 0.28 : 0.18
+      });
+      this.noiseBurst(rumbleAt + 0.006, heavy ? 0.34 : 0.18, volume * (heavy ? 0.5 : 0.28), {
+        color: "brown",
+        filterType: "lowpass",
+        frequency: heavy ? 300 : 420,
+        frequencyEnd: heavy ? 52 : 88,
+        q: 0.5,
+        pan,
+        decay: heavy ? 3.3 : 2.4,
+        reverb: heavy ? 0.24 : 0.15
+      });
+      if (heavy) {
+        this.noiseBurst(now + 0.17, 0.22, volume * 0.22, {
+          color: "brown",
+          filterType: "lowpass",
+          frequency: 180,
+          frequencyEnd: 58,
+          q: 0.42,
+          pan: clamp(pan + rand(-0.08, 0.08), -1, 1),
+          decay: 3.6,
+          reverb: 0.25
+        });
+      }
+    }
+
+    fireTexture(now, volume = 0.06, options = {}) {
+      const pan = Number(options.pan || 0);
+      const heavy = Boolean(options.heavy || options.ultimate);
+      this.noiseBurst(now + 0.002, heavy ? 0.18 : 0.105, volume * (heavy ? 0.46 : 0.34), {
+        color: "pink",
+        filterType: "lowpass",
+        frequency: heavy ? 420 : 540,
+        frequencyEnd: heavy ? 1180 : 920,
+        q: 0.5,
+        pan,
+        attack: heavy ? 0.016 : 0.008,
+        decay: 1.35,
+        reverb: 0.08
+      });
+      this.materialCrackle(now + 0.02, heavy ? 7 : 4, volume * 0.075, {
+        pan,
+        duration: heavy ? 0.22 : 0.12,
+        low: 560,
+        high: 2900,
+        filterType: "bandpass",
+        reverb: 0.06
+      });
+      if (heavy) {
+        this.impactBoom(now + 0.035, volume * 0.23, {
+          pan,
+          freq: 76,
+          slideTo: 38,
+          length: 0.22,
+          frequency: 300,
+          frequencyEnd: 78,
+          reverb: 0.16
+        });
+      }
+    }
+
+    iceTexture(now, volume = 0.055, options = {}) {
+      const pan = Number(options.pan || 0);
+      const heavy = Boolean(options.heavy || options.ultimate);
+      this.materialCrackle(now + 0.006, heavy ? 8 : 5, volume * 0.12, {
+        pan,
+        duration: heavy ? 0.2 : 0.11,
+        low: 1900,
+        high: 7200,
+        filterType: "highpass",
+        reverb: 0.17
+      });
+      for (let i = 0; i < (heavy ? 4 : 2); i++) {
+        const offset = 0.018 + i * rand(0.018, 0.034);
+        this.tone(rand(980, 2100), i % 2 ? "sine" : "triangle", rand(0.045, 0.095), volume * rand(0.12, 0.22), now + offset, {
+          pan: clamp(pan + rand(-0.12, 0.12), -1, 1),
+          slideTo: rand(620, 1260),
+          reverb: 0.24,
+          attack: 0.002
+        });
+      }
+      this.noiseBurst(now + 0.018, heavy ? 0.075 : 0.042, volume * 0.13, {
+        color: "white",
+        filterType: "highpass",
+        frequency: heavy ? 4400 : 3200,
+        frequencyEnd: heavy ? 1320 : 980,
+        q: 1.25,
+        pan,
+        decay: 0.75,
+        reverb: 0.12
+      });
+    }
+
+    wetTexture(now, volume = 0.055, options = {}) {
+      const pan = Number(options.pan || 0);
+      const heavy = Boolean(options.heavy);
+      this.noiseBurst(now, heavy ? 0.092 : 0.052, volume * (heavy ? 0.32 : 0.22), {
+        color: "pink",
+        filterType: "lowpass",
+        frequency: heavy ? 520 : 700,
+        frequencyEnd: heavy ? 130 : 210,
+        q: 0.42,
+        pan,
+        decay: heavy ? 2.9 : 2.1,
+        reverb: 0.06
+      });
+      this.tone(heavy ? 86 : 128, "sine", heavy ? 0.09 : 0.055, volume * 0.28, now + 0.008, {
+        pan,
+        slideTo: heavy ? 58 : 92,
+        reverb: 0.04
+      });
+      if (heavy || chance(0.55)) {
+        this.tone(rand(180, 320), "triangle", 0.035, volume * 0.09, now + rand(0.018, 0.048), {
+          pan,
+          slideTo: rand(120, 210),
+          reverb: 0.05
+        });
+      }
+    }
+
+    stoneTexture(now, volume = 0.065, options = {}) {
+      const pan = Number(options.pan || 0);
+      const heavy = Boolean(options.heavy || options.ultimate);
+      this.impactBoom(now, volume * (heavy ? 0.58 : 0.42), {
+        pan,
+        freq: heavy ? 58 : 76,
+        slideTo: heavy ? 30 : 46,
+        length: heavy ? 0.24 : 0.13,
+        frequency: heavy ? 260 : 420,
+        frequencyEnd: heavy ? 62 : 110,
+        q: 0.62,
+        reverb: heavy ? 0.18 : 0.09
+      });
+      this.materialCrackle(now + 0.018, heavy ? 7 : 4, volume * 0.09, {
+        pan,
+        duration: heavy ? 0.2 : 0.105,
+        low: 260,
+        high: 1500,
+        filterType: "bandpass",
+        reverb: 0.08
+      });
+      this.noiseBurst(now + 0.012, heavy ? 0.14 : 0.07, volume * 0.18, {
+        color: "brown",
+        filterType: "lowpass",
+        frequency: heavy ? 340 : 520,
+        frequencyEnd: heavy ? 72 : 150,
+        q: 0.55,
+        pan,
+        decay: heavy ? 3 : 2.2,
+        reverb: heavy ? 0.15 : 0.08
+      });
+    }
+
+    leafRustle(now, volume = 0.045, options = {}) {
+      const pan = Number(options.pan || 0);
+      const heavy = Boolean(options.heavy);
+      this.noiseBurst(now + 0.006, heavy ? 0.14 : 0.08, volume * (heavy ? 0.28 : 0.18), {
+        color: "pink",
+        filterType: "highpass",
+        frequency: heavy ? 640 : 820,
+        frequencyEnd: heavy ? 2600 : 1900,
+        q: 0.34,
+        pan,
+        attack: 0.018,
+        decay: 0.85,
+        reverb: 0.1
+      });
+      for (let i = 0; i < (heavy ? 3 : 2); i++) {
+        this.tone(rand(360, 720), "triangle", rand(0.045, 0.085), volume * rand(0.08, 0.14), now + 0.02 + i * 0.035, {
+          pan: clamp(pan + rand(-0.09, 0.09), -1, 1),
+          slideTo: rand(420, 820),
+          reverb: 0.13
+        });
+      }
+    }
+
+    voidTexture(now, volume = 0.06, options = {}) {
+      const pan = Number(options.pan || 0);
+      const heavy = Boolean(options.heavy || options.ultimate);
+      this.tone(heavy ? 44 : 58, "sine", heavy ? 0.38 : 0.22, volume * (heavy ? 0.64 : 0.42), now, {
+        pan,
+        slideTo: heavy ? 24 : 36,
+        reverb: heavy ? 0.36 : 0.24
+      });
+      this.noiseBurst(now + 0.012, heavy ? 0.2 : 0.115, volume * (heavy ? 0.24 : 0.16), {
+        color: "pink",
+        filterType: "bandpass",
+        frequency: heavy ? 260 : 420,
+        frequencyEnd: heavy ? 1080 : 820,
+        q: 0.18,
+        pan,
+        attack: 0.024,
+        decay: 1.4,
+        reverb: heavy ? 0.3 : 0.22
+      });
+      this.noiseBurst(now + 0.04, heavy ? 0.09 : 0.055, volume * 0.1, {
+        color: "white",
+        filterType: "highpass",
+        frequency: 1800,
+        frequencyEnd: 620,
+        q: 0.25,
+        pan,
+        decay: 1.1,
+        reverb: 0.24
+      });
+    }
+
+    timeTexture(now, volume = 0.045, options = {}) {
+      const pan = Number(options.pan || 0);
+      const heavy = Boolean(options.heavy || options.ultimate);
+      const ticks = heavy ? 5 : 3;
+      for (let i = 0; i < ticks; i++) {
+        const offset = i * (heavy ? 0.032 : 0.045);
+        this.tone(heavy ? 960 - i * 72 : 760 - i * 54, i % 2 ? "sine" : "triangle", 0.018, volume * 0.17, now + offset, {
+          pan: clamp(pan + rand(-0.04, 0.04), -1, 1),
+          slide: false,
+          reverb: 0.12
+        });
+        this.noiseBurst(now + offset, 0.01, volume * 0.045, {
+          color: "white",
+          filterType: "highpass",
+          frequency: 3200,
+          q: 1.8,
+          pan,
+          decay: 0.45,
+          reverb: 0.08
+        });
+      }
+      this.materialWhoosh(now + 0.038, heavy ? 0.16 : 0.09, volume * 0.12, {
+        pan,
+        filterType: "bandpass",
+        frequency: heavy ? 2400 : 1800,
+        frequencyEnd: heavy ? 360 : 520,
+        q: 1.4,
+        reverb: 0.22,
+        attack: 0.012,
+        decay: 1.0
+      });
+    }
+
+    bladeEdge(now, volume = 0.045, options = {}) {
+      const pan = Number(options.pan || 0);
+      const sharp = Number(options.sharp || 1);
+      this.metalSlice(now, volume * 0.9, {
+        pan,
+        sharp,
+        length: options.length || 0.042,
+        frequency: options.frequency || 3400 * sharp,
+        frequencyEnd: options.frequencyEnd || 820
+      });
+      this.noiseBurst(now + 0.003, 0.014, volume * 0.2, {
+        color: "white",
+        filterType: "highpass",
+        frequency: 4800 * sharp,
+        frequencyEnd: 1900,
+        q: 1.9,
+        pan,
+        decay: 0.42,
+        reverb: 0.035
+      });
+      this.tone(1220 * sharp, "triangle", 0.04, volume * 0.18, now + 0.01, {
+        pan,
+        slideTo: 820 * sharp,
+        reverb: 0.07,
+        attack: 0.002
+      });
+    }
+
+    materialHitLayer(kind, now, volume = 0.05, options = {}) {
+      const id = String(kind || "").toLowerCase();
+      const pan = Number(options.pan || 0);
+      const heavy = Boolean(options.heavy);
+      const crit = Boolean(options.crit);
+      const gain = volume * (crit ? 1.12 : 1);
+      if (/lightning|thunder|chain/.test(id)) this.thunderCrack(now, gain * 0.72, { pan, heavy: heavy || crit, awakened: crit });
+      else if (/fire|burn|lava|flame/.test(id)) this.fireTexture(now, gain * 0.8, { pan, heavy: heavy || crit });
+      else if (/ice|frost|snow|chill/.test(id)) this.iceTexture(now, gain * 0.72, { pan, heavy: heavy || crit });
+      else if (/gravity|stone|golem|guardian|meteor|shield/.test(id)) this.stoneTexture(now, gain * 0.68, { pan, heavy: heavy || crit });
+      else if (/crystal|shard/.test(id)) this.iceTexture(now, gain * 0.62, { pan, heavy: heavy || crit });
+      else if (/blood|bleed|slime|poison/.test(id)) this.wetTexture(now, gain * 0.72, { pan, heavy: heavy || crit });
+      else if (/shadow|void|dark/.test(id)) this.voidTexture(now, gain * 0.7, { pan, heavy: heavy || crit });
+      else if (/nature|root|leaf|vine/.test(id)) this.leafRustle(now, gain * 0.7, { pan, heavy: heavy || crit });
+      else if (/time|clock/.test(id)) this.timeTexture(now, gain * 0.7, { pan, heavy: heavy || crit });
+      else if (/martial|fist|punch|kick/.test(id)) {
+        this.impactBoom(now, gain * 0.62, { pan, freq: heavy || crit ? 82 : 112, slideTo: heavy || crit ? 48 : 78, length: heavy || crit ? 0.12 : 0.075, frequency: 620, frequencyEnd: 210, reverb: 0.06 });
+        this.noiseBurst(now + 0.002, 0.026, gain * 0.2, { color: "pink", filterType: "bandpass", frequency: 720, frequencyEnd: 330, q: 0.72, pan, decay: 1.6 });
+      }
+      else if (/mage|magic|orb|projectile/.test(id)) this.voidTexture(now, gain * 0.42, { pan, heavy: heavy || crit });
+      else if (/assassin|sword|slash|spear|ranger|arrow|basic/.test(id)) this.bladeEdge(now, gain * 0.76, { pan, sharp: crit ? 1.34 : 1.08 });
+      else this.wetTexture(now, gain * 0.35, { pan, heavy: heavy || crit });
+    }
+
+    boneRattle(now, volume = 0.04, options = {}) {
+      const pan = Number(options.pan || 0);
+      const heavy = Boolean(options.heavy);
+      this.materialCrackle(now, heavy ? 6 : 3, volume * 0.12, {
+        pan,
+        duration: heavy ? 0.16 : 0.08,
+        low: 820,
+        high: 3200,
+        filterType: "bandpass",
+        reverb: 0.06
+      });
+      this.tone(heavy ? 320 : 520, "triangle", heavy ? 0.07 : 0.04, volume * 0.2, now + 0.01, {
+        pan,
+        slideTo: heavy ? 180 : 340,
+        reverb: 0.04
+      });
+    }
+
+    beastGrowl(now, volume = 0.06, options = {}) {
+      const pan = Number(options.pan || 0);
+      const heavy = Boolean(options.heavy);
+      this.tone(heavy ? 78 : 112, "sawtooth", heavy ? 0.18 : 0.105, volume * 0.34, now, {
+        pan,
+        slideTo: heavy ? 48 : 76,
+        filterType: "lowpass",
+        frequency: heavy ? 360 : 520,
+        q: 0.6,
+        reverb: 0.1
+      });
+      this.noiseBurst(now + 0.006, heavy ? 0.13 : 0.075, volume * 0.18, {
+        color: "brown",
+        filterType: "lowpass",
+        frequency: heavy ? 360 : 560,
+        frequencyEnd: heavy ? 92 : 170,
+        q: 0.55,
+        pan,
+        decay: heavy ? 2.4 : 1.6,
+        reverb: 0.08
+      });
+    }
+
+    enemyMaterialLayer(enemy, action, now, vol, pan, flags = {}) {
+      const heavy = action === "death" || action === "spawn" || enemy?.boss;
+      const gain = vol * (action === "attack" ? 0.55 : action === "death" ? 0.85 : 0.42) * (enemy?.boss ? 1.2 : 1);
+      if (flags.skeleton) this.boneRattle(now, gain, { pan, heavy });
+      else if (flags.slime) this.wetTexture(now, gain, { pan, heavy });
+      else if (flags.golem) this.stoneTexture(now, gain, { pan, heavy });
+      else if (flags.ghost) this.voidTexture(now, gain, { pan, heavy });
+      else if (flags.demon) {
+        this.beastGrowl(now, gain, { pan, heavy });
+        if (action === "attack" || action === "spawn") this.fireTexture(now + 0.016, gain * 0.58, { pan, heavy });
+      } else if (flags.spider) {
+        this.noiseBurst(now, 0.035, gain * 0.12, { color: "white", filterType: "highpass", frequency: 2600, frequencyEnd: 900, q: 1.1, pan, decay: 0.8 });
+        this.wetTexture(now + 0.01, gain * 0.34, { pan, heavy: false });
+      } else {
+        this.beastGrowl(now, gain * 0.7, { pan, heavy });
+      }
+    }
+
     powerMaterialLayer(kind, key, now, volume, pitch = 1, awakened = false) {
       const rank = { q: 0.82, e: 0.95, r: 1.16, f: 1.52 }[key] || 1;
       const gain = clamp(volume * rank * (awakened ? 1.14 : 1), 0.025, awakened ? 0.42 : 0.34);
@@ -2251,6 +2638,7 @@
       };
       if (kind === "lightning") {
         const arcs = ultimate ? 7 : heavy ? 5 : 3;
+        this.thunderCrack(now, gain * (ultimate ? 0.95 : heavy ? 0.72 : 0.46), { heavy, ultimate, awakened });
         taps(1480 * pitch, arcs, 0.012, "square", 0.2, 0.022, { slideTo: 2600 * pitch, filterType: "highpass", frequency: 1700, q: 1.6 });
         taps(2450 * pitch, Math.max(2, arcs - 1), 0.017, "sawtooth", 0.11, 0.016, { slideTo: 920 * pitch, filterType: "highpass", frequency: 2200, q: 2.4 });
         this.materialCrackle(now + 0.002, arcs + (awakened ? 2 : 0), gain * 0.12, { duration: heavy ? 0.16 : 0.075, low: 2400, high: 7600, reverb: 0.08 });
@@ -2267,6 +2655,7 @@
         return;
       }
       if (kind === "fire") {
+        this.fireTexture(now, gain * (ultimate ? 0.9 : heavy ? 0.72 : 0.52), { heavy, ultimate });
         tone(92, "sawtooth", ultimate ? 0.32 : 0.18, 0.48, 0, { slideTo: 54, filterType: "lowpass", frequency: 620, q: 0.5, reverb: 0.08 });
         this.materialWhoosh(now + 0.006, ultimate ? 0.22 : 0.12, gain * 0.28, { filterType: "lowpass", frequency: 180, frequencyEnd: 920, q: 0.58, reverb: 0.1, decay: 0.75 });
         this.materialCrackle(now + 0.035, heavy ? 5 : 3, gain * 0.042, { duration: ultimate ? 0.22 : 0.12, low: 780, high: 2600, filterType: "bandpass", reverb: 0.08 });
@@ -2276,6 +2665,7 @@
         return;
       }
       if (kind === "ice") {
+        this.iceTexture(now, gain * (ultimate ? 0.82 : heavy ? 0.68 : 0.5), { heavy, ultimate });
         taps(1080 * pitch, heavy ? 5 : 3, 0.026, "triangle", 0.24, 0.06, { filterType: "highpass", frequency: 980, q: 1.6, reverb: 0.2 });
         tone(420 * pitch, "sine", 0.18, 0.26, 0, { slideTo: 260 * pitch, reverb: 0.18 });
         this.materialCrackle(now + 0.02, heavy ? 5 : 3, gain * 0.055, { duration: 0.15, low: 1700, high: 5400, reverb: 0.18 });
@@ -2284,6 +2674,7 @@
         return;
       }
       if (kind === "shadow") {
+        this.voidTexture(now, gain * (ultimate ? 0.82 : heavy ? 0.62 : 0.44), { heavy, ultimate });
         tone(58, "sine", ultimate ? 0.42 : 0.24, 0.56, 0, { slideTo: 32, reverb: 0.26 });
         tone(320 * pitch, "sawtooth", 0.12, 0.2, 0.035, { slideTo: 130 * pitch, filterType: "lowpass", frequency: 620, q: 0.7, reverb: 0.22 });
         this.materialWhoosh(now + 0.012, ultimate ? 0.22 : 0.13, gain * 0.22, { filterType: "bandpass", frequency: 180, frequencyEnd: 980, q: 0.22, reverb: 0.28, attack: 0.02, decay: 0.9 });
@@ -2292,6 +2683,7 @@
         return;
       }
       if (kind === "void") {
+        this.voidTexture(now, gain * (ultimate ? 0.95 : heavy ? 0.72 : 0.52), { heavy, ultimate });
         tone(42, "sine", ultimate ? 0.5 : 0.3, 0.62, 0, { slideTo: 28, reverb: 0.34 });
         this.materialWhoosh(now + 0.012, ultimate ? 0.28 : 0.16, gain * 0.24, { filterType: "highpass", frequency: 260, frequencyEnd: 1280, q: 0.18, reverb: 0.34, attack: 0.026, decay: 0.7 });
         burst(0.1, 0.2, 0.018, { filterType: "highpass", frequency: 980, frequencyEnd: 360, q: 0.22, reverb: 0.28, decay: 1.4 });
@@ -2299,6 +2691,7 @@
         return;
       }
       if (kind === "blood") {
+        this.wetTexture(now, gain * (heavy ? 0.72 : 0.52), { heavy });
         tone(70, "sine", 0.08, 0.32, 0, { slide: false });
         tone(86, "sine", 0.11, 0.3, 0.09, { slide: false });
         tone(180 * pitch, "sawtooth", 0.14, 0.28, 0.018, { slideTo: 128 * pitch, filterType: "bandpass", frequency: 280, q: 0.45 });
@@ -2307,6 +2700,7 @@
         return;
       }
       if (kind === "gravity") {
+        this.stoneTexture(now, gain * (ultimate ? 0.9 : heavy ? 0.72 : 0.48), { heavy, ultimate });
         tone(34, "sine", ultimate ? 0.54 : 0.3, 0.78, 0, { slideTo: 24, reverb: 0.26 });
         tone(96, "sawtooth", 0.18, 0.22, 0.025, { slideTo: 52, filterType: "lowpass", frequency: 220, q: 0.65, reverb: 0.2 });
         this.impactBoom(now + 0.02, gain * (ultimate ? 0.42 : 0.26), { freq: ultimate ? 44 : 58, slideTo: 24, length: ultimate ? 0.36 : 0.22, frequency: 180, frequencyEnd: 46, q: 0.9, reverb: 0.24 });
@@ -2314,6 +2708,7 @@
         return;
       }
       if (kind === "crystal") {
+        this.iceTexture(now, gain * (ultimate ? 0.76 : heavy ? 0.62 : 0.45), { heavy, ultimate });
         taps(1260 * pitch, heavy ? 5 : 3, 0.034, "sine", 0.18, 0.09, { reverb: 0.28 });
         taps(820 * pitch, heavy ? 4 : 2, 0.05, "triangle", 0.16, 0.07, { filterType: "highpass", frequency: 860, q: 1.2, reverb: 0.18 });
         this.materialCrackle(now + 0.038, heavy ? 5 : 3, gain * 0.045, { duration: 0.12, low: 1900, high: 6200, reverb: 0.16 });
@@ -2321,6 +2716,7 @@
         return;
       }
       if (kind === "nature") {
+        this.leafRustle(now, gain * (ultimate ? 0.76 : heavy ? 0.58 : 0.42), { heavy });
         tone(260 * pitch, "triangle", 0.18, 0.3, 0, { slideTo: 360 * pitch, reverb: 0.12 });
         tone(520 * pitch, "sine", 0.16, 0.15, 0.04, { slideTo: 650 * pitch, reverb: 0.18 });
         this.materialWhoosh(now + 0.012, heavy ? 0.16 : 0.09, gain * 0.1, { filterType: "highpass", frequency: 480, frequencyEnd: 1900, q: 0.24, reverb: 0.12, decay: 0.75 });
@@ -2329,6 +2725,7 @@
         return;
       }
       if (kind === "time") {
+        this.timeTexture(now, gain * (ultimate ? 0.82 : heavy ? 0.64 : 0.46), { heavy, ultimate });
         taps(720 * pitch, ultimate ? 6 : heavy ? 4 : 3, 0.052, "triangle", 0.16, 0.026, { filterType: "bandpass", frequency: 1500, q: 2.0, reverb: 0.22 });
         this.materialCrackle(now + 0.004, heavy ? 4 : 2, gain * 0.028, { duration: ultimate ? 0.26 : 0.15, low: 900, high: 3000, filterType: "bandpass", reverb: 0.2 });
         this.materialWhoosh(now + 0.05, ultimate ? 0.22 : 0.11, gain * 0.12, { filterType: "bandpass", frequency: 2600, frequencyEnd: 420, q: 1.8, reverb: 0.24, attack: 0.01, decay: 0.9 });
@@ -2587,9 +2984,27 @@
       const buffer = this.ctx.createBuffer(1, frames, this.ctx.sampleRate);
       const data = buffer.getChannelData(0);
       const decay = clamp(Number(options.decay ?? 1), 0.25, 5);
+      const color = String(options.color || "white").toLowerCase();
+      const pulse = Math.max(0, Number(options.pulse || 0));
+      let pink0 = 0;
+      let pink1 = 0;
+      let pink2 = 0;
+      let brown = 0;
       for (let i = 0; i < frames; i++) {
         const fade = 1 - i / frames;
-        data[i] = (Math.random() * 2 - 1) * Math.pow(fade, decay);
+        const white = Math.random() * 2 - 1;
+        let sample = white;
+        if (color === "pink") {
+          pink0 = 0.99765 * pink0 + white * 0.099046;
+          pink1 = 0.963 * pink1 + white * 0.2965164;
+          pink2 = 0.57 * pink2 + white * 1.0526913;
+          sample = (pink0 + pink1 + pink2 + white * 0.1848) * 0.18;
+        } else if (color === "brown" || color === "brownian") {
+          brown = (brown + 0.025 * white) / 1.025;
+          sample = brown * 3.5;
+        }
+        const tremolo = pulse > 0 ? 0.78 + 0.22 * Math.sin((i / this.ctx.sampleRate) * Math.PI * 2 * pulse) : 1;
+        data[i] = clamp(sample, -1, 1) * Math.pow(fade, decay) * tremolo;
       }
       const src = this.ctx.createBufferSource();
       const filter = this.ctx.createBiquadFilter();

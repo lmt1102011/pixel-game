@@ -9,7 +9,7 @@
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
   const SIGNAL_REALTIME_RELAY_LIMIT = 2;
   const SIGNAL_REALTIME_TYPES = new Set(["state", "snapshot", "attack", "skill", "collect", "openChest", "dropItem", "damage", "chooseDoor"]);
-  const APP_VERSION = "20260607-audio-motifs-285";
+  const APP_VERSION = "20260607-power-audio-286";
   const CHANGELOG_ENTRIES = [
     {
       version: APP_VERSION,
@@ -2108,6 +2108,98 @@
       this.noiseBurst(now, 0.016, gain * 0.18);
     }
 
+    powerMaterialLayer(kind, key, now, volume, pitch = 1, awakened = false) {
+      const rank = { q: 0.82, e: 0.95, r: 1.16, f: 1.52 }[key] || 1;
+      const gain = clamp(volume * rank * (awakened ? 1.14 : 1), 0.025, awakened ? 0.42 : 0.34);
+      const heavy = key === "r" || key === "f";
+      const ultimate = key === "f";
+      const tone = (freq, type, length, mult, offset = 0, options = {}) => {
+        this.tone(freq * rand(0.98, 1.02), type, length, gain * mult, now + offset, options);
+      };
+      const burst = (length, mult, offset = 0, options = {}) => {
+        this.noiseBurst(now + offset, length, gain * mult, options);
+      };
+      const taps = (base, count, gap, type, mult, length, options = {}) => {
+        for (let i = 0; i < count; i++) {
+          const spread = 1 + i * 0.045 + rand(-0.012, 0.018);
+          tone(base * spread, type, length * (1 + i * 0.08), mult * Math.max(0.35, 1 - i * 0.11), i * gap, options);
+        }
+      };
+      if (kind === "lightning") {
+        const arcs = ultimate ? 7 : heavy ? 5 : 3;
+        taps(1480 * pitch, arcs, 0.012, "square", 0.2, 0.022, { slideTo: 2600 * pitch, filterType: "highpass", frequency: 1700, q: 1.6 });
+        taps(2450 * pitch, Math.max(2, arcs - 1), 0.017, "sawtooth", 0.11, 0.016, { slideTo: 920 * pitch, filterType: "highpass", frequency: 2200, q: 2.4 });
+        burst(0.018, 0.36, 0.002, { filterType: "highpass", frequency: 3600, q: 1.8, reverb: 0.05 });
+        burst(0.024, 0.24, 0.026, { filterType: "bandpass", frequency: 5200, q: 3.5, reverb: 0.08 });
+        if (heavy) {
+          tone(82, "sine", ultimate ? 0.42 : 0.24, ultimate ? 0.72 : 0.48, 0.035, { slideTo: ultimate ? 34 : 48, reverb: 0.2 });
+          burst(ultimate ? 0.18 : 0.1, ultimate ? 0.52 : 0.34, 0.045, { filterType: "lowpass", frequency: ultimate ? 210 : 320, q: 0.6, reverb: 0.18 });
+        }
+        if (awakened) {
+          taps(3100 * pitch, 4, 0.009, "square", 0.07, 0.014, { filterType: "highpass", frequency: 2600, q: 2.8 });
+        }
+        return;
+      }
+      if (kind === "fire") {
+        tone(92, "sawtooth", ultimate ? 0.32 : 0.18, 0.48, 0, { slideTo: 54, filterType: "lowpass", frequency: 620, q: 0.5, reverb: 0.08 });
+        burst(ultimate ? 0.14 : 0.07, 0.42, 0.012, { filterType: "lowpass", frequency: 460, q: 0.55, reverb: 0.1 });
+        burst(0.05, 0.22, 0.052, { filterType: "bandpass", frequency: 920, q: 0.8 });
+        if (heavy) tone(176, "sawtooth", 0.16, 0.26, 0.06, { slideTo: 260, filterType: "bandpass", frequency: 520, q: 0.7 });
+        return;
+      }
+      if (kind === "ice") {
+        taps(1080 * pitch, heavy ? 5 : 3, 0.026, "triangle", 0.24, 0.06, { filterType: "highpass", frequency: 980, q: 1.6, reverb: 0.2 });
+        tone(420 * pitch, "sine", 0.18, 0.26, 0, { slideTo: 260 * pitch, reverb: 0.18 });
+        burst(0.04, 0.18, 0.035, { filterType: "highpass", frequency: 2400, q: 1.35, reverb: 0.12 });
+        if (ultimate) tone(1860 * pitch, "sine", 0.16, 0.18, 0.095, { slideTo: 860 * pitch, reverb: 0.3 });
+        return;
+      }
+      if (kind === "shadow") {
+        tone(58, "sine", ultimate ? 0.42 : 0.24, 0.56, 0, { slideTo: 32, reverb: 0.26 });
+        tone(320 * pitch, "sawtooth", 0.12, 0.2, 0.035, { slideTo: 130 * pitch, filterType: "lowpass", frequency: 620, q: 0.7, reverb: 0.22 });
+        burst(0.08, 0.22, 0.022, { filterType: "bandpass", frequency: 760, q: 0.24, reverb: 0.2 });
+        if (awakened) tone(720 * pitch, "triangle", 0.09, 0.12, 0.09, { slideTo: 420 * pitch, reverb: 0.24 });
+        return;
+      }
+      if (kind === "void") {
+        tone(42, "sine", ultimate ? 0.5 : 0.3, 0.62, 0, { slideTo: 28, reverb: 0.34 });
+        burst(0.1, 0.24, 0.018, { filterType: "highpass", frequency: 820, q: 0.22, reverb: 0.28 });
+        tone(210 * pitch, "sawtooth", 0.16, 0.24, 0.045, { slideTo: 70 * pitch, filterType: "lowpass", frequency: 420, q: 0.5, reverb: 0.26 });
+        return;
+      }
+      if (kind === "blood") {
+        tone(70, "sine", 0.08, 0.32, 0, { slide: false });
+        tone(86, "sine", 0.11, 0.3, 0.09, { slide: false });
+        tone(180 * pitch, "sawtooth", 0.14, 0.28, 0.018, { slideTo: 128 * pitch, filterType: "bandpass", frequency: 280, q: 0.45 });
+        burst(0.045, 0.12, 0.038, { filterType: "bandpass", frequency: 520, q: 0.42 });
+        return;
+      }
+      if (kind === "gravity") {
+        tone(34, "sine", ultimate ? 0.54 : 0.3, 0.78, 0, { slideTo: 24, reverb: 0.26 });
+        tone(96, "sawtooth", 0.18, 0.22, 0.025, { slideTo: 52, filterType: "lowpass", frequency: 220, q: 0.65, reverb: 0.2 });
+        burst(ultimate ? 0.16 : 0.075, 0.3, 0.03, { filterType: "lowpass", frequency: 160, q: 0.85, reverb: 0.22 });
+        return;
+      }
+      if (kind === "crystal") {
+        taps(1260 * pitch, heavy ? 5 : 3, 0.034, "sine", 0.18, 0.09, { reverb: 0.28 });
+        taps(820 * pitch, heavy ? 4 : 2, 0.05, "triangle", 0.16, 0.07, { filterType: "highpass", frequency: 860, q: 1.2, reverb: 0.18 });
+        burst(0.028, 0.1, 0.05, { filterType: "highpass", frequency: 3000, q: 1.2 });
+        return;
+      }
+      if (kind === "nature") {
+        tone(260 * pitch, "triangle", 0.18, 0.3, 0, { slideTo: 360 * pitch, reverb: 0.12 });
+        tone(520 * pitch, "sine", 0.16, 0.15, 0.04, { slideTo: 650 * pitch, reverb: 0.18 });
+        burst(0.07, 0.14, 0.018, { filterType: "bandpass", frequency: 980, q: 0.28, reverb: 0.14 });
+        if (heavy) taps(620 * pitch, 3, 0.05, "triangle", 0.1, 0.08, { reverb: 0.16 });
+        return;
+      }
+      if (kind === "time") {
+        taps(720 * pitch, ultimate ? 6 : heavy ? 4 : 3, 0.052, "triangle", 0.16, 0.026, { filterType: "bandpass", frequency: 1500, q: 2.0, reverb: 0.22 });
+        tone(300 * pitch, "sine", 0.24, 0.28, 0.012, { slideTo: 420 * pitch, reverb: 0.18 });
+        tone(1200 * pitch, "sine", 0.08, 0.09, 0.12, { slideTo: 720 * pitch, reverb: 0.2 });
+      }
+    }
+
     skillPhase(kind, phase, key, now, volume, pitch, awakened = false) {
       const keyWeight = { q: 0.82, e: 0.9, r: 1.1, f: 1.36 }[key] || 1;
       const gain = volume * keyWeight * (awakened ? 1.1 : 1);
@@ -2205,13 +2297,14 @@
       this.motifStinger(motif, motifRoot, now, {
         count: key === "f" ? 5 : key === "r" ? 4 : 3,
         gap: key === "f" ? 0.065 : 0.045,
-        gain: volume * (key === "f" ? 0.24 : awakened ? 0.2 : 0.15),
+        gain: volume * (key === "f" ? 0.16 : awakened ? 0.13 : 0.09),
         length: key === "f" ? 0.12 : 0.07,
         type: motif.type,
         reverb: awakened ? 0.26 : 0.16,
         pan: 0,
         octave: awakened ? 1.08 : 1
       });
+      this.powerMaterialLayer(kind, key, now, volume, pitch, awakened);
       this.skillPhase(kind, "cast", key, now, volume, pitch, awakened);
       this.skillPhase(kind, "travel", key, now, volume, pitch, awakened);
       this.skillPhase(kind, "impact", key, now, volume, pitch, awakened);

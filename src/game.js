@@ -9,7 +9,7 @@
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
   const SIGNAL_REALTIME_RELAY_LIMIT = 2;
   const SIGNAL_REALTIME_TYPES = new Set(["state", "snapshot", "attack", "skill", "collect", "openChest", "dropItem", "damage", "chooseDoor"]);
-  const APP_VERSION = "20260607-runtime-atlas-289";
+  const APP_VERSION = "20260607-room-pattern-cache-290";
   const CHANGELOG_ENTRIES = [
     {
       version: APP_VERSION,
@@ -5039,6 +5039,7 @@
       const warmup = this.run?.assetWarmup;
       if (!warmup) return false;
       warmup.time = Math.min(4, Number(warmup.time || 0) + Math.max(0, dt || 0));
+      this.warmExportedRoomBackgroundCache();
       if (!this.roomAssetWarmupActive()) {
         this.run.assetWarmup = null;
         this.demoteCombatExportedPreloadBacklog();
@@ -5056,6 +5057,11 @@
         + this.exportedAtlasPreloadActive;
       return Number(warmup.time || 0) < Number(warmup.min || 0)
         || (pending > 0 && Number(warmup.time || 0) < Number(warmup.max || 0));
+    }
+
+    warmExportedRoomBackgroundCache() {
+      if (!this.run?.biome) return;
+      this.queueExportedImage(`assets/exported/backgrounds/${this.run.biome.id}/floor_tile.png`, true);
     }
 
     preloadMenuExportedAssets() {
@@ -5269,10 +5275,22 @@
     exportedPatternFor(ctx, path, source) {
       if (!ctx?.createPattern || !path || !source) return null;
       const bitmap = this.exportedAssetBitmaps.get(path)?.bitmap;
-      const key = `${path}|${source === bitmap ? "bitmap" : "image"}`;
+      const atlas = this.isExportedAtlasDrawable(source);
+      const key = atlas
+        ? `${path}|atlas|${source.sheet}|${source.sx},${source.sy},${source.sw},${source.sh}`
+        : `${path}|${source === bitmap ? "bitmap" : "image"}`;
       if (this.exportedAssetPatterns.has(key)) return this.exportedAssetPatterns.get(key);
       try {
-        const pattern = ctx.createPattern(source, "repeat");
+        let patternSource = source;
+        if (atlas) {
+          const canvas = this.createRenderCanvas(source.sw, source.sh);
+          const tileCtx = canvas.getContext("2d");
+          if (!tileCtx) return null;
+          tileCtx.imageSmoothingEnabled = false;
+          this.drawExportedDrawable(tileCtx, source, 0, 0, source.sw, source.sh);
+          patternSource = canvas;
+        }
+        const pattern = ctx.createPattern(patternSource, "repeat");
         if (!pattern) return null;
         this.exportedAssetPatterns.set(key, pattern);
         this.trimCache(this.exportedAssetPatterns, this.isMobileDevice() ? 16 : 28);
@@ -5292,7 +5310,8 @@
       if (!tile) return false;
       const viewW = Math.max(1, viewRight - viewLeft);
       const viewH = Math.max(1, viewBottom - viewTop);
-      const tileSize = 256;
+      const pattern = this.exportedPatternFor(ctx, tilePath, tile);
+      if (!pattern) return false;
       ctx.fillStyle = "#05070b";
       ctx.fillRect(viewLeft, viewTop, viewW, viewH);
       const floorLeft = Math.max(ROOM_PAD, viewLeft);
@@ -5300,21 +5319,8 @@
       const floorRight = Math.min(WORLD_W - ROOM_PAD, viewRight);
       const floorBottom = Math.min(WORLD_H - ROOM_PAD, viewBottom);
       if (floorRight > floorLeft && floorBottom > floorTop) {
-        ctx.save();
-        ctx.beginPath();
-        ctx.rect(floorLeft, floorTop, floorRight - floorLeft, floorBottom - floorTop);
-        ctx.clip();
-        const smoothing = ctx.imageSmoothingEnabled;
-        if (smoothing) ctx.imageSmoothingEnabled = false;
-        const startX = Math.floor(floorLeft / tileSize) * tileSize;
-        const startY = Math.floor(floorTop / tileSize) * tileSize;
-        for (let y = startY; y < floorBottom; y += tileSize) {
-          for (let x = startX; x < floorRight; x += tileSize) {
-            this.drawExportedDrawable(ctx, tile, x, y, tileSize, tileSize);
-          }
-        }
-        if (smoothing) ctx.imageSmoothingEnabled = smoothing;
-        ctx.restore();
+        ctx.fillStyle = pattern;
+        ctx.fillRect(floorLeft, floorTop, floorRight - floorLeft, floorBottom - floorTop);
       }
       ctx.fillStyle = biome?.wall || "#121823";
       if (viewTop < ROOM_PAD) ctx.fillRect(viewLeft, viewTop, viewW, Math.min(ROOM_PAD, viewBottom) - viewTop);

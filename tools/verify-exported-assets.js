@@ -14,7 +14,8 @@ function usage() {
     "Options:",
     "  --category <name>       Only verify a category, e.g. monster, character, skill",
     "  --browser-decode        Decode selected PNGs in Chrome/Edge for a stronger image check",
-    "  --limit <n>             Max files for browser decode; default 180",
+    "  --pixel-check           Also reject blank or nearly empty decoded frames",
+    "  --limit <n>             Max files for browser decode/pixel check; default 180",
     "  --help                  Show this help"
   ].join("\n");
 }
@@ -25,6 +26,10 @@ function parseArgs(argv) {
     const arg = argv[i];
     if (arg === "--help" || arg === "-h") options.help = true;
     else if (arg === "--browser-decode") options.browserDecode = true;
+    else if (arg === "--pixel-check") {
+      options.pixelCheck = true;
+      options.browserDecode = true;
+    }
     else if (arg === "--category") options.category = argv[++i] || "";
     else if (arg === "--limit") options.limit = Math.max(1, Number(argv[++i] || 180) || 180);
   }
@@ -147,7 +152,7 @@ function chromeExecutable() {
   return candidates.find((candidate) => fs.existsSync(candidate));
 }
 
-async function browserDecode(files, limit) {
+async function browserDecode(files, limit, options = {}) {
   const executablePath = chromeExecutable();
   if (!executablePath) throw new Error("Chrome/Edge executable not found. Set CHROME_PATH to use --browser-decode.");
   const { chromium } = require("playwright-core");
@@ -163,7 +168,7 @@ async function browserDecode(files, limit) {
       width: file.width,
       height: file.height
     }));
-    const decoded = await page.evaluate(async (entries) => {
+    const decoded = await page.evaluate(async ({ entries, pixelCheck }) => {
       const loadWithImage = (entry) => new Promise((resolve) => {
         const image = new Image();
         image.onload = () => {
@@ -178,14 +183,63 @@ async function browserDecode(files, limit) {
         image.onerror = () => resolve({ path: entry.path, ok: false, error: "Browser image load failed" });
         image.src = entry.dataUrl;
       });
+      const inspectPixels = (image, entry) => {
+        const canvas = document.createElement("canvas");
+        canvas.width = entry.width;
+        canvas.height = entry.height;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) return { ok: false, error: "Canvas context unavailable" };
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(image, 0, 0);
+        const data = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+        let visible = 0;
+        let minX = canvas.width;
+        let minY = canvas.height;
+        let maxX = -1;
+        let maxY = -1;
+        const colors = new Set();
+        for (let offset = 0; offset < data.length; offset += 4) {
+          const alpha = data[offset + 3];
+          if (alpha <= 6) continue;
+          visible += 1;
+          const pixelIndex = offset / 4;
+          const x = pixelIndex % canvas.width;
+          const y = Math.floor(pixelIndex / canvas.width);
+          if (x < minX) minX = x;
+          if (y < minY) minY = y;
+          if (x > maxX) maxX = x;
+          if (y > maxY) maxY = y;
+          if (colors.size < 48) {
+            colors.add(`${data[offset] >> 4},${data[offset + 1] >> 4},${data[offset + 2] >> 4},${alpha >> 4}`);
+          }
+        }
+        const area = canvas.width * canvas.height;
+        const minVisible = Math.max(6, Math.ceil(area * (entry.category === "background" ? 0.02 : 0.0009)));
+        if (visible < minVisible) {
+          return { ok: false, error: `Only ${visible} visible pixel(s), expected at least ${minVisible}` };
+        }
+        const boundsW = Math.max(0, maxX - minX + 1);
+        const boundsH = Math.max(0, maxY - minY + 1);
+        if (boundsW <= 1 || boundsH <= 1) return { ok: false, error: `Visible bounds too small: ${boundsW}x${boundsH}` };
+        if (colors.size <= 1 && entry.category !== "background") return { ok: false, error: "Frame has almost no color variation" };
+        return { ok: true, visible, boundsW, boundsH, colors: colors.size };
+      };
       const decodeOne = async (entry) => {
+        let imageResult = null;
+        let image = null;
+        const loadImage = () => new Promise((resolve) => {
+          const element = new Image();
+          element.onload = () => resolve(element);
+          element.onerror = () => resolve(null);
+          element.src = entry.dataUrl;
+        });
         if ("createImageBitmap" in window) {
           try {
             const response = await fetch(entry.dataUrl);
             const blob = await response.blob();
             const bitmap = await createImageBitmap(blob);
             const ok = bitmap.width === entry.width && bitmap.height === entry.height;
-            const result = {
+            imageResult = {
               path: entry.path,
               ok,
               width: bitmap.width,
@@ -193,17 +247,27 @@ async function browserDecode(files, limit) {
               error: ok ? "" : `Decoded ${bitmap.width}x${bitmap.height}`
             };
             if (bitmap.close) bitmap.close();
-            return result;
           } catch (error) {
-            return { path: entry.path, ok: false, error: error?.message || String(error) };
+            imageResult = { path: entry.path, ok: false, error: error?.message || String(error) };
           }
+        } else {
+          imageResult = await loadWithImage(entry);
         }
-        return loadWithImage(entry);
+        if (!imageResult.ok || !pixelCheck) return imageResult;
+        image = await loadImage();
+        if (!image) return { path: entry.path, ok: false, error: "Browser image load failed during pixel check" };
+        const pixels = inspectPixels(image, entry);
+        return pixels.ok
+          ? { ...imageResult, pixels }
+          : { path: entry.path, ok: false, error: pixels.error };
       };
       const output = [];
       for (const entry of entries) output.push(await decodeOne(entry));
       return output;
-    }, batch);
+    }, {
+      entries: batch.map((entry) => ({ ...entry, category: entry.path.split("/")[0]?.replace(/s$/, "") })),
+      pixelCheck: Boolean(options.pixelCheck)
+    });
     results.push(...decoded);
   }
   await browser.close();
@@ -276,6 +340,7 @@ async function main() {
   console.log(`Verified ${files.length} exported PNG frame(s).`);
   console.log(JSON.stringify(categories));
   if (options.browserDecode) console.log(`Browser-decoded ${Math.min(files.length, options.limit)} selected frame(s).`);
+  if (options.pixelCheck) console.log(`Pixel-checked ${Math.min(files.length, options.limit)} selected frame(s) for visible content.`);
 }
 
 main().catch((error) => {

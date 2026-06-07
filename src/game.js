@@ -9,7 +9,7 @@
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
   const SIGNAL_REALTIME_RELAY_LIMIT = 2;
   const SIGNAL_REALTIME_TYPES = new Set(["state", "snapshot", "attack", "skill", "collect", "openChest", "dropItem", "damage", "chooseDoor"]);
-  const APP_VERSION = "20260607-render-cpu-split-280";
+  const APP_VERSION = "20260607-resize-stability-281";
   const CHANGELOG_ENTRIES = [
     {
       version: APP_VERSION,
@@ -6044,16 +6044,19 @@
       const mobile = this.isMobileDevice();
       const renderBound = renderLag > 0.08 || renderMs > (mobile ? 6.4 : 6.8);
       const resolutionLag = renderLag + lag * (renderBound ? (mobile ? 0.42 : 0.48) : (mobile ? 0.16 : 0.24));
-      const renderHealthy = renderMs > 0 && renderMs < (mobile ? 5.8 : 6.2) && renderLag < 0.12;
+      const renderOverloaded = renderMs > (mobile ? 8.8 : 9.6) || renderLag > 0.38;
+      const deepResolutionCut = renderOverloaded
+        && (this.perf?.overloadTime || 0) > 1.2
+        && (this.perf?.lagTime || 0) > 0.28;
       const base = (mobile ? 0.9 : 0.74)
         - resolutionLag * (mobile ? 0.3 : 0.2)
         - renderLag * (mobile ? 0.18 : 0.1)
         - weakBias * (mobile ? 0.018 : 0.05);
       const range = (mobile ? 0.17 : 0.26) - weakBias * (mobile ? 0.025 : 0.06);
       const floor = this.performancePanic()
-        ? (mobile ? (renderHealthy ? 0.82 : 0.76) : 0.76)
+        ? (mobile ? (deepResolutionCut ? 0.76 : 0.84) : 0.76)
         : this.performanceEmergency()
-          ? (mobile ? (renderHealthy ? 0.86 : 0.82) : 0.8)
+          ? (mobile ? (deepResolutionCut ? 0.82 : 0.86) : 0.8)
           : ultra
             ? (mobile ? 0.86 : 0.82)
             : (mobile ? 1 : 0.76);
@@ -6095,8 +6098,8 @@
       const lowSharpnessRecovery = visualBusy
         && activeCombat
         && skillQuietReady
-        && current < (this.isMobileDevice() ? 0.86 : 0.82)
-        && (this.perf.stableTime || 0) > 1.4 + weakBias * 0.7
+        && current < (this.isMobileDevice() ? 0.82 : 0.8)
+        && (this.perf.stableTime || 0) > 2.8 + weakBias * 1.2
         && pressure < 0.06
         && (this.perf.lagTime || 0) < 0.06
         && this.renderPressure() < 0.1
@@ -6104,7 +6107,7 @@
       const stableCombatRecover = visualBusy
         && activeCombat
         && skillQuietReady
-        && (this.perf.stableTime || 0) > 6.2 + weakBias * 1.8
+        && (this.perf.stableTime || 0) > 4.4 + weakBias * 1.2
         && pressure < 0.04
         && (this.perf.lagTime || 0) < 0.04
         && this.renderPressure() < 0.08
@@ -6133,7 +6136,9 @@
         stableTarget = desired;
       }
       const targetBlend = manualScale ? 1 : stableTarget < currentTarget ? (force ? 0.82 : combatResize ? 1 : 0.52 + weakBias * 0.18) : skillQuietReady ? 0.36 : idle ? 0.28 : 0.04;
-      let next = currentTarget + (stableTarget - currentTarget) * targetBlend;
+      const sharpnessRecovering = stableTarget > currentTarget && (lowSharpnessRecovery || stableCombatRecover);
+      const blend = sharpnessRecovering ? 1 : targetBlend;
+      let next = currentTarget + (stableTarget - currentTarget) * blend;
       if (!manualScale && combatResize && stableTarget < currentTarget) next = stableTarget;
       this.perf.renderScaleTarget = next;
       this.perf.renderScale = next;
@@ -6142,14 +6147,15 @@
       const resizeThreshold = manualScale
         ? 0.025
         : combatResize
-          ? (next < current ? (this.performanceEmergency() ? 0.04 : 0.065) : lowSharpnessRecovery ? 0.035 : stableCombatRecover ? 0.045 : 0.2)
+          ? (next < current ? (this.performanceEmergency() ? 0.04 : 0.065) : sharpnessRecovering ? 0.08 : 0.2)
           : next < current ? 0.035 : idle ? 0.08 : 0.14;
       if (diff < resizeThreshold) return;
       const urgentDrop = !manualScale && force && next < current && diff > (combatResize ? 0.045 : 0.04) && (this.performancePanic() || this.performanceEmergency() || pressure > 0.22);
       if (!urgentDrop && now < (this.perf.resizeAt || 0)) return;
       this.perf.appliedRenderScale = next;
       const dropDelay = combatResize ? (urgentDrop ? 90 : 230 + weakBias * 160) : (urgentDrop ? 60 : 120);
-      this.perf.resizeAt = now + (manualScale ? 140 : idle || skillQuietReady ? 260 : next < current ? dropDelay : 2600 + weakBias * 1800);
+      const recoverDelay = combatResize ? 1550 + weakBias * 900 : 260;
+      this.perf.resizeAt = now + (manualScale ? 140 : next < current ? dropDelay : idle ? 260 : next > current ? recoverDelay : 260);
       this.resize();
       if (this.run && next < current) {
         this.trimEffectList();

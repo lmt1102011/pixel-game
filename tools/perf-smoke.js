@@ -300,6 +300,13 @@ async function runBenchmark(page, options) {
           cachedImages: game.exportedAssetImages.size,
           cachedBitmaps: game.exportedAssetBitmaps?.size || 0,
           bitmapMegapixels: Math.round(((game.exportedAssetBitmapPixels || 0) / 1000000) * 10) / 10,
+          atlasFrames: game.exportedAtlasFrames?.size || 0,
+          readyAtlasSheets: [...(game.exportedAtlasSheets?.values?.() || [])].filter((image) => game.isExportedImageReady(image)).length,
+          cachedAtlasSheets: game.exportedAtlasSheets?.size || 0,
+          queuedAtlasSheets: game.exportedAtlasPreloadQueue?.length || 0,
+          activeAtlasPreloads: game.exportedAtlasPreloadActive || 0,
+          priorityQueuedAtlasSheets: game.exportedAtlasPriorityQueued?.size || 0,
+          priorityActiveAtlasPreloads: game.exportedAtlasPreloadActivePriorityPaths?.size || 0,
           cachedPatterns: game.exportedAssetPatterns?.size || 0,
           pooledObjects: Object.fromEntries(Object.entries(game.objectPools || {}).map(([key, pool]) => [key, Array.isArray(pool) ? pool.length : 0])),
           queuedAssets: game.exportedAssetPreloadQueue.length,
@@ -398,6 +405,9 @@ async function main() {
     if (metrics.missingImages > 0) failures.push(`${metrics.missingImages} exported image(s) missing at runtime`);
     if (options.strictPreload && (metrics.priorityQueuedAssets > 0 || metrics.priorityActivePreloads > 0)) {
       failures.push(`Priority preload did not settle: queued=${metrics.priorityQueuedAssets}, active=${metrics.priorityActivePreloads}`);
+    }
+    if (options.strictPreload && (metrics.priorityQueuedAtlasSheets > 0 || metrics.priorityActiveAtlasPreloads > 0)) {
+      failures.push(`Priority atlas preload did not settle: queued=${metrics.priorityQueuedAtlasSheets}, active=${metrics.priorityActiveAtlasPreloads}`);
     }
     if (options.strictPreload && metrics.loadTimeouts > 0) failures.push(`Preload timed out for ${metrics.loadTimeouts} image(s): ${(metrics.loadTimeoutPaths || []).join(", ")}`);
     console.log(JSON.stringify(metrics, null, 2));

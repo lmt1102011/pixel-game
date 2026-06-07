@@ -1,0 +1,6335 @@
+{
+  "version": "20260607-runtime-atlas-289",
+  "sourceVersion": "20260607-runtime-atlas-289",
+  "generatedAt": "2026-06-07T12:21:44.406Z",
+  "maxSize": 2048,
+  "padding": 1,
+  "sheets": [
+    {
+      "path": "assets/exported-atlas/backgrounds/forest.png",
+      "group": "backgrounds/forest",
+      "frames": 2,
+      "width": 1028,
+      "height": 322,
+      "columns": 2,
+      "rows": 1,
+      "cellWidth": 514,
+      "cellHeight": 322
+    },
+    {
+      "path": "assets/exported-atlas/backgrounds/frozen.png",
+      "group": "backgrounds/frozen",
+      "frames": 2,
+      "width": 1028,
+      "height": 322,
+      "columns": 2,
+      "rows": 1,
+      "cellWidth": 514,
+      "cellHeight": 322
+    },
+    {
+      "path": "assets/exported-atlas/backgrounds/lava.png",
+      "group": "backgrounds/lava",
+      "frames": 2,
+      "width": 1028,
+      "height": 322,
+      "columns": 2,
+      "rows": 1,
+      "cellWidth": 514,
+      "cellHeight": 322
+    },
+    {
+      "path": "assets/exported-atlas/backgrounds/neon.png",
+      "group": "backgrounds/neon",
+      "frames": 2,
+      "width": 1028,
+      "height": 322,
+      "columns": 2,
+      "rows": 1,
+      "cellWidth": 514,
+      "cellHeight": 322
+    },
+    {
+      "path": "assets/exported-atlas/backgrounds/temple.png",
+      "group": "backgrounds/temple",
+      "frames": 2,
+      "width": 1028,
+      "height": 322,
+      "columns": 2,
+      "rows": 1,
+      "cellWidth": 514,
+      "cellHeight": 322
+    },
+    {
+      "path": "assets/exported-atlas/characters/assassin.png",
+      "group": "characters/assassin",
+      "frames": 22,
+      "width": 1806,
+      "height": 1032,
+      "columns": 7,
+      "rows": 4,
+      "cellWidth": 258,
+      "cellHeight": 258
+    },
+    {
+      "path": "assets/exported-atlas/characters/guardian.png",
+      "group": "characters/guardian",
+      "frames": 22,
+      "width": 1806,
+      "height": 1032,
+      "columns": 7,
+      "rows": 4,
+      "cellWidth": 258,
+      "cellHeight": 258
+    },
+    {
+      "path": "assets/exported-atlas/characters/mage.png",
+      "group": "characters/mage",
+      "frames": 22,
+      "width": 1806,
+      "height": 1032,
+      "columns": 7,
+      "rows": 4,
+      "cellWidth": 258,
+      "cellHeight": 258
+    },
+    {
+      "path": "assets/exported-atlas/characters/martial.png",
+      "group": "characters/martial",
+      "frames": 22,
+      "width": 1806,
+      "height": 1032,
+      "columns": 7,
+      "rows": 4,
+      "cellWidth": 258,
+      "cellHeight": 258
+    },
+    {
+      "path": "assets/exported-atlas/characters/ranger.png",
+      "group": "characters/ranger",
+      "frames": 22,
+      "width": 1806,
+      "height": 1032,
+      "columns": 7,
+      "rows": 4,
+      "cellWidth": 258,
+      "cellHeight": 258
+    },
+    {
+      "path": "assets/exported-atlas/characters/spearman.png",
+      "group": "characters/spearman",
+      "frames": 22,
+      "width": 1806,
+      "height": 1032,
+      "columns": 7,
+      "rows": 4,
+      "cellWidth": 258,
+      "cellHeight": 258
+    },
+    {
+      "path": "assets/exported-atlas/characters/swordsman.png",
+      "group": "characters/swordsman",
+      "frames": 22,
+      "width": 1806,
+      "height": 1032,
+      "columns": 7,
+      "rows": 4,
+      "cellWidth": 258,
+      "cellHeight": 258
+    },
+    {
+      "path": "assets/exported-atlas/chests/goldChest.png",
+      "group": "chests/goldChest",
+      "frames": 6,
+      "width": 1164,
+      "height": 162,
+      "columns": 6,
+      "rows": 1,
+      "cellWidth": 194,
+      "cellHeight": 162
+    },
+    {
+      "path": "assets/exported-atlas/chests/treasureChest.png",
+      "group": "chests/treasureChest",
+      "frames": 6,
+      "width": 1548,
+      "height": 222,
+      "columns": 6,
+      "rows": 1,
+      "cellWidth": 258,
+      "cellHeight": 222
+    },
+    {
+      "path": "assets/exported-atlas/chests/woodChest.png",
+      "group": "chests/woodChest",
+      "frames": 6,
+      "width": 1164,
+      "height": 162,
+      "columns": 6,
+      "rows": 1,
+      "cellWidth": 194,
+      "cellHeight": 162
+    },
+    {
+      "path": "assets/exported-atlas/doors/bossExit.png",
+      "group": "doors/bossExit",
+      "frames": 5,
+      "width": 1450,
+      "height": 322,
+      "columns": 5,
+      "rows": 1,
+      "cellWidth": 290,
+      "cellHeight": 322
+    },
+    {
+      "path": "assets/exported-atlas/doors/bossGate.png",
+      "group": "doors/bossGate",
+      "frames": 5,
+      "width": 1450,
+      "height": 322,
+      "columns": 5,
+      "rows": 1,
+      "cellWidth": 290,
+      "cellHeight": 322
+    },
+    {
+      "path": "assets/exported-atlas/doors/challenge.png",
+      "group": "doors/challenge",
+      "frames": 5,
+      "width": 1290,
+      "height": 282,
+      "columns": 5,
+      "rows": 1,
+      "cellWidth": 258,
+      "cellHeight": 282
+    },
+    {
+      "path": "assets/exported-atlas/doors/curse.png",
+      "group": "doors/curse",
+      "frames": 5,
+      "width": 1290,
+      "height": 282,
+      "columns": 5,
+      "rows": 1,
+      "cellWidth": 258,
+      "cellHeight": 282
+    },
+    {
+      "path": "assets/exported-atlas/doors/elite.png",
+      "group": "doors/elite",
+      "frames": 5,
+      "width": 1290,
+      "height": 282,
+      "columns": 5,
+      "rows": 1,
+      "cellWidth": 258,
+      "cellHeight": 282
+    },
+    {
+      "path": "assets/exported-atlas/doors/healing.png",
+      "group": "doors/healing",
+      "frames": 5,
+      "width": 1290,
+      "height": 282,
+      "columns": 5,
+      "rows": 1,
+      "cellWidth": 258,
+      "cellHeight": 282
+    },
+    {
+      "path": "assets/exported-atlas/doors/merchant.png",
+      "group": "doors/merchant",
+      "frames": 5,
+      "width": 1290,
+      "height": 282,
+      "columns": 5,
+      "rows": 1,
+      "cellWidth": 258,
+      "cellHeight": 282
+    },
+    {
+      "path": "assets/exported-atlas/doors/normal.png",
+      "group": "doors/normal",
+      "frames": 5,
+      "width": 1290,
+      "height": 282,
+      "columns": 5,
+      "rows": 1,
+      "cellWidth": 258,
+      "cellHeight": 282
+    },
+    {
+      "path": "assets/exported-atlas/doors/secret.png",
+      "group": "doors/secret",
+      "frames": 5,
+      "width": 1290,
+      "height": 282,
+      "columns": 5,
+      "rows": 1,
+      "cellWidth": 258,
+      "cellHeight": 282
+    },
+    {
+      "path": "assets/exported-atlas/doors/treasure.png",
+      "group": "doors/treasure",
+      "frames": 5,
+      "width": 1290,
+      "height": 282,
+      "columns": 5,
+      "rows": 1,
+      "cellWidth": 258,
+      "cellHeight": 282
+    },
+    {
+      "path": "assets/exported-atlas/monsters/batDemon.png",
+      "group": "monsters/batDemon",
+      "frames": 9,
+      "width": 1746,
+      "height": 194,
+      "columns": 9,
+      "rows": 1,
+      "cellWidth": 194,
+      "cellHeight": 194
+    },
+    {
+      "path": "assets/exported-atlas/monsters/crystalBeast.png",
+      "group": "monsters/crystalBeast",
+      "frames": 9,
+      "width": 1746,
+      "height": 194,
+      "columns": 9,
+      "rows": 1,
+      "cellWidth": 194,
+      "cellHeight": 194
+    },
+    {
+      "path": "assets/exported-atlas/monsters/darkKnight.png",
+      "group": "monsters/darkKnight",
+      "frames": 9,
+      "width": 1746,
+      "height": 194,
+      "columns": 9,
+      "rows": 1,
+      "cellWidth": 194,
+      "cellHeight": 194
+    },
+    {
+      "path": "assets/exported-atlas/monsters/fireDemon.png",
+      "group": "monsters/fireDemon",
+      "frames": 9,
+      "width": 1746,
+      "height": 194,
+      "columns": 9,
+      "rows": 1,
+      "cellWidth": 194,
+      "cellHeight": 194
+    },
+    {
+      "path": "assets/exported-atlas/monsters/fireSlime.png",
+      "group": "monsters/fireSlime",
+      "frames": 9,
+      "width": 1746,
+      "height": 194,
+      "columns": 9,
+      "rows": 1,
+      "cellWidth": 194,
+      "cellHeight": 194
+    },
+    {
+      "path": "assets/exported-atlas/monsters/goblinBomber.png",
+      "group": "monsters/goblinBomber",
+      "frames": 9,
+      "width": 1746,
+      "height": 194,
+      "columns": 9,
+      "rows": 1,
+      "cellWidth": 194,
+      "cellHeight": 194
+    },
+    {
+      "path": "assets/exported-atlas/monsters/goblinScout.png",
+      "group": "monsters/goblinScout",
+      "frames": 9,
+      "width": 1746,
+      "height": 194,
+      "columns": 9,
+      "rows": 1,
+      "cellWidth": 194,
+      "cellHeight": 194
+    },
+    {
+      "path": "assets/exported-atlas/monsters/iceGolem.png",
+      "group": "monsters/iceGolem",
+      "frames": 9,
+      "width": 1746,
+      "height": 194,
+      "columns": 9,
+      "rows": 1,
+      "cellWidth": 194,
+      "cellHeight": 194
+    },
+    {
+      "path": "assets/exported-atlas/monsters/iceSlime.png",
+      "group": "monsters/iceSlime",
+      "frames": 9,
+      "width": 1746,
+      "height": 194,
+      "columns": 9,
+      "rows": 1,
+      "cellWidth": 194,
+      "cellHeight": 194
+    },
+    {
+      "path": "assets/exported-atlas/monsters/mushroomMonster.png",
+      "group": "monsters/mushroomMonster",
+      "frames": 9,
+      "width": 1746,
+      "height": 194,
+      "columns": 9,
+      "rows": 1,
+      "cellWidth": 194,
+      "cellHeight": 194
+    },
+    {
+      "path": "assets/exported-atlas/monsters/necromancer.png",
+      "group": "monsters/necromancer",
+      "frames": 9,
+      "width": 1746,
+      "height": 194,
+      "columns": 9,
+      "rows": 1,
+      "cellWidth": 194,
+      "cellHeight": 194
+    },
+    {
+      "path": "assets/exported-atlas/monsters/shadowGoblin.png",
+      "group": "monsters/shadowGoblin",
+      "frames": 9,
+      "width": 1746,
+      "height": 194,
+      "columns": 9,
+      "rows": 1,
+      "cellWidth": 194,
+      "cellHeight": 194
+    },
+    {
+      "path": "assets/exported-atlas/monsters/shadowSpirit.png",
+      "group": "monsters/shadowSpirit",
+      "frames": 9,
+      "width": 1746,
+      "height": 194,
+      "columns": 9,
+      "rows": 1,
+      "cellWidth": 194,
+      "cellHeight": 194
+    },
+    {
+      "path": "assets/exported-atlas/monsters/skeletonArcher.png",
+      "group": "monsters/skeletonArcher",
+      "frames": 9,
+      "width": 1746,
+      "height": 194,
+      "columns": 9,
+      "rows": 1,
+      "cellWidth": 194,
+      "cellHeight": 194
+    },
+    {
+      "path": "assets/exported-atlas/monsters/skeletonWarrior.png",
+      "group": "monsters/skeletonWarrior",
+      "frames": 9,
+      "width": 1746,
+      "height": 194,
+      "columns": 9,
+      "rows": 1,
+      "cellWidth": 194,
+      "cellHeight": 194
+    },
+    {
+      "path": "assets/exported-atlas/monsters/slime.png",
+      "group": "monsters/slime",
+      "frames": 9,
+      "width": 1746,
+      "height": 194,
+      "columns": 9,
+      "rows": 1,
+      "cellWidth": 194,
+      "cellHeight": 194
+    },
+    {
+      "path": "assets/exported-atlas/monsters/spiderMonster.png",
+      "group": "monsters/spiderMonster",
+      "frames": 9,
+      "width": 1746,
+      "height": 194,
+      "columns": 9,
+      "rows": 1,
+      "cellWidth": 194,
+      "cellHeight": 194
+    },
+    {
+      "path": "assets/exported-atlas/monsters/stoneGolem.png",
+      "group": "monsters/stoneGolem",
+      "frames": 9,
+      "width": 1746,
+      "height": 194,
+      "columns": 9,
+      "rows": 1,
+      "cellWidth": 194,
+      "cellHeight": 194
+    },
+    {
+      "path": "assets/exported-atlas/monsters/werewolf.png",
+      "group": "monsters/werewolf",
+      "frames": 9,
+      "width": 1746,
+      "height": 194,
+      "columns": 9,
+      "rows": 1,
+      "cellWidth": 194,
+      "cellHeight": 194
+    },
+    {
+      "path": "assets/exported-atlas/monsters/zombie.png",
+      "group": "monsters/zombie",
+      "frames": 9,
+      "width": 1746,
+      "height": 194,
+      "columns": 9,
+      "rows": 1,
+      "cellWidth": 194,
+      "cellHeight": 194
+    },
+    {
+      "path": "assets/exported-atlas/skills/blood/e.png",
+      "group": "skills/blood/e",
+      "frames": 8,
+      "width": 1926,
+      "height": 1686,
+      "columns": 3,
+      "rows": 3,
+      "cellWidth": 642,
+      "cellHeight": 562
+    },
+    {
+      "path": "assets/exported-atlas/skills/blood/f.png",
+      "group": "skills/blood/f",
+      "frames": 8,
+      "width": 1926,
+      "height": 1686,
+      "columns": 3,
+      "rows": 3,
+      "cellWidth": 642,
+      "cellHeight": 562
+    },
+    {
+      "path": "assets/exported-atlas/skills/blood/q.png",
+      "group": "skills/blood/q",
+      "frames": 8,
+      "width": 1926,
+      "height": 1686,
+      "columns": 3,
+      "rows": 3,
+      "cellWidth": 642,
+      "cellHeight": 562
+    },
+    {
+      "path": "assets/exported-atlas/skills/blood/r.png",
+      "group": "skills/blood/r",
+      "frames": 8,
+      "width": 1926,
+      "height": 1686,
+      "columns": 3,
+      "rows": 3,
+      "cellWidth": 642,
+      "cellHeight": 562
+    },
+    {
+      "path": "assets/exported-atlas/skills/crystal/e.png",
+      "group": "skills/crystal/e",
+      "frames": 8,
+      "width": 1926,
+      "height": 1686,
+      "columns": 3,
+      "rows": 3,
+      "cellWidth": 642,
+      "cellHeight": 562
+    },
+    {
+      "path": "assets/exported-atlas/skills/crystal/f.png",
+      "group": "skills/crystal/f",
+      "frames": 8,
+      "width": 1926,
+      "height": 1686,
+      "columns": 3,
+      "rows": 3,
+      "cellWidth": 642,
+      "cellHeight": 562
+    },
+    {
+      "path": "assets/exported-atlas/skills/crystal/q.png",
+      "group": "skills/crystal/q",
+      "frames": 8,
+      "width": 2586,
+      "height": 1686,
+      "columns": 3,
+      "rows": 3,
+      "cellWidth": 862,
+      "cellHeight": 562
+    },
+    {
+      "path": "assets/exported-atlas/skills/crystal/r.png",
+      "group": "skills/crystal/r",
+      "frames": 8,
+      "width": 1926,
+      "height": 1686,
+      "columns": 3,
+      "rows": 3,
+      "cellWidth": 642,
+      "cellHeight": 562
+    },
+    {
+      "path": "assets/exported-atlas/skills/fire/e.png",
+      "group": "skills/fire/e",
+      "frames": 8,
+      "width": 1926,
+      "height": 1686,
+      "columns": 3,
+      "rows": 3,
+      "cellWidth": 642,
+      "cellHeight": 562
+    },
+    {
+      "path": "assets/exported-atlas/skills/fire/f.png",
+      "group": "skills/fire/f",
+      "frames": 8,
+      "width": 1926,
+      "height": 1686,
+      "columns": 3,
+      "rows": 3,
+      "cellWidth": 642,
+      "cellHeight": 562
+    },
+    {
+      "path": "assets/exported-atlas/skills/fire/q.png",
+      "group": "skills/fire/q",
+      "frames": 8,
+      "width": 2586,
+      "height": 1686,
+      "columns": 3,
+      "rows": 3,
+      "cellWidth": 862,
+      "cellHeight": 562
+    },
+    {
+      "path": "assets/exported-atlas/skills/fire/r.png",
+      "group": "skills/fire/r",
+      "frames": 8,
+      "width": 1926,
+      "height": 1686,
+      "columns": 3,
+      "rows": 3,
+      "cellWidth": 642,
+      "cellHeight": 562
+    },
+    {
+      "path": "assets/exported-atlas/skills/gravity/e.png",
+      "group": "skills/gravity/e",
+      "frames": 8,
+      "width": 1926,
+      "height": 1686,
+      "columns": 3,
+      "rows": 3,
+      "cellWidth": 642,
+      "cellHeight": 562
+    },
+    {
+      "path": "assets/exported-atlas/skills/gravity/f.png",
+      "group": "skills/gravity/f",
+      "frames": 8,
+      "width": 1926,
+      "height": 1686,
+      "columns": 3,
+      "rows": 3,
+      "cellWidth": 642,
+      "cellHeight": 562
+    },
+    {
+      "path": "assets/exported-atlas/skills/gravity/q.png",
+      "group": "skills/gravity/q",
+      "frames": 8,
+      "width": 2586,
+      "height": 1686,
+      "columns": 3,
+      "rows": 3,
+      "cellWidth": 862,
+      "cellHeight": 562
+    },
+    {
+      "path": "assets/exported-atlas/skills/gravity/r.png",
+      "group": "skills/gravity/r",
+      "frames": 8,
+      "width": 1926,
+      "height": 1686,
+      "columns": 3,
+      "rows": 3,
+      "cellWidth": 642,
+      "cellHeight": 562
+    },
+    {
+      "path": "assets/exported-atlas/skills/ice/e.png",
+      "group": "skills/ice/e",
+      "frames": 8,
+      "width": 1926,
+      "height": 1686,
+      "columns": 3,
+      "rows": 3,
+      "cellWidth": 642,
+      "cellHeight": 562
+    },
+    {
+      "path": "assets/exported-atlas/skills/ice/f.png",
+      "group": "skills/ice/f",
+      "frames": 8,
+      "width": 1926,
+      "height": 1686,
+      "columns": 3,
+      "rows": 3,
+      "cellWidth": 642,
+      "cellHeight": 562
+    },
+    {
+      "path": "assets/exported-atlas/skills/ice/q.png",
+      "group": "skills/ice/q",
+      "frames": 8,
+      "width": 2586,
+      "height": 1686,
+      "columns": 3,
+      "rows": 3,
+      "cellWidth": 862,
+      "cellHeight": 562
+    },
+    {
+      "path": "assets/exported-atlas/skills/ice/r.png",
+      "group": "skills/ice/r",
+      "frames": 8,
+      "width": 1926,
+      "height": 1686,
+      "columns": 3,
+      "rows": 3,
+      "cellWidth": 642,
+      "cellHeight": 562
+    },
+    {
+      "path": "assets/exported-atlas/skills/lightning/e.png",
+      "group": "skills/lightning/e",
+      "frames": 8,
+      "width": 1926,
+      "height": 1686,
+      "columns": 3,
+      "rows": 3,
+      "cellWidth": 642,
+      "cellHeight": 562
+    },
+    {
+      "path": "assets/exported-atlas/skills/lightning/f.png",
+      "group": "skills/lightning/f",
+      "frames": 8,
+      "width": 1926,
+      "height": 1686,
+      "columns": 3,
+      "rows": 3,
+      "cellWidth": 642,
+      "cellHeight": 562
+    },
+    {
+      "path": "assets/exported-atlas/skills/lightning/q.png",
+      "group": "skills/lightning/q",
+      "frames": 8,
+      "width": 2586,
+      "height": 1686,
+      "columns": 3,
+      "rows": 3,
+      "cellWidth": 862,
+      "cellHeight": 562
+    },
+    {
+      "path": "assets/exported-atlas/skills/lightning/r.png",
+      "group": "skills/lightning/r",
+      "frames": 8,
+      "width": 1926,
+      "height": 1686,
+      "columns": 3,
+      "rows": 3,
+      "cellWidth": 642,
+      "cellHeight": 562
+    },
+    {
+      "path": "assets/exported-atlas/skills/nature/e.png",
+      "group": "skills/nature/e",
+      "frames": 8,
+      "width": 1926,
+      "height": 1686,
+      "columns": 3,
+      "rows": 3,
+      "cellWidth": 642,
+      "cellHeight": 562
+    },
+    {
+      "path": "assets/exported-atlas/skills/nature/f.png",
+      "group": "skills/nature/f",
+      "frames": 8,
+      "width": 1926,
+      "height": 1686,
+      "columns": 3,
+      "rows": 3,
+      "cellWidth": 642,
+      "cellHeight": 562
+    },
+    {
+      "path": "assets/exported-atlas/skills/nature/q.png",
+      "group": "skills/nature/q",
+      "frames": 8,
+      "width": 1926,
+      "height": 1686,
+      "columns": 3,
+      "rows": 3,
+      "cellWidth": 642,
+      "cellHeight": 562
+    },
+    {
+      "path": "assets/exported-atlas/skills/nature/r.png",
+      "group": "skills/nature/r",
+      "frames": 8,
+      "width": 2586,
+      "height": 1686,
+      "columns": 3,
+      "rows": 3,
+      "cellWidth": 862,
+      "cellHeight": 562
+    },
+    {
+      "path": "assets/exported-atlas/skills/shadow/e.png",
+      "group": "skills/shadow/e",
+      "frames": 8,
+      "width": 1926,
+      "height": 1686,
+      "columns": 3,
+      "rows": 3,
+      "cellWidth": 642,
+      "cellHeight": 562
+    },
+    {
+      "path": "assets/exported-atlas/skills/shadow/f.png",
+      "group": "skills/shadow/f",
+      "frames": 8,
+      "width": 1926,
+      "height": 1686,
+      "columns": 3,
+      "rows": 3,
+      "cellWidth": 642,
+      "cellHeight": 562
+    },
+    {
+      "path": "assets/exported-atlas/skills/shadow/q.png",
+      "group": "skills/shadow/q",
+      "frames": 8,
+      "width": 1926,
+      "height": 1686,
+      "columns": 3,
+      "rows": 3,
+      "cellWidth": 642,
+      "cellHeight": 562
+    },
+    {
+      "path": "assets/exported-atlas/skills/shadow/r.png",
+      "group": "skills/shadow/r",
+      "frames": 8,
+      "width": 2586,
+      "height": 1686,
+      "columns": 3,
+      "rows": 3,
+      "cellWidth": 862,
+      "cellHeight": 562
+    },
+    {
+      "path": "assets/exported-atlas/skills/time/e.png",
+      "group": "skills/time/e",
+      "frames": 8,
+      "width": 1926,
+      "height": 1686,
+      "columns": 3,
+      "rows": 3,
+      "cellWidth": 642,
+      "cellHeight": 562
+    },
+    {
+      "path": "assets/exported-atlas/skills/time/f.png",
+      "group": "skills/time/f",
+      "frames": 8,
+      "width": 1926,
+      "height": 1686,
+      "columns": 3,
+      "rows": 3,
+      "cellWidth": 642,
+      "cellHeight": 562
+    },
+    {
+      "path": "assets/exported-atlas/skills/time/q.png",
+      "group": "skills/time/q",
+      "frames": 8,
+      "width": 1926,
+      "height": 1686,
+      "columns": 3,
+      "rows": 3,
+      "cellWidth": 642,
+      "cellHeight": 562
+    },
+    {
+      "path": "assets/exported-atlas/skills/time/r.png",
+      "group": "skills/time/r",
+      "frames": 8,
+      "width": 1926,
+      "height": 1686,
+      "columns": 3,
+      "rows": 3,
+      "cellWidth": 642,
+      "cellHeight": 562
+    },
+    {
+      "path": "assets/exported-atlas/skills/void/e.png",
+      "group": "skills/void/e",
+      "frames": 8,
+      "width": 2586,
+      "height": 1686,
+      "columns": 3,
+      "rows": 3,
+      "cellWidth": 862,
+      "cellHeight": 562
+    },
+    {
+      "path": "assets/exported-atlas/skills/void/f.png",
+      "group": "skills/void/f",
+      "frames": 8,
+      "width": 1926,
+      "height": 1686,
+      "columns": 3,
+      "rows": 3,
+      "cellWidth": 642,
+      "cellHeight": 562
+    },
+    {
+      "path": "assets/exported-atlas/skills/void/q.png",
+      "group": "skills/void/q",
+      "frames": 8,
+      "width": 1926,
+      "height": 1686,
+      "columns": 3,
+      "rows": 3,
+      "cellWidth": 642,
+      "cellHeight": 562
+    },
+    {
+      "path": "assets/exported-atlas/skills/void/r.png",
+      "group": "skills/void/r",
+      "frames": 8,
+      "width": 1926,
+      "height": 1686,
+      "columns": 3,
+      "rows": 3,
+      "cellWidth": 642,
+      "cellHeight": 562
+    },
+    {
+      "path": "assets/exported-atlas/traps/blade.png",
+      "group": "traps/blade",
+      "frames": 6,
+      "width": 1164,
+      "height": 194,
+      "columns": 6,
+      "rows": 1,
+      "cellWidth": 194,
+      "cellHeight": 194
+    },
+    {
+      "path": "assets/exported-atlas/traps/ice.png",
+      "group": "traps/ice",
+      "frames": 6,
+      "width": 1164,
+      "height": 194,
+      "columns": 6,
+      "rows": 1,
+      "cellWidth": 194,
+      "cellHeight": 194
+    },
+    {
+      "path": "assets/exported-atlas/traps/lava.png",
+      "group": "traps/lava",
+      "frames": 6,
+      "width": 1164,
+      "height": 194,
+      "columns": 6,
+      "rows": 1,
+      "cellWidth": 194,
+      "cellHeight": 194
+    },
+    {
+      "path": "assets/exported-atlas/traps/thorn.png",
+      "group": "traps/thorn",
+      "frames": 6,
+      "width": 1164,
+      "height": 194,
+      "columns": 6,
+      "rows": 1,
+      "cellWidth": 194,
+      "cellHeight": 194
+    },
+    {
+      "path": "assets/exported-atlas/traps/voltage.png",
+      "group": "traps/voltage",
+      "frames": 6,
+      "width": 1164,
+      "height": 194,
+      "columns": 6,
+      "rows": 1,
+      "cellWidth": 194,
+      "cellHeight": 194
+    }
+  ],
+  "frames": {
+    "assets/exported/backgrounds/forest/floor_tile.png": {
+      "sheet": "assets/exported-atlas/backgrounds/forest.png",
+      "x": 129,
+      "y": 33,
+      "w": 256,
+      "h": 256
+    },
+    "assets/exported/backgrounds/forest/room_crop.png": {
+      "sheet": "assets/exported-atlas/backgrounds/forest.png",
+      "x": 515,
+      "y": 1,
+      "w": 512,
+      "h": 320
+    },
+    "assets/exported/backgrounds/frozen/floor_tile.png": {
+      "sheet": "assets/exported-atlas/backgrounds/frozen.png",
+      "x": 129,
+      "y": 33,
+      "w": 256,
+      "h": 256
+    },
+    "assets/exported/backgrounds/frozen/room_crop.png": {
+      "sheet": "assets/exported-atlas/backgrounds/frozen.png",
+      "x": 515,
+      "y": 1,
+      "w": 512,
+      "h": 320
+    },
+    "assets/exported/backgrounds/lava/floor_tile.png": {
+      "sheet": "assets/exported-atlas/backgrounds/lava.png",
+      "x": 129,
+      "y": 33,
+      "w": 256,
+      "h": 256
+    },
+    "assets/exported/backgrounds/lava/room_crop.png": {
+      "sheet": "assets/exported-atlas/backgrounds/lava.png",
+      "x": 515,
+      "y": 1,
+      "w": 512,
+      "h": 320
+    },
+    "assets/exported/backgrounds/neon/floor_tile.png": {
+      "sheet": "assets/exported-atlas/backgrounds/neon.png",
+      "x": 129,
+      "y": 33,
+      "w": 256,
+      "h": 256
+    },
+    "assets/exported/backgrounds/neon/room_crop.png": {
+      "sheet": "assets/exported-atlas/backgrounds/neon.png",
+      "x": 515,
+      "y": 1,
+      "w": 512,
+      "h": 320
+    },
+    "assets/exported/backgrounds/temple/floor_tile.png": {
+      "sheet": "assets/exported-atlas/backgrounds/temple.png",
+      "x": 129,
+      "y": 33,
+      "w": 256,
+      "h": 256
+    },
+    "assets/exported/backgrounds/temple/room_crop.png": {
+      "sheet": "assets/exported-atlas/backgrounds/temple.png",
+      "x": 515,
+      "y": 1,
+      "w": 512,
+      "h": 320
+    },
+    "assets/exported/characters/assassin/idle_00.png": {
+      "sheet": "assets/exported-atlas/characters/assassin.png",
+      "x": 1,
+      "y": 1,
+      "w": 256,
+      "h": 256
+    },
+    "assets/exported/characters/assassin/idle_01.png": {
+      "sheet": "assets/exported-atlas/characters/assassin.png",
+      "x": 259,
+      "y": 1,
+      "w": 256,
+      "h": 256
+    },
+    "assets/exported/characters/assassin/run_00.png": {
+      "sheet": "assets/exported-atlas/characters/assassin.png",
+      "x": 517,
+      "y": 1,
+      "w": 256,
+      "h": 256
+    },
+    "assets/exported/characters/assassin/run_01.png": {
+      "sheet": "assets/exported-atlas/characters/assassin.png",
+      "x": 775,
+      "y": 1,
+      "w": 256,
+      "h": 256
+    },
+    "assets/exported/characters/assassin/run_02.png": {
+      "sheet": "assets/exported-atlas/characters/assassin.png",
+      "x": 1033,
+      "y": 1,
+      "w": 256,
+      "h": 256
+    },
+    "assets/exported/characters/assassin/run_03.png": {
+      "sheet": "assets/exported-atlas/characters/assassin.png",
+      "x": 1291,
+      "y": 1,
+      "w": 256,
+      "h": 256
+    },
+    "assets/exported/characters/assassin/attack_00.png": {
+      "sheet": "assets/exported-atlas/characters/assassin.png",
+      "x": 1549,
+      "y": 1,
+      "w": 256,
+      "h": 256
+    },
+    "assets/exported/characters/assassin/attack_01.png": {
+      "sheet": "assets/exported-atlas/characters/assassin.png",
+      "x": 1,
+      "y": 259,
+      "w": 256,
+      "h": 256
+    },
+    "assets/exported/characters/assassin/attack_02.png": {
+      "sheet": "assets/exported-atlas/characters/assassin.png",
+      "x": 259,
+      "y": 259,
+      "w": 256,
+      "h": 256
+    },
+    "assets/exported/characters/assassin/attack_03.png": {
+      "sheet": "assets/exported-atlas/characters/assassin.png",
+      "x": 517,
+      "y": 259,
+      "w": 256,
+      "h": 256
+    },
+    "assets/exported/characters/assassin/skill_00.png": {
+      "sheet": "assets/exported-atlas/characters/assassin.png",
+      "x": 775,
+      "y": 259,
+      "w": 256,
+      "h": 256
+    },
+    "assets/exported/characters/assassin/skill_01.png": {
+      "sheet": "assets/exported-atlas/characters/assassin.png",
+      "x": 1033,
+      "y": 259,
+      "w": 256,
+      "h": 256
+    },
+    "assets/exported/characters/assassin/skill_02.png": {
+      "sheet": "assets/exported-atlas/characters/assassin.png",
+      "x": 1291,
+      "y": 259,
+      "w": 256,
+      "h": 256
+    },
+    "assets/exported/characters/assassin/skill_03.png": {
+      "sheet": "assets/exported-atlas/characters/assassin.png",
+      "x": 1549,
+      "y": 259,
+      "w": 256,
+      "h": 256
+    },
+    "assets/exported/characters/assassin/ultimate_00.png": {
+      "sheet": "assets/exported-atlas/characters/assassin.png",
+      "x": 1,
+      "y": 517,
+      "w": 256,
+      "h": 256
+    },
+    "assets/exported/characters/assassin/ultimate_01.png": {
+      "sheet": "assets/exported-atlas/characters/assassin.png",
+      "x": 259,
+      "y": 517,
+      "w": 256,
+      "h": 256
+    },
+    "assets/exported/characters/assassin/ultimate_02.png": {
+      "sheet": "assets/exported-atlas/characters/assassin.png",
+      "x": 517,
+      "y": 517,
+      "w": 256,
+      "h": 256
+    },
+    "assets/exported/characters/assassin/ultimate_03.png": {
+      "sheet": "assets/exported-atlas/characters/assassin.png",
+      "x": 775,
+      "y": 517,
+      "w": 256,
+      "h": 256
+    },
+    "assets/exported/characters/assassin/death_00.png": {
+      "sheet": "assets/exported-atlas/characters/assassin.png",
+      "x": 1033,
+      "y": 517,
+      "w": 256,
+      "h": 256
+    },
+    "assets/exported/characters/assassin/death_01.png": {
+      "sheet": "assets/exported-atlas/characters/assassin.png",
+      "x": 1291,
+      "y": 517,
+      "w": 256,
+      "h": 256
+    },
+    "assets/exported/characters/assassin/death_02.png": {
+      "sheet": "assets/exported-atlas/characters/assassin.png",
+      "x": 1549,
+      "y": 517,
+      "w": 256,
+      "h": 256
+    },
+    "assets/exported/characters/assassin/death_03.png": {
+      "sheet": "assets/exported-atlas/characters/assassin.png",
+      "x": 1,
+      "y": 775,
+      "w": 256,
+      "h": 256
+    },
+    "assets/exported/characters/guardian/idle_00.png": {
+      "sheet": "assets/exported-atlas/characters/guardian.png",
+      "x": 1,
+      "y": 1,
+      "w": 256,
+      "h": 256
+    },
+    "assets/exported/characters/guardian/idle_01.png": {
+      "sheet": "assets/exported-atlas/characters/guardian.png",
+      "x": 259,
+      "y": 1,
+      "w": 256,
+      "h": 256
+    },
+    "assets/exported/characters/guardian/run_00.png": {
+      "sheet": "assets/exported-atlas/characters/guardian.png",
+      "x": 517,
+      "y": 1,
+      "w": 256,
+      "h": 256
+    },
+    "assets/exported/characters/guardian/run_01.png": {
+      "sheet": "assets/exported-atlas/characters/guardian.png",
+      "x": 775,
+      "y": 1,
+      "w": 256,
+      "h": 256
+    },
+    "assets/exported/characters/guardian/run_02.png": {
+      "sheet": "assets/exported-atlas/characters/guardian.png",
+      "x": 1033,
+      "y": 1,
+      "w": 256,
+      "h": 256
+    },
+    "assets/exported/characters/guardian/run_03.png": {
+      "sheet": "assets/exported-atlas/characters/guardian.png",
+      "x": 1291,
+      "y": 1,
+      "w": 256,
+      "h": 256
+    },
+    "assets/exported/characters/guardian/attack_00.png": {
+      "sheet": "assets/exported-atlas/characters/guardian.png",
+      "x": 1549,
+      "y": 1,
+      "w": 256,
+      "h": 256
+    },
+    "assets/exported/characters/guardian/attack_01.png": {
+      "sheet": "assets/exported-atlas/characters/guardian.png",
+      "x": 1,
+      "y": 259,
+      "w": 256,
+      "h": 256
+    },
+    "assets/exported/characters/guardian/attack_02.png": {
+      "sheet": "assets/exported-atlas/characters/guardian.png",
+      "x": 259,
+      "y": 259,
+      "w": 256,
+      "h": 256
+    },
+    "assets/exported/characters/guardian/attack_03.png": {
+      "sheet": "assets/exported-atlas/characters/guardian.png",
+      "x": 517,
+      "y": 259,
+      "w": 256,
+      "h": 256
+    },
+    "assets/exported/characters/guardian/skill_00.png": {
+      "sheet": "assets/exported-atlas/characters/guardian.png",
+      "x": 775,
+      "y": 259,
+      "w": 256,
+      "h": 256
+    },
+    "assets/exported/characters/guardian/skill_01.png": {
+      "sheet": "assets/exported-atlas/characters/guardian.png",
+      "x": 1033,
+      "y": 259,
+      "w": 256,
+      "h": 256
+    },
+    "assets/exported/characters/guardian/skill_02.png": {
+      "sheet": "assets/exported-atlas/characters/guardian.png",
+      "x": 1291,
+      "y": 259,
+      "w": 256,
+      "h": 256
+    },
+    "assets/exported/characters/guardian/skill_03.png": {
+      "sheet": "assets/exported-atlas/characters/guardian.png",
+      "x": 1549,
+      "y": 259,
+      "w": 256,
+      "h": 256
+    },
+    "assets/exported/characters/guardian/ultimate_00.png": {
+      "sheet": "assets/exported-atlas/characters/guardian.png",
+      "x": 1,
+      "y": 517,
+      "w": 256,
+      "h": 256
+    },
+    "assets/exported/characters/guardian/ultimate_01.png": {
+      "sheet": "assets/exported-atlas/characters/guardian.png",
+      "x": 259,
+      "y": 517,
+      "w": 256,
+      "h": 256
+    },
+    "assets/exported/characters/guardian/ultimate_02.png": {
+      "sheet": "assets/exported-atlas/characters/guardian.png",
+      "x": 517,
+      "y": 517,
+      "w": 256,
+      "h": 256
+    },
+    "assets/exported/characters/guardian/ultimate_03.png": {
+      "sheet": "assets/exported-atlas/characters/guardian.png",
+      "x": 775,
+      "y": 517,
+      "w": 256,
+      "h": 256
+    },
+    "assets/exported/characters/guardian/death_00.png": {
+      "sheet": "assets/exported-atlas/characters/guardian.png",
+      "x": 1033,
+      "y": 517,
+      "w": 256,
+      "h": 256
+    },
+    "assets/exported/characters/guardian/death_01.png": {
+      "sheet": "assets/exported-atlas/characters/guardian.png",
+      "x": 1291,
+      "y": 517,
+      "w": 256,
+      "h": 256
+    },
+    "assets/exported/characters/guardian/death_02.png": {
+      "sheet": "assets/exported-atlas/characters/guardian.png",
+      "x": 1549,
+      "y": 517,
+      "w": 256,
+      "h": 256
+    },
+    "assets/exported/characters/guardian/death_03.png": {
+      "sheet": "assets/exported-atlas/characters/guardian.png",
+      "x": 1,
+      "y": 775,
+      "w": 256,
+      "h": 256
+    },
+    "assets/exported/characters/mage/idle_00.png": {
+      "sheet": "assets/exported-atlas/characters/mage.png",
+      "x": 1,
+      "y": 1,
+      "w": 256,
+      "h": 256
+    },
+    "assets/exported/characters/mage/idle_01.png": {
+      "sheet": "assets/exported-atlas/characters/mage.png",
+      "x": 259,
+      "y": 1,
+      "w": 256,
+      "h": 256
+    },
+    "assets/exported/characters/mage/run_00.png": {
+      "sheet": "assets/exported-atlas/characters/mage.png",
+      "x": 517,
+      "y": 1,
+      "w": 256,
+      "h": 256
+    },
+    "assets/exported/characters/mage/run_01.png": {
+      "sheet": "assets/exported-atlas/characters/mage.png",
+      "x": 775,
+      "y": 1,
+      "w": 256,
+      "h": 256
+    },
+    "assets/exported/characters/mage/run_02.png": {
+      "sheet": "assets/exported-atlas/characters/mage.png",
+      "x": 1033,
+      "y": 1,
+      "w": 256,
+      "h": 256
+    },
+    "assets/exported/characters/mage/run_03.png": {
+      "sheet": "assets/exported-atlas/characters/mage.png",
+      "x": 1291,
+      "y": 1,
+      "w": 256,
+      "h": 256
+    },
+    "assets/exported/characters/mage/attack_00.png": {
+      "sheet": "assets/exported-atlas/characters/mage.png",
+      "x": 1549,
+      "y": 1,
+      "w": 256,
+      "h": 256
+    },
+    "assets/exported/characters/mage/attack_01.png": {
+      "sheet": "assets/exported-atlas/characters/mage.png",
+      "x": 1,
+      "y": 259,
+      "w": 256,
+      "h": 256
+    },
+    "assets/exported/characters/mage/attack_02.png": {
+      "sheet": "assets/exported-atlas/characters/mage.png",
+      "x": 259,
+      "y": 259,
+      "w": 256,
+      "h": 256
+    },
+    "assets/exported/characters/mage/attack_03.png": {
+      "sheet": "assets/exported-atlas/characters/mage.png",
+      "x": 517,
+      "y": 259,
+      "w": 256,
+      "h": 256
+    },
+    "assets/exported/characters/mage/skill_00.png": {
+      "sheet": "assets/exported-atlas/characters/mage.png",
+      "x": 775,
+      "y": 259,
+      "w": 256,
+      "h": 256
+    },
+    "assets/exported/characters/mage/skill_01.png": {
+      "sheet": "assets/exported-atlas/characters/mage.png",
+      "x": 1033,
+      "y": 259,
+      "w": 256,
+      "h": 256
+    },
+    "assets/exported/characters/mage/skill_02.png": {
+      "sheet": "assets/exported-atlas/characters/mage.png",
+      "x": 1291,
+      "y": 259,
+      "w": 256,
+      "h": 256
+    },
+    "assets/exported/characters/mage/skill_03.png": {
+      "sheet": "assets/exported-atlas/characters/mage.png",
+      "x": 1549,
+      "y": 259,
+      "w": 256,
+      "h": 256
+    },
+    "assets/exported/characters/mage/ultimate_00.png": {
+      "sheet": "assets/exported-atlas/characters/mage.png",
+      "x": 1,
+      "y": 517,
+      "w": 256,
+      "h": 256
+    },
+    "assets/exported/characters/mage/ultimate_01.png": {
+      "sheet": "assets/exported-atlas/characters/mage.png",
+      "x": 259,
+      "y": 517,
+      "w": 256,
+      "h": 256
+    },
+    "assets/exported/characters/mage/ultimate_02.png": {
+      "sheet": "assets/exported-atlas/characters/mage.png",
+      "x": 517,
+      "y": 517,
+      "w": 256,
+      "h": 256
+    },
+    "assets/exported/characters/mage/ultimate_03.png": {
+      "sheet": "assets/exported-atlas/characters/mage.png",
+      "x": 775,
+      "y": 517,
+      "w": 256,
+      "h": 256
+    },
+    "assets/exported/characters/mage/death_00.png": {
+      "sheet": "assets/exported-atlas/characters/mage.png",
+      "x": 1033,
+      "y": 517,
+      "w": 256,
+      "h": 256
+    },
+    "assets/exported/characters/mage/death_01.png": {
+      "sheet": "assets/exported-atlas/characters/mage.png",
+      "x": 1291,
+      "y": 517,
+      "w": 256,
+      "h": 256
+    },
+    "assets/exported/characters/mage/death_02.png": {
+      "sheet": "assets/exported-atlas/characters/mage.png",
+      "x": 1549,
+      "y": 517,
+      "w": 256,
+      "h": 256
+    },
+    "assets/exported/characters/mage/death_03.png": {
+      "sheet": "assets/exported-atlas/characters/mage.png",
+      "x": 1,
+      "y": 775,
+      "w": 256,
+      "h": 256
+    },
+    "assets/exported/characters/martial/idle_00.png": {
+      "sheet": "assets/exported-atlas/characters/martial.png",
+      "x": 1,
+      "y": 1,
+      "w": 256,
+      "h": 256
+    },
+    "assets/exported/characters/martial/idle_01.png": {
+      "sheet": "assets/exported-atlas/characters/martial.png",
+      "x": 259,
+      "y": 1,
+      "w": 256,
+      "h": 256
+    },
+    "assets/exported/characters/martial/run_00.png": {
+      "sheet": "assets/exported-atlas/characters/martial.png",
+      "x": 517,
+      "y": 1,
+      "w": 256,
+      "h": 256
+    },
+    "assets/exported/characters/martial/run_01.png": {
+      "sheet": "assets/exported-atlas/characters/martial.png",
+      "x": 775,
+      "y": 1,
+      "w": 256,
+      "h": 256
+    },
+    "assets/exported/characters/martial/run_02.png": {
+      "sheet": "assets/exported-atlas/characters/martial.png",
+      "x": 1033,
+      "y": 1,
+      "w": 256,
+      "h": 256
+    },
+    "assets/exported/characters/martial/run_03.png": {
+      "sheet": "assets/exported-atlas/characters/martial.png",
+      "x": 1291,
+      "y": 1,
+      "w": 256,
+      "h": 256
+    },
+    "assets/exported/characters/martial/attack_00.png": {
+      "sheet": "assets/exported-atlas/characters/martial.png",
+      "x": 1549,
+      "y": 1,
+      "w": 256,
+      "h": 256
+    },
+    "assets/exported/characters/martial/attack_01.png": {
+      "sheet": "assets/exported-atlas/characters/martial.png",
+      "x": 1,
+      "y": 259,
+      "w": 256,
+      "h": 256
+    },
+    "assets/exported/characters/martial/attack_02.png": {
+      "sheet": "assets/exported-atlas/characters/martial.png",
+      "x": 259,
+      "y": 259,
+      "w": 256,
+      "h": 256
+    },
+    "assets/exported/characters/martial/attack_03.png": {
+      "sheet": "assets/exported-atlas/characters/martial.png",
+      "x": 517,
+      "y": 259,
+      "w": 256,
+      "h": 256
+    },
+    "assets/exported/characters/martial/skill_00.png": {
+      "sheet": "assets/exported-atlas/characters/martial.png",
+      "x": 775,
+      "y": 259,
+      "w": 256,
+      "h": 256
+    },
+    "assets/exported/characters/martial/skill_01.png": {
+      "sheet": "assets/exported-atlas/characters/martial.png",
+      "x": 1033,
+      "y": 259,
+      "w": 256,
+      "h": 256
+    },
+    "assets/exported/characters/martial/skill_02.png": {
+      "sheet": "assets/exported-atlas/characters/martial.png",
+      "x": 1291,
+      "y": 259,
+      "w": 256,
+      "h": 256
+    },
+    "assets/exported/characters/martial/skill_03.png": {
+      "sheet": "assets/exported-atlas/characters/martial.png",
+      "x": 1549,
+      "y": 259,
+      "w": 256,
+      "h": 256
+    },
+    "assets/exported/characters/martial/ultimate_00.png": {
+      "sheet": "assets/exported-atlas/characters/martial.png",
+      "x": 1,
+      "y": 517,
+      "w": 256,
+      "h": 256
+    },
+    "assets/exported/characters/martial/ultimate_01.png": {
+      "sheet": "assets/exported-atlas/characters/martial.png",
+      "x": 259,
+      "y": 517,
+      "w": 256,
+      "h": 256
+    },
+    "assets/exported/characters/martial/ultimate_02.png": {
+      "sheet": "assets/exported-atlas/characters/martial.png",
+      "x": 517,
+      "y": 517,
+      "w": 256,
+      "h": 256
+    },
+    "assets/exported/characters/martial/ultimate_03.png": {
+      "sheet": "assets/exported-atlas/characters/martial.png",
+      "x": 775,
+      "y": 517,
+      "w": 256,
+      "h": 256
+    },
+    "assets/exported/characters/martial/death_00.png": {
+      "sheet": "assets/exported-atlas/characters/martial.png",
+      "x": 1033,
+      "y": 517,
+      "w": 256,
+      "h": 256
+    },
+    "assets/exported/characters/martial/death_01.png": {
+      "sheet": "assets/exported-atlas/characters/martial.png",
+      "x": 1291,
+      "y": 517,
+      "w": 256,
+      "h": 256
+    },
+    "assets/exported/characters/martial/death_02.png": {
+      "sheet": "assets/exported-atlas/characters/martial.png",
+      "x": 1549,
+      "y": 517,
+      "w": 256,
+      "h": 256
+    },
+    "assets/exported/characters/martial/death_03.png": {
+      "sheet": "assets/exported-atlas/characters/martial.png",
+      "x": 1,
+      "y": 775,
+      "w": 256,
+      "h": 256
+    },
+    "assets/exported/characters/ranger/idle_00.png": {
+      "sheet": "assets/exported-atlas/characters/ranger.png",
+      "x": 1,
+      "y": 1,
+      "w": 256,
+      "h": 256
+    },
+    "assets/exported/characters/ranger/idle_01.png": {
+      "sheet": "assets/exported-atlas/characters/ranger.png",
+      "x": 259,
+      "y": 1,
+      "w": 256,
+      "h": 256
+    },
+    "assets/exported/characters/ranger/run_00.png": {
+      "sheet": "assets/exported-atlas/characters/ranger.png",
+      "x": 517,
+      "y": 1,
+      "w": 256,
+      "h": 256
+    },
+    "assets/exported/characters/ranger/run_01.png": {
+      "sheet": "assets/exported-atlas/characters/ranger.png",
+      "x": 775,
+      "y": 1,
+      "w": 256,
+      "h": 256
+    },
+    "assets/exported/characters/ranger/run_02.png": {
+      "sheet": "assets/exported-atlas/characters/ranger.png",
+      "x": 1033,
+      "y": 1,
+      "w": 256,
+      "h": 256
+    },
+    "assets/exported/characters/ranger/run_03.png": {
+      "sheet": "assets/exported-atlas/characters/ranger.png",
+      "x": 1291,
+      "y": 1,
+      "w": 256,
+      "h": 256
+    },
+    "assets/exported/characters/ranger/attack_00.png": {
+      "sheet": "assets/exported-atlas/characters/ranger.png",
+      "x": 1549,
+      "y": 1,
+      "w": 256,
+      "h": 256
+    },
+    "assets/exported/characters/ranger/attack_01.png": {
+      "sheet": "assets/exported-atlas/characters/ranger.png",
+      "x": 1,
+      "y": 259,
+      "w": 256,
+      "h": 256
+    },
+    "assets/exported/characters/ranger/attack_02.png": {
+      "sheet": "assets/exported-atlas/characters/ranger.png",
+      "x": 259,
+      "y": 259,
+      "w": 256,
+      "h": 256
+    },
+    "assets/exported/characters/ranger/attack_03.png": {
+      "sheet": "assets/exported-atlas/characters/ranger.png",
+      "x": 517,
+      "y": 259,
+      "w": 256,
+      "h": 256
+    },
+    "assets/exported/characters/ranger/skill_00.png": {
+      "sheet": "assets/exported-atlas/characters/ranger.png",
+      "x": 775,
+      "y": 259,
+      "w": 256,
+      "h": 256
+    },
+    "assets/exported/characters/ranger/skill_01.png": {
+      "sheet": "assets/exported-atlas/characters/ranger.png",
+      "x": 1033,
+      "y": 259,
+      "w": 256,
+      "h": 256
+    },
+    "assets/exported/characters/ranger/skill_02.png": {
+      "sheet": "assets/exported-atlas/characters/ranger.png",
+      "x": 1291,
+      "y": 259,
+      "w": 256,
+      "h": 256
+    },
+    "assets/exported/characters/ranger/skill_03.png": {
+      "sheet": "assets/exported-atlas/characters/ranger.png",
+      "x": 1549,
+      "y": 259,
+      "w": 256,
+      "h": 256
+    },
+    "assets/exported/characters/ranger/ultimate_00.png": {
+      "sheet": "assets/exported-atlas/characters/ranger.png",
+      "x": 1,
+      "y": 517,
+      "w": 256,
+      "h": 256
+    },
+    "assets/exported/characters/ranger/ultimate_01.png": {
+      "sheet": "assets/exported-atlas/characters/ranger.png",
+      "x": 259,
+      "y": 517,
+      "w": 256,
+      "h": 256
+    },
+    "assets/exported/characters/ranger/ultimate_02.png": {
+      "sheet": "assets/exported-atlas/characters/ranger.png",
+      "x": 517,
+      "y": 517,
+      "w": 256,
+      "h": 256
+    },
+    "assets/exported/characters/ranger/ultimate_03.png": {
+      "sheet": "assets/exported-atlas/characters/ranger.png",
+      "x": 775,
+      "y": 517,
+      "w": 256,
+      "h": 256
+    },
+    "assets/exported/characters/ranger/death_00.png": {
+      "sheet": "assets/exported-atlas/characters/ranger.png",
+      "x": 1033,
+      "y": 517,
+      "w": 256,
+      "h": 256
+    },
+    "assets/exported/characters/ranger/death_01.png": {
+      "sheet": "assets/exported-atlas/characters/ranger.png",
+      "x": 1291,
+      "y": 517,
+      "w": 256,
+      "h": 256
+    },
+    "assets/exported/characters/ranger/death_02.png": {
+      "sheet": "assets/exported-atlas/characters/ranger.png",
+      "x": 1549,
+      "y": 517,
+      "w": 256,
+      "h": 256
+    },
+    "assets/exported/characters/ranger/death_03.png": {
+      "sheet": "assets/exported-atlas/characters/ranger.png",
+      "x": 1,
+      "y": 775,
+      "w": 256,
+      "h": 256
+    },
+    "assets/exported/characters/spearman/idle_00.png": {
+      "sheet": "assets/exported-atlas/characters/spearman.png",
+      "x": 1,
+      "y": 1,
+      "w": 256,
+      "h": 256
+    },
+    "assets/exported/characters/spearman/idle_01.png": {
+      "sheet": "assets/exported-atlas/characters/spearman.png",
+      "x": 259,
+      "y": 1,
+      "w": 256,
+      "h": 256
+    },
+    "assets/exported/characters/spearman/run_00.png": {
+      "sheet": "assets/exported-atlas/characters/spearman.png",
+      "x": 517,
+      "y": 1,
+      "w": 256,
+      "h": 256
+    },
+    "assets/exported/characters/spearman/run_01.png": {
+      "sheet": "assets/exported-atlas/characters/spearman.png",
+      "x": 775,
+      "y": 1,
+      "w": 256,
+      "h": 256
+    },
+    "assets/exported/characters/spearman/run_02.png": {
+      "sheet": "assets/exported-atlas/characters/spearman.png",
+      "x": 1033,
+      "y": 1,
+      "w": 256,
+      "h": 256
+    },
+    "assets/exported/characters/spearman/run_03.png": {
+      "sheet": "assets/exported-atlas/characters/spearman.png",
+      "x": 1291,
+      "y": 1,
+      "w": 256,
+      "h": 256
+    },
+    "assets/exported/characters/spearman/attack_00.png": {
+      "sheet": "assets/exported-atlas/characters/spearman.png",
+      "x": 1549,
+      "y": 1,
+      "w": 256,
+      "h": 256
+    },
+    "assets/exported/characters/spearman/attack_01.png": {
+      "sheet": "assets/exported-atlas/characters/spearman.png",
+      "x": 1,
+      "y": 259,
+      "w": 256,
+      "h": 256
+    },
+    "assets/exported/characters/spearman/attack_02.png": {
+      "sheet": "assets/exported-atlas/characters/spearman.png",
+      "x": 259,
+      "y": 259,
+      "w": 256,
+      "h": 256
+    },
+    "assets/exported/characters/spearman/attack_03.png": {
+      "sheet": "assets/exported-atlas/characters/spearman.png",
+      "x": 517,
+      "y": 259,
+      "w": 256,
+      "h": 256
+    },
+    "assets/exported/characters/spearman/skill_00.png": {
+      "sheet": "assets/exported-atlas/characters/spearman.png",
+      "x": 775,
+      "y": 259,
+      "w": 256,
+      "h": 256
+    },
+    "assets/exported/characters/spearman/skill_01.png": {
+      "sheet": "assets/exported-atlas/characters/spearman.png",
+      "x": 1033,
+      "y": 259,
+      "w": 256,
+      "h": 256
+    },
+    "assets/exported/characters/spearman/skill_02.png": {
+      "sheet": "assets/exported-atlas/characters/spearman.png",
+      "x": 1291,
+      "y": 259,
+      "w": 256,
+      "h": 256
+    },
+    "assets/exported/characters/spearman/skill_03.png": {
+      "sheet": "assets/exported-atlas/characters/spearman.png",
+      "x": 1549,
+      "y": 259,
+      "w": 256,
+      "h": 256
+    },
+    "assets/exported/characters/spearman/ultimate_00.png": {
+      "sheet": "assets/exported-atlas/characters/spearman.png",
+      "x": 1,
+      "y": 517,
+      "w": 256,
+      "h": 256
+    },
+    "assets/exported/characters/spearman/ultimate_01.png": {
+      "sheet": "assets/exported-atlas/characters/spearman.png",
+      "x": 259,
+      "y": 517,
+      "w": 256,
+      "h": 256
+    },
+    "assets/exported/characters/spearman/ultimate_02.png": {
+      "sheet": "assets/exported-atlas/characters/spearman.png",
+      "x": 517,
+      "y": 517,
+      "w": 256,
+      "h": 256
+    },
+    "assets/exported/characters/spearman/ultimate_03.png": {
+      "sheet": "assets/exported-atlas/characters/spearman.png",
+      "x": 775,
+      "y": 517,
+      "w": 256,
+      "h": 256
+    },
+    "assets/exported/characters/spearman/death_00.png": {
+      "sheet": "assets/exported-atlas/characters/spearman.png",
+      "x": 1033,
+      "y": 517,
+      "w": 256,
+      "h": 256
+    },
+    "assets/exported/characters/spearman/death_01.png": {
+      "sheet": "assets/exported-atlas/characters/spearman.png",
+      "x": 1291,
+      "y": 517,
+      "w": 256,
+      "h": 256
+    },
+    "assets/exported/characters/spearman/death_02.png": {
+      "sheet": "assets/exported-atlas/characters/spearman.png",
+      "x": 1549,
+      "y": 517,
+      "w": 256,
+      "h": 256
+    },
+    "assets/exported/characters/spearman/death_03.png": {
+      "sheet": "assets/exported-atlas/characters/spearman.png",
+      "x": 1,
+      "y": 775,
+      "w": 256,
+      "h": 256
+    },
+    "assets/exported/characters/swordsman/idle_00.png": {
+      "sheet": "assets/exported-atlas/characters/swordsman.png",
+      "x": 1,
+      "y": 1,
+      "w": 256,
+      "h": 256
+    },
+    "assets/exported/characters/swordsman/idle_01.png": {
+      "sheet": "assets/exported-atlas/characters/swordsman.png",
+      "x": 259,
+      "y": 1,
+      "w": 256,
+      "h": 256
+    },
+    "assets/exported/characters/swordsman/run_00.png": {
+      "sheet": "assets/exported-atlas/characters/swordsman.png",
+      "x": 517,
+      "y": 1,
+      "w": 256,
+      "h": 256
+    },
+    "assets/exported/characters/swordsman/run_01.png": {
+      "sheet": "assets/exported-atlas/characters/swordsman.png",
+      "x": 775,
+      "y": 1,
+      "w": 256,
+      "h": 256
+    },
+    "assets/exported/characters/swordsman/run_02.png": {
+      "sheet": "assets/exported-atlas/characters/swordsman.png",
+      "x": 1033,
+      "y": 1,
+      "w": 256,
+      "h": 256
+    },
+    "assets/exported/characters/swordsman/run_03.png": {
+      "sheet": "assets/exported-atlas/characters/swordsman.png",
+      "x": 1291,
+      "y": 1,
+      "w": 256,
+      "h": 256
+    },
+    "assets/exported/characters/swordsman/attack_00.png": {
+      "sheet": "assets/exported-atlas/characters/swordsman.png",
+      "x": 1549,
+      "y": 1,
+      "w": 256,
+      "h": 256
+    },
+    "assets/exported/characters/swordsman/attack_01.png": {
+      "sheet": "assets/exported-atlas/characters/swordsman.png",
+      "x": 1,
+      "y": 259,
+      "w": 256,
+      "h": 256
+    },
+    "assets/exported/characters/swordsman/attack_02.png": {
+      "sheet": "assets/exported-atlas/characters/swordsman.png",
+      "x": 259,
+      "y": 259,
+      "w": 256,
+      "h": 256
+    },
+    "assets/exported/characters/swordsman/attack_03.png": {
+      "sheet": "assets/exported-atlas/characters/swordsman.png",
+      "x": 517,
+      "y": 259,
+      "w": 256,
+      "h": 256
+    },
+    "assets/exported/characters/swordsman/skill_00.png": {
+      "sheet": "assets/exported-atlas/characters/swordsman.png",
+      "x": 775,
+      "y": 259,
+      "w": 256,
+      "h": 256
+    },
+    "assets/exported/characters/swordsman/skill_01.png": {
+      "sheet": "assets/exported-atlas/characters/swordsman.png",
+      "x": 1033,
+      "y": 259,
+      "w": 256,
+      "h": 256
+    },
+    "assets/exported/characters/swordsman/skill_02.png": {
+      "sheet": "assets/exported-atlas/characters/swordsman.png",
+      "x": 1291,
+      "y": 259,
+      "w": 256,
+      "h": 256
+    },
+    "assets/exported/characters/swordsman/skill_03.png": {
+      "sheet": "assets/exported-atlas/characters/swordsman.png",
+      "x": 1549,
+      "y": 259,
+      "w": 256,
+      "h": 256
+    },
+    "assets/exported/characters/swordsman/ultimate_00.png": {
+      "sheet": "assets/exported-atlas/characters/swordsman.png",
+      "x": 1,
+      "y": 517,
+      "w": 256,
+      "h": 256
+    },
+    "assets/exported/characters/swordsman/ultimate_01.png": {
+      "sheet": "assets/exported-atlas/characters/swordsman.png",
+      "x": 259,
+      "y": 517,
+      "w": 256,
+      "h": 256
+    },
+    "assets/exported/characters/swordsman/ultimate_02.png": {
+      "sheet": "assets/exported-atlas/characters/swordsman.png",
+      "x": 517,
+      "y": 517,
+      "w": 256,
+      "h": 256
+    },
+    "assets/exported/characters/swordsman/ultimate_03.png": {
+      "sheet": "assets/exported-atlas/characters/swordsman.png",
+      "x": 775,
+      "y": 517,
+      "w": 256,
+      "h": 256
+    },
+    "assets/exported/characters/swordsman/death_00.png": {
+      "sheet": "assets/exported-atlas/characters/swordsman.png",
+      "x": 1033,
+      "y": 517,
+      "w": 256,
+      "h": 256
+    },
+    "assets/exported/characters/swordsman/death_01.png": {
+      "sheet": "assets/exported-atlas/characters/swordsman.png",
+      "x": 1291,
+      "y": 517,
+      "w": 256,
+      "h": 256
+    },
+    "assets/exported/characters/swordsman/death_02.png": {
+      "sheet": "assets/exported-atlas/characters/swordsman.png",
+      "x": 1549,
+      "y": 517,
+      "w": 256,
+      "h": 256
+    },
+    "assets/exported/characters/swordsman/death_03.png": {
+      "sheet": "assets/exported-atlas/characters/swordsman.png",
+      "x": 1,
+      "y": 775,
+      "w": 256,
+      "h": 256
+    },
+    "assets/exported/chests/goldChest/open_00.png": {
+      "sheet": "assets/exported-atlas/chests/goldChest.png",
+      "x": 1,
+      "y": 1,
+      "w": 192,
+      "h": 160
+    },
+    "assets/exported/chests/goldChest/open_01.png": {
+      "sheet": "assets/exported-atlas/chests/goldChest.png",
+      "x": 195,
+      "y": 1,
+      "w": 192,
+      "h": 160
+    },
+    "assets/exported/chests/goldChest/open_02.png": {
+      "sheet": "assets/exported-atlas/chests/goldChest.png",
+      "x": 389,
+      "y": 1,
+      "w": 192,
+      "h": 160
+    },
+    "assets/exported/chests/goldChest/open_03.png": {
+      "sheet": "assets/exported-atlas/chests/goldChest.png",
+      "x": 583,
+      "y": 1,
+      "w": 192,
+      "h": 160
+    },
+    "assets/exported/chests/goldChest/open_04.png": {
+      "sheet": "assets/exported-atlas/chests/goldChest.png",
+      "x": 777,
+      "y": 1,
+      "w": 192,
+      "h": 160
+    },
+    "assets/exported/chests/goldChest/open_05.png": {
+      "sheet": "assets/exported-atlas/chests/goldChest.png",
+      "x": 971,
+      "y": 1,
+      "w": 192,
+      "h": 160
+    },
+    "assets/exported/chests/treasureChest/open_00.png": {
+      "sheet": "assets/exported-atlas/chests/treasureChest.png",
+      "x": 1,
+      "y": 1,
+      "w": 256,
+      "h": 220
+    },
+    "assets/exported/chests/treasureChest/open_01.png": {
+      "sheet": "assets/exported-atlas/chests/treasureChest.png",
+      "x": 259,
+      "y": 1,
+      "w": 256,
+      "h": 220
+    },
+    "assets/exported/chests/treasureChest/open_02.png": {
+      "sheet": "assets/exported-atlas/chests/treasureChest.png",
+      "x": 517,
+      "y": 1,
+      "w": 256,
+      "h": 220
+    },
+    "assets/exported/chests/treasureChest/open_03.png": {
+      "sheet": "assets/exported-atlas/chests/treasureChest.png",
+      "x": 775,
+      "y": 1,
+      "w": 256,
+      "h": 220
+    },
+    "assets/exported/chests/treasureChest/open_04.png": {
+      "sheet": "assets/exported-atlas/chests/treasureChest.png",
+      "x": 1033,
+      "y": 1,
+      "w": 256,
+      "h": 220
+    },
+    "assets/exported/chests/treasureChest/open_05.png": {
+      "sheet": "assets/exported-atlas/chests/treasureChest.png",
+      "x": 1291,
+      "y": 1,
+      "w": 256,
+      "h": 220
+    },
+    "assets/exported/chests/woodChest/open_00.png": {
+      "sheet": "assets/exported-atlas/chests/woodChest.png",
+      "x": 1,
+      "y": 1,
+      "w": 192,
+      "h": 160
+    },
+    "assets/exported/chests/woodChest/open_01.png": {
+      "sheet": "assets/exported-atlas/chests/woodChest.png",
+      "x": 195,
+      "y": 1,
+      "w": 192,
+      "h": 160
+    },
+    "assets/exported/chests/woodChest/open_02.png": {
+      "sheet": "assets/exported-atlas/chests/woodChest.png",
+      "x": 389,
+      "y": 1,
+      "w": 192,
+      "h": 160
+    },
+    "assets/exported/chests/woodChest/open_03.png": {
+      "sheet": "assets/exported-atlas/chests/woodChest.png",
+      "x": 583,
+      "y": 1,
+      "w": 192,
+      "h": 160
+    },
+    "assets/exported/chests/woodChest/open_04.png": {
+      "sheet": "assets/exported-atlas/chests/woodChest.png",
+      "x": 777,
+      "y": 1,
+      "w": 192,
+      "h": 160
+    },
+    "assets/exported/chests/woodChest/open_05.png": {
+      "sheet": "assets/exported-atlas/chests/woodChest.png",
+      "x": 971,
+      "y": 1,
+      "w": 192,
+      "h": 160
+    },
+    "assets/exported/doors/bossExit/grow_00.png": {
+      "sheet": "assets/exported-atlas/doors/bossExit.png",
+      "x": 1,
+      "y": 1,
+      "w": 288,
+      "h": 320
+    },
+    "assets/exported/doors/bossExit/grow_01.png": {
+      "sheet": "assets/exported-atlas/doors/bossExit.png",
+      "x": 291,
+      "y": 1,
+      "w": 288,
+      "h": 320
+    },
+    "assets/exported/doors/bossExit/grow_02.png": {
+      "sheet": "assets/exported-atlas/doors/bossExit.png",
+      "x": 581,
+      "y": 1,
+      "w": 288,
+      "h": 320
+    },
+    "assets/exported/doors/bossExit/grow_03.png": {
+      "sheet": "assets/exported-atlas/doors/bossExit.png",
+      "x": 871,
+      "y": 1,
+      "w": 288,
+      "h": 320
+    },
+    "assets/exported/doors/bossExit/grow_04.png": {
+      "sheet": "assets/exported-atlas/doors/bossExit.png",
+      "x": 1161,
+      "y": 1,
+      "w": 288,
+      "h": 320
+    },
+    "assets/exported/doors/bossGate/grow_00.png": {
+      "sheet": "assets/exported-atlas/doors/bossGate.png",
+      "x": 1,
+      "y": 1,
+      "w": 288,
+      "h": 320
+    },
+    "assets/exported/doors/bossGate/grow_01.png": {
+      "sheet": "assets/exported-atlas/doors/bossGate.png",
+      "x": 291,
+      "y": 1,
+      "w": 288,
+      "h": 320
+    },
+    "assets/exported/doors/bossGate/grow_02.png": {
+      "sheet": "assets/exported-atlas/doors/bossGate.png",
+      "x": 581,
+      "y": 1,
+      "w": 288,
+      "h": 320
+    },
+    "assets/exported/doors/bossGate/grow_03.png": {
+      "sheet": "assets/exported-atlas/doors/bossGate.png",
+      "x": 871,
+      "y": 1,
+      "w": 288,
+      "h": 320
+    },
+    "assets/exported/doors/bossGate/grow_04.png": {
+      "sheet": "assets/exported-atlas/doors/bossGate.png",
+      "x": 1161,
+      "y": 1,
+      "w": 288,
+      "h": 320
+    },
+    "assets/exported/doors/challenge/grow_00.png": {
+      "sheet": "assets/exported-atlas/doors/challenge.png",
+      "x": 1,
+      "y": 1,
+      "w": 256,
+      "h": 280
+    },
+    "assets/exported/doors/challenge/grow_01.png": {
+      "sheet": "assets/exported-atlas/doors/challenge.png",
+      "x": 259,
+      "y": 1,
+      "w": 256,
+      "h": 280
+    },
+    "assets/exported/doors/challenge/grow_02.png": {
+      "sheet": "assets/exported-atlas/doors/challenge.png",
+      "x": 517,
+      "y": 1,
+      "w": 256,
+      "h": 280
+    },
+    "assets/exported/doors/challenge/grow_03.png": {
+      "sheet": "assets/exported-atlas/doors/challenge.png",
+      "x": 775,
+      "y": 1,
+      "w": 256,
+      "h": 280
+    },
+    "assets/exported/doors/challenge/grow_04.png": {
+      "sheet": "assets/exported-atlas/doors/challenge.png",
+      "x": 1033,
+      "y": 1,
+      "w": 256,
+      "h": 280
+    },
+    "assets/exported/doors/curse/grow_00.png": {
+      "sheet": "assets/exported-atlas/doors/curse.png",
+      "x": 1,
+      "y": 1,
+      "w": 256,
+      "h": 280
+    },
+    "assets/exported/doors/curse/grow_01.png": {
+      "sheet": "assets/exported-atlas/doors/curse.png",
+      "x": 259,
+      "y": 1,
+      "w": 256,
+      "h": 280
+    },
+    "assets/exported/doors/curse/grow_02.png": {
+      "sheet": "assets/exported-atlas/doors/curse.png",
+      "x": 517,
+      "y": 1,
+      "w": 256,
+      "h": 280
+    },
+    "assets/exported/doors/curse/grow_03.png": {
+      "sheet": "assets/exported-atlas/doors/curse.png",
+      "x": 775,
+      "y": 1,
+      "w": 256,
+      "h": 280
+    },
+    "assets/exported/doors/curse/grow_04.png": {
+      "sheet": "assets/exported-atlas/doors/curse.png",
+      "x": 1033,
+      "y": 1,
+      "w": 256,
+      "h": 280
+    },
+    "assets/exported/doors/elite/grow_00.png": {
+      "sheet": "assets/exported-atlas/doors/elite.png",
+      "x": 1,
+      "y": 1,
+      "w": 256,
+      "h": 280
+    },
+    "assets/exported/doors/elite/grow_01.png": {
+      "sheet": "assets/exported-atlas/doors/elite.png",
+      "x": 259,
+      "y": 1,
+      "w": 256,
+      "h": 280
+    },
+    "assets/exported/doors/elite/grow_02.png": {
+      "sheet": "assets/exported-atlas/doors/elite.png",
+      "x": 517,
+      "y": 1,
+      "w": 256,
+      "h": 280
+    },
+    "assets/exported/doors/elite/grow_03.png": {
+      "sheet": "assets/exported-atlas/doors/elite.png",
+      "x": 775,
+      "y": 1,
+      "w": 256,
+      "h": 280
+    },
+    "assets/exported/doors/elite/grow_04.png": {
+      "sheet": "assets/exported-atlas/doors/elite.png",
+      "x": 1033,
+      "y": 1,
+      "w": 256,
+      "h": 280
+    },
+    "assets/exported/doors/healing/grow_00.png": {
+      "sheet": "assets/exported-atlas/doors/healing.png",
+      "x": 1,
+      "y": 1,
+      "w": 256,
+      "h": 280
+    },
+    "assets/exported/doors/healing/grow_01.png": {
+      "sheet": "assets/exported-atlas/doors/healing.png",
+      "x": 259,
+      "y": 1,
+      "w": 256,
+      "h": 280
+    },
+    "assets/exported/doors/healing/grow_02.png": {
+      "sheet": "assets/exported-atlas/doors/healing.png",
+      "x": 517,
+      "y": 1,
+      "w": 256,
+      "h": 280
+    },
+    "assets/exported/doors/healing/grow_03.png": {
+      "sheet": "assets/exported-atlas/doors/healing.png",
+      "x": 775,
+      "y": 1,
+      "w": 256,
+      "h": 280
+    },
+    "assets/exported/doors/healing/grow_04.png": {
+      "sheet": "assets/exported-atlas/doors/healing.png",
+      "x": 1033,
+      "y": 1,
+      "w": 256,
+      "h": 280
+    },
+    "assets/exported/doors/merchant/grow_00.png": {
+      "sheet": "assets/exported-atlas/doors/merchant.png",
+      "x": 1,
+      "y": 1,
+      "w": 256,
+      "h": 280
+    },
+    "assets/exported/doors/merchant/grow_01.png": {
+      "sheet": "assets/exported-atlas/doors/merchant.png",
+      "x": 259,
+      "y": 1,
+      "w": 256,
+      "h": 280
+    },
+    "assets/exported/doors/merchant/grow_02.png": {
+      "sheet": "assets/exported-atlas/doors/merchant.png",
+      "x": 517,
+      "y": 1,
+      "w": 256,
+      "h": 280
+    },
+    "assets/exported/doors/merchant/grow_03.png": {
+      "sheet": "assets/exported-atlas/doors/merchant.png",
+      "x": 775,
+      "y": 1,
+      "w": 256,
+      "h": 280
+    },
+    "assets/exported/doors/merchant/grow_04.png": {
+      "sheet": "assets/exported-atlas/doors/merchant.png",
+      "x": 1033,
+      "y": 1,
+      "w": 256,
+      "h": 280
+    },
+    "assets/exported/doors/normal/grow_00.png": {
+      "sheet": "assets/exported-atlas/doors/normal.png",
+      "x": 1,
+      "y": 1,
+      "w": 256,
+      "h": 280
+    },
+    "assets/exported/doors/normal/grow_01.png": {
+      "sheet": "assets/exported-atlas/doors/normal.png",
+      "x": 259,
+      "y": 1,
+      "w": 256,
+      "h": 280
+    },
+    "assets/exported/doors/normal/grow_02.png": {
+      "sheet": "assets/exported-atlas/doors/normal.png",
+      "x": 517,
+      "y": 1,
+      "w": 256,
+      "h": 280
+    },
+    "assets/exported/doors/normal/grow_03.png": {
+      "sheet": "assets/exported-atlas/doors/normal.png",
+      "x": 775,
+      "y": 1,
+      "w": 256,
+      "h": 280
+    },
+    "assets/exported/doors/normal/grow_04.png": {
+      "sheet": "assets/exported-atlas/doors/normal.png",
+      "x": 1033,
+      "y": 1,
+      "w": 256,
+      "h": 280
+    },
+    "assets/exported/doors/secret/grow_00.png": {
+      "sheet": "assets/exported-atlas/doors/secret.png",
+      "x": 1,
+      "y": 1,
+      "w": 256,
+      "h": 280
+    },
+    "assets/exported/doors/secret/grow_01.png": {
+      "sheet": "assets/exported-atlas/doors/secret.png",
+      "x": 259,
+      "y": 1,
+      "w": 256,
+      "h": 280
+    },
+    "assets/exported/doors/secret/grow_02.png": {
+      "sheet": "assets/exported-atlas/doors/secret.png",
+      "x": 517,
+      "y": 1,
+      "w": 256,
+      "h": 280
+    },
+    "assets/exported/doors/secret/grow_03.png": {
+      "sheet": "assets/exported-atlas/doors/secret.png",
+      "x": 775,
+      "y": 1,
+      "w": 256,
+      "h": 280
+    },
+    "assets/exported/doors/secret/grow_04.png": {
+      "sheet": "assets/exported-atlas/doors/secret.png",
+      "x": 1033,
+      "y": 1,
+      "w": 256,
+      "h": 280
+    },
+    "assets/exported/doors/treasure/grow_00.png": {
+      "sheet": "assets/exported-atlas/doors/treasure.png",
+      "x": 1,
+      "y": 1,
+      "w": 256,
+      "h": 280
+    },
+    "assets/exported/doors/treasure/grow_01.png": {
+      "sheet": "assets/exported-atlas/doors/treasure.png",
+      "x": 259,
+      "y": 1,
+      "w": 256,
+      "h": 280
+    },
+    "assets/exported/doors/treasure/grow_02.png": {
+      "sheet": "assets/exported-atlas/doors/treasure.png",
+      "x": 517,
+      "y": 1,
+      "w": 256,
+      "h": 280
+    },
+    "assets/exported/doors/treasure/grow_03.png": {
+      "sheet": "assets/exported-atlas/doors/treasure.png",
+      "x": 775,
+      "y": 1,
+      "w": 256,
+      "h": 280
+    },
+    "assets/exported/doors/treasure/grow_04.png": {
+      "sheet": "assets/exported-atlas/doors/treasure.png",
+      "x": 1033,
+      "y": 1,
+      "w": 256,
+      "h": 280
+    },
+    "assets/exported/monsters/batDemon/idle_00.png": {
+      "sheet": "assets/exported-atlas/monsters/batDemon.png",
+      "x": 1,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/monsters/batDemon/idle_01.png": {
+      "sheet": "assets/exported-atlas/monsters/batDemon.png",
+      "x": 195,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/monsters/batDemon/walk_00.png": {
+      "sheet": "assets/exported-atlas/monsters/batDemon.png",
+      "x": 389,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/monsters/batDemon/walk_01.png": {
+      "sheet": "assets/exported-atlas/monsters/batDemon.png",
+      "x": 583,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/monsters/batDemon/walk_02.png": {
+      "sheet": "assets/exported-atlas/monsters/batDemon.png",
+      "x": 777,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/monsters/batDemon/walk_03.png": {
+      "sheet": "assets/exported-atlas/monsters/batDemon.png",
+      "x": 971,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/monsters/batDemon/attack_00.png": {
+      "sheet": "assets/exported-atlas/monsters/batDemon.png",
+      "x": 1165,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/monsters/batDemon/attack_01.png": {
+      "sheet": "assets/exported-atlas/monsters/batDemon.png",
+      "x": 1359,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/monsters/batDemon/attack_02.png": {
+      "sheet": "assets/exported-atlas/monsters/batDemon.png",
+      "x": 1553,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/monsters/crystalBeast/idle_00.png": {
+      "sheet": "assets/exported-atlas/monsters/crystalBeast.png",
+      "x": 1,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/monsters/crystalBeast/idle_01.png": {
+      "sheet": "assets/exported-atlas/monsters/crystalBeast.png",
+      "x": 195,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/monsters/crystalBeast/walk_00.png": {
+      "sheet": "assets/exported-atlas/monsters/crystalBeast.png",
+      "x": 389,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/monsters/crystalBeast/walk_01.png": {
+      "sheet": "assets/exported-atlas/monsters/crystalBeast.png",
+      "x": 583,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/monsters/crystalBeast/walk_02.png": {
+      "sheet": "assets/exported-atlas/monsters/crystalBeast.png",
+      "x": 777,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/monsters/crystalBeast/walk_03.png": {
+      "sheet": "assets/exported-atlas/monsters/crystalBeast.png",
+      "x": 971,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/monsters/crystalBeast/attack_00.png": {
+      "sheet": "assets/exported-atlas/monsters/crystalBeast.png",
+      "x": 1165,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/monsters/crystalBeast/attack_01.png": {
+      "sheet": "assets/exported-atlas/monsters/crystalBeast.png",
+      "x": 1359,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/monsters/crystalBeast/attack_02.png": {
+      "sheet": "assets/exported-atlas/monsters/crystalBeast.png",
+      "x": 1553,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/monsters/darkKnight/idle_00.png": {
+      "sheet": "assets/exported-atlas/monsters/darkKnight.png",
+      "x": 1,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/monsters/darkKnight/idle_01.png": {
+      "sheet": "assets/exported-atlas/monsters/darkKnight.png",
+      "x": 195,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/monsters/darkKnight/walk_00.png": {
+      "sheet": "assets/exported-atlas/monsters/darkKnight.png",
+      "x": 389,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/monsters/darkKnight/walk_01.png": {
+      "sheet": "assets/exported-atlas/monsters/darkKnight.png",
+      "x": 583,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/monsters/darkKnight/walk_02.png": {
+      "sheet": "assets/exported-atlas/monsters/darkKnight.png",
+      "x": 777,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/monsters/darkKnight/walk_03.png": {
+      "sheet": "assets/exported-atlas/monsters/darkKnight.png",
+      "x": 971,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/monsters/darkKnight/attack_00.png": {
+      "sheet": "assets/exported-atlas/monsters/darkKnight.png",
+      "x": 1165,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/monsters/darkKnight/attack_01.png": {
+      "sheet": "assets/exported-atlas/monsters/darkKnight.png",
+      "x": 1359,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/monsters/darkKnight/attack_02.png": {
+      "sheet": "assets/exported-atlas/monsters/darkKnight.png",
+      "x": 1553,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/monsters/fireDemon/idle_00.png": {
+      "sheet": "assets/exported-atlas/monsters/fireDemon.png",
+      "x": 1,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/monsters/fireDemon/idle_01.png": {
+      "sheet": "assets/exported-atlas/monsters/fireDemon.png",
+      "x": 195,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/monsters/fireDemon/walk_00.png": {
+      "sheet": "assets/exported-atlas/monsters/fireDemon.png",
+      "x": 389,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/monsters/fireDemon/walk_01.png": {
+      "sheet": "assets/exported-atlas/monsters/fireDemon.png",
+      "x": 583,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/monsters/fireDemon/walk_02.png": {
+      "sheet": "assets/exported-atlas/monsters/fireDemon.png",
+      "x": 777,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/monsters/fireDemon/walk_03.png": {
+      "sheet": "assets/exported-atlas/monsters/fireDemon.png",
+      "x": 971,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/monsters/fireDemon/attack_00.png": {
+      "sheet": "assets/exported-atlas/monsters/fireDemon.png",
+      "x": 1165,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/monsters/fireDemon/attack_01.png": {
+      "sheet": "assets/exported-atlas/monsters/fireDemon.png",
+      "x": 1359,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/monsters/fireDemon/attack_02.png": {
+      "sheet": "assets/exported-atlas/monsters/fireDemon.png",
+      "x": 1553,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/monsters/fireSlime/idle_00.png": {
+      "sheet": "assets/exported-atlas/monsters/fireSlime.png",
+      "x": 1,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/monsters/fireSlime/idle_01.png": {
+      "sheet": "assets/exported-atlas/monsters/fireSlime.png",
+      "x": 195,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/monsters/fireSlime/walk_00.png": {
+      "sheet": "assets/exported-atlas/monsters/fireSlime.png",
+      "x": 389,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/monsters/fireSlime/walk_01.png": {
+      "sheet": "assets/exported-atlas/monsters/fireSlime.png",
+      "x": 583,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/monsters/fireSlime/walk_02.png": {
+      "sheet": "assets/exported-atlas/monsters/fireSlime.png",
+      "x": 777,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/monsters/fireSlime/walk_03.png": {
+      "sheet": "assets/exported-atlas/monsters/fireSlime.png",
+      "x": 971,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/monsters/fireSlime/attack_00.png": {
+      "sheet": "assets/exported-atlas/monsters/fireSlime.png",
+      "x": 1165,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/monsters/fireSlime/attack_01.png": {
+      "sheet": "assets/exported-atlas/monsters/fireSlime.png",
+      "x": 1359,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/monsters/fireSlime/attack_02.png": {
+      "sheet": "assets/exported-atlas/monsters/fireSlime.png",
+      "x": 1553,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/monsters/goblinBomber/idle_00.png": {
+      "sheet": "assets/exported-atlas/monsters/goblinBomber.png",
+      "x": 1,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/monsters/goblinBomber/idle_01.png": {
+      "sheet": "assets/exported-atlas/monsters/goblinBomber.png",
+      "x": 195,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/monsters/goblinBomber/walk_00.png": {
+      "sheet": "assets/exported-atlas/monsters/goblinBomber.png",
+      "x": 389,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/monsters/goblinBomber/walk_01.png": {
+      "sheet": "assets/exported-atlas/monsters/goblinBomber.png",
+      "x": 583,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/monsters/goblinBomber/walk_02.png": {
+      "sheet": "assets/exported-atlas/monsters/goblinBomber.png",
+      "x": 777,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/monsters/goblinBomber/walk_03.png": {
+      "sheet": "assets/exported-atlas/monsters/goblinBomber.png",
+      "x": 971,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/monsters/goblinBomber/attack_00.png": {
+      "sheet": "assets/exported-atlas/monsters/goblinBomber.png",
+      "x": 1165,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/monsters/goblinBomber/attack_01.png": {
+      "sheet": "assets/exported-atlas/monsters/goblinBomber.png",
+      "x": 1359,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/monsters/goblinBomber/attack_02.png": {
+      "sheet": "assets/exported-atlas/monsters/goblinBomber.png",
+      "x": 1553,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/monsters/goblinScout/idle_00.png": {
+      "sheet": "assets/exported-atlas/monsters/goblinScout.png",
+      "x": 1,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/monsters/goblinScout/idle_01.png": {
+      "sheet": "assets/exported-atlas/monsters/goblinScout.png",
+      "x": 195,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/monsters/goblinScout/walk_00.png": {
+      "sheet": "assets/exported-atlas/monsters/goblinScout.png",
+      "x": 389,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/monsters/goblinScout/walk_01.png": {
+      "sheet": "assets/exported-atlas/monsters/goblinScout.png",
+      "x": 583,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/monsters/goblinScout/walk_02.png": {
+      "sheet": "assets/exported-atlas/monsters/goblinScout.png",
+      "x": 777,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/monsters/goblinScout/walk_03.png": {
+      "sheet": "assets/exported-atlas/monsters/goblinScout.png",
+      "x": 971,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/monsters/goblinScout/attack_00.png": {
+      "sheet": "assets/exported-atlas/monsters/goblinScout.png",
+      "x": 1165,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/monsters/goblinScout/attack_01.png": {
+      "sheet": "assets/exported-atlas/monsters/goblinScout.png",
+      "x": 1359,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/monsters/goblinScout/attack_02.png": {
+      "sheet": "assets/exported-atlas/monsters/goblinScout.png",
+      "x": 1553,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/monsters/iceGolem/idle_00.png": {
+      "sheet": "assets/exported-atlas/monsters/iceGolem.png",
+      "x": 1,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/monsters/iceGolem/idle_01.png": {
+      "sheet": "assets/exported-atlas/monsters/iceGolem.png",
+      "x": 195,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/monsters/iceGolem/walk_00.png": {
+      "sheet": "assets/exported-atlas/monsters/iceGolem.png",
+      "x": 389,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/monsters/iceGolem/walk_01.png": {
+      "sheet": "assets/exported-atlas/monsters/iceGolem.png",
+      "x": 583,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/monsters/iceGolem/walk_02.png": {
+      "sheet": "assets/exported-atlas/monsters/iceGolem.png",
+      "x": 777,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/monsters/iceGolem/walk_03.png": {
+      "sheet": "assets/exported-atlas/monsters/iceGolem.png",
+      "x": 971,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/monsters/iceGolem/attack_00.png": {
+      "sheet": "assets/exported-atlas/monsters/iceGolem.png",
+      "x": 1165,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/monsters/iceGolem/attack_01.png": {
+      "sheet": "assets/exported-atlas/monsters/iceGolem.png",
+      "x": 1359,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/monsters/iceGolem/attack_02.png": {
+      "sheet": "assets/exported-atlas/monsters/iceGolem.png",
+      "x": 1553,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/monsters/iceSlime/idle_00.png": {
+      "sheet": "assets/exported-atlas/monsters/iceSlime.png",
+      "x": 1,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/monsters/iceSlime/idle_01.png": {
+      "sheet": "assets/exported-atlas/monsters/iceSlime.png",
+      "x": 195,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/monsters/iceSlime/walk_00.png": {
+      "sheet": "assets/exported-atlas/monsters/iceSlime.png",
+      "x": 389,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/monsters/iceSlime/walk_01.png": {
+      "sheet": "assets/exported-atlas/monsters/iceSlime.png",
+      "x": 583,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/monsters/iceSlime/walk_02.png": {
+      "sheet": "assets/exported-atlas/monsters/iceSlime.png",
+      "x": 777,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/monsters/iceSlime/walk_03.png": {
+      "sheet": "assets/exported-atlas/monsters/iceSlime.png",
+      "x": 971,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/monsters/iceSlime/attack_00.png": {
+      "sheet": "assets/exported-atlas/monsters/iceSlime.png",
+      "x": 1165,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/monsters/iceSlime/attack_01.png": {
+      "sheet": "assets/exported-atlas/monsters/iceSlime.png",
+      "x": 1359,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/monsters/iceSlime/attack_02.png": {
+      "sheet": "assets/exported-atlas/monsters/iceSlime.png",
+      "x": 1553,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/monsters/mushroomMonster/idle_00.png": {
+      "sheet": "assets/exported-atlas/monsters/mushroomMonster.png",
+      "x": 1,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/monsters/mushroomMonster/idle_01.png": {
+      "sheet": "assets/exported-atlas/monsters/mushroomMonster.png",
+      "x": 195,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/monsters/mushroomMonster/walk_00.png": {
+      "sheet": "assets/exported-atlas/monsters/mushroomMonster.png",
+      "x": 389,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/monsters/mushroomMonster/walk_01.png": {
+      "sheet": "assets/exported-atlas/monsters/mushroomMonster.png",
+      "x": 583,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/monsters/mushroomMonster/walk_02.png": {
+      "sheet": "assets/exported-atlas/monsters/mushroomMonster.png",
+      "x": 777,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/monsters/mushroomMonster/walk_03.png": {
+      "sheet": "assets/exported-atlas/monsters/mushroomMonster.png",
+      "x": 971,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/monsters/mushroomMonster/attack_00.png": {
+      "sheet": "assets/exported-atlas/monsters/mushroomMonster.png",
+      "x": 1165,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/monsters/mushroomMonster/attack_01.png": {
+      "sheet": "assets/exported-atlas/monsters/mushroomMonster.png",
+      "x": 1359,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/monsters/mushroomMonster/attack_02.png": {
+      "sheet": "assets/exported-atlas/monsters/mushroomMonster.png",
+      "x": 1553,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/monsters/necromancer/idle_00.png": {
+      "sheet": "assets/exported-atlas/monsters/necromancer.png",
+      "x": 1,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/monsters/necromancer/idle_01.png": {
+      "sheet": "assets/exported-atlas/monsters/necromancer.png",
+      "x": 195,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/monsters/necromancer/walk_00.png": {
+      "sheet": "assets/exported-atlas/monsters/necromancer.png",
+      "x": 389,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/monsters/necromancer/walk_01.png": {
+      "sheet": "assets/exported-atlas/monsters/necromancer.png",
+      "x": 583,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/monsters/necromancer/walk_02.png": {
+      "sheet": "assets/exported-atlas/monsters/necromancer.png",
+      "x": 777,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/monsters/necromancer/walk_03.png": {
+      "sheet": "assets/exported-atlas/monsters/necromancer.png",
+      "x": 971,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/monsters/necromancer/attack_00.png": {
+      "sheet": "assets/exported-atlas/monsters/necromancer.png",
+      "x": 1165,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/monsters/necromancer/attack_01.png": {
+      "sheet": "assets/exported-atlas/monsters/necromancer.png",
+      "x": 1359,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/monsters/necromancer/attack_02.png": {
+      "sheet": "assets/exported-atlas/monsters/necromancer.png",
+      "x": 1553,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/monsters/shadowGoblin/idle_00.png": {
+      "sheet": "assets/exported-atlas/monsters/shadowGoblin.png",
+      "x": 1,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/monsters/shadowGoblin/idle_01.png": {
+      "sheet": "assets/exported-atlas/monsters/shadowGoblin.png",
+      "x": 195,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/monsters/shadowGoblin/walk_00.png": {
+      "sheet": "assets/exported-atlas/monsters/shadowGoblin.png",
+      "x": 389,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/monsters/shadowGoblin/walk_01.png": {
+      "sheet": "assets/exported-atlas/monsters/shadowGoblin.png",
+      "x": 583,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/monsters/shadowGoblin/walk_02.png": {
+      "sheet": "assets/exported-atlas/monsters/shadowGoblin.png",
+      "x": 777,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/monsters/shadowGoblin/walk_03.png": {
+      "sheet": "assets/exported-atlas/monsters/shadowGoblin.png",
+      "x": 971,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/monsters/shadowGoblin/attack_00.png": {
+      "sheet": "assets/exported-atlas/monsters/shadowGoblin.png",
+      "x": 1165,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/monsters/shadowGoblin/attack_01.png": {
+      "sheet": "assets/exported-atlas/monsters/shadowGoblin.png",
+      "x": 1359,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/monsters/shadowGoblin/attack_02.png": {
+      "sheet": "assets/exported-atlas/monsters/shadowGoblin.png",
+      "x": 1553,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/monsters/shadowSpirit/idle_00.png": {
+      "sheet": "assets/exported-atlas/monsters/shadowSpirit.png",
+      "x": 1,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/monsters/shadowSpirit/idle_01.png": {
+      "sheet": "assets/exported-atlas/monsters/shadowSpirit.png",
+      "x": 195,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/monsters/shadowSpirit/walk_00.png": {
+      "sheet": "assets/exported-atlas/monsters/shadowSpirit.png",
+      "x": 389,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/monsters/shadowSpirit/walk_01.png": {
+      "sheet": "assets/exported-atlas/monsters/shadowSpirit.png",
+      "x": 583,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/monsters/shadowSpirit/walk_02.png": {
+      "sheet": "assets/exported-atlas/monsters/shadowSpirit.png",
+      "x": 777,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/monsters/shadowSpirit/walk_03.png": {
+      "sheet": "assets/exported-atlas/monsters/shadowSpirit.png",
+      "x": 971,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/monsters/shadowSpirit/attack_00.png": {
+      "sheet": "assets/exported-atlas/monsters/shadowSpirit.png",
+      "x": 1165,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/monsters/shadowSpirit/attack_01.png": {
+      "sheet": "assets/exported-atlas/monsters/shadowSpirit.png",
+      "x": 1359,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/monsters/shadowSpirit/attack_02.png": {
+      "sheet": "assets/exported-atlas/monsters/shadowSpirit.png",
+      "x": 1553,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/monsters/skeletonArcher/idle_00.png": {
+      "sheet": "assets/exported-atlas/monsters/skeletonArcher.png",
+      "x": 1,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/monsters/skeletonArcher/idle_01.png": {
+      "sheet": "assets/exported-atlas/monsters/skeletonArcher.png",
+      "x": 195,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/monsters/skeletonArcher/walk_00.png": {
+      "sheet": "assets/exported-atlas/monsters/skeletonArcher.png",
+      "x": 389,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/monsters/skeletonArcher/walk_01.png": {
+      "sheet": "assets/exported-atlas/monsters/skeletonArcher.png",
+      "x": 583,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/monsters/skeletonArcher/walk_02.png": {
+      "sheet": "assets/exported-atlas/monsters/skeletonArcher.png",
+      "x": 777,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/monsters/skeletonArcher/walk_03.png": {
+      "sheet": "assets/exported-atlas/monsters/skeletonArcher.png",
+      "x": 971,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/monsters/skeletonArcher/attack_00.png": {
+      "sheet": "assets/exported-atlas/monsters/skeletonArcher.png",
+      "x": 1165,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/monsters/skeletonArcher/attack_01.png": {
+      "sheet": "assets/exported-atlas/monsters/skeletonArcher.png",
+      "x": 1359,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/monsters/skeletonArcher/attack_02.png": {
+      "sheet": "assets/exported-atlas/monsters/skeletonArcher.png",
+      "x": 1553,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/monsters/skeletonWarrior/idle_00.png": {
+      "sheet": "assets/exported-atlas/monsters/skeletonWarrior.png",
+      "x": 1,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/monsters/skeletonWarrior/idle_01.png": {
+      "sheet": "assets/exported-atlas/monsters/skeletonWarrior.png",
+      "x": 195,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/monsters/skeletonWarrior/walk_00.png": {
+      "sheet": "assets/exported-atlas/monsters/skeletonWarrior.png",
+      "x": 389,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/monsters/skeletonWarrior/walk_01.png": {
+      "sheet": "assets/exported-atlas/monsters/skeletonWarrior.png",
+      "x": 583,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/monsters/skeletonWarrior/walk_02.png": {
+      "sheet": "assets/exported-atlas/monsters/skeletonWarrior.png",
+      "x": 777,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/monsters/skeletonWarrior/walk_03.png": {
+      "sheet": "assets/exported-atlas/monsters/skeletonWarrior.png",
+      "x": 971,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/monsters/skeletonWarrior/attack_00.png": {
+      "sheet": "assets/exported-atlas/monsters/skeletonWarrior.png",
+      "x": 1165,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/monsters/skeletonWarrior/attack_01.png": {
+      "sheet": "assets/exported-atlas/monsters/skeletonWarrior.png",
+      "x": 1359,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/monsters/skeletonWarrior/attack_02.png": {
+      "sheet": "assets/exported-atlas/monsters/skeletonWarrior.png",
+      "x": 1553,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/monsters/slime/idle_00.png": {
+      "sheet": "assets/exported-atlas/monsters/slime.png",
+      "x": 1,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/monsters/slime/idle_01.png": {
+      "sheet": "assets/exported-atlas/monsters/slime.png",
+      "x": 195,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/monsters/slime/walk_00.png": {
+      "sheet": "assets/exported-atlas/monsters/slime.png",
+      "x": 389,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/monsters/slime/walk_01.png": {
+      "sheet": "assets/exported-atlas/monsters/slime.png",
+      "x": 583,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/monsters/slime/walk_02.png": {
+      "sheet": "assets/exported-atlas/monsters/slime.png",
+      "x": 777,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/monsters/slime/walk_03.png": {
+      "sheet": "assets/exported-atlas/monsters/slime.png",
+      "x": 971,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/monsters/slime/attack_00.png": {
+      "sheet": "assets/exported-atlas/monsters/slime.png",
+      "x": 1165,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/monsters/slime/attack_01.png": {
+      "sheet": "assets/exported-atlas/monsters/slime.png",
+      "x": 1359,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/monsters/slime/attack_02.png": {
+      "sheet": "assets/exported-atlas/monsters/slime.png",
+      "x": 1553,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/monsters/spiderMonster/idle_00.png": {
+      "sheet": "assets/exported-atlas/monsters/spiderMonster.png",
+      "x": 1,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/monsters/spiderMonster/idle_01.png": {
+      "sheet": "assets/exported-atlas/monsters/spiderMonster.png",
+      "x": 195,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/monsters/spiderMonster/walk_00.png": {
+      "sheet": "assets/exported-atlas/monsters/spiderMonster.png",
+      "x": 389,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/monsters/spiderMonster/walk_01.png": {
+      "sheet": "assets/exported-atlas/monsters/spiderMonster.png",
+      "x": 583,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/monsters/spiderMonster/walk_02.png": {
+      "sheet": "assets/exported-atlas/monsters/spiderMonster.png",
+      "x": 777,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/monsters/spiderMonster/walk_03.png": {
+      "sheet": "assets/exported-atlas/monsters/spiderMonster.png",
+      "x": 971,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/monsters/spiderMonster/attack_00.png": {
+      "sheet": "assets/exported-atlas/monsters/spiderMonster.png",
+      "x": 1165,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/monsters/spiderMonster/attack_01.png": {
+      "sheet": "assets/exported-atlas/monsters/spiderMonster.png",
+      "x": 1359,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/monsters/spiderMonster/attack_02.png": {
+      "sheet": "assets/exported-atlas/monsters/spiderMonster.png",
+      "x": 1553,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/monsters/stoneGolem/idle_00.png": {
+      "sheet": "assets/exported-atlas/monsters/stoneGolem.png",
+      "x": 1,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/monsters/stoneGolem/idle_01.png": {
+      "sheet": "assets/exported-atlas/monsters/stoneGolem.png",
+      "x": 195,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/monsters/stoneGolem/walk_00.png": {
+      "sheet": "assets/exported-atlas/monsters/stoneGolem.png",
+      "x": 389,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/monsters/stoneGolem/walk_01.png": {
+      "sheet": "assets/exported-atlas/monsters/stoneGolem.png",
+      "x": 583,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/monsters/stoneGolem/walk_02.png": {
+      "sheet": "assets/exported-atlas/monsters/stoneGolem.png",
+      "x": 777,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/monsters/stoneGolem/walk_03.png": {
+      "sheet": "assets/exported-atlas/monsters/stoneGolem.png",
+      "x": 971,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/monsters/stoneGolem/attack_00.png": {
+      "sheet": "assets/exported-atlas/monsters/stoneGolem.png",
+      "x": 1165,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/monsters/stoneGolem/attack_01.png": {
+      "sheet": "assets/exported-atlas/monsters/stoneGolem.png",
+      "x": 1359,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/monsters/stoneGolem/attack_02.png": {
+      "sheet": "assets/exported-atlas/monsters/stoneGolem.png",
+      "x": 1553,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/monsters/werewolf/idle_00.png": {
+      "sheet": "assets/exported-atlas/monsters/werewolf.png",
+      "x": 1,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/monsters/werewolf/idle_01.png": {
+      "sheet": "assets/exported-atlas/monsters/werewolf.png",
+      "x": 195,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/monsters/werewolf/walk_00.png": {
+      "sheet": "assets/exported-atlas/monsters/werewolf.png",
+      "x": 389,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/monsters/werewolf/walk_01.png": {
+      "sheet": "assets/exported-atlas/monsters/werewolf.png",
+      "x": 583,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/monsters/werewolf/walk_02.png": {
+      "sheet": "assets/exported-atlas/monsters/werewolf.png",
+      "x": 777,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/monsters/werewolf/walk_03.png": {
+      "sheet": "assets/exported-atlas/monsters/werewolf.png",
+      "x": 971,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/monsters/werewolf/attack_00.png": {
+      "sheet": "assets/exported-atlas/monsters/werewolf.png",
+      "x": 1165,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/monsters/werewolf/attack_01.png": {
+      "sheet": "assets/exported-atlas/monsters/werewolf.png",
+      "x": 1359,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/monsters/werewolf/attack_02.png": {
+      "sheet": "assets/exported-atlas/monsters/werewolf.png",
+      "x": 1553,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/monsters/zombie/idle_00.png": {
+      "sheet": "assets/exported-atlas/monsters/zombie.png",
+      "x": 1,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/monsters/zombie/idle_01.png": {
+      "sheet": "assets/exported-atlas/monsters/zombie.png",
+      "x": 195,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/monsters/zombie/walk_00.png": {
+      "sheet": "assets/exported-atlas/monsters/zombie.png",
+      "x": 389,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/monsters/zombie/walk_01.png": {
+      "sheet": "assets/exported-atlas/monsters/zombie.png",
+      "x": 583,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/monsters/zombie/walk_02.png": {
+      "sheet": "assets/exported-atlas/monsters/zombie.png",
+      "x": 777,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/monsters/zombie/walk_03.png": {
+      "sheet": "assets/exported-atlas/monsters/zombie.png",
+      "x": 971,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/monsters/zombie/attack_00.png": {
+      "sheet": "assets/exported-atlas/monsters/zombie.png",
+      "x": 1165,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/monsters/zombie/attack_01.png": {
+      "sheet": "assets/exported-atlas/monsters/zombie.png",
+      "x": 1359,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/monsters/zombie/attack_02.png": {
+      "sheet": "assets/exported-atlas/monsters/zombie.png",
+      "x": 1553,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/skills/blood/e/awakened_00.png": {
+      "sheet": "assets/exported-atlas/skills/blood/e.png",
+      "x": 1,
+      "y": 1,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/blood/e/normal_00.png": {
+      "sheet": "assets/exported-atlas/skills/blood/e.png",
+      "x": 643,
+      "y": 1,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/blood/e/awakened_01.png": {
+      "sheet": "assets/exported-atlas/skills/blood/e.png",
+      "x": 1285,
+      "y": 1,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/blood/e/normal_01.png": {
+      "sheet": "assets/exported-atlas/skills/blood/e.png",
+      "x": 1,
+      "y": 563,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/blood/e/awakened_02.png": {
+      "sheet": "assets/exported-atlas/skills/blood/e.png",
+      "x": 643,
+      "y": 563,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/blood/e/normal_02.png": {
+      "sheet": "assets/exported-atlas/skills/blood/e.png",
+      "x": 1285,
+      "y": 563,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/blood/e/awakened_03.png": {
+      "sheet": "assets/exported-atlas/skills/blood/e.png",
+      "x": 1,
+      "y": 1125,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/blood/e/normal_03.png": {
+      "sheet": "assets/exported-atlas/skills/blood/e.png",
+      "x": 643,
+      "y": 1125,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/blood/f/awakened_00.png": {
+      "sheet": "assets/exported-atlas/skills/blood/f.png",
+      "x": 1,
+      "y": 1,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/blood/f/normal_00.png": {
+      "sheet": "assets/exported-atlas/skills/blood/f.png",
+      "x": 643,
+      "y": 1,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/blood/f/awakened_01.png": {
+      "sheet": "assets/exported-atlas/skills/blood/f.png",
+      "x": 1285,
+      "y": 1,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/blood/f/normal_01.png": {
+      "sheet": "assets/exported-atlas/skills/blood/f.png",
+      "x": 1,
+      "y": 563,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/blood/f/awakened_02.png": {
+      "sheet": "assets/exported-atlas/skills/blood/f.png",
+      "x": 643,
+      "y": 563,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/blood/f/normal_02.png": {
+      "sheet": "assets/exported-atlas/skills/blood/f.png",
+      "x": 1285,
+      "y": 563,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/blood/f/awakened_03.png": {
+      "sheet": "assets/exported-atlas/skills/blood/f.png",
+      "x": 1,
+      "y": 1125,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/blood/f/normal_03.png": {
+      "sheet": "assets/exported-atlas/skills/blood/f.png",
+      "x": 643,
+      "y": 1125,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/blood/q/awakened_00.png": {
+      "sheet": "assets/exported-atlas/skills/blood/q.png",
+      "x": 1,
+      "y": 1,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/blood/q/normal_00.png": {
+      "sheet": "assets/exported-atlas/skills/blood/q.png",
+      "x": 643,
+      "y": 1,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/blood/q/awakened_01.png": {
+      "sheet": "assets/exported-atlas/skills/blood/q.png",
+      "x": 1285,
+      "y": 1,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/blood/q/normal_01.png": {
+      "sheet": "assets/exported-atlas/skills/blood/q.png",
+      "x": 1,
+      "y": 563,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/blood/q/awakened_02.png": {
+      "sheet": "assets/exported-atlas/skills/blood/q.png",
+      "x": 643,
+      "y": 563,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/blood/q/normal_02.png": {
+      "sheet": "assets/exported-atlas/skills/blood/q.png",
+      "x": 1285,
+      "y": 563,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/blood/q/awakened_03.png": {
+      "sheet": "assets/exported-atlas/skills/blood/q.png",
+      "x": 1,
+      "y": 1125,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/blood/q/normal_03.png": {
+      "sheet": "assets/exported-atlas/skills/blood/q.png",
+      "x": 643,
+      "y": 1125,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/blood/r/awakened_00.png": {
+      "sheet": "assets/exported-atlas/skills/blood/r.png",
+      "x": 1,
+      "y": 1,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/blood/r/normal_00.png": {
+      "sheet": "assets/exported-atlas/skills/blood/r.png",
+      "x": 643,
+      "y": 1,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/blood/r/awakened_01.png": {
+      "sheet": "assets/exported-atlas/skills/blood/r.png",
+      "x": 1285,
+      "y": 1,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/blood/r/normal_01.png": {
+      "sheet": "assets/exported-atlas/skills/blood/r.png",
+      "x": 1,
+      "y": 563,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/blood/r/awakened_02.png": {
+      "sheet": "assets/exported-atlas/skills/blood/r.png",
+      "x": 643,
+      "y": 563,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/blood/r/normal_02.png": {
+      "sheet": "assets/exported-atlas/skills/blood/r.png",
+      "x": 1285,
+      "y": 563,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/blood/r/awakened_03.png": {
+      "sheet": "assets/exported-atlas/skills/blood/r.png",
+      "x": 1,
+      "y": 1125,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/blood/r/normal_03.png": {
+      "sheet": "assets/exported-atlas/skills/blood/r.png",
+      "x": 643,
+      "y": 1125,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/crystal/e/awakened_00.png": {
+      "sheet": "assets/exported-atlas/skills/crystal/e.png",
+      "x": 1,
+      "y": 1,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/crystal/e/normal_00.png": {
+      "sheet": "assets/exported-atlas/skills/crystal/e.png",
+      "x": 643,
+      "y": 1,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/crystal/e/awakened_01.png": {
+      "sheet": "assets/exported-atlas/skills/crystal/e.png",
+      "x": 1285,
+      "y": 1,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/crystal/e/normal_01.png": {
+      "sheet": "assets/exported-atlas/skills/crystal/e.png",
+      "x": 1,
+      "y": 563,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/crystal/e/awakened_02.png": {
+      "sheet": "assets/exported-atlas/skills/crystal/e.png",
+      "x": 643,
+      "y": 563,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/crystal/e/normal_02.png": {
+      "sheet": "assets/exported-atlas/skills/crystal/e.png",
+      "x": 1285,
+      "y": 563,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/crystal/e/awakened_03.png": {
+      "sheet": "assets/exported-atlas/skills/crystal/e.png",
+      "x": 1,
+      "y": 1125,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/crystal/e/normal_03.png": {
+      "sheet": "assets/exported-atlas/skills/crystal/e.png",
+      "x": 643,
+      "y": 1125,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/crystal/f/awakened_00.png": {
+      "sheet": "assets/exported-atlas/skills/crystal/f.png",
+      "x": 1,
+      "y": 1,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/crystal/f/normal_00.png": {
+      "sheet": "assets/exported-atlas/skills/crystal/f.png",
+      "x": 643,
+      "y": 1,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/crystal/f/awakened_01.png": {
+      "sheet": "assets/exported-atlas/skills/crystal/f.png",
+      "x": 1285,
+      "y": 1,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/crystal/f/normal_01.png": {
+      "sheet": "assets/exported-atlas/skills/crystal/f.png",
+      "x": 1,
+      "y": 563,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/crystal/f/awakened_02.png": {
+      "sheet": "assets/exported-atlas/skills/crystal/f.png",
+      "x": 643,
+      "y": 563,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/crystal/f/normal_02.png": {
+      "sheet": "assets/exported-atlas/skills/crystal/f.png",
+      "x": 1285,
+      "y": 563,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/crystal/f/awakened_03.png": {
+      "sheet": "assets/exported-atlas/skills/crystal/f.png",
+      "x": 1,
+      "y": 1125,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/crystal/f/normal_03.png": {
+      "sheet": "assets/exported-atlas/skills/crystal/f.png",
+      "x": 643,
+      "y": 1125,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/crystal/q/awakened_00.png": {
+      "sheet": "assets/exported-atlas/skills/crystal/q.png",
+      "x": 1,
+      "y": 1,
+      "w": 860,
+      "h": 560
+    },
+    "assets/exported/skills/crystal/q/normal_00.png": {
+      "sheet": "assets/exported-atlas/skills/crystal/q.png",
+      "x": 863,
+      "y": 1,
+      "w": 860,
+      "h": 560
+    },
+    "assets/exported/skills/crystal/q/awakened_01.png": {
+      "sheet": "assets/exported-atlas/skills/crystal/q.png",
+      "x": 1725,
+      "y": 1,
+      "w": 860,
+      "h": 560
+    },
+    "assets/exported/skills/crystal/q/normal_01.png": {
+      "sheet": "assets/exported-atlas/skills/crystal/q.png",
+      "x": 1,
+      "y": 563,
+      "w": 860,
+      "h": 560
+    },
+    "assets/exported/skills/crystal/q/awakened_02.png": {
+      "sheet": "assets/exported-atlas/skills/crystal/q.png",
+      "x": 863,
+      "y": 563,
+      "w": 860,
+      "h": 560
+    },
+    "assets/exported/skills/crystal/q/normal_02.png": {
+      "sheet": "assets/exported-atlas/skills/crystal/q.png",
+      "x": 1725,
+      "y": 563,
+      "w": 860,
+      "h": 560
+    },
+    "assets/exported/skills/crystal/q/awakened_03.png": {
+      "sheet": "assets/exported-atlas/skills/crystal/q.png",
+      "x": 1,
+      "y": 1125,
+      "w": 860,
+      "h": 560
+    },
+    "assets/exported/skills/crystal/q/normal_03.png": {
+      "sheet": "assets/exported-atlas/skills/crystal/q.png",
+      "x": 863,
+      "y": 1125,
+      "w": 860,
+      "h": 560
+    },
+    "assets/exported/skills/crystal/r/awakened_00.png": {
+      "sheet": "assets/exported-atlas/skills/crystal/r.png",
+      "x": 1,
+      "y": 1,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/crystal/r/normal_00.png": {
+      "sheet": "assets/exported-atlas/skills/crystal/r.png",
+      "x": 643,
+      "y": 1,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/crystal/r/awakened_01.png": {
+      "sheet": "assets/exported-atlas/skills/crystal/r.png",
+      "x": 1285,
+      "y": 1,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/crystal/r/normal_01.png": {
+      "sheet": "assets/exported-atlas/skills/crystal/r.png",
+      "x": 1,
+      "y": 563,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/crystal/r/awakened_02.png": {
+      "sheet": "assets/exported-atlas/skills/crystal/r.png",
+      "x": 643,
+      "y": 563,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/crystal/r/normal_02.png": {
+      "sheet": "assets/exported-atlas/skills/crystal/r.png",
+      "x": 1285,
+      "y": 563,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/crystal/r/awakened_03.png": {
+      "sheet": "assets/exported-atlas/skills/crystal/r.png",
+      "x": 1,
+      "y": 1125,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/crystal/r/normal_03.png": {
+      "sheet": "assets/exported-atlas/skills/crystal/r.png",
+      "x": 643,
+      "y": 1125,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/fire/e/awakened_00.png": {
+      "sheet": "assets/exported-atlas/skills/fire/e.png",
+      "x": 1,
+      "y": 1,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/fire/e/normal_00.png": {
+      "sheet": "assets/exported-atlas/skills/fire/e.png",
+      "x": 643,
+      "y": 1,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/fire/e/awakened_01.png": {
+      "sheet": "assets/exported-atlas/skills/fire/e.png",
+      "x": 1285,
+      "y": 1,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/fire/e/normal_01.png": {
+      "sheet": "assets/exported-atlas/skills/fire/e.png",
+      "x": 1,
+      "y": 563,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/fire/e/awakened_02.png": {
+      "sheet": "assets/exported-atlas/skills/fire/e.png",
+      "x": 643,
+      "y": 563,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/fire/e/normal_02.png": {
+      "sheet": "assets/exported-atlas/skills/fire/e.png",
+      "x": 1285,
+      "y": 563,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/fire/e/awakened_03.png": {
+      "sheet": "assets/exported-atlas/skills/fire/e.png",
+      "x": 1,
+      "y": 1125,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/fire/e/normal_03.png": {
+      "sheet": "assets/exported-atlas/skills/fire/e.png",
+      "x": 643,
+      "y": 1125,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/fire/f/awakened_00.png": {
+      "sheet": "assets/exported-atlas/skills/fire/f.png",
+      "x": 1,
+      "y": 1,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/fire/f/normal_00.png": {
+      "sheet": "assets/exported-atlas/skills/fire/f.png",
+      "x": 643,
+      "y": 1,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/fire/f/awakened_01.png": {
+      "sheet": "assets/exported-atlas/skills/fire/f.png",
+      "x": 1285,
+      "y": 1,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/fire/f/normal_01.png": {
+      "sheet": "assets/exported-atlas/skills/fire/f.png",
+      "x": 1,
+      "y": 563,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/fire/f/awakened_02.png": {
+      "sheet": "assets/exported-atlas/skills/fire/f.png",
+      "x": 643,
+      "y": 563,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/fire/f/normal_02.png": {
+      "sheet": "assets/exported-atlas/skills/fire/f.png",
+      "x": 1285,
+      "y": 563,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/fire/f/awakened_03.png": {
+      "sheet": "assets/exported-atlas/skills/fire/f.png",
+      "x": 1,
+      "y": 1125,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/fire/f/normal_03.png": {
+      "sheet": "assets/exported-atlas/skills/fire/f.png",
+      "x": 643,
+      "y": 1125,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/fire/q/awakened_00.png": {
+      "sheet": "assets/exported-atlas/skills/fire/q.png",
+      "x": 1,
+      "y": 1,
+      "w": 860,
+      "h": 560
+    },
+    "assets/exported/skills/fire/q/normal_00.png": {
+      "sheet": "assets/exported-atlas/skills/fire/q.png",
+      "x": 863,
+      "y": 1,
+      "w": 860,
+      "h": 560
+    },
+    "assets/exported/skills/fire/q/awakened_01.png": {
+      "sheet": "assets/exported-atlas/skills/fire/q.png",
+      "x": 1725,
+      "y": 1,
+      "w": 860,
+      "h": 560
+    },
+    "assets/exported/skills/fire/q/normal_01.png": {
+      "sheet": "assets/exported-atlas/skills/fire/q.png",
+      "x": 1,
+      "y": 563,
+      "w": 860,
+      "h": 560
+    },
+    "assets/exported/skills/fire/q/awakened_02.png": {
+      "sheet": "assets/exported-atlas/skills/fire/q.png",
+      "x": 863,
+      "y": 563,
+      "w": 860,
+      "h": 560
+    },
+    "assets/exported/skills/fire/q/normal_02.png": {
+      "sheet": "assets/exported-atlas/skills/fire/q.png",
+      "x": 1725,
+      "y": 563,
+      "w": 860,
+      "h": 560
+    },
+    "assets/exported/skills/fire/q/awakened_03.png": {
+      "sheet": "assets/exported-atlas/skills/fire/q.png",
+      "x": 1,
+      "y": 1125,
+      "w": 860,
+      "h": 560
+    },
+    "assets/exported/skills/fire/q/normal_03.png": {
+      "sheet": "assets/exported-atlas/skills/fire/q.png",
+      "x": 863,
+      "y": 1125,
+      "w": 860,
+      "h": 560
+    },
+    "assets/exported/skills/fire/r/awakened_00.png": {
+      "sheet": "assets/exported-atlas/skills/fire/r.png",
+      "x": 1,
+      "y": 1,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/fire/r/normal_00.png": {
+      "sheet": "assets/exported-atlas/skills/fire/r.png",
+      "x": 643,
+      "y": 1,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/fire/r/awakened_01.png": {
+      "sheet": "assets/exported-atlas/skills/fire/r.png",
+      "x": 1285,
+      "y": 1,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/fire/r/normal_01.png": {
+      "sheet": "assets/exported-atlas/skills/fire/r.png",
+      "x": 1,
+      "y": 563,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/fire/r/awakened_02.png": {
+      "sheet": "assets/exported-atlas/skills/fire/r.png",
+      "x": 643,
+      "y": 563,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/fire/r/normal_02.png": {
+      "sheet": "assets/exported-atlas/skills/fire/r.png",
+      "x": 1285,
+      "y": 563,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/fire/r/awakened_03.png": {
+      "sheet": "assets/exported-atlas/skills/fire/r.png",
+      "x": 1,
+      "y": 1125,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/fire/r/normal_03.png": {
+      "sheet": "assets/exported-atlas/skills/fire/r.png",
+      "x": 643,
+      "y": 1125,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/gravity/e/awakened_00.png": {
+      "sheet": "assets/exported-atlas/skills/gravity/e.png",
+      "x": 1,
+      "y": 1,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/gravity/e/normal_00.png": {
+      "sheet": "assets/exported-atlas/skills/gravity/e.png",
+      "x": 643,
+      "y": 1,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/gravity/e/awakened_01.png": {
+      "sheet": "assets/exported-atlas/skills/gravity/e.png",
+      "x": 1285,
+      "y": 1,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/gravity/e/normal_01.png": {
+      "sheet": "assets/exported-atlas/skills/gravity/e.png",
+      "x": 1,
+      "y": 563,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/gravity/e/awakened_02.png": {
+      "sheet": "assets/exported-atlas/skills/gravity/e.png",
+      "x": 643,
+      "y": 563,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/gravity/e/normal_02.png": {
+      "sheet": "assets/exported-atlas/skills/gravity/e.png",
+      "x": 1285,
+      "y": 563,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/gravity/e/awakened_03.png": {
+      "sheet": "assets/exported-atlas/skills/gravity/e.png",
+      "x": 1,
+      "y": 1125,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/gravity/e/normal_03.png": {
+      "sheet": "assets/exported-atlas/skills/gravity/e.png",
+      "x": 643,
+      "y": 1125,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/gravity/f/awakened_00.png": {
+      "sheet": "assets/exported-atlas/skills/gravity/f.png",
+      "x": 1,
+      "y": 1,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/gravity/f/normal_00.png": {
+      "sheet": "assets/exported-atlas/skills/gravity/f.png",
+      "x": 643,
+      "y": 1,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/gravity/f/awakened_01.png": {
+      "sheet": "assets/exported-atlas/skills/gravity/f.png",
+      "x": 1285,
+      "y": 1,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/gravity/f/normal_01.png": {
+      "sheet": "assets/exported-atlas/skills/gravity/f.png",
+      "x": 1,
+      "y": 563,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/gravity/f/awakened_02.png": {
+      "sheet": "assets/exported-atlas/skills/gravity/f.png",
+      "x": 643,
+      "y": 563,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/gravity/f/normal_02.png": {
+      "sheet": "assets/exported-atlas/skills/gravity/f.png",
+      "x": 1285,
+      "y": 563,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/gravity/f/awakened_03.png": {
+      "sheet": "assets/exported-atlas/skills/gravity/f.png",
+      "x": 1,
+      "y": 1125,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/gravity/f/normal_03.png": {
+      "sheet": "assets/exported-atlas/skills/gravity/f.png",
+      "x": 643,
+      "y": 1125,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/gravity/q/awakened_00.png": {
+      "sheet": "assets/exported-atlas/skills/gravity/q.png",
+      "x": 1,
+      "y": 1,
+      "w": 860,
+      "h": 560
+    },
+    "assets/exported/skills/gravity/q/normal_00.png": {
+      "sheet": "assets/exported-atlas/skills/gravity/q.png",
+      "x": 863,
+      "y": 1,
+      "w": 860,
+      "h": 560
+    },
+    "assets/exported/skills/gravity/q/awakened_01.png": {
+      "sheet": "assets/exported-atlas/skills/gravity/q.png",
+      "x": 1725,
+      "y": 1,
+      "w": 860,
+      "h": 560
+    },
+    "assets/exported/skills/gravity/q/normal_01.png": {
+      "sheet": "assets/exported-atlas/skills/gravity/q.png",
+      "x": 1,
+      "y": 563,
+      "w": 860,
+      "h": 560
+    },
+    "assets/exported/skills/gravity/q/awakened_02.png": {
+      "sheet": "assets/exported-atlas/skills/gravity/q.png",
+      "x": 863,
+      "y": 563,
+      "w": 860,
+      "h": 560
+    },
+    "assets/exported/skills/gravity/q/normal_02.png": {
+      "sheet": "assets/exported-atlas/skills/gravity/q.png",
+      "x": 1725,
+      "y": 563,
+      "w": 860,
+      "h": 560
+    },
+    "assets/exported/skills/gravity/q/awakened_03.png": {
+      "sheet": "assets/exported-atlas/skills/gravity/q.png",
+      "x": 1,
+      "y": 1125,
+      "w": 860,
+      "h": 560
+    },
+    "assets/exported/skills/gravity/q/normal_03.png": {
+      "sheet": "assets/exported-atlas/skills/gravity/q.png",
+      "x": 863,
+      "y": 1125,
+      "w": 860,
+      "h": 560
+    },
+    "assets/exported/skills/gravity/r/awakened_00.png": {
+      "sheet": "assets/exported-atlas/skills/gravity/r.png",
+      "x": 1,
+      "y": 1,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/gravity/r/normal_00.png": {
+      "sheet": "assets/exported-atlas/skills/gravity/r.png",
+      "x": 643,
+      "y": 1,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/gravity/r/awakened_01.png": {
+      "sheet": "assets/exported-atlas/skills/gravity/r.png",
+      "x": 1285,
+      "y": 1,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/gravity/r/normal_01.png": {
+      "sheet": "assets/exported-atlas/skills/gravity/r.png",
+      "x": 1,
+      "y": 563,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/gravity/r/awakened_02.png": {
+      "sheet": "assets/exported-atlas/skills/gravity/r.png",
+      "x": 643,
+      "y": 563,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/gravity/r/normal_02.png": {
+      "sheet": "assets/exported-atlas/skills/gravity/r.png",
+      "x": 1285,
+      "y": 563,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/gravity/r/awakened_03.png": {
+      "sheet": "assets/exported-atlas/skills/gravity/r.png",
+      "x": 1,
+      "y": 1125,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/gravity/r/normal_03.png": {
+      "sheet": "assets/exported-atlas/skills/gravity/r.png",
+      "x": 643,
+      "y": 1125,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/ice/e/awakened_00.png": {
+      "sheet": "assets/exported-atlas/skills/ice/e.png",
+      "x": 1,
+      "y": 1,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/ice/e/normal_00.png": {
+      "sheet": "assets/exported-atlas/skills/ice/e.png",
+      "x": 643,
+      "y": 1,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/ice/e/awakened_01.png": {
+      "sheet": "assets/exported-atlas/skills/ice/e.png",
+      "x": 1285,
+      "y": 1,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/ice/e/normal_01.png": {
+      "sheet": "assets/exported-atlas/skills/ice/e.png",
+      "x": 1,
+      "y": 563,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/ice/e/awakened_02.png": {
+      "sheet": "assets/exported-atlas/skills/ice/e.png",
+      "x": 643,
+      "y": 563,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/ice/e/normal_02.png": {
+      "sheet": "assets/exported-atlas/skills/ice/e.png",
+      "x": 1285,
+      "y": 563,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/ice/e/awakened_03.png": {
+      "sheet": "assets/exported-atlas/skills/ice/e.png",
+      "x": 1,
+      "y": 1125,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/ice/e/normal_03.png": {
+      "sheet": "assets/exported-atlas/skills/ice/e.png",
+      "x": 643,
+      "y": 1125,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/ice/f/awakened_00.png": {
+      "sheet": "assets/exported-atlas/skills/ice/f.png",
+      "x": 1,
+      "y": 1,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/ice/f/normal_00.png": {
+      "sheet": "assets/exported-atlas/skills/ice/f.png",
+      "x": 643,
+      "y": 1,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/ice/f/awakened_01.png": {
+      "sheet": "assets/exported-atlas/skills/ice/f.png",
+      "x": 1285,
+      "y": 1,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/ice/f/normal_01.png": {
+      "sheet": "assets/exported-atlas/skills/ice/f.png",
+      "x": 1,
+      "y": 563,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/ice/f/awakened_02.png": {
+      "sheet": "assets/exported-atlas/skills/ice/f.png",
+      "x": 643,
+      "y": 563,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/ice/f/normal_02.png": {
+      "sheet": "assets/exported-atlas/skills/ice/f.png",
+      "x": 1285,
+      "y": 563,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/ice/f/awakened_03.png": {
+      "sheet": "assets/exported-atlas/skills/ice/f.png",
+      "x": 1,
+      "y": 1125,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/ice/f/normal_03.png": {
+      "sheet": "assets/exported-atlas/skills/ice/f.png",
+      "x": 643,
+      "y": 1125,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/ice/q/awakened_00.png": {
+      "sheet": "assets/exported-atlas/skills/ice/q.png",
+      "x": 1,
+      "y": 1,
+      "w": 860,
+      "h": 560
+    },
+    "assets/exported/skills/ice/q/normal_00.png": {
+      "sheet": "assets/exported-atlas/skills/ice/q.png",
+      "x": 863,
+      "y": 1,
+      "w": 860,
+      "h": 560
+    },
+    "assets/exported/skills/ice/q/awakened_01.png": {
+      "sheet": "assets/exported-atlas/skills/ice/q.png",
+      "x": 1725,
+      "y": 1,
+      "w": 860,
+      "h": 560
+    },
+    "assets/exported/skills/ice/q/normal_01.png": {
+      "sheet": "assets/exported-atlas/skills/ice/q.png",
+      "x": 1,
+      "y": 563,
+      "w": 860,
+      "h": 560
+    },
+    "assets/exported/skills/ice/q/awakened_02.png": {
+      "sheet": "assets/exported-atlas/skills/ice/q.png",
+      "x": 863,
+      "y": 563,
+      "w": 860,
+      "h": 560
+    },
+    "assets/exported/skills/ice/q/normal_02.png": {
+      "sheet": "assets/exported-atlas/skills/ice/q.png",
+      "x": 1725,
+      "y": 563,
+      "w": 860,
+      "h": 560
+    },
+    "assets/exported/skills/ice/q/awakened_03.png": {
+      "sheet": "assets/exported-atlas/skills/ice/q.png",
+      "x": 1,
+      "y": 1125,
+      "w": 860,
+      "h": 560
+    },
+    "assets/exported/skills/ice/q/normal_03.png": {
+      "sheet": "assets/exported-atlas/skills/ice/q.png",
+      "x": 863,
+      "y": 1125,
+      "w": 860,
+      "h": 560
+    },
+    "assets/exported/skills/ice/r/awakened_00.png": {
+      "sheet": "assets/exported-atlas/skills/ice/r.png",
+      "x": 1,
+      "y": 1,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/ice/r/normal_00.png": {
+      "sheet": "assets/exported-atlas/skills/ice/r.png",
+      "x": 643,
+      "y": 1,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/ice/r/awakened_01.png": {
+      "sheet": "assets/exported-atlas/skills/ice/r.png",
+      "x": 1285,
+      "y": 1,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/ice/r/normal_01.png": {
+      "sheet": "assets/exported-atlas/skills/ice/r.png",
+      "x": 1,
+      "y": 563,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/ice/r/awakened_02.png": {
+      "sheet": "assets/exported-atlas/skills/ice/r.png",
+      "x": 643,
+      "y": 563,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/ice/r/normal_02.png": {
+      "sheet": "assets/exported-atlas/skills/ice/r.png",
+      "x": 1285,
+      "y": 563,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/ice/r/awakened_03.png": {
+      "sheet": "assets/exported-atlas/skills/ice/r.png",
+      "x": 1,
+      "y": 1125,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/ice/r/normal_03.png": {
+      "sheet": "assets/exported-atlas/skills/ice/r.png",
+      "x": 643,
+      "y": 1125,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/lightning/e/awakened_00.png": {
+      "sheet": "assets/exported-atlas/skills/lightning/e.png",
+      "x": 1,
+      "y": 1,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/lightning/e/normal_00.png": {
+      "sheet": "assets/exported-atlas/skills/lightning/e.png",
+      "x": 643,
+      "y": 1,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/lightning/e/awakened_01.png": {
+      "sheet": "assets/exported-atlas/skills/lightning/e.png",
+      "x": 1285,
+      "y": 1,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/lightning/e/normal_01.png": {
+      "sheet": "assets/exported-atlas/skills/lightning/e.png",
+      "x": 1,
+      "y": 563,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/lightning/e/awakened_02.png": {
+      "sheet": "assets/exported-atlas/skills/lightning/e.png",
+      "x": 643,
+      "y": 563,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/lightning/e/normal_02.png": {
+      "sheet": "assets/exported-atlas/skills/lightning/e.png",
+      "x": 1285,
+      "y": 563,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/lightning/e/awakened_03.png": {
+      "sheet": "assets/exported-atlas/skills/lightning/e.png",
+      "x": 1,
+      "y": 1125,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/lightning/e/normal_03.png": {
+      "sheet": "assets/exported-atlas/skills/lightning/e.png",
+      "x": 643,
+      "y": 1125,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/lightning/f/awakened_00.png": {
+      "sheet": "assets/exported-atlas/skills/lightning/f.png",
+      "x": 1,
+      "y": 1,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/lightning/f/normal_00.png": {
+      "sheet": "assets/exported-atlas/skills/lightning/f.png",
+      "x": 643,
+      "y": 1,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/lightning/f/awakened_01.png": {
+      "sheet": "assets/exported-atlas/skills/lightning/f.png",
+      "x": 1285,
+      "y": 1,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/lightning/f/normal_01.png": {
+      "sheet": "assets/exported-atlas/skills/lightning/f.png",
+      "x": 1,
+      "y": 563,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/lightning/f/awakened_02.png": {
+      "sheet": "assets/exported-atlas/skills/lightning/f.png",
+      "x": 643,
+      "y": 563,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/lightning/f/normal_02.png": {
+      "sheet": "assets/exported-atlas/skills/lightning/f.png",
+      "x": 1285,
+      "y": 563,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/lightning/f/awakened_03.png": {
+      "sheet": "assets/exported-atlas/skills/lightning/f.png",
+      "x": 1,
+      "y": 1125,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/lightning/f/normal_03.png": {
+      "sheet": "assets/exported-atlas/skills/lightning/f.png",
+      "x": 643,
+      "y": 1125,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/lightning/q/awakened_00.png": {
+      "sheet": "assets/exported-atlas/skills/lightning/q.png",
+      "x": 1,
+      "y": 1,
+      "w": 860,
+      "h": 560
+    },
+    "assets/exported/skills/lightning/q/normal_00.png": {
+      "sheet": "assets/exported-atlas/skills/lightning/q.png",
+      "x": 863,
+      "y": 1,
+      "w": 860,
+      "h": 560
+    },
+    "assets/exported/skills/lightning/q/awakened_01.png": {
+      "sheet": "assets/exported-atlas/skills/lightning/q.png",
+      "x": 1725,
+      "y": 1,
+      "w": 860,
+      "h": 560
+    },
+    "assets/exported/skills/lightning/q/normal_01.png": {
+      "sheet": "assets/exported-atlas/skills/lightning/q.png",
+      "x": 1,
+      "y": 563,
+      "w": 860,
+      "h": 560
+    },
+    "assets/exported/skills/lightning/q/awakened_02.png": {
+      "sheet": "assets/exported-atlas/skills/lightning/q.png",
+      "x": 863,
+      "y": 563,
+      "w": 860,
+      "h": 560
+    },
+    "assets/exported/skills/lightning/q/normal_02.png": {
+      "sheet": "assets/exported-atlas/skills/lightning/q.png",
+      "x": 1725,
+      "y": 563,
+      "w": 860,
+      "h": 560
+    },
+    "assets/exported/skills/lightning/q/awakened_03.png": {
+      "sheet": "assets/exported-atlas/skills/lightning/q.png",
+      "x": 1,
+      "y": 1125,
+      "w": 860,
+      "h": 560
+    },
+    "assets/exported/skills/lightning/q/normal_03.png": {
+      "sheet": "assets/exported-atlas/skills/lightning/q.png",
+      "x": 863,
+      "y": 1125,
+      "w": 860,
+      "h": 560
+    },
+    "assets/exported/skills/lightning/r/awakened_00.png": {
+      "sheet": "assets/exported-atlas/skills/lightning/r.png",
+      "x": 1,
+      "y": 1,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/lightning/r/normal_00.png": {
+      "sheet": "assets/exported-atlas/skills/lightning/r.png",
+      "x": 643,
+      "y": 1,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/lightning/r/awakened_01.png": {
+      "sheet": "assets/exported-atlas/skills/lightning/r.png",
+      "x": 1285,
+      "y": 1,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/lightning/r/normal_01.png": {
+      "sheet": "assets/exported-atlas/skills/lightning/r.png",
+      "x": 1,
+      "y": 563,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/lightning/r/awakened_02.png": {
+      "sheet": "assets/exported-atlas/skills/lightning/r.png",
+      "x": 643,
+      "y": 563,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/lightning/r/normal_02.png": {
+      "sheet": "assets/exported-atlas/skills/lightning/r.png",
+      "x": 1285,
+      "y": 563,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/lightning/r/awakened_03.png": {
+      "sheet": "assets/exported-atlas/skills/lightning/r.png",
+      "x": 1,
+      "y": 1125,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/lightning/r/normal_03.png": {
+      "sheet": "assets/exported-atlas/skills/lightning/r.png",
+      "x": 643,
+      "y": 1125,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/nature/e/awakened_00.png": {
+      "sheet": "assets/exported-atlas/skills/nature/e.png",
+      "x": 1,
+      "y": 1,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/nature/e/normal_00.png": {
+      "sheet": "assets/exported-atlas/skills/nature/e.png",
+      "x": 643,
+      "y": 1,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/nature/e/awakened_01.png": {
+      "sheet": "assets/exported-atlas/skills/nature/e.png",
+      "x": 1285,
+      "y": 1,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/nature/e/normal_01.png": {
+      "sheet": "assets/exported-atlas/skills/nature/e.png",
+      "x": 1,
+      "y": 563,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/nature/e/awakened_02.png": {
+      "sheet": "assets/exported-atlas/skills/nature/e.png",
+      "x": 643,
+      "y": 563,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/nature/e/normal_02.png": {
+      "sheet": "assets/exported-atlas/skills/nature/e.png",
+      "x": 1285,
+      "y": 563,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/nature/e/awakened_03.png": {
+      "sheet": "assets/exported-atlas/skills/nature/e.png",
+      "x": 1,
+      "y": 1125,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/nature/e/normal_03.png": {
+      "sheet": "assets/exported-atlas/skills/nature/e.png",
+      "x": 643,
+      "y": 1125,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/nature/f/awakened_00.png": {
+      "sheet": "assets/exported-atlas/skills/nature/f.png",
+      "x": 1,
+      "y": 1,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/nature/f/normal_00.png": {
+      "sheet": "assets/exported-atlas/skills/nature/f.png",
+      "x": 643,
+      "y": 1,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/nature/f/awakened_01.png": {
+      "sheet": "assets/exported-atlas/skills/nature/f.png",
+      "x": 1285,
+      "y": 1,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/nature/f/normal_01.png": {
+      "sheet": "assets/exported-atlas/skills/nature/f.png",
+      "x": 1,
+      "y": 563,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/nature/f/awakened_02.png": {
+      "sheet": "assets/exported-atlas/skills/nature/f.png",
+      "x": 643,
+      "y": 563,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/nature/f/normal_02.png": {
+      "sheet": "assets/exported-atlas/skills/nature/f.png",
+      "x": 1285,
+      "y": 563,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/nature/f/awakened_03.png": {
+      "sheet": "assets/exported-atlas/skills/nature/f.png",
+      "x": 1,
+      "y": 1125,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/nature/f/normal_03.png": {
+      "sheet": "assets/exported-atlas/skills/nature/f.png",
+      "x": 643,
+      "y": 1125,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/nature/q/awakened_00.png": {
+      "sheet": "assets/exported-atlas/skills/nature/q.png",
+      "x": 1,
+      "y": 1,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/nature/q/normal_00.png": {
+      "sheet": "assets/exported-atlas/skills/nature/q.png",
+      "x": 643,
+      "y": 1,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/nature/q/awakened_01.png": {
+      "sheet": "assets/exported-atlas/skills/nature/q.png",
+      "x": 1285,
+      "y": 1,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/nature/q/normal_01.png": {
+      "sheet": "assets/exported-atlas/skills/nature/q.png",
+      "x": 1,
+      "y": 563,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/nature/q/awakened_02.png": {
+      "sheet": "assets/exported-atlas/skills/nature/q.png",
+      "x": 643,
+      "y": 563,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/nature/q/normal_02.png": {
+      "sheet": "assets/exported-atlas/skills/nature/q.png",
+      "x": 1285,
+      "y": 563,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/nature/q/awakened_03.png": {
+      "sheet": "assets/exported-atlas/skills/nature/q.png",
+      "x": 1,
+      "y": 1125,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/nature/q/normal_03.png": {
+      "sheet": "assets/exported-atlas/skills/nature/q.png",
+      "x": 643,
+      "y": 1125,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/nature/r/awakened_00.png": {
+      "sheet": "assets/exported-atlas/skills/nature/r.png",
+      "x": 1,
+      "y": 1,
+      "w": 860,
+      "h": 560
+    },
+    "assets/exported/skills/nature/r/normal_00.png": {
+      "sheet": "assets/exported-atlas/skills/nature/r.png",
+      "x": 863,
+      "y": 1,
+      "w": 860,
+      "h": 560
+    },
+    "assets/exported/skills/nature/r/awakened_01.png": {
+      "sheet": "assets/exported-atlas/skills/nature/r.png",
+      "x": 1725,
+      "y": 1,
+      "w": 860,
+      "h": 560
+    },
+    "assets/exported/skills/nature/r/normal_01.png": {
+      "sheet": "assets/exported-atlas/skills/nature/r.png",
+      "x": 1,
+      "y": 563,
+      "w": 860,
+      "h": 560
+    },
+    "assets/exported/skills/nature/r/awakened_02.png": {
+      "sheet": "assets/exported-atlas/skills/nature/r.png",
+      "x": 863,
+      "y": 563,
+      "w": 860,
+      "h": 560
+    },
+    "assets/exported/skills/nature/r/normal_02.png": {
+      "sheet": "assets/exported-atlas/skills/nature/r.png",
+      "x": 1725,
+      "y": 563,
+      "w": 860,
+      "h": 560
+    },
+    "assets/exported/skills/nature/r/awakened_03.png": {
+      "sheet": "assets/exported-atlas/skills/nature/r.png",
+      "x": 1,
+      "y": 1125,
+      "w": 860,
+      "h": 560
+    },
+    "assets/exported/skills/nature/r/normal_03.png": {
+      "sheet": "assets/exported-atlas/skills/nature/r.png",
+      "x": 863,
+      "y": 1125,
+      "w": 860,
+      "h": 560
+    },
+    "assets/exported/skills/shadow/e/awakened_00.png": {
+      "sheet": "assets/exported-atlas/skills/shadow/e.png",
+      "x": 1,
+      "y": 1,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/shadow/e/normal_00.png": {
+      "sheet": "assets/exported-atlas/skills/shadow/e.png",
+      "x": 643,
+      "y": 1,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/shadow/e/awakened_01.png": {
+      "sheet": "assets/exported-atlas/skills/shadow/e.png",
+      "x": 1285,
+      "y": 1,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/shadow/e/normal_01.png": {
+      "sheet": "assets/exported-atlas/skills/shadow/e.png",
+      "x": 1,
+      "y": 563,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/shadow/e/awakened_02.png": {
+      "sheet": "assets/exported-atlas/skills/shadow/e.png",
+      "x": 643,
+      "y": 563,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/shadow/e/normal_02.png": {
+      "sheet": "assets/exported-atlas/skills/shadow/e.png",
+      "x": 1285,
+      "y": 563,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/shadow/e/awakened_03.png": {
+      "sheet": "assets/exported-atlas/skills/shadow/e.png",
+      "x": 1,
+      "y": 1125,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/shadow/e/normal_03.png": {
+      "sheet": "assets/exported-atlas/skills/shadow/e.png",
+      "x": 643,
+      "y": 1125,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/shadow/f/awakened_00.png": {
+      "sheet": "assets/exported-atlas/skills/shadow/f.png",
+      "x": 1,
+      "y": 1,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/shadow/f/normal_00.png": {
+      "sheet": "assets/exported-atlas/skills/shadow/f.png",
+      "x": 643,
+      "y": 1,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/shadow/f/awakened_01.png": {
+      "sheet": "assets/exported-atlas/skills/shadow/f.png",
+      "x": 1285,
+      "y": 1,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/shadow/f/normal_01.png": {
+      "sheet": "assets/exported-atlas/skills/shadow/f.png",
+      "x": 1,
+      "y": 563,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/shadow/f/awakened_02.png": {
+      "sheet": "assets/exported-atlas/skills/shadow/f.png",
+      "x": 643,
+      "y": 563,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/shadow/f/normal_02.png": {
+      "sheet": "assets/exported-atlas/skills/shadow/f.png",
+      "x": 1285,
+      "y": 563,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/shadow/f/awakened_03.png": {
+      "sheet": "assets/exported-atlas/skills/shadow/f.png",
+      "x": 1,
+      "y": 1125,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/shadow/f/normal_03.png": {
+      "sheet": "assets/exported-atlas/skills/shadow/f.png",
+      "x": 643,
+      "y": 1125,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/shadow/q/awakened_00.png": {
+      "sheet": "assets/exported-atlas/skills/shadow/q.png",
+      "x": 1,
+      "y": 1,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/shadow/q/normal_00.png": {
+      "sheet": "assets/exported-atlas/skills/shadow/q.png",
+      "x": 643,
+      "y": 1,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/shadow/q/awakened_01.png": {
+      "sheet": "assets/exported-atlas/skills/shadow/q.png",
+      "x": 1285,
+      "y": 1,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/shadow/q/normal_01.png": {
+      "sheet": "assets/exported-atlas/skills/shadow/q.png",
+      "x": 1,
+      "y": 563,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/shadow/q/awakened_02.png": {
+      "sheet": "assets/exported-atlas/skills/shadow/q.png",
+      "x": 643,
+      "y": 563,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/shadow/q/normal_02.png": {
+      "sheet": "assets/exported-atlas/skills/shadow/q.png",
+      "x": 1285,
+      "y": 563,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/shadow/q/awakened_03.png": {
+      "sheet": "assets/exported-atlas/skills/shadow/q.png",
+      "x": 1,
+      "y": 1125,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/shadow/q/normal_03.png": {
+      "sheet": "assets/exported-atlas/skills/shadow/q.png",
+      "x": 643,
+      "y": 1125,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/shadow/r/awakened_00.png": {
+      "sheet": "assets/exported-atlas/skills/shadow/r.png",
+      "x": 1,
+      "y": 1,
+      "w": 860,
+      "h": 560
+    },
+    "assets/exported/skills/shadow/r/normal_00.png": {
+      "sheet": "assets/exported-atlas/skills/shadow/r.png",
+      "x": 863,
+      "y": 1,
+      "w": 860,
+      "h": 560
+    },
+    "assets/exported/skills/shadow/r/awakened_01.png": {
+      "sheet": "assets/exported-atlas/skills/shadow/r.png",
+      "x": 1725,
+      "y": 1,
+      "w": 860,
+      "h": 560
+    },
+    "assets/exported/skills/shadow/r/normal_01.png": {
+      "sheet": "assets/exported-atlas/skills/shadow/r.png",
+      "x": 1,
+      "y": 563,
+      "w": 860,
+      "h": 560
+    },
+    "assets/exported/skills/shadow/r/awakened_02.png": {
+      "sheet": "assets/exported-atlas/skills/shadow/r.png",
+      "x": 863,
+      "y": 563,
+      "w": 860,
+      "h": 560
+    },
+    "assets/exported/skills/shadow/r/normal_02.png": {
+      "sheet": "assets/exported-atlas/skills/shadow/r.png",
+      "x": 1725,
+      "y": 563,
+      "w": 860,
+      "h": 560
+    },
+    "assets/exported/skills/shadow/r/awakened_03.png": {
+      "sheet": "assets/exported-atlas/skills/shadow/r.png",
+      "x": 1,
+      "y": 1125,
+      "w": 860,
+      "h": 560
+    },
+    "assets/exported/skills/shadow/r/normal_03.png": {
+      "sheet": "assets/exported-atlas/skills/shadow/r.png",
+      "x": 863,
+      "y": 1125,
+      "w": 860,
+      "h": 560
+    },
+    "assets/exported/skills/time/e/awakened_00.png": {
+      "sheet": "assets/exported-atlas/skills/time/e.png",
+      "x": 1,
+      "y": 1,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/time/e/normal_00.png": {
+      "sheet": "assets/exported-atlas/skills/time/e.png",
+      "x": 643,
+      "y": 1,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/time/e/awakened_01.png": {
+      "sheet": "assets/exported-atlas/skills/time/e.png",
+      "x": 1285,
+      "y": 1,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/time/e/normal_01.png": {
+      "sheet": "assets/exported-atlas/skills/time/e.png",
+      "x": 1,
+      "y": 563,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/time/e/awakened_02.png": {
+      "sheet": "assets/exported-atlas/skills/time/e.png",
+      "x": 643,
+      "y": 563,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/time/e/normal_02.png": {
+      "sheet": "assets/exported-atlas/skills/time/e.png",
+      "x": 1285,
+      "y": 563,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/time/e/awakened_03.png": {
+      "sheet": "assets/exported-atlas/skills/time/e.png",
+      "x": 1,
+      "y": 1125,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/time/e/normal_03.png": {
+      "sheet": "assets/exported-atlas/skills/time/e.png",
+      "x": 643,
+      "y": 1125,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/time/f/awakened_00.png": {
+      "sheet": "assets/exported-atlas/skills/time/f.png",
+      "x": 1,
+      "y": 1,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/time/f/normal_00.png": {
+      "sheet": "assets/exported-atlas/skills/time/f.png",
+      "x": 643,
+      "y": 1,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/time/f/awakened_01.png": {
+      "sheet": "assets/exported-atlas/skills/time/f.png",
+      "x": 1285,
+      "y": 1,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/time/f/normal_01.png": {
+      "sheet": "assets/exported-atlas/skills/time/f.png",
+      "x": 1,
+      "y": 563,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/time/f/awakened_02.png": {
+      "sheet": "assets/exported-atlas/skills/time/f.png",
+      "x": 643,
+      "y": 563,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/time/f/normal_02.png": {
+      "sheet": "assets/exported-atlas/skills/time/f.png",
+      "x": 1285,
+      "y": 563,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/time/f/awakened_03.png": {
+      "sheet": "assets/exported-atlas/skills/time/f.png",
+      "x": 1,
+      "y": 1125,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/time/f/normal_03.png": {
+      "sheet": "assets/exported-atlas/skills/time/f.png",
+      "x": 643,
+      "y": 1125,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/time/q/awakened_00.png": {
+      "sheet": "assets/exported-atlas/skills/time/q.png",
+      "x": 1,
+      "y": 1,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/time/q/normal_00.png": {
+      "sheet": "assets/exported-atlas/skills/time/q.png",
+      "x": 643,
+      "y": 1,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/time/q/awakened_01.png": {
+      "sheet": "assets/exported-atlas/skills/time/q.png",
+      "x": 1285,
+      "y": 1,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/time/q/normal_01.png": {
+      "sheet": "assets/exported-atlas/skills/time/q.png",
+      "x": 1,
+      "y": 563,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/time/q/awakened_02.png": {
+      "sheet": "assets/exported-atlas/skills/time/q.png",
+      "x": 643,
+      "y": 563,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/time/q/normal_02.png": {
+      "sheet": "assets/exported-atlas/skills/time/q.png",
+      "x": 1285,
+      "y": 563,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/time/q/awakened_03.png": {
+      "sheet": "assets/exported-atlas/skills/time/q.png",
+      "x": 1,
+      "y": 1125,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/time/q/normal_03.png": {
+      "sheet": "assets/exported-atlas/skills/time/q.png",
+      "x": 643,
+      "y": 1125,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/time/r/awakened_00.png": {
+      "sheet": "assets/exported-atlas/skills/time/r.png",
+      "x": 1,
+      "y": 1,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/time/r/normal_00.png": {
+      "sheet": "assets/exported-atlas/skills/time/r.png",
+      "x": 643,
+      "y": 1,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/time/r/awakened_01.png": {
+      "sheet": "assets/exported-atlas/skills/time/r.png",
+      "x": 1285,
+      "y": 1,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/time/r/normal_01.png": {
+      "sheet": "assets/exported-atlas/skills/time/r.png",
+      "x": 1,
+      "y": 563,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/time/r/awakened_02.png": {
+      "sheet": "assets/exported-atlas/skills/time/r.png",
+      "x": 643,
+      "y": 563,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/time/r/normal_02.png": {
+      "sheet": "assets/exported-atlas/skills/time/r.png",
+      "x": 1285,
+      "y": 563,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/time/r/awakened_03.png": {
+      "sheet": "assets/exported-atlas/skills/time/r.png",
+      "x": 1,
+      "y": 1125,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/time/r/normal_03.png": {
+      "sheet": "assets/exported-atlas/skills/time/r.png",
+      "x": 643,
+      "y": 1125,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/void/e/awakened_00.png": {
+      "sheet": "assets/exported-atlas/skills/void/e.png",
+      "x": 1,
+      "y": 1,
+      "w": 860,
+      "h": 560
+    },
+    "assets/exported/skills/void/e/normal_00.png": {
+      "sheet": "assets/exported-atlas/skills/void/e.png",
+      "x": 863,
+      "y": 1,
+      "w": 860,
+      "h": 560
+    },
+    "assets/exported/skills/void/e/awakened_01.png": {
+      "sheet": "assets/exported-atlas/skills/void/e.png",
+      "x": 1725,
+      "y": 1,
+      "w": 860,
+      "h": 560
+    },
+    "assets/exported/skills/void/e/normal_01.png": {
+      "sheet": "assets/exported-atlas/skills/void/e.png",
+      "x": 1,
+      "y": 563,
+      "w": 860,
+      "h": 560
+    },
+    "assets/exported/skills/void/e/awakened_02.png": {
+      "sheet": "assets/exported-atlas/skills/void/e.png",
+      "x": 863,
+      "y": 563,
+      "w": 860,
+      "h": 560
+    },
+    "assets/exported/skills/void/e/normal_02.png": {
+      "sheet": "assets/exported-atlas/skills/void/e.png",
+      "x": 1725,
+      "y": 563,
+      "w": 860,
+      "h": 560
+    },
+    "assets/exported/skills/void/e/awakened_03.png": {
+      "sheet": "assets/exported-atlas/skills/void/e.png",
+      "x": 1,
+      "y": 1125,
+      "w": 860,
+      "h": 560
+    },
+    "assets/exported/skills/void/e/normal_03.png": {
+      "sheet": "assets/exported-atlas/skills/void/e.png",
+      "x": 863,
+      "y": 1125,
+      "w": 860,
+      "h": 560
+    },
+    "assets/exported/skills/void/f/awakened_00.png": {
+      "sheet": "assets/exported-atlas/skills/void/f.png",
+      "x": 1,
+      "y": 1,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/void/f/normal_00.png": {
+      "sheet": "assets/exported-atlas/skills/void/f.png",
+      "x": 643,
+      "y": 1,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/void/f/awakened_01.png": {
+      "sheet": "assets/exported-atlas/skills/void/f.png",
+      "x": 1285,
+      "y": 1,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/void/f/normal_01.png": {
+      "sheet": "assets/exported-atlas/skills/void/f.png",
+      "x": 1,
+      "y": 563,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/void/f/awakened_02.png": {
+      "sheet": "assets/exported-atlas/skills/void/f.png",
+      "x": 643,
+      "y": 563,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/void/f/normal_02.png": {
+      "sheet": "assets/exported-atlas/skills/void/f.png",
+      "x": 1285,
+      "y": 563,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/void/f/awakened_03.png": {
+      "sheet": "assets/exported-atlas/skills/void/f.png",
+      "x": 1,
+      "y": 1125,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/void/f/normal_03.png": {
+      "sheet": "assets/exported-atlas/skills/void/f.png",
+      "x": 643,
+      "y": 1125,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/void/q/awakened_00.png": {
+      "sheet": "assets/exported-atlas/skills/void/q.png",
+      "x": 1,
+      "y": 1,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/void/q/normal_00.png": {
+      "sheet": "assets/exported-atlas/skills/void/q.png",
+      "x": 643,
+      "y": 1,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/void/q/awakened_01.png": {
+      "sheet": "assets/exported-atlas/skills/void/q.png",
+      "x": 1285,
+      "y": 1,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/void/q/normal_01.png": {
+      "sheet": "assets/exported-atlas/skills/void/q.png",
+      "x": 1,
+      "y": 563,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/void/q/awakened_02.png": {
+      "sheet": "assets/exported-atlas/skills/void/q.png",
+      "x": 643,
+      "y": 563,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/void/q/normal_02.png": {
+      "sheet": "assets/exported-atlas/skills/void/q.png",
+      "x": 1285,
+      "y": 563,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/void/q/awakened_03.png": {
+      "sheet": "assets/exported-atlas/skills/void/q.png",
+      "x": 1,
+      "y": 1125,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/void/q/normal_03.png": {
+      "sheet": "assets/exported-atlas/skills/void/q.png",
+      "x": 643,
+      "y": 1125,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/void/r/awakened_00.png": {
+      "sheet": "assets/exported-atlas/skills/void/r.png",
+      "x": 1,
+      "y": 1,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/void/r/normal_00.png": {
+      "sheet": "assets/exported-atlas/skills/void/r.png",
+      "x": 643,
+      "y": 1,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/void/r/awakened_01.png": {
+      "sheet": "assets/exported-atlas/skills/void/r.png",
+      "x": 1285,
+      "y": 1,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/void/r/normal_01.png": {
+      "sheet": "assets/exported-atlas/skills/void/r.png",
+      "x": 1,
+      "y": 563,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/void/r/awakened_02.png": {
+      "sheet": "assets/exported-atlas/skills/void/r.png",
+      "x": 643,
+      "y": 563,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/void/r/normal_02.png": {
+      "sheet": "assets/exported-atlas/skills/void/r.png",
+      "x": 1285,
+      "y": 563,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/void/r/awakened_03.png": {
+      "sheet": "assets/exported-atlas/skills/void/r.png",
+      "x": 1,
+      "y": 1125,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/skills/void/r/normal_03.png": {
+      "sheet": "assets/exported-atlas/skills/void/r.png",
+      "x": 643,
+      "y": 1125,
+      "w": 640,
+      "h": 560
+    },
+    "assets/exported/traps/blade/active_00.png": {
+      "sheet": "assets/exported-atlas/traps/blade.png",
+      "x": 1,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/traps/blade/active_01.png": {
+      "sheet": "assets/exported-atlas/traps/blade.png",
+      "x": 195,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/traps/blade/active_02.png": {
+      "sheet": "assets/exported-atlas/traps/blade.png",
+      "x": 389,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/traps/blade/active_03.png": {
+      "sheet": "assets/exported-atlas/traps/blade.png",
+      "x": 583,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/traps/blade/active_04.png": {
+      "sheet": "assets/exported-atlas/traps/blade.png",
+      "x": 777,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/traps/blade/active_05.png": {
+      "sheet": "assets/exported-atlas/traps/blade.png",
+      "x": 971,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/traps/ice/active_00.png": {
+      "sheet": "assets/exported-atlas/traps/ice.png",
+      "x": 1,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/traps/ice/active_01.png": {
+      "sheet": "assets/exported-atlas/traps/ice.png",
+      "x": 195,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/traps/ice/active_02.png": {
+      "sheet": "assets/exported-atlas/traps/ice.png",
+      "x": 389,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/traps/ice/active_03.png": {
+      "sheet": "assets/exported-atlas/traps/ice.png",
+      "x": 583,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/traps/ice/active_04.png": {
+      "sheet": "assets/exported-atlas/traps/ice.png",
+      "x": 777,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/traps/ice/active_05.png": {
+      "sheet": "assets/exported-atlas/traps/ice.png",
+      "x": 971,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/traps/lava/active_00.png": {
+      "sheet": "assets/exported-atlas/traps/lava.png",
+      "x": 1,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/traps/lava/active_01.png": {
+      "sheet": "assets/exported-atlas/traps/lava.png",
+      "x": 195,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/traps/lava/active_02.png": {
+      "sheet": "assets/exported-atlas/traps/lava.png",
+      "x": 389,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/traps/lava/active_03.png": {
+      "sheet": "assets/exported-atlas/traps/lava.png",
+      "x": 583,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/traps/lava/active_04.png": {
+      "sheet": "assets/exported-atlas/traps/lava.png",
+      "x": 777,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/traps/lava/active_05.png": {
+      "sheet": "assets/exported-atlas/traps/lava.png",
+      "x": 971,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/traps/thorn/active_00.png": {
+      "sheet": "assets/exported-atlas/traps/thorn.png",
+      "x": 1,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/traps/thorn/active_01.png": {
+      "sheet": "assets/exported-atlas/traps/thorn.png",
+      "x": 195,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/traps/thorn/active_02.png": {
+      "sheet": "assets/exported-atlas/traps/thorn.png",
+      "x": 389,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/traps/thorn/active_03.png": {
+      "sheet": "assets/exported-atlas/traps/thorn.png",
+      "x": 583,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/traps/thorn/active_04.png": {
+      "sheet": "assets/exported-atlas/traps/thorn.png",
+      "x": 777,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/traps/thorn/active_05.png": {
+      "sheet": "assets/exported-atlas/traps/thorn.png",
+      "x": 971,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/traps/voltage/active_00.png": {
+      "sheet": "assets/exported-atlas/traps/voltage.png",
+      "x": 1,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/traps/voltage/active_01.png": {
+      "sheet": "assets/exported-atlas/traps/voltage.png",
+      "x": 195,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/traps/voltage/active_02.png": {
+      "sheet": "assets/exported-atlas/traps/voltage.png",
+      "x": 389,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/traps/voltage/active_03.png": {
+      "sheet": "assets/exported-atlas/traps/voltage.png",
+      "x": 583,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/traps/voltage/active_04.png": {
+      "sheet": "assets/exported-atlas/traps/voltage.png",
+      "x": 777,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    },
+    "assets/exported/traps/voltage/active_05.png": {
+      "sheet": "assets/exported-atlas/traps/voltage.png",
+      "x": 971,
+      "y": 1,
+      "w": 192,
+      "h": 192
+    }
+  }
+}

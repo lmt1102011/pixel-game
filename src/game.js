@@ -9,7 +9,7 @@
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
   const SIGNAL_REALTIME_RELAY_LIMIT = 2;
   const SIGNAL_REALTIME_TYPES = new Set(["state", "snapshot", "attack", "skill", "collect", "openChest", "dropItem", "damage", "chooseDoor"]);
-  const APP_VERSION = "20260607-realistic-audio-288";
+  const APP_VERSION = "20260607-runtime-atlas-289";
   const CHANGELOG_ENTRIES = [
     {
       version: APP_VERSION,
@@ -3982,6 +3982,20 @@
       this.exportedAssetManifest = [];
       this.exportedAssetManifestPaths = new Set();
       this.exportedAssetManifestPromise = null;
+      this.exportedAtlasManifest = null;
+      this.exportedAtlasManifestPromise = null;
+      this.exportedAtlasFrames = new Map();
+      this.exportedAtlasSheets = new Map();
+      this.exportedAtlasSheetPromises = new Map();
+      this.exportedAtlasMissing = new Set();
+      this.exportedAtlasQueued = new Set();
+      this.exportedAtlasPriorityQueued = new Set();
+      this.exportedAtlasPreloadQueue = [];
+      this.exportedAtlasPreloadActive = 0;
+      this.exportedAtlasPreloadActivePaths = new Set();
+      this.exportedAtlasPreloadActivePriorityPaths = new Set();
+      this.exportedAtlasPreloadScheduled = false;
+      this.exportedAtlasEnabled = true;
       this.exportedAssetMissing = new Set();
       this.exportedAssetIdleWarmupTimer = null;
       this.exportedAssetIdleWarmupStarted = false;
@@ -4141,6 +4155,14 @@
       return `${path}?v=${APP_VERSION}`;
     }
 
+    exportedAtlasUrl(path = "") {
+      return `${path}?v=${APP_VERSION}`;
+    }
+
+    normalizeExportedPath(path = "") {
+      return String(path || "").replace(/\\/g, "/").replace(/^\/+/, "");
+    }
+
     exportedSequenceKey(path = "") {
       return String(path || "").replace(/_\d{2}\.png$/i, "");
     }
@@ -4171,7 +4193,10 @@
 
     exportedSequenceReady(path = "") {
       const paths = this.exportedSequencePaths(path);
-      return paths.length > 0 && paths.every((entry) => this.isExportedImageReady(this.exportedAssetImages.get(entry)));
+      return paths.length > 0 && paths.every((entry) => (
+        this.isExportedAtlasFrameReady(entry)
+        || this.isExportedImageReady(this.exportedAssetImages.get(entry))
+      ));
     }
 
     stableExportedSequenceFallback(path = "") {
@@ -4179,12 +4204,288 @@
       const fallback = this.exportedAssetFallback.get(key);
       if (this.isExportedImageReady(fallback)) return this.exportedDrawableFor(fallback._soulriftPath || path, fallback);
       const firstPath = this.exportedSequencePaths(path)[0] || path;
+      const atlasFallback = this.exportedAtlasDrawableFor(firstPath, { queue: false });
+      if (atlasFallback) return atlasFallback;
       const first = this.exportedAssetImages.get(firstPath);
       return this.isExportedImageReady(first) ? this.exportedDrawableFor(firstPath, first) : null;
     }
 
     isExportedImageReady(image) {
       return Boolean(image && image.complete && image.naturalWidth > 0 && !image._soulriftMissing);
+    }
+
+    isExportedAtlasDrawable(drawable) {
+      return Boolean(drawable && drawable._soulriftAtlas && drawable.source);
+    }
+
+    isExportedDrawableReady(drawable) {
+      if (this.isExportedAtlasDrawable(drawable)) return this.isExportedImageReady(drawable.source);
+      return this.isExportedImageReady(drawable);
+    }
+
+    atlasFrameForPath(path = "") {
+      if (!this.exportedAtlasEnabled || !this.exportedAtlasFrames?.size) return null;
+      return this.exportedAtlasFrames.get(this.normalizeExportedPath(path)) || null;
+    }
+
+    isExportedAtlasFrameReady(path = "") {
+      const frame = this.atlasFrameForPath(path);
+      if (!frame?.sheet) return false;
+      return this.isExportedImageReady(this.exportedAtlasSheets.get(frame.sheet));
+    }
+
+    exportedAtlasDrawableFor(path = "", options = {}) {
+      const frame = this.atlasFrameForPath(path);
+      if (!frame?.sheet) {
+        if (!this.exportedAtlasManifestPromise && this.exportedAtlasEnabled) this.loadExportedAtlasManifest();
+        return null;
+      }
+      const sheet = this.exportedAtlasSheets.get(frame.sheet);
+      if (this.isExportedImageReady(sheet)) {
+        this.markExportedImageUsed(frame.sheet, sheet);
+        frame.lastUsed = typeof performance !== "undefined" && performance.now ? performance.now() : Date.now();
+        return {
+          _soulriftAtlas: true,
+          path,
+          sheet: frame.sheet,
+          source: sheet,
+          sx: frame.x,
+          sy: frame.y,
+          sw: frame.w,
+          sh: frame.h,
+          width: frame.w,
+          height: frame.h
+        };
+      }
+      if (options.queue !== false) this.queueExportedAtlasFrame(path, Boolean(options.priority));
+      return null;
+    }
+
+    queueExportedAtlasFrame(path = "", priority = false) {
+      if (!this.exportedAtlasEnabled || !path) return false;
+      const frame = this.atlasFrameForPath(path);
+      if (frame?.sheet) {
+        this.queueExportedAtlasSheet(frame.sheet, priority);
+        return true;
+      }
+      if (!this.exportedAtlasManifestPromise) {
+        this.loadExportedAtlasManifest().then(() => {
+          const lateFrame = this.atlasFrameForPath(path);
+          if (lateFrame?.sheet) this.queueExportedAtlasSheet(lateFrame.sheet, priority);
+        }, () => {});
+      }
+      return false;
+    }
+
+    queueExportedAtlasSheet(sheetPath = "", priority = false) {
+      const path = this.normalizeExportedPath(sheetPath);
+      if (!path || this.exportedAtlasMissing.has(path)) return;
+      const image = this.exportedAtlasSheets.get(path);
+      if (this.isExportedImageReady(image)) {
+        this.markExportedImageUsed(path, image);
+        this.exportedAtlasQueued.delete(path);
+        this.exportedAtlasPriorityQueued.delete(path);
+        this.pruneExportedAtlasPreloadQueue();
+        return;
+      }
+      if (this.exportedAtlasQueued.has(path)) {
+        if (priority) {
+          this.exportedAtlasPriorityQueued.add(path);
+          const index = this.exportedAtlasPreloadQueue.indexOf(path);
+          if (index > 0) {
+            this.exportedAtlasPreloadQueue.splice(index, 1);
+            this.exportedAtlasPreloadQueue.unshift(path);
+          } else if (index < 0 && !this.exportedAtlasPreloadActivePaths.has(path)) {
+            this.exportedAtlasPreloadQueue.unshift(path);
+          }
+        }
+        this.scheduleExportedAtlasPreloadDrain();
+        return;
+      }
+      this.exportedAtlasQueued.add(path);
+      if (priority) {
+        this.exportedAtlasPriorityQueued.add(path);
+        this.exportedAtlasPreloadQueue.unshift(path);
+      } else {
+        this.exportedAtlasPreloadQueue.push(path);
+      }
+      this.scheduleExportedAtlasPreloadDrain();
+    }
+
+    scheduleExportedAtlasPreloadDrain(delay = 0) {
+      if (this.exportedAtlasPreloadScheduled) return;
+      this.exportedAtlasPreloadScheduled = true;
+      const run = () => {
+        this.exportedAtlasPreloadScheduled = false;
+        this.drainExportedAtlasPreloadQueue();
+      };
+      if (delay > 0) {
+        setTimeout(run, delay);
+        return;
+      }
+      if (this.exportedAtlasPriorityQueued.size > 0) setTimeout(run, 0);
+      else if ("requestIdleCallback" in window) window.requestIdleCallback(run, { timeout: 220 });
+      else setTimeout(run, 0);
+    }
+
+    pruneExportedAtlasPreloadQueue() {
+      if (!this.exportedAtlasPreloadQueue?.length) return;
+      const seen = new Set();
+      this.exportedAtlasPreloadQueue = this.exportedAtlasPreloadQueue.filter((path) => {
+        const normalized = this.normalizeExportedPath(path);
+        if (!normalized || seen.has(normalized)) return false;
+        seen.add(normalized);
+        const image = this.exportedAtlasSheets.get(normalized);
+        if (this.isExportedImageReady(image) || this.exportedAtlasMissing.has(normalized)) {
+          this.exportedAtlasQueued.delete(normalized);
+          this.exportedAtlasPriorityQueued.delete(normalized);
+          return false;
+        }
+        return true;
+      });
+    }
+
+    drainExportedAtlasPreloadQueue() {
+      this.pruneExportedAtlasPreloadQueue();
+      const baseLimit = this.isMobileDevice() ? 1 : 2;
+      const priorityLimit = this.isMobileDevice() ? 2 : 3;
+      const limit = this.exportedAtlasPriorityQueued.size > 0 ? priorityLimit : baseLimit;
+      while (this.exportedAtlasPreloadActive < limit && this.exportedAtlasPreloadQueue.length) {
+        const priorityIndex = this.exportedAtlasPriorityQueued.size > 0
+          ? this.exportedAtlasPreloadQueue.findIndex((entry) => this.exportedAtlasPriorityQueued.has(entry))
+          : -1;
+        const sheetPath = priorityIndex > 0
+          ? this.exportedAtlasPreloadQueue.splice(priorityIndex, 1)[0]
+          : this.exportedAtlasPreloadQueue.shift();
+        const priority = this.exportedAtlasPriorityQueued.has(sheetPath);
+        const image = this.exportedAtlasSheets.get(sheetPath);
+        if (this.isExportedImageReady(image) || this.exportedAtlasMissing.has(sheetPath)) {
+          this.exportedAtlasQueued.delete(sheetPath);
+          this.exportedAtlasPriorityQueued.delete(sheetPath);
+          continue;
+        }
+        if (!priority && this.mode === "game" && (
+          this.graphicsActiveCombat()
+          || this.graphicsPlayerSkillActive()
+          || this.renderPressure() > 0.16
+          || this.performancePressure() > 0.18
+        )) {
+          this.exportedAtlasPreloadQueue.push(sheetPath);
+          this.scheduleExportedAtlasPreloadDrain(320);
+          break;
+        }
+        this.exportedAtlasPriorityQueued.delete(sheetPath);
+        this.exportedAtlasPreloadActive++;
+        this.exportedAtlasPreloadActivePaths.add(sheetPath);
+        if (priority) this.exportedAtlasPreloadActivePriorityPaths.add(sheetPath);
+        this.loadExportedAtlasSheet(sheetPath, priority).finally(() => {
+          this.exportedAtlasPreloadActive = Math.max(0, this.exportedAtlasPreloadActive - 1);
+          this.exportedAtlasPreloadActivePaths.delete(sheetPath);
+          this.exportedAtlasPreloadActivePriorityPaths.delete(sheetPath);
+          this.pruneExportedAtlasPreloadQueue();
+          if (this.exportedAtlasPreloadQueue.length) this.scheduleExportedAtlasPreloadDrain();
+        });
+      }
+    }
+
+    loadExportedAtlasSheet(sheetPath = "", priority = false) {
+      const path = this.normalizeExportedPath(sheetPath);
+      if (!path || this.exportedAtlasMissing.has(path)) return Promise.resolve(null);
+      let image = this.exportedAtlasSheets.get(path);
+      if (this.isExportedImageReady(image)) return Promise.resolve(image);
+      if (image?._soulriftLoadPromise) return image._soulriftLoadPromise;
+      if (!image) {
+        image = new Image();
+        image.decoding = "async";
+        image.loading = priority ? "eager" : "lazy";
+        try {
+          image.fetchPriority = priority ? "high" : "low";
+        } catch {
+          // Fetch priority is only a hint.
+        }
+        image._soulriftPath = path;
+        this.exportedAtlasSheets.set(path, image);
+      }
+      image._soulriftLoadPromise = new Promise((resolve) => {
+        let settled = false;
+        let loadTimer = null;
+        const settle = (value) => {
+          if (settled) return;
+          settled = true;
+          if (loadTimer) clearTimeout(loadTimer);
+          image.onload = null;
+          image.onerror = null;
+          resolve(value);
+        };
+        const finish = () => {
+          image._soulriftReady = true;
+          this.markExportedImageUsed(path, image);
+          this.exportedAtlasQueued.delete(path);
+          this.exportedAtlasPriorityQueued.delete(path);
+          if (priority || this.run?.assetWarmup) this.warmExportedImageOnGpu(image);
+          this.trimExportedAtlasSheets(false);
+          settle(image);
+        };
+        image.onload = () => {
+          this.decodeExportedImage(image).then(finish, finish);
+        };
+        image.onerror = () => {
+          image._soulriftMissing = true;
+          this.exportedAtlasMissing.add(path);
+          this.exportedAtlasSheets.delete(path);
+          settle(null);
+        };
+        loadTimer = setTimeout(() => {
+          image._soulriftLoadPromise = null;
+          image._soulriftLoadTimedOutAt = typeof performance !== "undefined" && performance.now ? performance.now() : Date.now();
+          this.exportedAtlasSheets.delete(path);
+          this.exportedAtlasQueued.delete(path);
+          if (!this.exportedAtlasMissing.has(path)) this.exportedAtlasPreloadQueue.push(path);
+          settle(null);
+        }, Math.max(1300, Number(this.exportedAssetLoadTimeoutMs || 2800) + 600));
+        image.src = this.exportedAtlasUrl(path);
+      }).finally(() => {
+        if (image) image._soulriftLoadPromise = null;
+      });
+      return image._soulriftLoadPromise;
+    }
+
+    async loadExportedAtlasManifest() {
+      if (this.exportedAtlasManifestPromise) return this.exportedAtlasManifestPromise;
+      if (!window.fetch || !this.exportedAtlasEnabled) return null;
+      this.exportedAtlasManifestPromise = fetch(this.exportedAtlasUrl("assets/exported-atlas/atlas-manifest.json"), { cache: "force-cache" })
+        .then((response) => response.ok ? response.json() : null)
+        .then((data) => {
+          const frames = data?.frames && typeof data.frames === "object" ? data.frames : {};
+          this.exportedAtlasManifest = data || null;
+          this.exportedAtlasFrames = new Map(Object.entries(frames).map(([path, frame]) => [
+            this.normalizeExportedPath(path),
+            {
+              sheet: this.normalizeExportedPath(frame.sheet),
+              x: Math.max(0, Number(frame.x) || 0),
+              y: Math.max(0, Number(frame.y) || 0),
+              w: Math.max(1, Number(frame.w) || 1),
+              h: Math.max(1, Number(frame.h) || 1)
+            }
+          ]));
+          return data;
+        })
+        .catch(() => {
+          this.exportedAtlasEnabled = false;
+          this.exportedAtlasFrames.clear();
+          return null;
+        });
+      return this.exportedAtlasManifestPromise;
+    }
+
+    drawExportedDrawable(ctx, drawable, x, y, w, h) {
+      if (!this.isExportedDrawableReady(drawable)) return false;
+      if (this.isExportedAtlasDrawable(drawable)) {
+        ctx.drawImage(drawable.source, drawable.sx, drawable.sy, drawable.sw, drawable.sh, x, y, w, h);
+      } else {
+        ctx.drawImage(drawable, x, y, w, h);
+      }
+      return true;
     }
 
     markExportedImageUsed(path, image) {
@@ -4375,6 +4676,10 @@
 
     loadExportedImage(path = "", priority = false) {
       if (!path || this.exportedAssetMissing.has(path)) return Promise.resolve(null);
+      const atlasFrame = this.atlasFrameForPath(path);
+      if (atlasFrame?.sheet) {
+        return this.loadExportedAtlasSheet(atlasFrame.sheet, priority).then(() => this.exportedAtlasDrawableFor(path, { queue: false }));
+      }
       if (this.exportedAssetManifestPaths.size && !this.exportedAssetManifestPaths.has(path)) {
         this.exportedAssetMissing.add(path);
         return Promise.resolve(null);
@@ -4455,6 +4760,7 @@
 
     queueExportedImage(path = "", priority = false) {
       if (!path || this.exportedAssetMissing.has(path)) return;
+      if (this.queueExportedAtlasFrame(path, priority)) return;
       if (this.exportedAssetQueued.has(path)) {
         if (priority) {
           this.exportedAssetPriorityQueued.add(path);
@@ -4552,6 +4858,11 @@
         const path = priorityIndex > 0
           ? this.exportedAssetPreloadQueue.splice(priorityIndex, 1)[0]
           : this.exportedAssetPreloadQueue.shift();
+        if (this.queueExportedAtlasFrame(path, this.exportedAssetPriorityQueued.has(path))) {
+          this.exportedAssetPriorityQueued.delete(path);
+          this.exportedAssetQueued.delete(path);
+          continue;
+        }
         const priority = this.exportedAssetPriorityQueued.has(path);
         const image = this.exportedAssetImages.get(path);
         if (this.isExportedImageReady(image) || this.exportedAssetMissing.has(path)) {
@@ -4679,6 +4990,7 @@
     }
 
     preloadRunExportAssets(power = this.run?.power, biome = this.run?.biome, characterId = this.run?.player?.characterId, priority = false) {
+      this.loadExportedAtlasManifest();
       this.preloadCharacterExportFrames(characterId, priority);
       this.preloadPowerSkillExportFrames(power?.id || this.save?.account?.selectedPower || "fire", priority);
       if (biome?.id) this.queueExportedImage(`assets/exported/backgrounds/${biome.id}/floor_tile.png`, priority);
@@ -4704,7 +5016,10 @@
 
     beginRoomAssetWarmup() {
       if (!this.run?.currentRoom) return;
-      const pending = this.exportedAssetPreloadQueue.length + this.exportedAssetPreloadActive;
+      const pending = this.exportedAssetPreloadQueue.length
+        + this.exportedAssetPreloadActive
+        + this.exportedAtlasPreloadQueue.length
+        + this.exportedAtlasPreloadActive;
       if (pending <= 0) return;
       const current = this.run.assetWarmup || {};
       const mobile = this.isMobileDevice();
@@ -4735,18 +5050,26 @@
     roomAssetWarmupActive() {
       const warmup = this.run?.assetWarmup;
       if (!warmup) return false;
-      const pending = this.exportedAssetPreloadQueue.length + this.exportedAssetPreloadActive;
+      const pending = this.exportedAssetPreloadQueue.length
+        + this.exportedAssetPreloadActive
+        + this.exportedAtlasPreloadQueue.length
+        + this.exportedAtlasPreloadActive;
       return Number(warmup.time || 0) < Number(warmup.min || 0)
         || (pending > 0 && Number(warmup.time || 0) < Number(warmup.max || 0));
     }
 
     preloadMenuExportedAssets() {
       this.loadExportedAssetManifest();
-      this.preloadCharacterExportFrames(this.save?.account?.selectedCharacter || "swordsman", true);
-      this.preloadPowerSkillExportFrames(this.save?.account?.selectedPower || "fire", false);
-      this.queueExportedImage("assets/exported/backgrounds/forest/floor_tile.png", false);
-      this.preloadMonsterExportFrames(["shadowGoblin", "slime", "skeletonWarrior", "goblinScout"], false);
-      this.scheduleIdleExportedAssetWarmup();
+      const queue = () => {
+        this.preloadCharacterExportFrames(this.save?.account?.selectedCharacter || "swordsman", true);
+        this.preloadPowerSkillExportFrames(this.save?.account?.selectedPower || "fire", false);
+        this.queueExportedImage("assets/exported/backgrounds/forest/floor_tile.png", false);
+        this.preloadMonsterExportFrames(["shadowGoblin", "slime", "skeletonWarrior", "goblinScout"], false);
+        this.scheduleIdleExportedAssetWarmup();
+      };
+      queue();
+      const atlas = this.loadExportedAtlasManifest();
+      if (atlas?.then) atlas.then(queue, () => {});
     }
 
     scheduleIdleExportedAssetWarmup(delay = 1400) {
@@ -4782,7 +5105,9 @@
         this.preloadMonsterExportFrames(weak ? commonMonsters : Object.keys(MONSTER_TYPES), false);
       };
       const manifest = this.loadExportedAssetManifest();
-      if (manifest?.then) manifest.then(queue, queue);
+      const atlas = this.loadExportedAtlasManifest();
+      const promises = [manifest, atlas].filter((entry) => entry?.then);
+      if (promises.length) Promise.allSettled(promises).then(queue, queue);
       else queue();
     }
 
@@ -4843,10 +5168,56 @@
       return protectedPaths;
     }
 
+    protectedExportedAtlasSheets() {
+      const sheets = new Set([
+        ...this.exportedAtlasPreloadActivePaths,
+        ...this.exportedAtlasPreloadActivePriorityPaths,
+        ...this.exportedAtlasPriorityQueued
+      ]);
+      for (const path of this.protectedExportedAssetPaths()) {
+        const frame = this.atlasFrameForPath(path);
+        if (frame?.sheet) sheets.add(frame.sheet);
+      }
+      return sheets;
+    }
+
+    trimExportedAtlasSheets(aggressive = false) {
+      if (!this.exportedAtlasSheets?.size || this.roomAssetWarmupActive()) return;
+      const mobile = this.isMobileDevice();
+      const weakBias = this.devicePerformanceBias();
+      const maxSheets = mobile
+        ? Math.max(18, Math.round(34 - weakBias * 10))
+        : Math.max(42, Math.round(82 - weakBias * 14));
+      if (!aggressive && this.exportedAtlasSheets.size <= maxSheets) return;
+      const protectedSheets = this.protectedExportedAtlasSheets();
+      const now = typeof performance !== "undefined" && performance.now ? performance.now() : Date.now();
+      const minAge = mobile ? 14000 : 22000;
+      const candidates = [];
+      for (const [path, image] of this.exportedAtlasSheets.entries()) {
+        if (!this.isExportedImageReady(image)) continue;
+        if (protectedSheets.has(path) || this.exportedAtlasPreloadActivePaths.has(path)) continue;
+        const lastUsed = Number(image._soulriftLastUsed || 0);
+        if (!aggressive && now - lastUsed < minAge) continue;
+        candidates.push({ path, lastUsed, pixels: Number(image.naturalWidth || image.width || 1) * Number(image.naturalHeight || image.height || 1) });
+      }
+      candidates.sort((a, b) => a.lastUsed - b.lastUsed || b.pixels - a.pixels);
+      const target = Math.max(12, maxSheets - (mobile ? 6 : 10));
+      for (const candidate of candidates) {
+        if (this.exportedAtlasSheets.size <= target) break;
+        this.exportedAtlasSheets.delete(candidate.path);
+        this.exportedAtlasQueued.delete(candidate.path);
+      }
+    }
+
     updateAssetMemoryBudget(dt) {
-      if (!this.exportedAssetImages?.size || this.roomAssetWarmupActive()) return;
+      if (this.roomAssetWarmupActive()) return;
       this.assetCleanupTimer -= dt;
       if (this.assetCleanupTimer > 0) return;
+      this.trimExportedAtlasSheets(false);
+      if (!this.exportedAssetImages?.size) {
+        this.assetCleanupTimer = this.isMobileDevice() ? 2.5 : 4.5;
+        return;
+      }
       const weakBias = this.devicePerformanceBias();
       const mobile = this.isMobileDevice();
       const maxImages = mobile
@@ -4890,7 +5261,7 @@
       if (!image) return false;
       const smoothing = ctx.imageSmoothingEnabled;
       if (smoothing) ctx.imageSmoothingEnabled = false;
-      ctx.drawImage(image, x, y, w, h);
+      this.drawExportedDrawable(ctx, image, x, y, w, h);
       if (smoothing) ctx.imageSmoothingEnabled = smoothing;
       return true;
     }
@@ -4939,7 +5310,7 @@
         const startY = Math.floor(floorTop / tileSize) * tileSize;
         for (let y = startY; y < floorBottom; y += tileSize) {
           for (let x = startX; x < floorRight; x += tileSize) {
-            ctx.drawImage(tile, x, y, tileSize, tileSize);
+            this.drawExportedDrawable(ctx, tile, x, y, tileSize, tileSize);
           }
         }
         if (smoothing) ctx.imageSmoothingEnabled = smoothing;
@@ -4971,7 +5342,7 @@
       ctx.save();
       const smoothing = ctx.imageSmoothingEnabled;
       ctx.imageSmoothingEnabled = false;
-      ctx.drawImage(image, hazard.x - size / 2, hazard.y - size / 2, size, size);
+      this.drawExportedDrawable(ctx, image, hazard.x - size / 2, hazard.y - size / 2, size, size);
       ctx.imageSmoothingEnabled = smoothing;
       ctx.restore();
       return true;
@@ -5001,7 +5372,7 @@
       ctx.scale(scale, scale);
       const smoothing = ctx.imageSmoothingEnabled;
       ctx.imageSmoothingEnabled = false;
-      ctx.drawImage(image, -originX, -originY, width, height);
+      this.drawExportedDrawable(ctx, image, -originX, -originY, width, height);
       ctx.imageSmoothingEnabled = smoothing;
       if (object.enterProgress > 0) {
         ctx.strokeStyle = "#fff0ad";
@@ -5035,7 +5406,7 @@
       if (!image) return false;
       const smoothing = ctx.imageSmoothingEnabled;
       ctx.imageSmoothingEnabled = false;
-      ctx.drawImage(image, -96, -98, 192, 160);
+      this.drawExportedDrawable(ctx, image, -96, -98, 192, 160);
       ctx.imageSmoothingEnabled = smoothing;
       return true;
     }
@@ -5051,7 +5422,7 @@
       ctx.scale(Math.max(0.28, grow || 0.001), Math.max(0.28, grow || 0.001));
       const smoothing = ctx.imageSmoothingEnabled;
       ctx.imageSmoothingEnabled = false;
-      ctx.drawImage(image, -128, -122, 256, 220);
+      this.drawExportedDrawable(ctx, image, -128, -122, 256, 220);
       ctx.imageSmoothingEnabled = smoothing;
       ctx.restore();
       return true;
@@ -5098,7 +5469,7 @@
       if ((actor.invuln || 0) > 0) ctx.globalAlpha = 0.72 + Math.sin(this.menuTime * 30) * 0.18;
       const smoothing = ctx.imageSmoothingEnabled;
       ctx.imageSmoothingEnabled = false;
-      ctx.drawImage(image, -120, -180, 256, 256);
+      this.drawExportedDrawable(ctx, image, -120, -180, 256, 256);
       ctx.imageSmoothingEnabled = smoothing;
       ctx.restore();
       const awakenedActive = Boolean(actor.powerAwakened ?? (actor === this.run?.player && power?.id && this.powerAwakeningActive(power.id)));
@@ -5155,7 +5526,7 @@
       ctx.globalCompositeOperation = "source-over";
       const smoothing = ctx.imageSmoothingEnabled;
       ctx.imageSmoothingEnabled = false;
-      ctx.drawImage(image, -originX, -originY, width, height);
+      this.drawExportedDrawable(ctx, image, -originX, -originY, width, height);
       ctx.imageSmoothingEnabled = smoothing;
       ctx.restore();
       return true;
@@ -25797,7 +26168,7 @@
       ctx.imageSmoothingEnabled = false;
       if (useFlashFilter) ctx.filter = "brightness(2.25) saturate(0.75)";
       const exportScale = 1.55;
-      ctx.drawImage(image, -96 / exportScale, -112 / exportScale, 192 / exportScale, 192 / exportScale);
+      this.drawExportedDrawable(ctx, image, -96 / exportScale, -112 / exportScale, 192 / exportScale, 192 / exportScale);
       ctx.filter = previousFilter;
       ctx.imageSmoothingEnabled = smoothing;
       if (enemy.flash > 0 && !useFlashFilter) {

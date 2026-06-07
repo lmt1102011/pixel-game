@@ -9,7 +9,7 @@
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
   const SIGNAL_REALTIME_RELAY_LIMIT = 2;
   const SIGNAL_REALTIME_TYPES = new Set(["state", "snapshot", "attack", "skill", "collect", "openChest", "dropItem", "damage", "chooseDoor"]);
-  const APP_VERSION = "20260607-mobile-smooth-277";
+  const APP_VERSION = "20260607-engine-opt-278";
   const CHANGELOG_ENTRIES = [
     {
       version: APP_VERSION,
@@ -3515,6 +3515,7 @@
       this.exportedAssetIdleWarmupStarted = false;
       this.exportedAssetGpuWarmCanvas = null;
       this.exportedAssetGpuWarmCtx = null;
+      this.assetCleanupTimer = 0;
       if (!window.SOULRIFT_EXPORT_ONLY) this.loadMonsterSprites();
       this.run = null;
       this.mode = "loading";
@@ -3586,6 +3587,12 @@
       this.renderActorBuffer = [];
       this.roomBackgroundCache = new Map();
       this.enemySpriteCache = new Map();
+      this.objectPools = {
+        particle: [],
+        effect: [],
+        projectile: [],
+        damageText: []
+      };
       this.hudElements = {};
       this.touchButtons = [];
       this.nextHudAt = 0;
@@ -3706,6 +3713,12 @@
       return Boolean(image && image.complete && image.naturalWidth > 0 && !image._soulriftMissing);
     }
 
+    markExportedImageUsed(path, image) {
+      if (!path || !image) return;
+      image._soulriftPath = path;
+      image._soulriftLastUsed = typeof performance !== "undefined" && performance.now ? performance.now() : Date.now();
+    }
+
     warmExportedImageOnGpu(image) {
       if (!this.isExportedImageReady(image) || image._soulriftGpuWarm) return;
       try {
@@ -3728,6 +3741,7 @@
 
     markExportedImageReady(path, image) {
       if (!path || !this.isExportedImageReady(image)) return;
+      this.markExportedImageUsed(path, image);
       const shouldWarmGpu = this.exportedAssetPriorityQueued.has(path)
         || this.exportedAssetPreloadActivePriorityPaths.has(path)
         || Boolean(this.run?.assetWarmup);
@@ -4170,10 +4184,86 @@
       }
       if (this.isExportedImageReady(image)) {
         this.markExportedImageReady(path, image);
+        this.markExportedImageUsed(path, image);
         return image;
       }
       this.queueExportedSequence(path, true);
       return this.stableExportedSequenceFallback(path);
+    }
+
+    protectedExportedAssetPaths() {
+      const protectedPaths = new Set([
+        ...this.exportedAssetPreloadActivePaths,
+        ...this.exportedAssetPreloadActivePriorityPaths,
+        ...this.exportedAssetPriorityQueued
+      ]);
+      const keep = (path) => {
+        if (!path) return;
+        const normalized = this.exportedAssetPath(path);
+        protectedPaths.add(normalized);
+        for (const entry of this.exportedSequencePaths(normalized)) protectedPaths.add(entry);
+      };
+      const characterId = this.run?.player?.characterId || this.save?.account?.selectedCharacter || "swordsman";
+      for (const state of ["idle", "run", "attack", "skill", "ultimate", "death"]) keep(`assets/exported/characters/${characterId}/${state}_00.png`);
+      const powerId = this.run?.power?.id || this.save?.account?.selectedPower || "fire";
+      for (const key of ["q", "e", "r", "f"]) {
+        keep(`assets/exported/skills/${powerId}/${key}/normal_00.png`);
+        keep(`assets/exported/skills/${powerId}/${key}/awakened_00.png`);
+      }
+      const biomeId = this.run?.biome?.id || "forest";
+      keep(`assets/exported/backgrounds/${biomeId}/floor_tile.png`);
+      for (const enemy of this.run?.enemies || []) {
+        if (!enemy?.kind) continue;
+        keep(`assets/exported/monsters/${enemy.kind}/idle_00.png`);
+        keep(`assets/exported/monsters/${enemy.kind}/walk_00.png`);
+        keep(`assets/exported/monsters/${enemy.kind}/attack_00.png`);
+      }
+      for (const object of this.run?.roomObjects || []) {
+        if (object.type === "nextDoor" || object.type === "bossGate" || object.type === "bossExit") keep(`assets/exported/doors/${this.doorExportId(object)}/grow_00.png`);
+        if (object.type === "treasureChest") keep("assets/exported/chests/treasureChest/open_00.png");
+      }
+      for (const hazard of this.run?.hazards || []) keep(`assets/exported/traps/${hazard.type || "blade"}/active_00.png`);
+      keep("assets/exported/chests/woodChest/open_00.png");
+      keep("assets/exported/chests/goldChest/open_00.png");
+      return protectedPaths;
+    }
+
+    updateAssetMemoryBudget(dt) {
+      if (!this.exportedAssetImages?.size || this.roomAssetWarmupActive()) return;
+      this.assetCleanupTimer -= dt;
+      if (this.assetCleanupTimer > 0) return;
+      const weakBias = this.devicePerformanceBias();
+      const mobile = this.isMobileDevice();
+      const maxImages = mobile
+        ? Math.round(190 - weakBias * 60)
+        : Math.round(360 - weakBias * 80);
+      if (this.exportedAssetImages.size <= maxImages) {
+        this.assetCleanupTimer = 4;
+        return;
+      }
+      const protectedPaths = this.protectedExportedAssetPaths();
+      const now = typeof performance !== "undefined" && performance.now ? performance.now() : Date.now();
+      const minAge = mobile ? 12000 : 18000;
+      const candidates = [];
+      for (const [path, image] of this.exportedAssetImages.entries()) {
+        if (!this.isExportedImageReady(image)) continue;
+        if (protectedPaths.has(path) || this.exportedAssetPreloadActivePaths.has(path)) continue;
+        const lastUsed = Number(image._soulriftLastUsed || 0);
+        if (now - lastUsed < minAge) continue;
+        candidates.push({ path, image, lastUsed });
+      }
+      candidates.sort((a, b) => a.lastUsed - b.lastUsed);
+      const target = Math.max(60, maxImages - (mobile ? 24 : 36));
+      for (const candidate of candidates) {
+        if (this.exportedAssetImages.size <= target) break;
+        this.exportedAssetImages.delete(candidate.path);
+        this.exportedAssetQueued.delete(candidate.path);
+        this.exportedAssetLoadRetries.delete(candidate.path);
+        for (const [key, value] of this.exportedAssetFallback.entries()) {
+          if (key === candidate.path || value === candidate.image) this.exportedAssetFallback.delete(key);
+        }
+      }
+      this.assetCleanupTimer = mobile ? 2.5 : 4.5;
     }
 
     drawExportedImage(ctx, path, x, y, w, h) {
@@ -5997,14 +6087,6 @@
         ) || (
           !visualBusy
           && this.perf.lagTime < 0.14
-        ) || (
-          visualBusy
-          && this.isMobileDevice()
-          && (this.perf.stableTime || 0) > 4.2 + weakBias * 1.4
-          && this.graphicsCombatLoad() < 0.38
-          && pressure < 0.045
-          && this.renderPressure() < 0.08
-          && !this.performanceEmergency()
         )
       );
       let stableTarget = currentTarget;
@@ -6041,7 +6123,7 @@
       this.resize();
       if (this.run && next < current) {
         this.trimEffectList();
-        this.trimVisualList(this.run.particles, this.particleLimit());
+        this.trimPooledList(this.run.particles, this.particleLimit(), "particle");
         this.trimVisualList(this.run.slashes, this.isMobileDevice() ? 18 : 30);
         this.trimVisualList(this.run.shockwaves, this.isMobileDevice() ? 10 : 16);
         this.trimVisualList(this.run.trails, this.isMobileDevice() ? 18 : 30);
@@ -6172,8 +6254,43 @@
       ctx.miterLimit = previousMiter;
     }
 
+    poolLimit(kind) {
+      return {
+        particle: this.isMobileDevice() ? 220 : 360,
+        effect: this.isMobileDevice() ? 90 : 150,
+        projectile: this.isMobileDevice() ? 90 : 150,
+        damageText: this.isMobileDevice() ? 42 : 80
+      }[kind] || 80;
+    }
+
+    acquirePooledObject(kind) {
+      const pool = this.objectPools?.[kind];
+      return pool?.pop() || {};
+    }
+
+    releasePooledObject(kind, object) {
+      if (!object || typeof object !== "object" || !this.objectPools?.[kind]) return;
+      for (const key of Object.keys(object)) delete object[key];
+      const pool = this.objectPools[kind];
+      if (pool.length < this.poolLimit(kind)) pool.push(object);
+    }
+
+    recycleListHead(list, count, kind = "") {
+      const remove = Math.max(0, Math.min(count, list?.length || 0));
+      if (!remove) return;
+      if (kind) {
+        for (let i = 0; i < remove; i++) this.releasePooledObject(kind, list[i]);
+      }
+      list.copyWithin(0, remove);
+      list.length -= remove;
+    }
+
     trimVisualList(list, limit) {
       if (list.length > limit) list.splice(0, list.length - limit);
+    }
+
+    trimPooledList(list, limit, kind) {
+      if (list.length > limit) this.recycleListHead(list, list.length - limit, kind);
     }
 
     trimEffectList() {
@@ -6192,7 +6309,8 @@
           ? this.run.effects.findIndex((effect) => effect.type === "skillShape" || effect.type === "powerGlyph")
           : -1;
         if (fallbackIndex < 0) break;
-        this.run.effects.splice(fallbackIndex, 1);
+        const [removed] = this.run.effects.splice(fallbackIndex, 1);
+        this.releasePooledObject("effect", removed);
       }
       if (this.ultraPerformanceMode()) this.trimTelegraphEffects(this.isMobileDevice() ? 10 : 16);
     }
@@ -6213,23 +6331,28 @@
           }
         }
         if (removeIndex < 0) break;
-        this.run.effects.splice(removeIndex, 1);
+        const [removed] = this.run.effects.splice(removeIndex, 1);
+        this.releasePooledObject("effect", removed);
         count--;
       }
     }
 
-    trimOptionalList(list, limit, optional, force = false) {
+    trimOptionalList(list, limit, optional, force = false, poolKind = "") {
       if (!Array.isArray(list) || list.length <= limit) return;
       let remove = list.length - limit;
       for (let i = 0; i < list.length && remove > 0;) {
         if (optional(list[i])) {
-          list.splice(i, 1);
+          const [removed] = list.splice(i, 1);
+          if (poolKind) this.releasePooledObject(poolKind, removed);
           remove--;
         } else {
           i++;
         }
       }
-      if (force && remove > 0 && this.performancePressure() > 0.78) list.splice(0, remove);
+      if (force && remove > 0 && this.performancePressure() > 0.78) {
+        if (poolKind) for (let i = 0; i < remove; i++) this.releasePooledObject(poolKind, list[i]);
+        list.splice(0, remove);
+      }
     }
 
     trimProjectilesForBudget(limit = this.projectileLimit()) {
@@ -6239,11 +6362,11 @@
       this.trimOptionalList(this.run.projectiles, limit, (projectile) => (
         projectile.visualOnly ||
         (!this.inView(projectile.x, projectile.y, panic ? 120 : 220) && (projectile.age || 0) > (panic ? 0.06 : 0.18) && projectile.owner !== "enemy")
-      ));
+      ), false, "projectile");
       if (this.run.projectiles.length <= limit || !panic) return;
       this.trimOptionalList(this.run.projectiles, limit, (projectile) => (
         projectile.owner !== "enemy" && (projectile.age || 0) > 0.08
-      ), pressure > 0.9);
+      ), pressure > 0.9, "projectile");
     }
 
     applyEmergencyVisualBudget() {
@@ -6257,14 +6380,14 @@
       const panic = this.performancePanic();
       const mobile = this.isMobileDevice();
       this.trimEffectList();
-      this.trimVisualList(this.run.particles, this.particleLimit());
-      this.trimVisualList(this.run.damageTexts, panic ? 0 : Math.round((mobile ? 5 : 14) * budget));
+      this.trimPooledList(this.run.particles, this.particleLimit(), "particle");
+      this.trimPooledList(this.run.damageTexts, panic ? 0 : Math.round((mobile ? 5 : 14) * budget), "damageText");
       this.trimVisualList(this.run.slashes, Math.round((mobile ? 4 : 13) * budget));
       this.trimOptionalList(this.run.shockwaves, Math.round((mobile ? 2 : 7) * budget), (wave) => !wave.damage, panic || renderPressure > 0.45);
       this.trimOptionalList(this.run.trails, Math.round((mobile ? 2 : 9) * budget), (trail) => trail.damageTick === undefined, panic || renderPressure > 0.45);
       if (mobile && (panic || renderPressure > 0.38 || pressure > 0.42)) {
         this.trimTelegraphEffects(6);
-        this.trimOptionalList(this.run.effects, Math.max(8, Math.round(18 * budget)), (effect) => this.optionalVisualEffect(effect.type), true);
+        this.trimOptionalList(this.run.effects, Math.max(8, Math.round(18 * budget)), (effect) => this.optionalVisualEffect(effect.type), true, "effect");
       }
       this.trimProjectilesForBudget();
     }
@@ -6701,6 +6824,7 @@
         this.updateRoomDirectory(dt);
         this.updateAccountCloudCheck(dt);
         this.updateQuickActions();
+        this.updateAssetMemoryBudget(dt);
         const updateStart = performance.now();
         if (this.mode === "game" && this.run) this.update(dt);
         const updateMs = performance.now() - updateStart;
@@ -16263,14 +16387,17 @@
     spawnProjectile(projectile) {
       if (this.performanceEmergency() && projectile.visualOnly) return;
       const scale = this.currentSkillAreaScale();
-      const next = { ...projectile };
+      const next = this.acquirePooledObject("projectile");
+      Object.assign(next, projectile);
       if (!next.casterId && (next.owner === "player" || next.owner === "ally")) {
         next.casterId = this.currentDamageSourceId || (next.owner === "player" ? this.lobby.id : "");
       }
       if (scale > 1 && (next.owner === "player" || next.owner === "ally") && Number.isFinite(next.radius)) {
         next.radius *= scale;
       }
-      this.run.projectiles.push({ id: uid("proj"), ...next, age: 0 });
+      next.id = uid("proj");
+      next.age = 0;
+      this.run.projectiles.push(next);
       if (this.run.projectiles.length > this.projectileLimit()) this.trimProjectilesForBudget();
     }
 
@@ -18253,9 +18380,53 @@
       if (debuffId) this.applyBossDebuff(debuffId);
     }
 
+    renderCullPadding(base = 120) {
+      const weakBias = this.devicePerformanceBias();
+      const stress = Math.max(this.performancePressure(), this.renderPressure());
+      const load = this.graphicsCombatLoad();
+      return Math.round(base * clamp(1 - weakBias * 0.16 - stress * 0.34 - load * 0.08, 0.52, 1));
+    }
+
+    enemyUpdateProfile(enemy, target) {
+      if (!enemy || !target || enemy.boss || enemy.playerBoss || enemy.trainingDummy) return { tier: "near", interval: 0, maxDt: 0.05 };
+      if ((enemy.windupTime || 0) > 0 || (enemy.chargeTime || 0) > 0 || (enemy.domainFreeze || 0) > 0 || (enemy.suspend || 0) > 0) {
+        return { tier: "near", interval: 0, maxDt: 0.05 };
+      }
+      const d = Math.hypot((target.x || 0) - enemy.x, (target.y || 0) - enemy.y);
+      const visible = this.inView(enemy.x, enemy.y, enemy.radius + this.renderCullPadding(220));
+      const mobile = this.isMobileDevice();
+      if (visible || d < 520) return { tier: "near", interval: 0, maxDt: 0.05 };
+      if (d < 840) return { tier: "medium", interval: mobile ? 1 / 30 : 1 / 42, maxDt: 0.06 };
+      if (d < 1180) return { tier: "far", interval: mobile ? 1 / 15 : 1 / 24, maxDt: 0.09 };
+      return { tier: "sleep", interval: mobile ? 0.24 : 0.18, maxDt: 0.12, sleep: true };
+    }
+
+    advanceEnemyPhysics(enemy, player, dt, options = {}) {
+      if (!enemy || dt <= 0) return;
+      if (options.sleep) {
+        enemy.vx *= Math.pow(0.18, dt);
+        enemy.vy *= Math.pow(0.18, dt);
+        return;
+      }
+      const maxSpeed = enemy.speed * (enemy.boss ? 2.4 : enemy.elite ? 2.2 : 2);
+      const currentSpeed = Math.hypot(enemy.vx, enemy.vy);
+      if (currentSpeed > maxSpeed) {
+        enemy.vx = (enemy.vx / currentSpeed) * maxSpeed;
+        enemy.vy = (enemy.vy / currentSpeed) * maxSpeed;
+      }
+      enemy.vx *= Math.pow(0.35, dt);
+      enemy.vy *= Math.pow(0.35, dt);
+      enemy.x = clamp(enemy.x + enemy.vx * dt, ROOM_PAD + enemy.radius, WORLD_W - ROOM_PAD - enemy.radius);
+      enemy.y = clamp(enemy.y + enemy.vy * dt, ROOM_PAD + enemy.radius, WORLD_H - ROOM_PAD - enemy.radius);
+      this.applyEnemyDomainContainment(enemy);
+      if (player && !player.dead && !options.skipSeparation) this.keepEnemyOutOfPlayer(enemy, player);
+      this.applyEnemyDomainContainment(enemy);
+    }
+
     updateEnemies(dt) {
       const p = this.run.player;
       for (const enemy of [...this.run.enemies]) {
+        enemy.aiTimer = (enemy.aiTimer || 0) + dt;
         enemy.flash = Math.max(0, enemy.flash - dt);
         enemy.stun = Math.max(0, enemy.stun - dt);
         enemy.attackAnim = Math.max(0, (enemy.attackAnim || 0) - dt);
@@ -18341,21 +18512,25 @@
           else continue;
         }
         if (enemy.stun > 0) continue;
-        if (enemy.boss) this.updateBoss(enemy, dt);
-        else this.updateEnemyAi(enemy, dt);
-        const maxSpeed = enemy.speed * (enemy.boss ? 2.4 : enemy.elite ? 2.2 : 2);
-        const currentSpeed = Math.hypot(enemy.vx, enemy.vy);
-        if (currentSpeed > maxSpeed) {
-          enemy.vx = (enemy.vx / currentSpeed) * maxSpeed;
-          enemy.vy = (enemy.vy / currentSpeed) * maxSpeed;
+        const lod = this.enemyUpdateProfile(enemy, p);
+        enemy.lodTier = lod.tier;
+        let simDt = dt;
+        if (lod.interval > 0) {
+          enemy.aiAccumulator = (enemy.aiAccumulator || 0) + dt;
+          if (enemy.aiAccumulator < lod.interval) {
+            this.advanceEnemyPhysics(enemy, p, dt, { sleep: lod.sleep, skipSeparation: lod.tier !== "medium" });
+            continue;
+          }
+          simDt = Math.min(enemy.aiAccumulator, lod.maxDt || 0.08);
+          enemy.aiAccumulator = 0;
         }
-        enemy.vx *= Math.pow(0.35, dt);
-        enemy.vy *= Math.pow(0.35, dt);
-        enemy.x = clamp(enemy.x + enemy.vx * dt, ROOM_PAD + enemy.radius, WORLD_W - ROOM_PAD - enemy.radius);
-        enemy.y = clamp(enemy.y + enemy.vy * dt, ROOM_PAD + enemy.radius, WORLD_H - ROOM_PAD - enemy.radius);
-        this.applyEnemyDomainContainment(enemy);
-        if (!p.dead) this.keepEnemyOutOfPlayer(enemy, p);
-        this.applyEnemyDomainContainment(enemy);
+        if (lod.sleep) {
+          this.advanceEnemyPhysics(enemy, p, simDt, { sleep: true, skipSeparation: true });
+          continue;
+        }
+        if (enemy.boss) this.updateBoss(enemy, simDt);
+        else this.updateEnemyAi(enemy, simDt);
+        this.advanceEnemyPhysics(enemy, p, simDt, { skipSeparation: lod.tier === "far" });
       }
     }
 
@@ -20199,7 +20374,10 @@
             if (projectile.pierce < 0) projectile.life = 0;
           }
         } else if (projectile.owner === "enemy" && !this.isMultiplayerClient()) {
-          if (this.refractProjectileWithCrystalPrism(projectile, fromX, fromY)) continue;
+          if (this.refractProjectileWithCrystalPrism(projectile, fromX, fromY)) {
+            this.releasePooledObject("projectile", projectile);
+            continue;
+          }
           let reflected = false;
           const hit = this.firstProjectileTargetHit(projectile, fromX, fromY);
           if (hit) {
@@ -20226,6 +20404,7 @@
           projectile.life = 0;
         }
         if (projectile.life > 0) this.run.projectiles[write++] = projectile;
+        else this.releasePooledObject("projectile", projectile);
       }
       this.run.projectiles.length = write;
     }
@@ -21062,6 +21241,7 @@
           }
         }
         if (effect.time > 0) this.run.effects[write++] = effect;
+        else this.releasePooledObject("effect", effect);
       }
       this.run.effects.length = write;
     }
@@ -21070,7 +21250,8 @@
       if (!this.run) return;
       if (this.performanceEmergency() && this.optionalVisualEffect(effect.type)) return;
       const scale = this.currentSkillAreaScale();
-      const next = { ...effect };
+      const next = this.acquirePooledObject("effect");
+      Object.assign(next, effect);
       if (next.type === "ultimate" && next.domain && !next.id) next.id = uid("domain");
       if (!next.casterId && ["zone", "pull", "ultimate"].includes(next.type)) next.casterId = this.currentDamageSourceId || "";
       if (scale > 1 && ["zone", "pull"].includes(next.type) && Number.isFinite(next.radius)) {
@@ -21203,8 +21384,7 @@
       }
       const damageNumberLimit = 0.62 - this.devicePerformanceBias() * 0.22;
       if (this.save.settings.damageNumbers && pressure < damageNumberLimit) {
-        this.run.damageTexts.push({ x, y: y - 18, vx: rand(-18, 18), vy: -52, life: 0.72, text: `${crit ? "CRIT " : ""}${Math.ceil(damage)}`, color: crit ? "#ffe45e" : "#ffffff", crit });
-        this.trimVisualList(this.run.damageTexts, Math.round((this.isMobileDevice() ? 28 : 48) * this.visualBudgetScale()));
+        this.addDamageText(x, y, `${crit ? "CRIT " : ""}${Math.ceil(damage)}`, crit ? "#ffe45e" : "#ffffff", crit);
       }
       this.audio.sfx(crit ? 520 : 360, crit ? "square" : "triangle", 0.055, crit ? 0.18 : 0.11);
     }
@@ -21338,7 +21518,8 @@
       const limit = this.particleLimit();
       if (this.run.particles.length >= limit) {
         if (!["crit", "plus", "ring"].includes(shape)) return;
-        this.run.particles.shift();
+        const removed = this.run.particles.shift();
+        this.releasePooledObject("particle", removed);
       }
       const weakBias = this.devicePerformanceBias();
       const pressure = this.performancePressure();
@@ -21346,25 +21527,25 @@
       const important = ["crit", "plus", "ring"].includes(shape);
       const lifeScale = important ? 1 : clamp(1 - weakBias * 0.24 - pressure * 0.18 - stress * 0.14, 0.5, 1);
       const sizeScale = important ? 1 : clamp(1 - weakBias * 0.12 - pressure * 0.08 - stress * 0.08, 0.68, 1);
-      this.run.particles.push({
-        x,
-        y,
-        vx: Math.cos(angle) * speed,
-        vy: Math.sin(angle) * speed,
-        size: size * sizeScale,
-        life: life * lifeScale,
-        maxLife: life * lifeScale,
-        color,
-        shape,
-        kind: options.kind || this.particleShapePowerKind(shape),
-        fx: options.fx || "",
-        angle: Number.isFinite(options.angle) ? options.angle : angle,
-        seed: Number.isFinite(options.seed) ? options.seed : rand(0, TAU),
-        drag: Number.isFinite(options.drag) ? options.drag : 0.05,
-        gravity: Number.isFinite(options.gravity) ? options.gravity : 0,
-        spin: Number.isFinite(options.spin) ? options.spin : 0,
-        alpha: Number.isFinite(options.alpha) ? options.alpha : 1
-      });
+      const particle = this.acquirePooledObject("particle");
+      particle.x = x;
+      particle.y = y;
+      particle.vx = Math.cos(angle) * speed;
+      particle.vy = Math.sin(angle) * speed;
+      particle.size = size * sizeScale;
+      particle.life = life * lifeScale;
+      particle.maxLife = life * lifeScale;
+      particle.color = color;
+      particle.shape = shape;
+      particle.kind = options.kind || this.particleShapePowerKind(shape);
+      particle.fx = options.fx || "";
+      particle.angle = Number.isFinite(options.angle) ? options.angle : angle;
+      particle.seed = Number.isFinite(options.seed) ? options.seed : rand(0, TAU);
+      particle.drag = Number.isFinite(options.drag) ? options.drag : 0.05;
+      particle.gravity = Number.isFinite(options.gravity) ? options.gravity : 0;
+      particle.spin = Number.isFinite(options.spin) ? options.spin : 0;
+      particle.alpha = Number.isFinite(options.alpha) ? options.alpha : 1;
+      this.run.particles.push(particle);
     }
 
     updateParticles(dt) {
@@ -21381,10 +21562,11 @@
         particle.vy *= Math.pow(drag, dt);
         if (particle.spin) particle.angle = (particle.angle || 0) + particle.spin * dt;
         if (particle.life > 0) this.run.particles[write++] = particle;
+        else this.releasePooledObject("particle", particle);
       }
       this.run.particles.length = write;
       const limit = this.particleLimit();
-      if (this.run.particles.length > limit) this.run.particles.splice(0, this.run.particles.length - limit);
+      if (this.run.particles.length > limit) this.recycleListHead(this.run.particles, this.run.particles.length - limit, "particle");
     }
 
     updateDamageTexts(dt) {
@@ -21397,8 +21579,25 @@
         text.y += text.vy * dt;
         text.vy += 80 * dt;
         if (text.life > 0) this.run.damageTexts[write++] = text;
+        else this.releasePooledObject("damageText", text);
       }
       this.run.damageTexts.length = write;
+    }
+
+    addDamageText(x, y, text, color = "#ffffff", crit = false) {
+      if (!this.run) return;
+      const entry = this.acquirePooledObject("damageText");
+      entry.x = x;
+      entry.y = y - 18;
+      entry.vx = rand(-18, 18);
+      entry.vy = -52;
+      entry.life = 0.72;
+      entry.text = text;
+      entry.color = color;
+      entry.crit = crit;
+      this.run.damageTexts.push(entry);
+      const limit = Math.round((this.isMobileDevice() ? 28 : 48) * this.visualBudgetScale());
+      if (this.run.damageTexts.length > limit) this.recycleListHead(this.run.damageTexts, this.run.damageTexts.length - limit, "damageText");
     }
 
     updateNetwork(dt) {
@@ -21870,10 +22069,12 @@
       const localHiddenBoss = this.isPlayerBossId(this.lobby.id) && bossProxyVisible;
       const actors = this.renderActorBuffer;
       actors.length = 0;
+      const enemyCullPad = this.renderCullPadding(130);
+      const remoteCullPad = this.renderCullPadding(120);
       for (const enemy of this.run.enemies) {
         const enemyX = Number.isFinite(enemy.displayX) ? enemy.displayX : enemy.x;
         const enemyY = Number.isFinite(enemy.displayY) ? enemy.displayY : enemy.y;
-        if (this.inView(enemyX, enemyY, enemy.radius + 130)) actors.push(enemy);
+        if (this.inView(enemyX, enemyY, enemy.radius + enemyCullPad)) actors.push(enemy);
       }
       if (!localGhost && !localHiddenBoss) actors.push(this.run.player);
       actors.sort((a, b) => actorY(a) - actorY(b));
@@ -21887,7 +22088,7 @@
         } else {
           const enemyX = Number.isFinite(actor.displayX) ? actor.displayX : actor.x;
           const enemyY = Number.isFinite(actor.displayY) ? actor.displayY : actor.y;
-          if (this.inView(enemyX, enemyY, actor.radius + 120)) this.drawEnemy(ctx, actor);
+          if (this.inView(enemyX, enemyY, actor.radius + enemyCullPad)) this.drawEnemy(ctx, actor);
         }
       }
       for (const remote of this.remotePlayers.values()) {
@@ -21900,7 +22101,7 @@
           if (this.inView(pos.x, pos.y, 160)) this.drawSoulGhost(ctx, pos.x, pos.y, remote.name || "Người chơi", false, normalizeHeroColor(remote.color, "#d9fbff"));
           continue;
         }
-        if (!this.inView(remoteX, remoteY, 120)) continue;
+        if (!this.inView(remoteX, remoteY, remoteCullPad)) continue;
         const remotePower = powerById(remote.power);
         const remoteCustom = { ...this.save.customization, color: normalizeHeroColor(remote.color) };
         const remoteActor = {
@@ -24811,7 +25012,8 @@
     drawEnemyAssetSprite(ctx, enemy, palette, variant = 0) {
       const sprite = this.enemyAssetSprite(enemy);
       if (!sprite || !sprite.complete || !sprite.naturalWidth) return false;
-      const pulse = Math.round(Math.sin(this.menuTime * 5 + variant * 1.7) * 1);
+      const animClock = this.enemyAnimationClock(enemy);
+      const pulse = Math.round(Math.sin(animClock * 5 + variant * 1.7) * 1);
       const attackKick = enemy.attackAnim > 0 ? Math.round(Math.sin(clamp(enemy.attackAnim / 0.32, 0, 1) * Math.PI) * -3) : 0;
       ctx.save();
       this.spriteBlock(ctx, -22, 17, 44, 6, palette.shadow, 0.42);
@@ -24849,13 +25051,21 @@
       return 6;
     }
 
+    enemyAnimationClock(enemy) {
+      const tier = enemy?.lodTier || "near";
+      if (tier === "sleep") return Math.floor(this.menuTime * 4) / 4;
+      const fps = tier === "far" ? 15 : tier === "medium" ? 24 : 30;
+      return Math.floor(this.menuTime * fps) / fps;
+    }
+
     enemySpriteCacheKey(enemy, palette, variant = 0) {
       const kind = enemy.kind || "";
       const speed = Math.hypot(enemy.vx || 0, enemy.vy || 0);
       const moving = speed > 7;
       const animSpeed = this.monsterAnimSpeed(kind);
-      const walkFrame = moving ? (Math.floor(this.menuTime * animSpeed + variant) % 4) : 0;
-      const idleFrame = Math.floor(this.menuTime * 2 + variant) % 2;
+      const animClock = this.enemyAnimationClock(enemy);
+      const walkFrame = moving ? (Math.floor(animClock * animSpeed + variant) % 4) : 0;
+      const idleFrame = Math.floor(animClock * 2 + variant) % 2;
       const attack = enemy.attackAnim > 0 ? enemy.attackAnim > 0.24 ? 3 : enemy.attackAnim > 0.12 ? 2 : 1 : 0;
       const paletteKey = [
         palette.outline,
@@ -24875,14 +25085,15 @@
       const kind = enemy.kind || "";
       const speed = Math.hypot(enemy.vx || 0, enemy.vy || 0);
       const moving = speed > 7;
+      const animClock = this.enemyAnimationClock(enemy);
       if ((enemy.attackAnim || 0) > 0) {
         return { kind, state: "attack", frame: enemy.attackAnim > 0.24 ? 0 : enemy.attackAnim > 0.12 ? 1 : 2 };
       }
       if (moving) {
-        const frame = Math.floor(this.menuTime * this.monsterAnimSpeed(kind) + variant) % 4;
+        const frame = Math.floor(animClock * this.monsterAnimSpeed(kind) + variant) % 4;
         return { kind, state: "walk", frame };
       }
-      return { kind, state: "idle", frame: Math.floor(this.menuTime * 2 + variant) % 2 };
+      return { kind, state: "idle", frame: Math.floor(animClock * 2 + variant) % 2 };
     }
 
     drawExportedMonsterSprite(ctx, enemy, variant = 0) {
@@ -24943,8 +25154,9 @@
       const speed = Math.hypot(enemy.vx || 0, enemy.vy || 0);
       const moving = speed > 7;
       const animSpeed = this.monsterAnimSpeed(kind);
-      const walkFrame = moving ? (Math.floor(this.menuTime * animSpeed + variant) % 4) : 0;
-      const idleFrame = Math.floor(this.menuTime * 2 + variant) % 2;
+      const animClock = this.enemyAnimationClock(enemy);
+      const walkFrame = moving ? (Math.floor(animClock * animSpeed + variant) % 4) : 0;
+      const idleFrame = Math.floor(animClock * 2 + variant) % 2;
       const stepSign = walkFrame % 2 === 0 ? -1 : 1;
       const stepLift = moving ? [0, -1, 0, 1][walkFrame] : 0;
       const flyLift = MONSTER_TYPES[kind].flying ? (moving ? [-7, -11, -8, -5][walkFrame] : [-7, -8][idleFrame]) : 0;

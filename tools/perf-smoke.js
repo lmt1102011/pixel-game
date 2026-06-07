@@ -297,6 +297,8 @@ async function runBenchmark(page, options) {
           renderSpikeHold: Math.round(Number(game.perf?.renderSpikeHold || 0) * 1000) / 1000,
           loopSpikeHold: Math.round(Number(game.perf?.loopSpikeHold || 0) * 1000) / 1000,
           readyImages: [...game.exportedAssetImages.values()].filter((image) => game.isExportedImageReady(image)).length,
+          cachedImages: game.exportedAssetImages.size,
+          pooledObjects: Object.fromEntries(Object.entries(game.objectPools || {}).map(([key, pool]) => [key, Array.isArray(pool) ? pool.length : 0])),
           queuedAssets: game.exportedAssetPreloadQueue.length,
           activePreloads: game.exportedAssetPreloadActive,
           activePreloadPaths: Array.from(game.exportedAssetPreloadActivePaths || []).slice(0, 8),

@@ -9,7 +9,7 @@
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
   const SIGNAL_REALTIME_RELAY_LIMIT = 2;
   const SIGNAL_REALTIME_TYPES = new Set(["state", "snapshot", "attack", "skill", "collect", "openChest", "dropItem", "damage", "chooseDoor"]);
-  const APP_VERSION = "20260607-headroom-visual-cache-300";
+  const APP_VERSION = "20260607-stable-door-scale-301";
   const CHANGELOG_ENTRIES = [
     {
       version: APP_VERSION,
@@ -6303,8 +6303,9 @@
     }
 
     drawExportedDoorObject(ctx, object, grow, y, w, h) {
+      if (grow < 0.985) return false;
       const id = this.doorExportId(object);
-      const frame = Math.round(clamp(grow, 0, 1) * 4);
+      const frame = 4;
       const path = `assets/exported/doors/${id}/grow_${String(frame).padStart(2, "0")}.png`;
       const image = this.exportedImage(path, { stableSequence: true });
       if (!image) return false;
@@ -13325,6 +13326,26 @@
       });
     }
 
+    mergeNetworkRoomObjects(current, incoming) {
+      const previousById = new Map();
+      for (const object of current || []) {
+        if (object?.id) previousById.set(object.id, object);
+      }
+      return (incoming || []).map((object) => {
+        const previous = previousById.get(object.id) || {};
+        const merged = { ...previous, ...object };
+        const previousGrow = Number(previous.grow);
+        const incomingGrow = Number(object.grow);
+        if (Number.isFinite(previousGrow) || Number.isFinite(incomingGrow)) {
+          merged.grow = clamp(Math.max(
+            Number.isFinite(previousGrow) ? previousGrow : 0,
+            Number.isFinite(incomingGrow) ? incomingGrow : 0
+          ), 0, 1);
+        }
+        return merged;
+      });
+    }
+
     networkSnapshot(compact = false) {
       if (!this.run) return null;
       const snapshotSeq = this.isMultiplayerHost() ? (this.snapshotSeq = (this.snapshotSeq || 0) + 1) : (this.snapshotSeq || 0);
@@ -13462,7 +13483,7 @@
       }
       if (Array.isArray(snapshot.enemies)) this.run.enemies = this.mergeNetworkActors(this.run.enemies, snapshot.enemies, 620);
       if (Array.isArray(snapshot.hazards)) this.run.hazards = snapshot.hazards.map((hazard) => ({ ...hazard }));
-      if (Array.isArray(snapshot.roomObjects)) this.run.roomObjects = snapshot.roomObjects.map((object) => ({ ...object }));
+      if (Array.isArray(snapshot.roomObjects)) this.run.roomObjects = this.mergeNetworkRoomObjects(this.run.roomObjects, snapshot.roomObjects);
       if (Array.isArray(snapshot.pickups)) this.run.pickups = snapshot.pickups.map((pickup) => ({ ...pickup }));
       if (Array.isArray(snapshot.projectiles)) this.run.projectiles = this.mergeNetworkActors(this.run.projectiles, snapshot.projectiles, 520);
       if (Array.isArray(snapshot.drones)) this.run.drones = snapshot.drones.map((drone) => ({ ...drone }));

@@ -9,7 +9,7 @@
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
   const SIGNAL_REALTIME_RELAY_LIMIT = 2;
   const SIGNAL_REALTIME_TYPES = new Set(["state", "snapshot", "attack", "skill", "collect", "openChest", "dropItem", "damage", "chooseDoor"]);
-  const APP_VERSION = "20260607-command-ui-250";
+  const APP_VERSION = "20260607-exit-buttons-251";
   const CHANGELOG_ENTRIES = [
     {
       version: APP_VERSION,
@@ -5832,7 +5832,7 @@
         return `
           <nav class="main-nav back-nav">
             <div class="nav-buttons">
-              <button class="btn" data-action="menu">THOÁT RA MENU</button>
+              <button class="btn nav-exit-btn" data-action="menu">THOÁT</button>
             </div>
           </nav>
         `;
@@ -5931,7 +5931,7 @@
               <h2 class="panel-title">Nhiệm Vụ</h2>
               <p class="panel-subtitle">Hoàn thành mục tiêu ngày và tuần để lấy vàng, XP, lượt quay và vật liệu thức tỉnh.</p>
             </div>
-            <button class="btn" data-action="menu">MENU</button>
+            <button class="btn nav-exit-btn" data-action="menu">THOÁT</button>
           </div>
           ${renderGroup("Hằng ngày", missions.dailyKey, missions.daily)}
           ${renderGroup("Hằng tuần", missions.weeklyKey, missions.weekly)}
@@ -7918,7 +7918,7 @@
             </div>
             <div class="friends-top-actions">
               ${roomHint}
-              <button class="friends-exit-btn" data-action="menu">MENU</button>
+              <button class="friends-exit-btn" data-action="menu">THOÁT</button>
             </div>
           </header>
 
@@ -16476,7 +16476,7 @@
             <button class="btn primary" data-action="resume">TIẾP TỤC</button>
             <button class="btn" data-action="run-inventory">KHO TRONG ẢI</button>
             <button class="btn" data-action="settings">CÀI ĐẶT</button>
-            <button class="btn danger" data-action="menu">KẾT THÚC LƯỢT</button>
+            <button class="btn danger nav-exit-btn" data-action="menu">THOÁT</button>
           </div>
         </section>
       `);
@@ -16494,7 +16494,7 @@
           </div>
           <div class="grid cols-2">
             <button class="btn primary" data-action="play">LƯỢT MỚI</button>
-            <button class="btn" data-action="menu">TRÌNH ĐƠN</button>
+            <button class="btn nav-exit-btn" data-action="menu">THOÁT</button>
           </div>
         </section>
       `);
@@ -16543,7 +16543,7 @@
               <button class="btn primary" data-action="awakening">THỨC TỈNH</button>
               <button class="btn" data-action="play-awakening-raid">RAID LẠI</button>
               <button class="btn" data-action="play-gauntlet">VƯỢT ẢI</button>
-              <button class="btn" data-action="menu">TRÌNH ĐƠN</button>
+              <button class="btn nav-exit-btn" data-action="menu">THOÁT</button>
             </div>
           </div>
         </section>
@@ -16622,7 +16622,7 @@
           </div>
           <div class="grid cols-2">
             <button class="btn primary" data-action="restart">THỬ LẠI</button>
-            <button class="btn" data-action="menu">TRÌNH ĐƠN</button>
+            <button class="btn nav-exit-btn" data-action="menu">THOÁT</button>
           </div>
         </section>
       `);

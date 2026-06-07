@@ -760,6 +760,26 @@ body.pwa-landing-active .screen {
   gap: 8px;
 }
 
+.nav-exit-btn {
+  min-width: 96px;
+  justify-content: center;
+  border-color: rgba(255, 70, 85, 0.46);
+  background:
+    linear-gradient(135deg, rgba(255, 70, 85, 0.16), rgba(15, 25, 35, 0.62)),
+    rgba(0, 0, 0, 0.18);
+  color: #ffb7bc;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.nav-exit-btn:hover {
+  border-color: rgba(255, 70, 85, 0.78);
+  background:
+    linear-gradient(135deg, rgba(255, 70, 85, 0.28), rgba(15, 25, 35, 0.7)),
+    rgba(0, 0, 0, 0.22);
+  box-shadow: 0 0 20px rgba(255, 70, 85, 0.14);
+}
+
 .btn,
 .icon-btn {
   min-height: 42px;
@@ -3247,9 +3267,26 @@ body.pwa-landing-active .screen {
 }
 
 .command-page .main-nav {
+  align-content: start;
   max-height: none;
   padding: 14px;
   overflow: auto;
+}
+
+.command-page .back-nav .nav-buttons {
+  align-content: start;
+}
+
+.command-page .back-nav .nav-exit-btn {
+  width: 100%;
+  min-height: 40px;
+}
+
+.command-page .panel-header .nav-exit-btn,
+.missions-panel .panel-header .nav-exit-btn {
+  align-self: start;
+  min-height: 38px;
+  padding-inline: 16px;
 }
 
 .command-page .panel,

@@ -9,7 +9,7 @@
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
   const SIGNAL_REALTIME_RELAY_LIMIT = 2;
   const SIGNAL_REALTIME_TYPES = new Set(["state", "snapshot", "attack", "skill", "collect", "openChest", "dropItem", "damage", "chooseDoor"]);
-  const APP_VERSION = "20260607-exit-inline-252";
+  const APP_VERSION = "20260607-training-exit-253";
   const CHANGELOG_ENTRIES = [
     {
       version: APP_VERSION,
@@ -5824,9 +5824,9 @@
       requestAnimationFrame(() => this.renderMainMenuHero());
     }
 
-    menuExitButton(extraClass = "") {
+    menuExitButton(extraClass = "", action = "menu") {
       const className = extraClass ? ` ${extraClass}` : "";
-      return `<button class="btn nav-exit-btn${className}" data-action="menu">THOÁT</button>`;
+      return `<button class="btn nav-exit-btn${className}" data-action="${action}">THOÁT</button>`;
     }
 
     navHtml(active) {
@@ -7233,8 +7233,7 @@
                 <p class="panel-subtitle">${selected ? `Power: ${selected.name}. Vào phòng có 5 dummy để test chiêu.` : "Hãy quay và chọn power trước khi vào phòng huấn luyện."}</p>
               </div>
               <div class="header-actions command-header-actions">
-                <button class="btn" data-action="play">CHƠI</button>
-                ${this.menuExitButton()}
+                ${this.menuExitButton("", "play")}
               </div>
             </div>
             <div class="grid">

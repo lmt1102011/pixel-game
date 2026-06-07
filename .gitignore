@@ -5,6 +5,7 @@ build/
 .vite/
 assets/exported-sheets/
 assets/exported-sheets-test/
+assets/exported-apply-test/
 
 # Local environment
 .env

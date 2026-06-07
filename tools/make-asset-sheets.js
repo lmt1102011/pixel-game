@@ -164,6 +164,7 @@ async function buildSheet(page, entries, options) {
     const ctx = canvas.getContext("2d");
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.imageSmoothingEnabled = false;
+    const placements = [];
     for (let index = 0; index < loaded.length; index++) {
       const entry = loaded[index];
       const col = index % cols;
@@ -173,6 +174,20 @@ async function buildSheet(page, entries, options) {
       const x = col * cellW + padding + Math.floor((cellW - padding * 2 - drawW) / 2);
       const y = row * cellH + padding + Math.floor((cellH - padding * 2 - labelH - drawH) / 2);
       ctx.drawImage(entry.image, x, y, drawW, drawH);
+      placements.push({
+        path: entry.path,
+        label: entry.label || String(index),
+        width: entry.width,
+        height: entry.height,
+        x,
+        y,
+        drawWidth: drawW,
+        drawHeight: drawH,
+        cellX: col * cellW,
+        cellY: row * cellH,
+        cellWidth: cellW,
+        cellHeight: cellH
+      });
       if (labels) {
         ctx.font = "10px monospace";
         ctx.fillStyle = "rgba(236,232,225,0.95)";
@@ -185,6 +200,13 @@ async function buildSheet(page, entries, options) {
       height: canvas.height,
       columns: cols,
       rows,
+      cellWidth: cellW,
+      cellHeight: cellH,
+      padding,
+      scale,
+      labels,
+      labelHeight: labelH,
+      placements,
       dataUrl: canvas.toDataURL("image/png")
     };
   }, {
@@ -254,6 +276,13 @@ async function main() {
         height: sheet.height,
         columns: sheet.columns,
         rows: sheet.rows,
+        cellWidth: sheet.cellWidth,
+        cellHeight: sheet.cellHeight,
+        padding: sheet.padding,
+        scale: sheet.scale,
+        labels: sheet.labels,
+        labelHeight: sheet.labelHeight,
+        placements: sheet.placements,
         sources: sorted.map((file) => file.path)
       });
     }

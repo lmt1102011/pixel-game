@@ -192,6 +192,9 @@ async function runBenchmark(page, options) {
     let maxUpdateMs = 0;
     let updateTotal = 0;
     let updateSamples = 0;
+    let maxLoopMs = 0;
+    let loopTotal = 0;
+    let loopSamples = 0;
     let nextActionAt = start;
 
     return new Promise((resolve) => {
@@ -213,6 +216,7 @@ async function runBenchmark(page, options) {
         }
         const renderMs = Number(game.perf?.renderMs || 0);
         const updateMs = Number(game.perf?.updateMs || 0);
+        const loopMs = Number(game.perf?.loopMs || 0);
         if (renderMs > 0) {
           renderTotal += renderMs;
           renderSamples += 1;
@@ -222,6 +226,11 @@ async function runBenchmark(page, options) {
           updateTotal += updateMs;
           updateSamples += 1;
           maxUpdateMs = Math.max(maxUpdateMs, updateMs);
+        }
+        if (loopMs > 0) {
+          loopTotal += loopMs;
+          loopSamples += 1;
+          maxLoopMs = Math.max(maxLoopMs, loopMs);
         }
         if (now < actionUntil && now >= nextActionAt) {
           action();
@@ -249,6 +258,8 @@ async function runBenchmark(page, options) {
           maxRenderMs: Math.round(maxRenderMs * 100) / 100,
           avgUpdateMs: Math.round((updateTotal / Math.max(1, updateSamples)) * 100) / 100,
           maxUpdateMs: Math.round(maxUpdateMs * 100) / 100,
+          avgLoopMs: Math.round((loopTotal / Math.max(1, loopSamples)) * 100) / 100,
+          maxLoopMs: Math.round(maxLoopMs * 100) / 100,
           resizeCount: Number(game.perf?.resizeCount || 0),
           lastResizeMs: Math.round(Number(game.perf?.resizeMs || 0) * 100) / 100,
           maxResizeMs: Math.round(Number(game.perf?.maxResizeMs || 0) * 100) / 100,
@@ -256,6 +267,7 @@ async function runBenchmark(page, options) {
           targetAutoLevel: Math.round(Number(game.perf?.targetAutoLevel || 0) * 100) / 100,
           renderScale: Math.round(Number(game.perf?.appliedRenderScale || 0) * 1000) / 1000,
           lagTime: Math.round(Number(game.perf?.lagTime || 0) * 1000) / 1000,
+          schedulerLagTime: Math.round(Number(game.perf?.schedulerLagTime || 0) * 1000) / 1000,
           stableTime: Math.round(Number(game.perf?.stableTime || 0) * 1000) / 1000,
           overloadTime: Math.round(Number(game.perf?.overloadTime || 0) * 1000) / 1000,
           skillQuietTime: Math.round(Number(game.perf?.skillQuietTime || 0) * 1000) / 1000,

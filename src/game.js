@@ -9,7 +9,7 @@
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
   const SIGNAL_REALTIME_RELAY_LIMIT = 2;
   const SIGNAL_REALTIME_TYPES = new Set(["state", "snapshot", "attack", "skill", "collect", "openChest", "dropItem", "damage", "chooseDoor"]);
-  const APP_VERSION = "20260607-preload-hotfix-272";
+  const APP_VERSION = "20260607-resize-lock-273";
   const CHANGELOG_ENTRIES = [
     {
       version: APP_VERSION,
@@ -3513,11 +3513,13 @@
       this.exportedAssetMissing = new Set();
       this.exportedAssetIdleWarmupTimer = null;
       this.exportedAssetIdleWarmupStarted = false;
+      this.exportedAssetGpuWarmCanvas = null;
+      this.exportedAssetGpuWarmCtx = null;
       if (!window.SOULRIFT_EXPORT_ONLY) this.loadMonsterSprites();
       this.run = null;
       this.mode = "loading";
       this.last = 0;
-      this.camera = { x: 0, y: 0, shake: 0, shakeX: 0, shakeY: 0 };
+      this.camera = { x: 0, y: 0, leadX: 0, leadY: 0, shake: 0, shakeX: 0, shakeY: 0, shakePhase: 0 };
       this.input = {
         keys: new Set(),
         mouse: { x: 0, y: 0, worldX: 0, worldY: 0, left: false },
@@ -3605,6 +3607,7 @@
         stableTime: 0,
         overloadTime: 0,
         lagTime: 0,
+        schedulerLagTime: 0,
         renderScale: 1,
         renderScaleTarget: 1,
         appliedRenderScale: 1,
@@ -3679,14 +3682,38 @@
       return Boolean(image && image.complete && image.naturalWidth > 0 && !image._soulriftMissing);
     }
 
+    warmExportedImageOnGpu(image) {
+      if (!this.isExportedImageReady(image) || image._soulriftGpuWarm) return;
+      try {
+        if (!this.exportedAssetGpuWarmCanvas) {
+          this.exportedAssetGpuWarmCanvas = document.createElement("canvas");
+          this.exportedAssetGpuWarmCanvas.width = 2;
+          this.exportedAssetGpuWarmCanvas.height = 2;
+          this.exportedAssetGpuWarmCtx = this.exportedAssetGpuWarmCanvas.getContext("2d");
+        }
+        const ctx = this.exportedAssetGpuWarmCtx;
+        if (ctx) {
+          ctx.clearRect(0, 0, 2, 2);
+          ctx.drawImage(image, 0, 0, 1, 1);
+        }
+      } catch {
+        // GPU warm-up is opportunistic; failed draws will fall back to normal rendering.
+      }
+      image._soulriftGpuWarm = true;
+    }
+
     markExportedImageReady(path, image) {
       if (!path || !this.isExportedImageReady(image)) return;
+      const shouldWarmGpu = this.exportedAssetPriorityQueued.has(path)
+        || this.exportedAssetPreloadActivePriorityPaths.has(path)
+        || Boolean(this.run?.assetWarmup);
       image._soulriftReady = true;
       this.exportedAssetLoadRetries.delete(path);
       this.exportedAssetPriorityQueued.delete(path);
       const key = this.exportedSequenceKey(path);
       this.exportedAssetFallback.set(key, image);
       this.exportedAssetFallback.set(path, image);
+      if (shouldWarmGpu) this.warmExportedImageOnGpu(image);
     }
 
     decodeExportedImage(image) {
@@ -3966,9 +3993,9 @@
     preloadPowerSkillExportFrames(powerId = this.save?.account?.selectedPower || "fire", priority = false) {
       const power = powerById(powerId || "fire");
       if (!power?.id) return;
-      const weakPriority = priority && this.devicePerformanceBias() > 0.5;
+      const leanPriority = Boolean(priority);
       const activeVariant = this.powerAwakeningActive(power.id) ? "awakened" : "normal";
-      const priorityKeys = weakPriority ? ["q", "e"] : ["q", "e", "r", "f"];
+      const priorityKeys = leanPriority ? ["q", "e"] : ["q", "e", "r", "f"];
       const keys = priority ? priorityKeys : ["q", "e", "r", "f"];
       for (const key of keys) {
         if (!POWER_SKILL_SIGNATURES[power.id]?.[key]) continue;
@@ -5493,8 +5520,7 @@
         dx = this.input.touch.x / moveMag;
         dy = this.input.touch.y / moveMag;
       } else {
-        dx = Math.cos(player.facing || 0);
-        dy = Math.sin(player.facing || 0);
+        return { x: 0, y: 0 };
       }
       const amount = Math.min(this.worldViewWidth(), this.worldViewHeight()) * 0.055 * clamp(moveMag, 0.35, 1);
       return { x: dx * amount, y: dy * amount };
@@ -5539,6 +5565,7 @@
         this.perf.levelChangeLock = 0;
         this.perf.skillQuietTime = 0;
         this.perf.lagTime = 0;
+        this.perf.schedulerLagTime = 0;
         this.perf.overloadTime = 0;
         this.perf.warmupTime = 0;
         this.updateRenderScale(false);
@@ -5552,14 +5579,20 @@
       const idle = !this.run || this.mode !== "game" || this.pauseOverlay || !stressActive;
       const avgDt = this.perf.avgDt || frame;
       const fastDt = this.perf.fastDt || frame;
-      const renderLag = stressActive && renderMs > renderBudget;
-      const renderSevere = stressActive && renderMs > (this.isMobileDevice() ? 14.5 : 13.2);
+      const renderLag = stressActive && !warmupActive && renderMs > renderBudget;
+      const renderSevere = stressActive && !warmupActive && renderMs > (this.isMobileDevice() ? 14.5 : 13.2);
       this.perf.skillQuietTime = skillActive ? 0 : Math.min(8, (this.perf.skillQuietTime || 0) + frame);
       const nonRenderHitch = frame > targetDt * 1.65 && renderMs < renderBudget * 1.15;
-      const heavyFrame = (!nonRenderHitch && frame > (this.isMobileDevice() ? 0.046 : 0.042)) || renderLag;
+      const schedulerLagFrame = stressActive && schedulerHitch && !warmupActive && rawFrame > targetDt * 1.65;
+      this.perf.schedulerLagTime = schedulerLagFrame
+        ? Math.min(3.5, (this.perf.schedulerLagTime || 0) + rawFrame * ((rawFrame > targetDt * 2.4 ? 1.35 : 0.85) + weakBias * 0.5))
+        : Math.max(0, (this.perf.schedulerLagTime || 0) - frame * (idle || skillQuietReady ? 4.4 : 0.92 + (1 - weakBias) * 0.24));
+      const schedulerSustainedLag = stressActive && (this.perf.schedulerLagTime || 0) > 0.16 - weakBias * 0.04;
+      const schedulerSevereLag = stressActive && (this.perf.schedulerLagTime || 0) > 0.42 - weakBias * 0.08;
+      const heavyFrame = (!nonRenderHitch && frame > (this.isMobileDevice() ? 0.046 : 0.042)) || renderLag || schedulerSustainedLag;
       const sustainedSlow = (this.perf.fastDt || frame) > targetDt + (this.isMobileDevice() ? 0.015 : 0.014)
         || this.perf.avgDt > targetDt + (this.isMobileDevice() ? 0.012 : 0.011);
-      const severeFrame = (!nonRenderHitch && frame > (this.isMobileDevice() ? 0.07 : 0.064)) || renderSevere;
+      const severeFrame = (!nonRenderHitch && frame > (this.isMobileDevice() ? 0.07 : 0.064)) || renderSevere || schedulerSevereLag;
       const severeSlow = fastDt > targetDt + (this.isMobileDevice() ? 0.02 : 0.018)
         || avgDt > targetDt + (this.isMobileDevice() ? 0.016 : 0.015);
       const instantLag = stressActive && (heavyFrame || sustainedSlow);
@@ -5651,7 +5684,7 @@
       const levelDelta = targetLevel - currentLevel;
       const maxStep = (levelDelta < 0
         ? (panicLag ? 8.5 : emergencyLag ? 5.8 : 3.2)
-        : (skillQuiet && !realLag ? 3.6 : idle ? 2.6 : 0.28 + (1 - weakBias) * 0.22)) * frame;
+        : (skillQuiet && !realLag ? 3.6 : idle ? 2.6 : calmVisual ? 1.05 + (1 - weakBias) * 0.35 : 0.28 + (1 - weakBias) * 0.22)) * frame;
       this.perf.autoLevel = currentLevel + clamp(levelDelta, -maxStep, maxStep);
       if (Math.abs(this.perf.autoLevel - baseLevel) < 0.02 && targetLevel === baseLevel) this.perf.autoLevel = baseLevel;
       this.perf.displayedAutoLevel = Math.round(this.perf.autoLevel * 100) / 100;
@@ -5877,17 +5910,33 @@
       const activeCombat = this.graphicsActiveCombat();
       const skillActive = this.graphicsPlayerSkillActive();
       const skillQuietReady = !skillActive && (this.perf.skillQuietTime || 0) > 0.55;
-      const idle = !this.run || this.mode !== "game" || this.pauseOverlay || (!activeCombat && !skillActive);
-      const combatResize = Boolean(this.run && this.mode === "game" && !this.pauseOverlay && (activeCombat || skillActive));
+      const visualBusy = Boolean(
+        this.run
+        && this.mode === "game"
+        && !this.pauseOverlay
+        && (
+          activeCombat
+          || skillActive
+          || (this.run.enemies?.length || 0) > 0
+          || (this.run.dummies?.length || 0) > 0
+          || (this.run.projectiles?.length || 0) > 0
+          || (this.run.effects?.length || 0) > 0
+          || (this.run.particles?.length || 0) > 0
+          || (this.run.slashes?.length || 0) > 0
+          || (this.run.shockwaves?.length || 0) > 0
+          || (this.run.trails?.length || 0) > 0
+        )
+      );
+      const idle = !this.run || this.mode !== "game" || this.pauseOverlay || !visualBusy;
+      const combatResize = visualBusy;
       const stableForResizeRecover = skillQuietReady && (
         idle || (
-          !activeCombat
-          && !skillActive
+          !visualBusy
           && (this.perf.stableTime || 0) > 1.3
           && pressure < 0.1
           && !this.performanceEmergency()
         ) || (
-          !combatResize
+          !visualBusy
           && this.perf.lagTime < 0.14
         )
       );
@@ -5966,6 +6015,12 @@
       this.perf.renderScaleTarget = preferred;
       this.perf.renderScale = preferred;
       this.perf.appliedRenderScale = preferred;
+      this.perf.pressure = 0;
+      this.perf.emergencyHold = 0;
+      this.perf.panicHold = 0;
+      this.perf.lagTime = 0;
+      this.perf.schedulerLagTime = 0;
+      this.perf.overloadTime = 0;
       this.perf.resizeAt = (typeof performance !== "undefined" && performance.now ? performance.now() : Date.now()) + 900;
       this.resize();
     }
@@ -6455,6 +6510,7 @@
 
     loop(time) {
       try {
+        const loopStart = performance.now();
         const rawDt = this.last ? (time - this.last) / 1000 || 0 : 1 / 60;
         const dt = Math.min(0.033, rawDt);
         this.last = time;
@@ -6486,6 +6542,11 @@
           : renderMs;
         if (this.mode === "menu" && this.screen?.classList.contains("aaa-menu-screen")) this.renderMainMenuHero();
         if (this.mode === "play" && this.screen?.classList.contains("valorant-screen")) this.renderSquadHeroCanvases();
+        const loopMs = performance.now() - loopStart;
+        this.perf.loopMs = loopMs;
+        this.perf.avgLoopMs = this.perf.avgLoopMs
+          ? this.perf.avgLoopMs * 0.86 + loopMs * 0.14
+          : loopMs;
       } catch (error) {
         this.reportLoopError(error);
       }
@@ -12547,22 +12608,39 @@
       if (!this.run) {
         this.camera.x = 0;
         this.camera.y = 0;
+        this.camera.leadX = 0;
+        this.camera.leadY = 0;
+        this.camera.shake = 0;
+        this.camera.shakeX = 0;
+        this.camera.shakeY = 0;
         return;
       }
       const player = this.cameraTargetActor() || this.run.player;
       const viewW = this.worldViewWidth();
       const viewH = this.worldViewHeight();
-      const lead = this.mobileCameraLead(player);
+      const leadTarget = this.mobileCameraLead(player);
+      const leadBlend = this.isMobileDevice() ? Math.min(1, dt * 5.2) : 1;
+      this.camera.leadX = (this.camera.leadX || 0) + (leadTarget.x - (this.camera.leadX || 0)) * leadBlend;
+      this.camera.leadY = (this.camera.leadY || 0) + (leadTarget.y - (this.camera.leadY || 0)) * leadBlend;
+      const lead = { x: this.camera.leadX || 0, y: this.camera.leadY || 0 };
       const targetX = clamp(player.x + lead.x - viewW / 2, 0, Math.max(0, WORLD_W - viewW));
       const targetY = clamp(player.y + lead.y - viewH / 2, 0, Math.max(0, WORLD_H - viewH));
       const follow = this.isMobileDevice() ? 3.8 : 8;
       this.camera.x += (targetX - this.camera.x) * Math.min(1, dt * follow);
       this.camera.y += (targetY - this.camera.y) * Math.min(1, dt * follow);
       this.camera.shake = Math.max(0, this.camera.shake - dt * (this.isMobileDevice() ? 46 : 34));
-      const shakeScale = this.isMobileDevice() ? 0.34 : 1;
-      const amount = this.camera.shake * this.save.settings.screenShake * shakeScale;
-      this.camera.shakeX = rand(-amount, amount);
-      this.camera.shakeY = rand(-amount, amount);
+      const shakeScale = this.isMobileDevice() ? 0.24 : 0.72;
+      const pressureFade = 1 - clamp(this.performancePressure() * 0.5 + this.renderPressure() * 0.4, 0, 0.55);
+      const amount = this.camera.shake * this.save.settings.screenShake * shakeScale * pressureFade;
+      if (amount <= 0.02) {
+        this.camera.shakeX = 0;
+        this.camera.shakeY = 0;
+        return;
+      }
+      this.camera.shakePhase = (this.camera.shakePhase || 0) + dt * (14 + Math.min(14, this.camera.shake));
+      const phase = this.camera.shakePhase;
+      this.camera.shakeX = (Math.sin(phase * 1.7) * 0.72 + Math.sin(phase * 3.1) * 0.28) * amount;
+      this.camera.shakeY = (Math.cos(phase * 1.45) * 0.62 + Math.sin(phase * 2.6) * 0.22) * amount;
     }
 
     updatePlayer(dt) {
@@ -21865,9 +21943,12 @@
         this.height = height;
         this.camera.x = 0;
         this.camera.y = 0;
+        this.camera.leadX = 0;
+        this.camera.leadY = 0;
         this.camera.shake = 0;
         this.camera.shakeX = 0;
         this.camera.shakeY = 0;
+        this.camera.shakePhase = 0;
       };
       const monsterTimeFor = (kind, moving, frame, variant = 0) => {
         if (!moving) return (((frame - variant) % 2 + 2) % 2) / 2 + 0.02;

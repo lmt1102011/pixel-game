@@ -9,7 +9,7 @@
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
   const SIGNAL_REALTIME_RELAY_LIMIT = 2;
   const SIGNAL_REALTIME_TYPES = new Set(["state", "snapshot", "attack", "skill", "collect", "openChest", "dropItem", "damage", "chooseDoor"]);
-  const APP_VERSION = "20260607-stable-door-scale-301";
+  const APP_VERSION = "20260607-awakened-vfx-aura-302";
   const CHANGELOG_ENTRIES = [
     {
       version: APP_VERSION,
@@ -20654,12 +20654,14 @@
       if ((enemy.windupTime || 0) > 0 || (enemy.chargeTime || 0) > 0 || (enemy.domainFreeze || 0) > 0 || (enemy.suspend || 0) > 0) {
         return { tier: "near", interval: 0, maxDt: 0.05 };
       }
-      const d = Math.hypot((target.x || 0) - enemy.x, (target.y || 0) - enemy.y);
+      const dx = (target.x || 0) - enemy.x;
+      const dy = (target.y || 0) - enemy.y;
+      const d2 = dx * dx + dy * dy;
       const visible = this.inView(enemy.x, enemy.y, enemy.radius + this.renderCullPadding(220));
       const mobile = this.isMobileDevice();
-      if (visible || d < 520) return { tier: "near", interval: 0, maxDt: 0.05 };
-      if (d < 840) return { tier: "medium", interval: mobile ? 1 / 30 : 1 / 42, maxDt: 0.06 };
-      if (d < 1180) return { tier: "far", interval: mobile ? 1 / 15 : 1 / 24, maxDt: 0.09 };
+      if (visible || d2 < 520 * 520) return { tier: "near", interval: 0, maxDt: 0.05 };
+      if (d2 < 840 * 840) return { tier: "medium", interval: mobile ? 1 / 30 : 1 / 42, maxDt: 0.06 };
+      if (d2 < 1180 * 1180) return { tier: "far", interval: mobile ? 1 / 15 : 1 / 24, maxDt: 0.09 };
       return { tier: "sleep", interval: mobile ? 0.24 : 0.18, maxDt: 0.12, sleep: true };
     }
 
@@ -20671,8 +20673,10 @@
         return;
       }
       const maxSpeed = enemy.speed * (enemy.boss ? 2.4 : enemy.elite ? 2.2 : 2);
-      const currentSpeed = Math.hypot(enemy.vx, enemy.vy);
-      if (currentSpeed > maxSpeed) {
+      const speed2 = enemy.vx * enemy.vx + enemy.vy * enemy.vy;
+      const maxSpeed2 = maxSpeed * maxSpeed;
+      if (speed2 > maxSpeed2) {
+        const currentSpeed = Math.sqrt(speed2) || 1;
         enemy.vx = (enemy.vx / currentSpeed) * maxSpeed;
         enemy.vy = (enemy.vy / currentSpeed) * maxSpeed;
       }
@@ -20808,9 +20812,10 @@
       if (!player) return;
       const dx = player.x - enemy.x;
       const dy = player.y - enemy.y;
-      const d = Math.hypot(dx, dy) || 1;
       const minDist = enemy.radius + player.radius + (enemy.boss ? 24 : 14);
-      if (d >= minDist) return;
+      const d2 = dx * dx + dy * dy;
+      if (d2 >= minDist * minDist) return;
+      const d = Math.sqrt(d2) || 1;
       const push = minDist - d;
       const nx = dx / d;
       const ny = dy / d;
@@ -20826,8 +20831,10 @@
         this.steerEnemy(enemy, 0, 0, dt, 5);
         return;
       }
-      const d = Math.hypot(p.x - enemy.x, p.y - enemy.y);
-      const a = Math.atan2(p.y - enemy.y, p.x - enemy.x);
+      const dx = p.x - enemy.x;
+      const dy = p.y - enemy.y;
+      const d = Math.sqrt(dx * dx + dy * dy);
+      const a = Math.atan2(dy, dx);
       enemy.facingDir = p.x >= enemy.x ? 1 : -1;
       const monsterDesign = MONSTER_TYPES[enemy.kind || ""] || null;
       const slow = (enemy.chill > 0 ? 0.48 : 1) * (enemy.weighted > 0 ? 0.82 : 1);
@@ -20954,7 +20961,10 @@
       enemy.vy += (Math.sin(enemy.chargeDir) * speed - enemy.vy) * clamp(dt * 8, 0, 1);
       enemy.attackAnim = Math.max(enemy.attackAnim, 0.18);
       enemy.attackDir = enemy.chargeDir;
-      if (!enemy.chargeHit && Math.hypot(player.x - enemy.x, player.y - enemy.y) < player.radius + enemy.radius + 18) {
+      const hitRange = player.radius + enemy.radius + 18;
+      const hitDx = player.x - enemy.x;
+      const hitDy = player.y - enemy.y;
+      if (!enemy.chargeHit && hitDx * hitDx + hitDy * hitDy < hitRange * hitRange) {
         enemy.chargeHit = true;
         this.damageCombatTarget(player, enemy.damage * (enemy.chargeDamage || 0.72), enemy);
         this.camera.shake = Math.max(this.camera.shake, 5);
@@ -22365,8 +22375,10 @@
         return;
       }
       enemy.phaseLock = Math.max(0, enemy.phaseLock - dt);
-      const d = Math.hypot(p.x - enemy.x, p.y - enemy.y);
-      const a = Math.atan2(p.y - enemy.y, p.x - enemy.x);
+      const dx = p.x - enemy.x;
+      const dy = p.y - enemy.y;
+      const d = Math.sqrt(dx * dx + dy * dy);
+      const a = Math.atan2(dy, dx);
       enemy.facingDir = p.x >= enemy.x ? 1 : -1;
       if (this.updateBossFatigue(enemy, dt)) return;
       const slow = enemy.chill > 0 ? 0.65 : 1;
@@ -22758,7 +22770,7 @@
     }
 
     enemySpatialKey(cx, cy) {
-      return `${cx},${cy}`;
+      return cx * 8192 + cy;
     }
 
     ensureEnemySpatialGrid() {
@@ -26145,95 +26157,204 @@
       const color = power?.color || "#f2bf63";
       const accent = power?.accent || "#ffffff";
       const quality = this.effectQuality();
-      const lowDetail = this.performanceEmergency() || this.performancePanic() || quality < 0.78 || this.isMobileDevice();
-      const pulse = lowDetail ? 0 : 0.5 + Math.sin(t * 3.2) * 0.5;
-
+      const lowDetail = this.performancePanic() || quality < 0.58;
+      const count = lowDetail ? 6 : (kind === "lightning" ? 11 : 9);
+      const drift = kind === "lightning" ? 4.6 : kind === "fire" ? 3.4 : kind === "time" ? 2.2 : 2.8;
       ctx.save();
-      ctx.globalCompositeOperation = lowDetail ? "source-over" : "screen";
-      ctx.globalAlpha = lowDetail ? 0.72 : 0.92;
+      ctx.globalCompositeOperation = lowDetail ? "source-over" : "lighter";
       ctx.shadowBlur = 0;
       ctx.lineCap = "round";
       ctx.lineJoin = "round";
 
-      ctx.strokeStyle = hexToRgba(color, lowDetail ? 0.42 : 0.64);
-      ctx.lineWidth = lowDetail ? 2.1 : 3.2 + pulse * 1.4;
-      ctx.beginPath();
-      ctx.ellipse(0, -3, 21 + pulse * 1.8, 27 + pulse * 1.8, 0, 0, TAU);
-      ctx.stroke();
+      for (let i = 0; i < count; i++) {
+        const seed = i * 1.731 + kind.length * 0.41;
+        const phase = (t * drift + seed) % 1;
+        const pop = Math.sin(phase * Math.PI);
+        if (pop <= 0.08) continue;
+        const angle = seed * 2.9 + Math.sin(t * 0.9 + seed) * 0.45;
+        const rx = 20 + (i % 3) * 6 + pop * (kind === "lightning" ? 10 : 7);
+        const ry = 25 + (i % 2) * 7;
+        const px = Math.cos(angle) * rx + Math.sin(t * 5.1 + seed) * 3.5;
+        const py = -5 + Math.sin(angle) * ry + Math.cos(t * 4.2 + seed) * 2.5;
+        const size = (lowDetail ? 5.8 : 7.4) + pop * (kind === "lightning" ? 6.8 : 4.4);
+        ctx.save();
+        ctx.translate(px, py);
+        ctx.rotate(angle + (kind === "time" ? t * 1.2 : phase * 1.8));
+        ctx.globalAlpha = (lowDetail ? 0.68 : 0.9) * pop;
+        this.drawAwakenedAuraVfx(ctx, kind, size, color, accent, phase);
+        ctx.restore();
+      }
 
-      ctx.globalAlpha = lowDetail ? 0.52 : 0.72;
-      ctx.strokeStyle = hexToRgba(accent, lowDetail ? 0.5 : 0.78);
-      ctx.lineWidth = lowDetail ? 1.8 : 2.4;
-      ctx.beginPath();
-      ctx.ellipse(0, -3, 15 + pulse, 21 + pulse, 0, -0.25, Math.PI * 1.25);
-      ctx.stroke();
-
-      if (!lowDetail) {
-        ctx.fillStyle = accent;
-        ctx.globalAlpha = 0.78;
-        const motes = kind === "lightning" || kind === "crystal" ? 4 : 3;
-        for (let i = 0; i < motes; i++) {
-          const moteAngle = t * (kind === "time" ? -1.8 : 2.1) + (i * TAU) / motes;
-          const orbitR = 22 + Math.sin(t * 3.5 + i) * 3.5;
-          const px = Math.cos(moteAngle) * orbitR;
-          const py = Math.sin(moteAngle) * orbitR - 3;
+      if (kind === "lightning") {
+        const bolts = lowDetail ? 4 : 6;
+        for (let i = 0; i < bolts; i++) {
+          const seed = i * 2.17 + 0.33;
+          const phase = (t * 5.8 + seed) % 1;
+          const alpha = Math.sin(phase * Math.PI);
+          if (alpha <= 0.22) continue;
+          const side = i % 2 ? 1 : -1;
+          const y = -24 + i * 11 + Math.sin(t * 7 + seed) * 3;
+          const x = side * (10 + i * 2);
           ctx.save();
-          ctx.translate(px, py);
-          ctx.rotate(moteAngle);
-          if (kind === "fire") {
-            ctx.fillRect(-2.4, -2.4, 4.8, 4.8);
-          } else if (kind === "lightning") {
-            ctx.strokeStyle = accent;
-            ctx.lineWidth = 1.6;
-            ctx.beginPath();
-            ctx.moveTo(-4, -2);
-            ctx.lineTo(0, 2);
-            ctx.lineTo(-1, 5);
-            ctx.lineTo(5, -1);
-            ctx.stroke();
-          } else if (kind === "ice") {
-            ctx.strokeStyle = accent;
-            ctx.lineWidth = 1.4;
-            ctx.beginPath();
-            ctx.moveTo(-4, 0);
-            ctx.lineTo(4, 0);
-            ctx.moveTo(0, -4);
-            ctx.lineTo(0, 4);
-            ctx.stroke();
-          } else if (kind === "void" || kind === "shadow") {
-            ctx.strokeStyle = accent;
-            ctx.lineWidth = 1.4;
-            ctx.strokeRect(-3, -3, 6, 6);
-          } else {
-            ctx.beginPath();
-            ctx.arc(0, 0, 2.4, 0, TAU);
-            ctx.fill();
-          }
+          ctx.globalAlpha = (lowDetail ? 0.62 : 0.9) * alpha;
+          ctx.strokeStyle = accent;
+          ctx.lineWidth = lowDetail ? 2.2 : 3.0;
+          ctx.shadowColor = color;
+          ctx.shadowBlur = lowDetail ? 0 : 10;
+          ctx.beginPath();
+          ctx.moveTo(x - side * 23, y - 10);
+          ctx.lineTo(x - side * 6, y - 2);
+          ctx.lineTo(x - side * 14, y + 7);
+          ctx.lineTo(x + side * 22, y + 12);
+          ctx.stroke();
           ctx.restore();
         }
       }
 
-      const badgeY = -34 + (lowDetail ? 0 : Math.sin(t * 2.4) * 0.8);
+      const badgeY = -35 + (lowDetail ? 0 : Math.sin(t * 2.4) * 0.7);
       ctx.globalCompositeOperation = "source-over";
       ctx.translate(0, badgeY);
       ctx.globalAlpha = 1;
       ctx.fillStyle = "rgba(7, 10, 18, 0.86)";
       ctx.beginPath();
-      ctx.arc(0, 0, lowDetail ? 8.4 : 10.2, 0, TAU);
+      ctx.moveTo(0, lowDetail ? -9 : -11);
+      ctx.lineTo(lowDetail ? 9 : 11, 0);
+      ctx.lineTo(0, lowDetail ? 9 : 11);
+      ctx.lineTo(lowDetail ? -9 : -11, 0);
+      ctx.closePath();
       ctx.fill();
       ctx.strokeStyle = hexToRgba(color, lowDetail ? 0.72 : 0.95);
       ctx.lineWidth = lowDetail ? 1.6 : 2;
       ctx.beginPath();
-      ctx.arc(0, 0, lowDetail ? 8.4 : 10.2, -Math.PI * 0.12, Math.PI * 1.72);
+      ctx.moveTo(0, lowDetail ? -9 : -11);
+      ctx.lineTo(lowDetail ? 9 : 11, 0);
+      ctx.lineTo(0, lowDetail ? 9 : 11);
+      ctx.lineTo(lowDetail ? -9 : -11, 0);
+      ctx.closePath();
       ctx.stroke();
       if (!lowDetail) {
-        ctx.strokeStyle = hexToRgba(accent, 0.5);
+        ctx.strokeStyle = hexToRgba(accent, 0.48);
         ctx.lineWidth = 1.1;
-        ctx.beginPath();
-        ctx.arc(0, 0, 6.2 + pulse * 0.5, Math.PI * 0.12, Math.PI * 1.28);
-        ctx.stroke();
+        ctx.strokeRect(-4.2, -4.2, 8.4, 8.4);
       }
-      this.drawAwakenedAuraGlyph(ctx, kind, lowDetail ? 4.8 : 5.8, color, accent);
+      this.drawAwakenedAuraVfx(ctx, kind, lowDetail ? 5.6 : 6.6, color, accent, 0.5);
+      ctx.restore();
+    }
+
+    drawAwakenedAuraVfx(ctx, kind, size, color, accent, phase = 0) {
+      ctx.save();
+      ctx.shadowBlur = 0;
+      ctx.lineCap = "round";
+      ctx.lineJoin = "round";
+      ctx.strokeStyle = accent || color;
+      ctx.fillStyle = color;
+      ctx.lineWidth = Math.max(1.8, size * 0.32);
+      if (kind === "fire") {
+        ctx.beginPath();
+        ctx.moveTo(0, -size);
+        ctx.bezierCurveTo(size * 0.75, -size * 0.22, size * 0.46, size * 0.72, 0, size);
+        ctx.bezierCurveTo(-size * 0.42, size * 0.55, -size * 0.55, -size * 0.15, 0, -size);
+        ctx.fill();
+        ctx.stroke();
+      } else if (kind === "lightning") {
+        ctx.beginPath();
+        ctx.moveTo(-size * 0.55, -size);
+        ctx.lineTo(size * 0.04, -size * 0.18);
+        ctx.lineTo(-size * 0.12, size * 0.08);
+        ctx.lineTo(size * 0.62, size);
+        ctx.stroke();
+      } else if (kind === "ice") {
+        for (let i = 0; i < 3; i++) {
+          const a = phase + i * Math.PI / 3;
+          ctx.beginPath();
+          ctx.moveTo(Math.cos(a) * -size, Math.sin(a) * -size);
+          ctx.lineTo(Math.cos(a) * size, Math.sin(a) * size);
+          ctx.stroke();
+        }
+      } else if (kind === "blood") {
+        ctx.beginPath();
+        ctx.moveTo(0, -size);
+        ctx.bezierCurveTo(size * 0.66, -size * 0.05, size * 0.42, size, 0, size);
+        ctx.bezierCurveTo(-size * 0.42, size, -size * 0.66, -size * 0.05, 0, -size);
+        ctx.fill();
+        ctx.stroke();
+      } else if (kind === "crystal") {
+        ctx.beginPath();
+        ctx.moveTo(0, -size);
+        ctx.lineTo(size * 0.68, -size * 0.08);
+        ctx.lineTo(size * 0.28, size);
+        ctx.lineTo(-size * 0.62, size * 0.32);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+      } else if (kind === "nature") {
+        ctx.beginPath();
+        ctx.ellipse(0, 0, size * 0.45, size * 0.92, 0.72, 0, TAU);
+        ctx.fill();
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(-size * 0.2, size * 0.45);
+        ctx.lineTo(size * 0.28, -size * 0.52);
+        ctx.stroke();
+      } else if (kind === "shadow") {
+        ctx.fillStyle = color;
+        ctx.strokeStyle = accent || color;
+        ctx.beginPath();
+        ctx.moveTo(-size * 0.95, -size * 0.18);
+        ctx.lineTo(-size * 0.2, -size * 0.82);
+        ctx.lineTo(size * 0.68, -size * 0.36);
+        ctx.lineTo(size * 0.28, size * 0.28);
+        ctx.lineTo(size * 0.92, size * 0.82);
+        ctx.lineTo(-size * 0.12, size * 0.58);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(-size * 0.72, size * 0.78);
+        ctx.lineTo(-size * 0.2, size * 0.12);
+        ctx.lineTo(size * 0.44, -size * 0.65);
+        ctx.stroke();
+      } else if (kind === "void") {
+        ctx.strokeStyle = accent || "#f2f6ff";
+        ctx.fillStyle = hexToRgba(color || "#020411", 0.72);
+        ctx.rotate(Math.PI / 4);
+        ctx.fillRect(-size * 0.68, -size * 0.68, size * 1.36, size * 1.36);
+        ctx.strokeRect(-size * 0.68, -size * 0.68, size * 1.36, size * 1.36);
+        ctx.strokeRect(-size * 0.34, -size * 0.34, size * 0.68, size * 0.68);
+        ctx.beginPath();
+        ctx.moveTo(-size * 0.86, 0);
+        ctx.lineTo(size * 0.86, 0);
+        ctx.moveTo(0, -size * 0.86);
+        ctx.lineTo(0, size * 0.86);
+        ctx.stroke();
+      } else if (kind === "gravity") {
+        ctx.strokeRect(-size * 0.56, -size * 0.56, size * 1.12, size * 1.12);
+        ctx.beginPath();
+        ctx.moveTo(-size, 0);
+        ctx.lineTo(-size * 0.42, 0);
+        ctx.moveTo(size * 0.42, 0);
+        ctx.lineTo(size, 0);
+        ctx.moveTo(0, -size);
+        ctx.lineTo(0, -size * 0.42);
+        ctx.moveTo(0, size * 0.42);
+        ctx.lineTo(0, size);
+        ctx.stroke();
+      } else if (kind === "time") {
+        ctx.beginPath();
+        ctx.moveTo(-size * 0.62, -size);
+        ctx.lineTo(size * 0.62, -size);
+        ctx.lineTo(0, -size * 0.05);
+        ctx.closePath();
+        ctx.moveTo(-size * 0.62, size);
+        ctx.lineTo(size * 0.62, size);
+        ctx.lineTo(0, size * 0.05);
+        ctx.closePath();
+        ctx.stroke();
+      } else {
+        ctx.rotate(Math.PI / 4);
+        ctx.fillRect(-size * 0.5, -size * 0.5, size, size);
+        ctx.strokeRect(-size * 0.5, -size * 0.5, size, size);
+      }
       ctx.restore();
     }
 
@@ -26375,20 +26496,31 @@
       if (awakened && death <= 0) {
         const kind = power.id || "fire";
         const color = power.color || "#ff4655";
-        ctx.strokeStyle = color;
-        ctx.lineWidth = 2;
-        ctx.globalAlpha *= 0.72;
-        ctx.beginPath();
-        ctx.arc(0, -3, 24, 0, TAU);
-        ctx.stroke();
-        for (let i = 0; i < 3; i++) {
-          const a = t * 2.2 + i * TAU / 3;
+        const accent = power.accent || "#ffffff";
+        ctx.globalCompositeOperation = "lighter";
+        for (let i = 0; i < (kind === "lightning" ? 6 : 5); i++) {
+          const a = t * (kind === "lightning" ? 4.2 : 2.7) + i * TAU / (kind === "lightning" ? 6 : 5);
+          const pulse = 0.65 + Math.sin(t * 5 + i * 1.7) * 0.25;
           ctx.save();
-          ctx.translate(Math.cos(a) * 22, -3 + Math.sin(a) * 16);
-          this.drawAwakenedAuraGlyph(ctx, kind, 3.7, color, power.accent || "#ffffff");
+          ctx.translate(Math.cos(a) * 26, -5 + Math.sin(a) * 27);
+          ctx.rotate(a + t * 0.8);
+          ctx.globalAlpha = 0.76 + pulse * 0.18;
+          this.drawAwakenedAuraVfx(ctx, kind, kind === "lightning" ? 7.4 : 6.6, color, accent, (t + i * 0.13) % 1);
           ctx.restore();
         }
+        if (kind === "lightning") {
+          ctx.strokeStyle = accent;
+          ctx.lineWidth = 2.4;
+          ctx.globalAlpha = 0.84;
+          ctx.beginPath();
+          ctx.moveTo(-24, -24);
+          ctx.lineTo(-6, -13);
+          ctx.lineTo(-14, -3);
+          ctx.lineTo(24, 7);
+          ctx.stroke();
+        }
         ctx.globalAlpha = 1;
+        ctx.globalCompositeOperation = "source-over";
       }
       const legOffset = moving ? (walk % 2 ? 2 : -2) : 0;
       block(-9 + legOffset, 7, 7, 13, dark);

@@ -1,20 +1,20 @@
-const SOULRIFT_CACHE = "soulrift-pwa-20260607-stable-door-scale-301";
+const SOULRIFT_CACHE = "soulrift-pwa-20260607-awakened-vfx-aura-302";
 const SOULRIFT_ASSETS = [
   "./",
   "./index.html",
-  "./styles.css?v=20260607-stable-door-scale-301",
-  "./src/pwa.js?v=20260607-stable-door-scale-301",
-  "./src/game.js?v=20260607-stable-door-scale-301",
-  "./manifest.webmanifest?v=20260607-stable-door-scale-301",
+  "./styles.css?v=20260607-awakened-vfx-aura-302",
+  "./src/pwa.js?v=20260607-awakened-vfx-aura-302",
+  "./src/game.js?v=20260607-awakened-vfx-aura-302",
+  "./manifest.webmanifest?v=20260607-awakened-vfx-aura-302",
   "./version.json",
   "./assets/icons/app-icon-20260605-logo-xl-149.svg",
   "./assets/icons/app-icon-20260605-logo-xl-149-192.png",
   "./assets/icons/app-icon-20260605-logo-xl-149-512.png",
   "./assets/icons/app-icon-20260605-logo-xl-149-maskable-512.png",
   "./assets/icons/apple-touch-icon-20260605-logo-xl-149.png",
-  "./assets/exported/asset-manifest.json?v=20260607-stable-door-scale-301",
-  "./assets/exported-atlas/atlas-manifest.json?v=20260607-stable-door-scale-301",
-  "./assets/sprites/monsters/shadow-goblin.png?v=20260607-stable-door-scale-301"
+  "./assets/exported/asset-manifest.json?v=20260607-awakened-vfx-aura-302",
+  "./assets/exported-atlas/atlas-manifest.json?v=20260607-awakened-vfx-aura-302",
+  "./assets/sprites/monsters/shadow-goblin.png?v=20260607-awakened-vfx-aura-302"
 ];
 
 self.addEventListener("install", (event) => {

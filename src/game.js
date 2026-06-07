@@ -9,7 +9,7 @@
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
   const SIGNAL_REALTIME_RELAY_LIMIT = 2;
   const SIGNAL_REALTIME_TYPES = new Set(["state", "snapshot", "attack", "skill", "collect", "openChest", "dropItem", "damage", "chooseDoor"]);
-  const APP_VERSION = "20260607-training-exit-253";
+  const APP_VERSION = "20260607-frame-preload-254";
   const CHANGELOG_ENTRIES = [
     {
       version: APP_VERSION,
@@ -3007,6 +3007,17 @@
       this.lobby = new PeerLobby(this);
       this.monsterSprites = new Map();
       this.exportedAssetImages = new Map();
+      this.exportedAssetFallback = new Map();
+      this.exportedAssetQueued = new Set();
+      this.exportedAssetQueuedSequences = new Set();
+      this.exportedAssetPreloadQueue = [];
+      this.exportedAssetPreloadActive = 0;
+      this.exportedAssetPreloadScheduled = false;
+      this.exportedAssetPreloadLimit = this.isMobileDevice() ? 2 : 4;
+      this.exportedAssetManifest = [];
+      this.exportedAssetManifestPaths = new Set();
+      this.exportedAssetManifestPromise = null;
+      this.exportedAssetMissing = new Set();
       if (!window.SOULRIFT_EXPORT_ONLY) this.loadMonsterSprites();
       this.run = null;
       this.mode = "loading";
@@ -3128,17 +3139,255 @@
       }
     }
 
+    exportedAssetPath(relativePath = "") {
+      const path = String(relativePath || "").replace(/\\/g, "/").replace(/^assets\/exported\//, "");
+      return path ? `assets/exported/${path}` : "";
+    }
+
+    exportedAssetUrl(path = "") {
+      return `${path}?v=${APP_VERSION}`;
+    }
+
+    exportedSequenceKey(path = "") {
+      return String(path || "").replace(/_\d{2}\.png$/i, "");
+    }
+
+    exportedFrameCountForPath(path = "") {
+      const value = String(path || "");
+      if (!/_\d{2}\.png$/i.test(value)) return 1;
+      if (value.includes("/chests/") || value.includes("/traps/")) return 6;
+      if (value.includes("/doors/")) return 5;
+      if (value.includes("/skills/")) return 4;
+      if (value.includes("/characters/")) return /\/idle_\d{2}\.png$/i.test(value) ? 2 : 4;
+      if (value.includes("/monsters/")) {
+        if (/\/idle_\d{2}\.png$/i.test(value)) return 2;
+        if (/\/attack_\d{2}\.png$/i.test(value)) return 3;
+        return 4;
+      }
+      return 4;
+    }
+
+    exportedSequencePaths(path = "") {
+      const match = /^(.*_)(\d{2})(\.png)$/i.exec(String(path || ""));
+      if (!match) return path ? [path] : [];
+      const count = this.exportedFrameCountForPath(path);
+      const paths = [];
+      for (let i = 0; i < count; i++) paths.push(`${match[1]}${String(i).padStart(2, "0")}${match[3]}`);
+      return paths;
+    }
+
+    isExportedImageReady(image) {
+      return Boolean(image && image.complete && image.naturalWidth > 0 && !image._soulriftMissing);
+    }
+
+    markExportedImageReady(path, image) {
+      if (!path || !this.isExportedImageReady(image)) return;
+      image._soulriftReady = true;
+      const key = this.exportedSequenceKey(path);
+      this.exportedAssetFallback.set(key, image);
+      this.exportedAssetFallback.set(path, image);
+    }
+
+    loadExportedImage(path = "") {
+      if (!path || this.exportedAssetMissing.has(path)) return Promise.resolve(null);
+      if (this.exportedAssetManifestPaths.size && !this.exportedAssetManifestPaths.has(path)) {
+        this.exportedAssetMissing.add(path);
+        return Promise.resolve(null);
+      }
+      let image = this.exportedAssetImages.get(path);
+      if (image?._soulriftLoadPromise) return image._soulriftLoadPromise;
+      if (this.isExportedImageReady(image)) {
+        this.markExportedImageReady(path, image);
+        return Promise.resolve(image);
+      }
+      if (!image) {
+        image = new Image();
+        image.decoding = "async";
+        image.loading = "eager";
+        image._soulriftPath = path;
+        this.exportedAssetImages.set(path, image);
+      }
+      image._soulriftLoadPromise = new Promise((resolve) => {
+        const finish = () => {
+          this.markExportedImageReady(path, image);
+          resolve(image);
+        };
+        image.onload = () => {
+          if (image.decode) image.decode().then(finish, finish);
+          else finish();
+        };
+        image.onerror = () => {
+          image._soulriftMissing = true;
+          this.exportedAssetMissing.add(path);
+          resolve(null);
+        };
+        image.src = this.exportedAssetUrl(path);
+      });
+      return image._soulriftLoadPromise;
+    }
+
+    queueExportedImage(path = "", priority = false) {
+      if (!path || this.exportedAssetMissing.has(path) || this.exportedAssetQueued.has(path)) return;
+      if (this.exportedAssetManifestPaths.size && !this.exportedAssetManifestPaths.has(path)) {
+        this.exportedAssetMissing.add(path);
+        return;
+      }
+      const image = this.exportedAssetImages.get(path);
+      if (this.isExportedImageReady(image)) {
+        this.markExportedImageReady(path, image);
+        return;
+      }
+      this.exportedAssetQueued.add(path);
+      if (priority) this.exportedAssetPreloadQueue.unshift(path);
+      else this.exportedAssetPreloadQueue.push(path);
+      this.scheduleExportedPreloadDrain();
+    }
+
+    queueExportedSequence(path = "", priority = false) {
+      const key = this.exportedSequenceKey(path);
+      if (!key || this.exportedAssetQueuedSequences.has(key)) return;
+      this.exportedAssetQueuedSequences.add(key);
+      const paths = this.exportedSequencePaths(path);
+      if (priority) {
+        this.queueExportedImage(path, true);
+        for (const entry of paths) if (entry !== path) this.queueExportedImage(entry, false);
+      } else {
+        for (const entry of paths) this.queueExportedImage(entry, false);
+      }
+    }
+
+    scheduleExportedPreloadDrain() {
+      if (this.exportedAssetPreloadScheduled) return;
+      this.exportedAssetPreloadScheduled = true;
+      const run = () => {
+        this.exportedAssetPreloadScheduled = false;
+        this.drainExportedPreloadQueue();
+      };
+      if ("requestIdleCallback" in window) window.requestIdleCallback(run, { timeout: 120 });
+      else setTimeout(run, 0);
+    }
+
+    drainExportedPreloadQueue() {
+      const limit = this.exportedAssetPreloadLimit || (this.isMobileDevice() ? 2 : 4);
+      while (this.exportedAssetPreloadActive < limit && this.exportedAssetPreloadQueue.length) {
+        const path = this.exportedAssetPreloadQueue.shift();
+        const image = this.exportedAssetImages.get(path);
+        if (this.isExportedImageReady(image) || this.exportedAssetMissing.has(path)) continue;
+        this.exportedAssetPreloadActive++;
+        this.loadExportedImage(path).finally(() => {
+          this.exportedAssetPreloadActive = Math.max(0, this.exportedAssetPreloadActive - 1);
+          if (this.exportedAssetPreloadQueue.length) this.scheduleExportedPreloadDrain();
+        });
+      }
+    }
+
+    async loadExportedAssetManifest() {
+      if (this.exportedAssetManifestPromise) return this.exportedAssetManifestPromise;
+      if (!window.fetch) return null;
+      this.exportedAssetManifestPromise = fetch(this.exportedAssetUrl("assets/exported/asset-manifest.json"), { cache: "force-cache" })
+        .then((response) => response.ok ? response.json() : null)
+        .then((data) => {
+          const files = Array.isArray(data?.files) ? data.files : [];
+          this.exportedAssetManifest = files;
+          this.exportedAssetManifestPaths = new Set(files.map((file) => this.exportedAssetPath(file.path)));
+          return data;
+        })
+        .catch(() => null);
+      return this.exportedAssetManifestPromise;
+    }
+
+    queueExportedAssetFamily(paths = [], priority = false) {
+      for (const path of paths) this.queueExportedSequence(path, priority);
+    }
+
+    preloadCharacterExportFrames(characterId = this.save?.account?.selectedCharacter || "swordsman", priority = false) {
+      const id = characterById(characterId)?.id || "swordsman";
+      this.queueExportedAssetFamily([
+        `assets/exported/characters/${id}/idle_00.png`,
+        `assets/exported/characters/${id}/run_00.png`,
+        `assets/exported/characters/${id}/attack_00.png`,
+        `assets/exported/characters/${id}/skill_00.png`,
+        `assets/exported/characters/${id}/ultimate_00.png`,
+        `assets/exported/characters/${id}/death_00.png`
+      ], priority);
+    }
+
+    preloadMonsterExportFrames(kinds = [], priority = false) {
+      for (const kind of kinds) {
+        if (!MONSTER_TYPES[kind]) continue;
+        this.queueExportedAssetFamily([
+          `assets/exported/monsters/${kind}/idle_00.png`,
+          `assets/exported/monsters/${kind}/walk_00.png`,
+          `assets/exported/monsters/${kind}/attack_00.png`
+        ], priority);
+      }
+    }
+
+    preloadPowerSkillExportFrames(powerId = this.save?.account?.selectedPower || "fire", priority = false) {
+      const power = powerById(powerId || "fire");
+      if (!power?.id) return;
+      for (const key of ["q", "e", "r", "f"]) {
+        if (!POWER_SKILL_SIGNATURES[power.id]?.[key]) continue;
+        this.queueExportedAssetFamily([
+          `assets/exported/skills/${power.id}/${key}/normal_00.png`,
+          `assets/exported/skills/${power.id}/${key}/awakened_00.png`
+        ], priority);
+      }
+    }
+
+    preloadDoorExportFrames(id = "normal", priority = false) {
+      this.queueExportedSequence(`assets/exported/doors/${id}/grow_00.png`, priority);
+    }
+
+    preloadChestExportFrames(container = "woodChest", priority = false) {
+      this.queueExportedSequence(`assets/exported/chests/${container}/open_00.png`, priority);
+    }
+
+    preloadRunExportAssets(power = this.run?.power, biome = this.run?.biome, characterId = this.run?.player?.characterId, priority = false) {
+      this.preloadCharacterExportFrames(characterId, priority);
+      this.preloadPowerSkillExportFrames(power?.id || this.save?.account?.selectedPower || "fire", priority);
+      if (biome?.id) this.queueExportedImage(`assets/exported/backgrounds/${biome.id}/floor_tile.png`, priority);
+      this.preloadChestExportFrames("woodChest", false);
+      this.preloadChestExportFrames("goldChest", false);
+      this.preloadChestExportFrames("treasureChest", false);
+    }
+
+    preloadCurrentRoomExportAssets(priority = true) {
+      if (!this.run) return;
+      this.preloadRunExportAssets(this.run.power, this.run.biome, this.run.player?.characterId, priority);
+      const monsterKinds = new Set((this.run.enemies || []).map((enemy) => enemy?.kind).filter((kind) => MONSTER_TYPES[kind]));
+      this.preloadMonsterExportFrames(monsterKinds, priority);
+      for (const hazard of this.run.hazards || []) this.queueExportedSequence(`assets/exported/traps/${hazard.type || "blade"}/active_00.png`, false);
+      for (const object of this.run.roomObjects || []) {
+        if (object.type === "treasureChest") this.preloadChestExportFrames("treasureChest", true);
+        if (object.type === "nextDoor" || object.type === "bossGate" || object.type === "bossExit") this.preloadDoorExportFrames(this.doorExportId(object), true);
+      }
+      if (this.run.currentRoom?.type === "normal") this.preloadDoorExportFrames("normal", false);
+      if (this.run.currentRoom?.type === "boss") this.preloadDoorExportFrames("bossGate", true);
+    }
+
+    preloadMenuExportedAssets() {
+      this.loadExportedAssetManifest();
+      this.preloadCharacterExportFrames(this.save?.account?.selectedCharacter || "swordsman", true);
+      this.preloadPowerSkillExportFrames(this.save?.account?.selectedPower || "fire", false);
+      this.queueExportedImage("assets/exported/backgrounds/forest/floor_tile.png", false);
+      this.preloadMonsterExportFrames(["shadowGoblin", "slime", "skeletonWarrior", "goblinScout"], false);
+    }
+
     exportedImage(path) {
       if (!path) return null;
       let image = this.exportedAssetImages.get(path);
       if (!image) {
-        image = new Image();
-        image.decoding = "async";
-        image.src = `${path}?v=${APP_VERSION}`;
-        this.exportedAssetImages.set(path, image);
-        return null;
+        this.queueExportedSequence(path, true);
+        const fallback = this.exportedAssetFallback.get(this.exportedSequenceKey(path));
+        return fallback || null;
       }
-      return image.complete && image.naturalWidth ? image : null;
+      if (this.isExportedImageReady(image)) {
+        this.markExportedImageReady(path, image);
+        return image;
+      }
+      this.queueExportedSequence(path, true);
+      return this.exportedAssetFallback.get(this.exportedSequenceKey(path)) || null;
     }
 
     drawExportedImage(ctx, path, x, y, w, h) {
@@ -3404,6 +3653,7 @@
       this.applyGraphicsSettings();
       this.clearResolvedUpdateAttempt();
       this.startUpdateWatcher();
+      this.preloadMenuExportedAssets();
       this.mode = this.hasAccount() ? "menu" : "account";
       if (this.deletedAccountNotice) {
         this.showAccountGate("login", this.deletedAccountNotice);
@@ -9306,6 +9556,7 @@
         : options.miniGame === "bossRush" || options.miniGame === "playerBoss" || options.miniGame === "awakeningRaid"
           ? { type: "boss", label: options.miniGame === "playerBoss" ? "Hóa Trùm" : options.miniGame === "awakeningRaid" ? `Raid ${raidPower.name}` : "Đại Chiến Boss", icon: options.miniGame === "awakeningRaid" ? "A" : "B", color: raidPower.color || startBiome.accent }
           : { type: "normal", label: "Phòng Thường", icon: "X", color: "#c9d0db" });
+      this.preloadCurrentRoomExportAssets(true);
       if (this.isMultiplayerClient()) {
         this.run.enemies = [];
         this.run.projectiles = [];
@@ -10227,6 +10478,7 @@
       }
       const bossDebuff = type === "boss" ? bossDebuffById(this.run.enemies.find((enemy) => enemy.boss)?.bossDebuff) : null;
       const bossNote = bossDebuff ? ` - Ấn ${bossDebuff.name}` : "";
+      this.preloadCurrentRoomExportAssets(true);
       this.toast(`${this.run.biome.name}: ${this.run.currentRoom.label || title(type)}${bossNote}`);
     }
 
@@ -20529,7 +20781,53 @@
       const files = [];
       const errors = [];
       const frameScale = clamp(Number(options.frameScale || 1), 0.5, 2);
+      const filterSet = (...keys) => {
+        const values = keys.flatMap((key) => String(options[key] ?? "")
+          .split(",")
+          .map((value) => value.trim())
+          .filter(Boolean));
+        return values.length ? new Set(values) : null;
+      };
+      const categoryFilter = filterSet("category", "categories");
+      const kindFilter = filterSet("kind", "kinds", "monster", "monsters");
+      const characterFilter = filterSet("character", "characters");
+      const powerFilter = filterSet("power", "powers");
+      const keyFilter = filterSet("key", "keys");
+      const stateFilter = filterSet("state", "states");
+      const containerFilter = filterSet("container", "containers");
+      const roomFilter = filterSet("room", "rooms", "roomType", "roomTypes");
+      const biomeFilter = filterSet("biome", "biomes");
+      const frameFilterText = String(options.frame ?? options.frames ?? "").trim();
+      const frameFilter = frameFilterText ? new Set(frameFilterText.split(",").flatMap((part) => {
+        const text = part.trim();
+        const range = /^(\d+)\s*-\s*(\d+)$/.exec(text);
+        if (range) {
+          const start = Number(range[1]);
+          const end = Number(range[2]);
+          const values = [];
+          for (let value = Math.min(start, end); value <= Math.max(start, end); value++) values.push(value);
+          return values;
+        }
+        const value = Number(text);
+        return Number.isFinite(value) ? [value] : [];
+      })) : null;
+      const allowed = (filter, value) => !filter || filter.has(String(value ?? ""));
+      const matchesExportFilter = (path, meta = {}) => {
+        if (!allowed(categoryFilter, meta.category)) return false;
+        if (!allowed(kindFilter, meta.kind)) return false;
+        if (!allowed(characterFilter, meta.character)) return false;
+        if (!allowed(powerFilter, meta.power)) return false;
+        if (!allowed(keyFilter, meta.key)) return false;
+        if (!allowed(stateFilter, meta.state)) return false;
+        if (!allowed(containerFilter, meta.container)) return false;
+        if (!allowed(roomFilter, meta.roomType)) return false;
+        if (!allowed(biomeFilter, meta.biome)) return false;
+        if (frameFilter && !frameFilter.has(Number(meta.frame))) return false;
+        if (options.path && !String(path).includes(String(options.path))) return false;
+        return true;
+      };
       const addFrame = (path, width, height, draw, meta = {}) => {
+        if (!matchesExportFilter(path, meta)) return;
         const canvas = document.createElement("canvas");
         canvas.width = Math.max(1, Math.round(width * frameScale));
         canvas.height = Math.max(1, Math.round(height * frameScale));

@@ -9,7 +9,7 @@
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
   const SIGNAL_REALTIME_RELAY_LIMIT = 2;
   const SIGNAL_REALTIME_TYPES = new Set(["state", "snapshot", "attack", "skill", "collect", "openChest", "dropItem", "damage", "chooseDoor"]);
-  const APP_VERSION = "20260607-resize-stability-281";
+  const APP_VERSION = "20260607-combat-query-pool-282";
   const CHANGELOG_ENTRIES = [
     {
       version: APP_VERSION,
@@ -3585,6 +3585,8 @@
       this.resizeDelayTimer = null;
       this.lastViewportSyncKey = "";
       this.renderActorBuffer = [];
+      this.enemyQueryBuffers = Array.from({ length: 8 }, () => []);
+      this.enemyQueryBufferIndex = 0;
       this.roomBackgroundCache = new Map();
       this.enemySpriteCache = new Map();
       this.objectPools = {
@@ -13347,19 +13349,22 @@
       this.addBasicAttackBurst(p.x + Math.cos(angle) * range * 0.4, p.y + Math.sin(angle) * range * 0.4, angle, "swordsman", range);
       this.audio.sfx(220 + p.combo * 22, "sawtooth", 0.048, 0.11);
       let hits = 0;
-      for (const enemy of [...this.run.enemies]) {
-        const d = Math.hypot(enemy.x - p.x, enemy.y - p.y);
-        const a = Math.atan2(enemy.y - p.y, enemy.x - p.x);
-        if (d < range + enemy.radius && Math.abs(angleDelta(a, angle)) < arc * 0.5) {
-          hits++;
-          this.damageEnemy(enemy, damage, {
-            x: Math.cos(angle),
-            y: Math.sin(angle),
-            power: true,
-            combo: p.combo,
-            source: "basic"
-          });
-        }
+      for (const enemy of this.run.enemies) {
+        if (!enemy || enemy.hp <= 0) continue;
+        const dx = enemy.x - p.x;
+        const dy = enemy.y - p.y;
+        const hitRadius = range + enemy.radius;
+        if (dx * dx + dy * dy >= hitRadius * hitRadius) continue;
+        const a = Math.atan2(dy, dx);
+        if (Math.abs(angleDelta(a, angle)) >= arc * 0.5) continue;
+        hits++;
+        this.damageEnemy(enemy, damage, {
+          x: Math.cos(angle),
+          y: Math.sin(angle),
+          power: true,
+          combo: p.combo,
+          source: "basic"
+        });
       }
       if (hits > 0) {
         this.hitStop = Math.max(this.hitStop || 0, 0.065);
@@ -13382,20 +13387,23 @@
       this.addBasicAttackBurst(p.x + Math.cos(angle) * range * 0.5, p.y + Math.sin(angle) * range * 0.5, angle, "guardian", range);
       const reflected = this.reflectGuardianAttackProjectiles(p, angle, range, arc, "player", this.lobby.id);
       let hits = 0;
-      for (const enemy of [...this.run.enemies]) {
-        const d = Math.hypot(enemy.x - p.x, enemy.y - p.y);
-        const a = Math.atan2(enemy.y - p.y, enemy.x - p.x);
-        if (d < enemy.radius + range && Math.abs(angleDelta(a, angle)) < arc * 0.5) {
-          hits++;
-          enemy.stun = Math.max(enemy.stun, enemy.boss ? 0.08 : 0.38);
-          enemy.launch = Math.max(enemy.launch || 0, enemy.boss ? 0.12 : 0.45);
-          this.damageEnemy(enemy, p.damage * this.playerDamageOutputMult() * 1.15, {
-            x: Math.cos(angle) * 2.6,
-            y: Math.sin(angle) * 2.6,
-            source: "guardian",
-            combo: p.combo
-          });
-        }
+      for (const enemy of this.run.enemies) {
+        if (!enemy || enemy.hp <= 0) continue;
+        const dx = enemy.x - p.x;
+        const dy = enemy.y - p.y;
+        const hitRadius = enemy.radius + range;
+        if (dx * dx + dy * dy >= hitRadius * hitRadius) continue;
+        const a = Math.atan2(dy, dx);
+        if (Math.abs(angleDelta(a, angle)) >= arc * 0.5) continue;
+        hits++;
+        enemy.stun = Math.max(enemy.stun, enemy.boss ? 0.08 : 0.38);
+        enemy.launch = Math.max(enemy.launch || 0, enemy.boss ? 0.12 : 0.45);
+        this.damageEnemy(enemy, p.damage * this.playerDamageOutputMult() * 1.15, {
+          x: Math.cos(angle) * 2.6,
+          y: Math.sin(angle) * 2.6,
+          source: "guardian",
+          combo: p.combo
+        });
       }
       if (hits > 0) this.hitStop = Math.max(this.hitStop || 0, 0.075);
       this.camera.shake = Math.max(this.camera.shake, hits ? 10 : reflected ? 8 : 3);
@@ -13525,33 +13533,37 @@
         });
       };
       const arcHits = (range, arc, amount, limit = 99) => {
-        const struck = [];
-        for (const enemy of [...this.run.enemies]) {
+        const struck = this.nextEnemyQueryBuffer();
+        for (const enemy of this.run.enemies) {
+          if (!enemy || enemy.hp <= 0) continue;
           const dx = enemy.x - x;
           const dy = enemy.y - y;
-          const d = Math.hypot(dx, dy);
-          if (d > range + enemy.radius) continue;
+          const hitRadius = range + enemy.radius;
+          const d2 = dx * dx + dy * dy;
+          if (d2 > hitRadius * hitRadius) continue;
           const a = Math.atan2(dy, dx);
           if (Math.abs(angleDelta(a, angle)) > arc * 0.5) continue;
-          struck.push({ enemy, d });
+          this.insertEnemyQueryResult(struck, enemy, d2, limit);
         }
-        struck.sort((a, b) => a.d - b.d).slice(0, limit).forEach(({ enemy, d }) => {
+        for (const enemy of struck) {
+          const d = Math.sqrt(Number(enemy._queryMetric || 0));
           hitEnemy(enemy, amount * Math.max(0.55, 1 - d / (range * 1.8)));
-        });
-        return struck.map((entry) => entry.enemy).slice(0, limit);
+        }
+        return struck;
       };
       const lineHits = (length, width, amount, limit = 99, startX = x, startY = y) => {
-        const struck = [];
-        for (const enemy of [...this.run.enemies]) {
+        const struck = this.nextEnemyQueryBuffer();
+        for (const enemy of this.run.enemies) {
+          if (!enemy || enemy.hp <= 0) continue;
           const dx = enemy.x - startX;
           const dy = enemy.y - startY;
           const along = dx * dirX + dy * dirY;
           const side = Math.abs(dx * sideX + dy * sideY);
           if (along < -enemy.radius || along > length + enemy.radius || side > width * 0.5 + enemy.radius) continue;
-          struck.push({ enemy, along });
+          this.insertEnemyQueryResult(struck, enemy, along, limit);
         }
-        struck.sort((a, b) => a.along - b.along).slice(0, limit).forEach(({ enemy }) => hitEnemy(enemy, amount));
-        return struck.map((entry) => entry.enemy).slice(0, limit);
+        for (const enemy of struck) hitEnemy(enemy, amount);
+        return struck;
       };
 
       if (kind === "fire") {
@@ -14271,10 +14283,16 @@
       const scale = this.currentSkillAreaScale();
       range *= scale;
       arc = Math.min(Math.PI * 1.35, arc * (1 + (scale - 1) * 0.35));
-      for (const enemy of [...this.run.enemies]) {
-        const d = Math.hypot(enemy.x - x, enemy.y - y);
+      for (const enemy of this.run.enemies) {
+        if (!enemy || enemy.hp <= 0) continue;
+        const dx = enemy.x - x;
+        const dy = enemy.y - y;
+        const hitRadius = range + enemy.radius;
+        const d2 = dx * dx + dy * dy;
+        if (d2 >= hitRadius * hitRadius) continue;
+        const d = Math.sqrt(d2);
         const a = Math.atan2(enemy.y - y, enemy.x - x);
-        if (d < range + enemy.radius && Math.abs(angleDelta(a, angle)) < arc * 0.5) {
+        if (Math.abs(angleDelta(a, angle)) < arc * 0.5) {
           this.damageEnemy(enemy, damage * Math.max(0.35, 1 - d / (range * 1.25)), {
             x: Math.cos(angle),
             y: Math.sin(angle),
@@ -14292,20 +14310,21 @@
       width *= scale;
       const dirX = Math.cos(angle);
       const dirY = Math.sin(angle);
-      const hits = [];
+      const hits = this.nextEnemyQueryBuffer();
       for (const enemy of this.run.enemies) {
+        if (!enemy || enemy.hp <= 0) continue;
         const dx = enemy.x - x;
         const dy = enemy.y - y;
         const along = dx * dirX + dy * dirY;
         const side = Math.abs(dx * -dirY + dy * dirX);
-        if (along > -enemy.radius && along < length + enemy.radius && side < width + enemy.radius) hits.push({ enemy, along });
+        if (along > -enemy.radius && along < length + enemy.radius && side < width + enemy.radius) {
+          this.insertEnemyQueryResult(hits, enemy, along, pierce);
+        }
       }
-      const damaged = [];
-      hits.sort((a, b) => a.along - b.along).slice(0, pierce).forEach(({ enemy }) => {
+      for (const enemy of hits) {
         this.damageEnemy(enemy, damage, { x: dirX, y: dirY, source: "skill", kind, sourceId: this.currentDamageSourceId || "" });
-        damaged.push(enemy);
-      });
-      return damaged;
+      }
+      return hits;
     }
 
     burstLines(x, y, color, count, radius, life = 0.18) {
@@ -14765,10 +14784,19 @@
     }
 
     enemiesNear(x, y, radius, limit = 99, predicate = null) {
-      return [...(this.run?.enemies || [])]
-        .filter((enemy) => enemy && enemy.hp > 0 && Math.hypot(enemy.x - x, enemy.y - y) < radius + enemy.radius && (!predicate || predicate(enemy)))
-        .sort((a, b) => Math.hypot(a.x - x, a.y - y) - Math.hypot(b.x - x, b.y - y))
-        .slice(0, limit);
+      const result = this.nextEnemyQueryBuffer();
+      const enemies = this.run?.enemies || [];
+      for (const enemy of enemies) {
+        if (!enemy || enemy.hp <= 0) continue;
+        if (predicate && !predicate(enemy)) continue;
+        const dx = enemy.x - x;
+        const dy = enemy.y - y;
+        const hitRadius = radius + enemy.radius;
+        const d2 = dx * dx + dy * dy;
+        if (d2 >= hitRadius * hitRadius) continue;
+        this.insertEnemyQueryResult(result, enemy, d2, limit);
+      }
+      return result;
     }
 
     addShadowShard(enemy, caster, stacks = 1) {
@@ -14889,7 +14917,7 @@
     enemiesInLine(x, y, angle, length, width, limit = 99) {
       const dx = Math.cos(angle);
       const dy = Math.sin(angle);
-      const hits = [];
+      const hits = this.nextEnemyQueryBuffer();
       for (const enemy of this.run?.enemies || []) {
         if (!enemy || enemy.hp <= 0) continue;
         const ex = enemy.x - x;
@@ -14897,19 +14925,24 @@
         const along = ex * dx + ey * dy;
         const side = Math.abs(ex * -dy + ey * dx);
         if (along > -enemy.radius && along < length + enemy.radius && side < width + enemy.radius) {
-          hits.push({ enemy, along });
+          this.insertEnemyQueryResult(hits, enemy, along, limit);
         }
       }
-      return hits.sort((a, b) => a.along - b.along).slice(0, limit).map((hit) => hit.enemy);
+      return hits;
     }
 
     freezeIceInArea(x, y, radius, duration, damage, color, casterId = "") {
       if (!this.run) return 0;
       this.addShockwave(x, y, radius * 0.78, color, 0);
       let frozen = 0;
-      for (const enemy of [...this.run.enemies]) {
-        const d = Math.hypot(enemy.x - x, enemy.y - y);
-        if (d > radius + enemy.radius) continue;
+      for (const enemy of this.run.enemies) {
+        if (!enemy || enemy.hp <= 0) continue;
+        const dx = enemy.x - x;
+        const dy = enemy.y - y;
+        const hitRadius = radius + enemy.radius;
+        const d2 = dx * dx + dy * dy;
+        if (d2 > hitRadius * hitRadius) continue;
+        const d = Math.sqrt(d2);
         enemy.chill = Math.max(enemy.chill || 0, duration + 1.4);
         if (!this.isMultiplayerClient()) {
           enemy.stun = Math.max(enemy.stun || 0, enemy.boss ? Math.min(0.16, duration * 0.22) : duration);
@@ -15419,33 +15452,35 @@
       };
       const pointAhead = (range) => ({ x: x + dirX * range, y: y + dirY * range });
       const hitAnnulus = (cx, cy, radius, thickness, amount, options = {}) => {
-        const hits = [];
-        for (const enemy of [...this.run.enemies]) {
-          const d = Math.hypot(enemy.x - cx, enemy.y - cy);
+        const hits = this.nextEnemyQueryBuffer();
+        for (const enemy of this.run.enemies) {
+          if (!enemy || enemy.hp <= 0) continue;
+          const dx = enemy.x - cx;
+          const dy = enemy.y - cy;
+          const d = Math.hypot(dx, dy);
           if (Math.abs(d - radius) > thickness * 0.5 + enemy.radius) continue;
-          const nx = (enemy.x - cx) / (d || 1);
-          const ny = (enemy.y - cy) / (d || 1);
+          const nx = dx / (d || 1);
+          const ny = dy / (d || 1);
           this.damageEnemy(enemy, amount, { x: nx, y: ny, source: options.source || "skill", kind, sourceId: casterId, noKnockback: Boolean(options.noKnockback) });
           hits.push(enemy);
         }
         return hits;
       };
       const lineHits = (sx, sy, length, width, amount, limit = 99, options = {}) => {
-        const hits = [];
-        for (const enemy of [...this.run.enemies]) {
+        const hits = this.nextEnemyQueryBuffer();
+        for (const enemy of this.run.enemies) {
+          if (!enemy || enemy.hp <= 0) continue;
           const dx = enemy.x - sx;
           const dy = enemy.y - sy;
           const along = dx * dirX + dy * dirY;
           const side = Math.abs(dx * sideX + dy * sideY);
           if (along < -enemy.radius || along > length + enemy.radius || side > width * 0.5 + enemy.radius) continue;
-          hits.push({ enemy, along });
+          this.insertEnemyQueryResult(hits, enemy, along, limit);
         }
-        const damaged = [];
-        hits.sort((a, b) => a.along - b.along).slice(0, limit).forEach(({ enemy }) => {
+        for (const enemy of hits) {
           this.damageEnemy(enemy, amount, { x: dirX, y: dirY, source: options.source || "skill", kind, sourceId: casterId, noKnockback: Boolean(options.noKnockback), critBonus: Number(options.critBonus || 0) });
-          damaged.push(enemy);
-        });
-        return damaged;
+        }
+        return hits;
       };
       const rectCenterHits = (cx, cy, length, width, amount, options = {}) => {
         return this.rectangleSkillDamage(cx - dirX * length * 0.5, cy - dirY * length * 0.5, angle, length, width, amount, palette.color, kind, casterId, options);
@@ -16439,19 +16474,24 @@
 
     areaDamage(x, y, radius, damage, color, kind, ultimate = false, sourceId = this.currentDamageSourceId || "") {
       radius *= this.currentSkillAreaScale();
-      for (const enemy of [...this.run.enemies]) {
-        const d = Math.hypot(enemy.x - x, enemy.y - y);
-        if (d < radius + enemy.radius) {
-          const force = Math.max(0.2, 1 - d / radius);
-          this.damageEnemy(enemy, damage * force, {
-            x: (enemy.x - x) / (d || 1),
-            y: (enemy.y - y) / (d || 1),
-            power: true,
-            source: ultimate ? "ultimate" : "skill",
-            kind,
-            sourceId
-          });
-        }
+      const enemies = this.run.enemies;
+      for (const enemy of enemies) {
+        if (!enemy || enemy.hp <= 0) continue;
+        const dx = enemy.x - x;
+        const dy = enemy.y - y;
+        const hitRadius = radius + enemy.radius;
+        const d2 = dx * dx + dy * dy;
+        if (d2 >= hitRadius * hitRadius) continue;
+        const d = Math.sqrt(d2);
+        const force = Math.max(0.2, 1 - d / radius);
+        this.damageEnemy(enemy, damage * force, {
+          x: dx / (d || 1),
+          y: dy / (d || 1),
+          power: true,
+          source: ultimate ? "ultimate" : "skill",
+          kind,
+          sourceId
+        });
       }
       const particleScale = clamp(this.effectQuality(), 0.35, 1) * (this.isMobileDevice() ? 0.56 : 0.78);
       const count = this.particleCount((ultimate ? 16 : 7) * particleScale, { important: ultimate });
@@ -20489,6 +20529,7 @@
       let best = null;
       let bestD = range * range;
       for (const enemy of this.run.enemies) {
+        if (!enemy || enemy.hp <= 0) continue;
         const dx = enemy.x - x;
         const dy = enemy.y - y;
         const d = dx * dx + dy * dy;
@@ -20498,6 +20539,34 @@
         }
       }
       return best;
+    }
+
+    nextEnemyQueryBuffer() {
+      if (!this.enemyQueryBuffers) {
+        this.enemyQueryBuffers = Array.from({ length: 8 }, () => []);
+        this.enemyQueryBufferIndex = 0;
+      }
+      const buffer = this.enemyQueryBuffers[this.enemyQueryBufferIndex++ % this.enemyQueryBuffers.length];
+      buffer.length = 0;
+      return buffer;
+    }
+
+    insertEnemyQueryResult(buffer, enemy, metric, limit = 99) {
+      if (!buffer || !enemy || limit <= 0) return;
+      enemy._queryMetric = metric;
+      let index = buffer.length;
+      if (index < limit) {
+        buffer.length = index + 1;
+      } else {
+        const last = buffer[index - 1];
+        if (last && metric >= Number(last._queryMetric || 0)) return;
+        index -= 1;
+      }
+      while (index > 0 && metric < Number(buffer[index - 1]?._queryMetric || 0)) {
+        buffer[index] = buffer[index - 1];
+        index -= 1;
+      }
+      buffer[index] = enemy;
     }
 
     updateRoomObjects(dt) {
@@ -20804,10 +20873,7 @@
     }
 
     domainEnemies(effect, radius, limit = 99) {
-      return [...(this.run?.enemies || [])]
-        .filter((enemy) => enemy && enemy.hp > 0 && Math.hypot(enemy.x - effect.x, enemy.y - effect.y) < radius + enemy.radius)
-        .sort((a, b) => Math.hypot(a.x - effect.x, a.y - effect.y) - Math.hypot(b.x - effect.x, b.y - effect.y))
-        .slice(0, limit);
+      return this.enemiesNear(effect.x, effect.y, radius, limit);
     }
 
     domainCaster(effect) {

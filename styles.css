@@ -3197,6 +3197,233 @@ body.pwa-landing-active .screen {
   pointer-events: none;
 }
 
+.command-page {
+  position: relative;
+  isolation: isolate;
+  width: min(1360px, 100%);
+  min-height: calc(var(--app-height) - 48px);
+  max-height: calc(var(--app-height) - 48px);
+  display: grid;
+  grid-template-columns: minmax(190px, 230px) minmax(0, 1fr);
+  gap: 12px;
+  padding: 16px;
+  overflow: hidden;
+  color: #ece8e1;
+  background:
+    radial-gradient(circle at 78% 10%, rgba(255, 70, 85, 0.14), transparent 30%),
+    radial-gradient(circle at 20% 88%, rgba(53, 214, 201, 0.1), transparent 32%),
+    linear-gradient(135deg, rgba(15, 25, 35, 0.98), rgba(17, 24, 39, 0.96));
+  border: 1px solid rgba(236, 232, 225, 0.12);
+  box-shadow: 0 22px 60px rgba(0, 0, 0, 0.48);
+}
+
+.command-page::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  opacity: 0.16;
+  background:
+    linear-gradient(rgba(236, 232, 225, 0.07) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(236, 232, 225, 0.05) 1px, transparent 1px);
+  background-size: 58px 58px;
+  pointer-events: none;
+}
+
+.command-page.in-run {
+  width: min(980px, calc(100vw - 28px));
+  grid-template-columns: 1fr;
+  min-height: auto;
+  max-height: min(760px, calc(var(--app-height) - 32px));
+}
+
+.command-page .main-nav,
+.command-page .panel,
+.command-page.in-run > div {
+  border: 1px solid rgba(236, 232, 225, 0.12);
+  background: rgba(15, 25, 35, 0.76);
+  box-shadow: 0 14px 36px rgba(0, 0, 0, 0.34), inset 0 0 0 1px rgba(255, 255, 255, 0.025);
+  backdrop-filter: blur(8px);
+}
+
+.command-page .main-nav {
+  max-height: none;
+  padding: 14px;
+  overflow: auto;
+}
+
+.command-page .panel,
+.command-page.in-run > div {
+  min-height: 0;
+  overflow: auto;
+  padding: 14px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 70, 85, 0.56) rgba(236, 232, 225, 0.08);
+}
+
+.command-page .panel-header {
+  min-height: 82px;
+  margin: 0 0 12px;
+  padding: 14px 16px;
+  border: 1px solid rgba(236, 232, 225, 0.12);
+  background:
+    linear-gradient(135deg, rgba(255, 70, 85, 0.1), transparent 40%),
+    rgba(15, 25, 35, 0.82);
+  clip-path: polygon(14px 0, 100% 0, 100% calc(100% - 14px), calc(100% - 14px) 100%, 0 100%, 0 14px);
+}
+
+.command-page .panel-title {
+  margin: 3px 0 2px;
+  color: #ece8e1;
+  font-size: clamp(28px, 3.4vw, 38px);
+  line-height: 1;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+}
+
+.command-page .panel-subtitle,
+.command-page .setting-row p,
+.command-page .character-card p,
+.command-page .stat-point-head span,
+.command-page .stat-upgrade-row p {
+  color: rgba(236, 232, 225, 0.58);
+}
+
+.command-page .panel-header::before {
+  content: "COMMAND UI";
+  display: block;
+  color: #ff4655;
+  font-size: 10px;
+  font-weight: 950;
+  letter-spacing: 1.4px;
+}
+
+.training-command .panel-header::before {
+  content: "COMBAT LAB";
+}
+
+.character-command .panel-header::before {
+  content: "AGENT BAY";
+}
+
+.settings-command .panel-header::before {
+  content: "SYSTEM CONFIG";
+}
+
+.command-page .tab-strip {
+  display: flex;
+  gap: 8px;
+  margin: 0 0 12px;
+  padding: 10px;
+  overflow-x: auto;
+  border: 1px solid rgba(236, 232, 225, 0.1);
+  background: rgba(0, 0, 0, 0.18);
+  scrollbar-width: thin;
+}
+
+.command-page .tab-strip .btn {
+  flex: 0 0 auto;
+  min-height: 38px;
+  border-color: rgba(236, 232, 225, 0.16);
+  background: rgba(31, 39, 49, 0.78);
+  color: rgba(236, 232, 225, 0.82);
+  font-size: 11px;
+  font-weight: 950;
+  text-transform: uppercase;
+}
+
+.command-page .tab-strip .btn.primary,
+.command-page .btn.primary,
+.command-page .friends-big-btn.primary {
+  border-color: rgba(255, 70, 85, 0.82);
+  background: linear-gradient(135deg, rgba(255, 70, 85, 0.9), rgba(163, 34, 48, 0.88));
+  color: #ece8e1;
+  box-shadow: 0 0 22px rgba(255, 70, 85, 0.18);
+}
+
+.command-page .grid,
+.command-page .character-card-grid,
+.command-page .stat-upgrade-grid,
+.command-page .inventory-list,
+.command-page .owned-power-grid,
+.command-page .awakening-list {
+  gap: 10px;
+}
+
+.command-page .setting-row,
+.command-page .character-card,
+.command-page .stat-point-panel,
+.command-page .stat-upgrade-row,
+.command-page .reward-card,
+.command-page .power-row,
+.command-page .power-summary,
+.command-page .command-option-card {
+  border: 1px solid rgba(236, 232, 225, 0.12);
+  background: linear-gradient(135deg, rgba(236, 232, 225, 0.055), rgba(0, 0, 0, 0.12));
+  color: #ece8e1;
+  box-shadow: none;
+  transition: transform 150ms ease, border-color 150ms ease, box-shadow 150ms ease, background 150ms ease;
+}
+
+.command-page .setting-row:hover,
+.command-page .character-card:hover,
+.command-page .character-card.selected,
+.command-page .stat-upgrade-row:hover,
+.command-page .reward-card:hover,
+.command-page .power-row:hover,
+.command-page .power-summary:hover {
+  transform: translateY(-2px);
+  border-color: rgba(255, 70, 85, 0.72);
+  background: linear-gradient(135deg, color-mix(in srgb, var(--char, #ff4655), transparent 88%), rgba(255, 70, 85, 0.08));
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.34), 0 0 24px rgba(255, 70, 85, 0.14);
+}
+
+.command-page .setting-row h3,
+.command-page .character-card h3,
+.command-page .stat-upgrade-row h4,
+.command-page .stat-point-head b {
+  color: #ece8e1;
+}
+
+.command-page .character-layout {
+  grid-template-columns: minmax(250px, 360px) minmax(0, 1fr);
+}
+
+.command-page .character-preview {
+  min-height: 460px;
+  border-color: rgba(236, 232, 225, 0.14);
+  background:
+    radial-gradient(circle at 50% 30%, color-mix(in srgb, var(--char), transparent 78%), transparent 45%),
+    linear-gradient(180deg, rgba(53, 214, 201, 0.08), transparent 44%),
+    repeating-linear-gradient(0deg, rgba(236, 232, 225, 0.045) 0 1px, transparent 1px 28px),
+    rgba(0, 0, 0, 0.3);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.025), 0 16px 36px rgba(0, 0, 0, 0.32);
+}
+
+.command-page .character-icon,
+.command-page .friends-avatar {
+  border-color: color-mix(in srgb, var(--char, #ff4655), transparent 28%);
+  background:
+    radial-gradient(circle at 50% 30%, color-mix(in srgb, var(--char, #ff4655), transparent 18%), transparent 64%),
+    rgba(15, 25, 35, 0.9);
+  color: #ece8e1;
+  box-shadow: 0 0 16px color-mix(in srgb, var(--char, #ff4655), transparent 78%);
+}
+
+.command-page .field,
+.command-page .setting-select,
+.command-page select,
+.command-page input[type="range"] {
+  accent-color: #ff4655;
+}
+
+.command-page select,
+.command-page .field {
+  border: 1px solid rgba(236, 232, 225, 0.15);
+  color: #ece8e1;
+  background: rgba(0, 0, 0, 0.24);
+}
+
 .friends-topbar,
 .friends-search-panel,
 .friends-control-panel,
@@ -8533,6 +8760,14 @@ body.is-mobile-ui .touch-actions [data-touch="f"] {
 }
 
 @media (max-width: 1180px) {
+  .command-page {
+    grid-template-columns: minmax(166px, 210px) minmax(0, 1fr);
+  }
+
+  .command-page .character-layout {
+    grid-template-columns: minmax(220px, 300px) minmax(0, 1fr);
+  }
+
   .friends-arena {
     grid-template-columns: minmax(180px, 220px) minmax(360px, 1fr);
     grid-template-rows: auto auto minmax(320px, 1fr) minmax(210px, auto) auto;
@@ -8562,6 +8797,46 @@ body.is-mobile-ui .touch-actions [data-touch="f"] {
 }
 
 @media (max-width: 760px) {
+  .command-page {
+    width: 100%;
+    min-height: calc(var(--app-height) - 20px);
+    max-height: none;
+    grid-template-columns: 1fr;
+    gap: 10px;
+    padding: 10px;
+    overflow: auto;
+  }
+
+  .command-page .main-nav {
+    max-height: none;
+  }
+
+  .command-page .panel {
+    overflow: visible;
+  }
+
+  .command-page .panel-header {
+    min-height: auto;
+    padding: 12px;
+  }
+
+  .command-page .panel-title {
+    font-size: 28px;
+  }
+
+  .command-page .character-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .command-page .character-preview {
+    position: relative;
+    min-height: 340px;
+  }
+
+  .command-page .setting-row {
+    grid-template-columns: 1fr;
+  }
+
   .friends-arena {
     width: 100%;
     min-height: calc(var(--app-height) - 20px);
@@ -9883,6 +10158,73 @@ body.is-mobile-ui .friends-big-btn {
   body.is-mobile-ui .aaa-power-score,
   body.is-mobile-ui .friends-topbar p {
     display: none;
+  }
+
+  body.is-mobile-ui .command-page {
+    width: 100%;
+    min-height: var(--app-height);
+    max-height: var(--app-height);
+    grid-template-columns: minmax(132px, 176px) minmax(0, 1fr);
+    gap: 6px;
+    padding: max(5px, env(safe-area-inset-top)) max(6px, env(safe-area-inset-right)) max(5px, env(safe-area-inset-bottom)) max(6px, env(safe-area-inset-left));
+  }
+
+  body.is-mobile-ui .command-page .main-nav,
+  body.is-mobile-ui .command-page .panel {
+    min-height: 0;
+    max-height: calc(var(--app-height) - 12px);
+    overflow: auto;
+    padding: 8px;
+  }
+
+  body.is-mobile-ui .command-page .panel-header {
+    min-height: 54px;
+    margin-bottom: 8px;
+    padding: 8px 10px;
+  }
+
+  body.is-mobile-ui .command-page .panel-title {
+    font-size: 20px;
+  }
+
+  body.is-mobile-ui .command-page .panel-subtitle {
+    font-size: 10px;
+  }
+
+  body.is-mobile-ui .command-page .tab-strip {
+    margin-bottom: 8px;
+    padding: 6px;
+  }
+
+  body.is-mobile-ui .command-page .tab-strip .btn {
+    min-height: 30px;
+    padding: 5px 8px;
+    font-size: 9px;
+  }
+
+  body.is-mobile-ui .command-page .character-layout {
+    grid-template-columns: minmax(170px, 230px) minmax(0, 1fr);
+    gap: 8px;
+  }
+
+  body.is-mobile-ui .command-page .character-preview {
+    min-height: 250px;
+  }
+
+  body.is-mobile-ui .command-page .character-card {
+    min-height: 68px;
+    grid-template-columns: 46px 1fr;
+    padding: 8px;
+  }
+
+  body.is-mobile-ui .command-page .character-icon {
+    width: 40px;
+    height: 40px;
+  }
+
+  body.is-mobile-ui .command-page .setting-row {
+    min-height: 54px;
+    padding: 8px;
   }
 
   body.is-mobile-ui .aaa-main-menu {

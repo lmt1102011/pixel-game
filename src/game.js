@@ -9,7 +9,7 @@
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
   const SIGNAL_REALTIME_RELAY_LIMIT = 2;
   const SIGNAL_REALTIME_TYPES = new Set(["state", "snapshot", "attack", "skill", "collect", "openChest", "dropItem", "damage", "chooseDoor"]);
-  const APP_VERSION = "20260607-training-squad-249";
+  const APP_VERSION = "20260607-command-ui-250";
   const CHANGELOG_ENTRIES = [
     {
       version: APP_VERSION,
@@ -7195,7 +7195,7 @@
       const selected = this.save.account.selectedPower ? powerById(this.save.account.selectedPower) : null;
       const options = { ...this.defaultTrainingOptions(), ...(this.trainingOptions || {}) };
       const check = (id, title, text, checked) => `
-        <label class="setting-row training-setting">
+        <label class="setting-row training-setting command-option-card">
           <div>
             <h3>${title}</h3>
             <p>${text}</p>
@@ -7204,7 +7204,7 @@
         </label>
       `;
       this.setScreen(`
-        <section class="shell">
+        <section class="shell command-page training-command">
           ${this.navHtml("play")}
           <div class="panel">
             <div class="panel-header">
@@ -8477,7 +8477,7 @@
         </button>
       `).join("");
       this.setScreen(`
-        <section class="shell">
+        <section class="shell command-page character-command">
           ${this.navHtml("character")}
           <div class="panel">
             <div class="panel-header">
@@ -8521,7 +8521,7 @@
         `;
       }).join("");
       this.setScreen(`
-        <section class="shell">
+        <section class="shell command-page character-command">
           ${this.navHtml("character")}
           <div class="panel">
             <div class="panel-header">
@@ -8584,7 +8584,7 @@
         </label>
       `).join("");
       this.setScreen(`
-        <section class="shell">
+        <section class="shell command-page character-command">
           ${this.navHtml("character")}
           <div class="panel">
             <div class="panel-header">
@@ -8662,7 +8662,7 @@
         </div>
       `).join("");
       this.setScreen(`
-        <section class="shell">
+        <section class="shell command-page character-command">
           ${this.navHtml("character")}
           <div class="panel">
             <div class="panel-header">
@@ -8739,7 +8739,7 @@
         showAwakenedNormalButton: false
       })).join("");
       this.setScreen(`
-        <section class="shell">
+        <section class="shell command-page character-command">
           ${this.navHtml("character")}
           <div class="panel">
             <div class="panel-header">
@@ -8815,7 +8815,7 @@
         `;
       }).join("");
       this.setScreen(`
-        <section class="shell">
+        <section class="shell command-page character-command">
           ${this.navHtml("character")}
           <div class="panel">
             <div class="panel-header">
@@ -8836,7 +8836,7 @@
       this.mode = "settings";
       const s = this.save.settings;
       this.setScreen(`
-        <section class="${inRun ? "wide-panel" : "shell"}">
+        <section class="${inRun ? "wide-panel command-page settings-command in-run" : "shell command-page settings-command"}">
           ${inRun ? "" : this.navHtml("settings")}
           <div class="${inRun ? "" : "panel"}">
             <div class="panel-header">

@@ -9,7 +9,7 @@
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
   const SIGNAL_REALTIME_RELAY_LIMIT = 2;
   const SIGNAL_REALTIME_TYPES = new Set(["state", "snapshot", "attack", "skill", "collect", "openChest", "dropItem", "damage", "chooseDoor"]);
-  const APP_VERSION = "20260607-audio-noise-cache-293";
+  const APP_VERSION = "20260607-combat-allocation-trim-294";
   const CHANGELOG_ENTRIES = [
     {
       version: APP_VERSION,
@@ -4542,6 +4542,9 @@
       this.enemySpatialLastCells = 0;
       this.enemySpatialBuilds = 0;
       this.enemySpatialQueries = 0;
+      this.domainContainmentCacheFrame = -1;
+      this.domainContainmentCacheRun = null;
+      this.domainContainmentCache = [];
       this.roomBackgroundCache = new Map();
       this.enemySpriteCache = new Map();
       this.objectPools = {
@@ -15652,13 +15655,25 @@
 
     activeContainmentDomains() {
       if (!this.run) return [];
-      return (this.run.effects || []).filter((effect) => (
-        effect.type === "ultimate"
-        && effect.domain
-        && effect.time > 0
-        && !(effect.castDelay > 0)
-        && !(effect.shrinkTotal > 0 && effect.time <= effect.shrinkTotal)
-      ));
+      if (this.domainContainmentCacheFrame === this.frameIndex && this.domainContainmentCacheRun === this.run) {
+        return this.domainContainmentCache;
+      }
+      const domains = [];
+      for (const effect of this.run.effects || []) {
+        if (
+          effect.type === "ultimate"
+          && effect.domain
+          && effect.time > 0
+          && !(effect.castDelay > 0)
+          && !(effect.shrinkTotal > 0 && effect.time <= effect.shrinkTotal)
+        ) {
+          domains.push(effect);
+        }
+      }
+      this.domainContainmentCacheFrame = this.frameIndex;
+      this.domainContainmentCacheRun = this.run;
+      this.domainContainmentCache = domains;
+      return domains;
     }
 
     activeDomainByContainmentId(id) {
@@ -15705,10 +15720,16 @@
       let domain = this.activeDomainByContainmentId(enemy.domainBound);
       if (!domain) {
         enemy.domainBound = "";
-        domain = this.activeContainmentDomains().find((effect) => (
-          Math.hypot(enemy.x - effect.x, enemy.y - effect.y) <= this.powerDomainRadius(effect) + (enemy.radius || 18)
-        ));
-        if (domain) enemy.domainBound = this.domainContainmentId(domain);
+        for (const effect of this.activeContainmentDomains()) {
+          const radius = this.powerDomainRadius(effect) + (enemy.radius || 18);
+          const dx = enemy.x - effect.x;
+          const dy = enemy.y - effect.y;
+          if (dx * dx + dy * dy <= radius * radius) {
+            domain = effect;
+            enemy.domainBound = this.domainContainmentId(effect);
+            break;
+          }
+        }
       }
       if (!domain) return false;
       const locked = this.constrainActorToDomain(enemy, domain);
@@ -19916,11 +19937,24 @@
     nearestCombatTarget(x, y, fallback = this.run?.player) {
       let best = null;
       let bestD = Infinity;
-      for (const target of this.combatTargets()) {
-        const d = Math.hypot(target.x - x, target.y - y);
-        if (d < bestD) {
-          bestD = d;
-          best = target;
+      const player = this.run?.player;
+      if (this.aliveActor(player) && !this.isPlayerBossId(this.lobby.id)) {
+        const dx = player.x - x;
+        const dy = player.y - y;
+        bestD = dx * dx + dy * dy;
+        best = player;
+      }
+      if (this.isMultiplayerHost()) {
+        for (const [id, remote] of this.remotePlayers) {
+          if (this.isPlayerBossId(id) || !this.aliveActor(remote)) continue;
+          const dx = remote.x - x;
+          const dy = remote.y - y;
+          const d = dx * dx + dy * dy;
+          if (d < bestD) {
+            bestD = d;
+            if (!Number.isFinite(remote.radius)) remote.radius = 22;
+            best = remote;
+          }
         }
       }
       return best || (this.aliveActor(fallback) ? fallback : null);
@@ -20005,7 +20039,9 @@
 
     updateEnemies(dt) {
       const p = this.run.player;
-      for (const enemy of [...this.run.enemies]) {
+      for (let i = this.run.enemies.length - 1; i >= 0; i--) {
+        const enemy = this.run.enemies[i];
+        if (!enemy) continue;
         enemy.aiTimer = (enemy.aiTimer || 0) + dt;
         enemy.flash = Math.max(0, enemy.flash - dt);
         enemy.stun = Math.max(0, enemy.stun - dt);
@@ -21846,18 +21882,27 @@
 
     firstProjectileTargetHit(projectile, fromX, fromY) {
       let best = null;
-      for (const target of this.combatTargets()) {
-        const hit = this.segmentCircleHit(fromX, fromY, projectile.x, projectile.y, target.x, target.y, target.radius + projectile.radius);
-        if (hit && (!best || hit.t < best.t)) best = { ...hit, target };
+      const visit = (target, id, local) => {
+        if (!target) return;
+        const radius = Number.isFinite(target.radius) ? target.radius : local ? this.run.player.radius : 22;
+        const hit = this.segmentCircleHit(fromX, fromY, projectile.x, projectile.y, target.x, target.y, radius + projectile.radius);
+        if (hit && (!best || hit.t < best.t)) best = { ...hit, target: { ...target, id, local, radius } };
+      };
+      const player = this.run?.player;
+      if (this.aliveActor(player) && !this.isPlayerBossId(this.lobby.id)) visit(player, this.lobby.id, true);
+      if (this.isMultiplayerHost()) {
+        for (const [id, remote] of this.remotePlayers) {
+          if (this.isPlayerBossId(id) || !this.aliveActor(remote)) continue;
+          visit(remote, id, false);
+        }
       }
       return best;
     }
 
     refractProjectileWithCrystalPrism(projectile, fromX, fromY) {
       if (!projectile || projectile.owner !== "enemy" || this.isMultiplayerClient()) return false;
-      const prisms = (this.run?.effects || []).filter((effect) => effect.type === "crystalPrism" && effect.time > 0);
-      if (!prisms.length) return false;
-      for (const prism of prisms) {
+      for (const prism of this.run?.effects || []) {
+        if (prism.type !== "crystalPrism" || prism.time <= 0) continue;
         const wallAngle = (prism.angle || 0) + Math.PI / 2;
         const dx = Math.cos(wallAngle);
         const dy = Math.sin(wallAngle);

@@ -9,7 +9,7 @@
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
   const SIGNAL_REALTIME_RELAY_LIMIT = 2;
   const SIGNAL_REALTIME_TYPES = new Set(["state", "snapshot", "attack", "skill", "collect", "openChest", "dropItem", "damage", "chooseDoor"]);
-  const APP_VERSION = "20260607-stable-auto-visuals-284";
+  const APP_VERSION = "20260607-audio-motifs-285";
   const CHANGELOG_ENTRIES = [
     {
       version: APP_VERSION,
@@ -1450,6 +1450,10 @@
       this.coinStep = 0;
       this.musicIntensity = 0;
       this.lastSfxAt = new Map();
+      this.musicBar = 0;
+      this.musicPhrase = 0;
+      this.lastMusicMode = "";
+      this.leitmotifs = this.createLeitmotifLibrary();
     }
 
     start() {
@@ -1506,6 +1510,129 @@
       this.ambientTimer = 0;
     }
 
+    createLeitmotifLibrary() {
+      const motif = (intervals, rhythm, type = "triangle", accent = 1) => ({ intervals, rhythm, type, accent });
+      return {
+        menu: motif([0, 7, 10, 5, 12, 10, 7, 3], [1.25, 0.75, 1, 1.5, 0.75, 0.75, 1, 1.5], "triangle", 1.05),
+        villain: motif([0, -1, -6, -3, 0, -8, -6, -11], [1, 0.75, 1.25, 0.75, 1, 1, 0.75, 1.5], "sawtooth", 1.18),
+        heroes: {
+          swordsman: motif([0, 7, 5, 9, 12, 9, 7, 5], [1, 0.5, 0.5, 1, 1.5, 0.5, 1, 1], "triangle", 1),
+          martial: motif([0, 3, 7, 10, 7, 3, 12, 10], [0.5, 0.5, 0.5, 0.75, 0.5, 0.5, 1, 1.25], "square", 0.9),
+          guardian: motif([0, -5, 0, 7, 5, 0, -5, -7], [1.5, 0.75, 0.75, 1.25, 1, 1, 0.75, 1.5], "sine", 1.1),
+          spearman: motif([0, 12, 7, 5, 14, 12, 7, 0], [0.75, 0.75, 1, 0.5, 1, 0.5, 1, 1.5], "triangle", 0.95),
+          mage: motif([0, 4, 11, 14, 12, 7, 11, 16], [1, 1, 0.5, 0.5, 1.25, 0.75, 1, 1], "sine", 1),
+          ranger: motif([0, 7, 12, 16, 12, 7, 19, 16], [0.75, 0.5, 0.75, 1, 0.75, 0.5, 1, 1.25], "triangle", 0.95),
+          assassin: motif([0, 1, 7, 6, 12, 10, 7, 1], [0.5, 0.5, 0.75, 0.5, 0.75, 0.5, 0.5, 1.5], "square", 0.88)
+        },
+        powers: {
+          fire: motif([0, 3, 7, 10, 12, 7, 15, 10], [0.75, 0.5, 0.75, 1, 0.5, 0.5, 1, 1.5], "sawtooth", 1.12),
+          ice: motif([0, 5, 7, 12, 11, 7, 5, 0], [1, 0.75, 0.75, 1.25, 0.75, 0.75, 1, 1.25], "triangle", 0.95),
+          lightning: motif([0, 12, 7, 15, 19, 15, 12, 7], [0.5, 0.25, 0.5, 0.75, 0.25, 0.5, 0.5, 1], "square", 1.06),
+          shadow: motif([0, -1, 3, -5, 7, 3, -1, -8], [1, 0.5, 0.75, 1, 0.75, 0.5, 1, 1.5], "triangle", 0.96),
+          blood: motif([0, -2, 3, 7, 6, 3, -2, -5], [0.75, 0.75, 0.75, 1, 0.5, 0.5, 1, 1.25], "sawtooth", 0.98),
+          gravity: motif([0, -5, -1, 6, 0, -12, -5, -1], [1.5, 0.75, 0.75, 1, 1.5, 0.5, 0.75, 1.25], "sine", 1.2),
+          crystal: motif([0, 7, 12, 19, 16, 12, 7, 0], [0.75, 0.75, 0.5, 1, 0.5, 0.75, 0.75, 1.25], "triangle", 0.98),
+          nature: motif([0, 4, 7, 11, 12, 9, 7, 4], [1, 0.75, 0.75, 1, 1.25, 0.5, 0.75, 1.25], "sine", 0.94),
+          void: motif([0, -6, -1, 5, -8, -1, 0, -13], [1, 0.75, 0.5, 1.25, 0.75, 0.5, 1, 1.5], "sawtooth", 1.05),
+          time: motif([0, 7, 2, 14, 12, 7, 2, 19], [0.5, 1, 0.5, 1, 0.5, 1, 0.5, 1.5], "triangle", 1)
+        },
+        biomes: {
+          forest: motif([0, 5, 7, 12, 9, 7, 4, 0], [1.5, 0.75, 0.75, 1, 1, 0.75, 0.75, 1.5], "sine", 0.88),
+          frozen: motif([0, 7, 11, 14, 12, 7, 5, 0], [1.25, 1, 0.5, 1, 0.75, 1, 0.75, 1.5], "triangle", 0.92),
+          lava: motif([0, 3, 6, 10, 12, 6, 3, -2], [0.75, 0.5, 0.75, 0.5, 1, 0.5, 0.75, 1.5], "sawtooth", 1.08),
+          neon: motif([0, 7, 1, 13, 12, 6, 1, 18], [0.5, 0.5, 0.75, 0.75, 0.5, 0.5, 1, 1.25], "square", 0.96),
+          temple: motif([0, -5, 2, 7, 12, 7, 2, -5], [1.5, 0.75, 0.75, 1.25, 1, 0.75, 0.75, 1.5], "triangle", 1)
+        },
+        bosses: {
+          forest: motif([0, -5, -2, 3, 0, -7, -5, -12], [1, 0.75, 0.75, 1, 0.5, 0.5, 1.25, 1.5], "sawtooth", 1.2),
+          frozen: motif([0, -1, 6, 11, 6, -1, -6, 0], [1, 0.5, 1, 0.5, 0.75, 0.75, 1, 1.5], "triangle", 1.1),
+          lava: motif([0, 3, -2, -8, 0, 6, 3, -12], [0.75, 0.5, 0.75, 1, 0.5, 0.5, 1, 1.5], "sawtooth", 1.28),
+          neon: motif([0, 1, 7, 6, 13, 7, 1, -6], [0.5, 0.5, 0.5, 0.75, 0.5, 0.5, 1, 1.5], "square", 1.12),
+          temple: motif([0, -7, 0, 5, -2, -9, -5, -12], [1.5, 0.75, 0.75, 1, 0.75, 0.75, 1, 1.5], "sawtooth", 1.25)
+        }
+      };
+    }
+
+    semitone(root, interval = 0, octave = 1) {
+      return Math.max(24, root * octave * Math.pow(2, Number(interval || 0) / 12));
+    }
+
+    currentCharacterId() {
+      return this.game.run?.player?.characterId || this.game.save?.account?.selectedCharacter || "swordsman";
+    }
+
+    currentPowerId() {
+      return this.game.run?.power?.id || this.game.save?.account?.selectedPower || "fire";
+    }
+
+    themeEvolutionStage(state = this.musicState()) {
+      const level = Math.max(1, Math.floor(Number(this.game.save?.progression?.level || 1)));
+      const runStage = Math.max(0, Math.floor(Number(this.game.run?.stage || 0)));
+      if (state.mode === "boss" && (this.game.run?.currentRoom?.bossDefeated || this.game.mode === "victory")) return "final";
+      if (level >= 28 || runStage >= 4) return "final";
+      if (level >= 14 || runStage >= 2) return "late";
+      if (level >= 6 || runStage >= 1) return "mid";
+      return "early";
+    }
+
+    themeEvolutionProfile(state = this.musicState()) {
+      const stage = this.themeEvolutionStage(state);
+      return {
+        stage,
+        melodyGain: { early: 0.78, mid: 0.92, late: 1.08, final: 1.22 }[stage] || 0.9,
+        harmonyGain: { early: 0.22, mid: 0.34, late: 0.46, final: 0.58 }[stage] || 0.3,
+        bassGain: { early: 0.62, mid: 0.78, late: 0.95, final: 1.1 }[stage] || 0.75,
+        sparkle: { early: 0.18, mid: 0.28, late: 0.4, final: 0.5 }[stage] || 0.24
+      };
+    }
+
+    motifRoot(state = this.musicState()) {
+      const notes = this.biome?.music?.length ? this.biome.music : [110, 146.83, 164.81, 196];
+      if (state.mode === "menu") return 110;
+      if (state.mode === "victory") return (notes[0] || 110) * 1.5;
+      if (state.mode === "boss") return Math.max(55, (notes[0] || 110) * 0.5);
+      return notes[0] || 110;
+    }
+
+    motifFor(kind, id, fallback = null) {
+      return this.leitmotifs?.[kind]?.[id] || fallback || this.leitmotifs?.menu;
+    }
+
+    motifNote(motif, index, root, options = {}) {
+      if (!this.ctx || !motif) return;
+      const intervals = motif.intervals || [0];
+      const rhythms = motif.rhythm || [1];
+      const i = Math.abs(index) % intervals.length;
+      const rhythm = rhythms[i % rhythms.length] || 1;
+      const octave = Number(options.octave || 1);
+      const freq = this.semitone(root, intervals[i], octave);
+      const gain = Number(options.gain || 0.05) * Number(motif.accent || 1);
+      const length = Math.max(0.035, Number(options.length || 0.1) * rhythm);
+      this.tone(freq, options.type || motif.type || "triangle", length, gain, options.now || this.ctx.currentTime, {
+        bus: this.musicMaster,
+        pan: Number(options.pan || 0),
+        reverb: Number(options.reverb ?? 0.12),
+        attack: Number(options.attack ?? 0.012),
+        slide: Boolean(options.slide)
+      });
+    }
+
+    motifChord(motif, index, root, options = {}) {
+      if (!this.ctx || !motif) return;
+      const now = options.now || this.ctx.currentTime;
+      const harmony = options.harmony || [0, 7, 12];
+      for (let i = 0; i < harmony.length; i++) {
+        const interval = (motif.intervals?.[Math.abs(index + i) % motif.intervals.length] || 0) + harmony[i];
+        this.tone(this.semitone(root, interval, options.octave || 1), options.type || "sine", options.length || 0.18, (options.gain || 0.025) * (1 - i * 0.18), now + i * 0.012, {
+          bus: this.musicMaster,
+          pan: clamp((options.pan || 0) + (i - 1) * 0.12, -0.8, 0.8),
+          reverb: options.reverb ?? 0.2,
+          attack: 0.018,
+          slide: false
+        });
+      }
+    }
+
     update(dt) {
       if (!this.ctx) return;
       if (this.game.save.settings.music) this.updateDynamicMusic(dt);
@@ -1526,29 +1653,68 @@
     }
 
     updateDynamicMusic(dt) {
-      this.timer -= dt;
-      if (this.timer > 0) return;
       const state = this.musicState();
       this.musicIntensity += (state.intensity - this.musicIntensity) * clamp(dt * 1.9, 0, 1);
+      this.timer -= dt;
+      if (this.timer > 0) return;
       const intensity = this.musicIntensity;
-      this.timer = clamp(0.34 - intensity * 0.16, 0.15, 0.36);
-      const notes = this.biome?.music?.length ? this.biome.music : [196, 233, 262, 311];
+      const tempo = state.mode === "boss" ? 0.145 : state.mode === "combat" ? 0.17 : state.mode === "victory" ? 0.24 : 0.31;
+      this.timer = clamp(tempo - intensity * 0.035, 0.12, 0.34);
+      if (this.lastMusicMode !== state.mode) {
+        this.lastMusicMode = state.mode;
+        this.musicPhrase = 0;
+        this.step = 0;
+      }
+      const now = this.ctx.currentTime;
+      const notes = this.biome?.music?.length ? this.biome.music : [110, 146.83, 164.81, 196];
       const boss = state.mode === "boss";
       const combat = boss || state.mode === "combat";
-      const pattern = boss ? [0, 3, 1, 2, 3, 1, 2, 0] : [0, 2, 1, 3, 2, 0, 3, 1];
-      const index = pattern[this.step % pattern.length] % notes.length;
-      const octave = this.step % 8 === 0 ? 0.5 : this.step % 8 === 6 ? 1.5 : 1;
-      const freq = notes[index] * octave;
-      this.step++;
-      this.note(freq, boss ? 0.16 : 0.13, boss ? "sawtooth" : "triangle", boss ? 0.72 : 0.45 + intensity * 0.18, { pan: Math.sin(this.step * 0.7) * 0.18 });
-      if (this.step % 2 === 0) this.note(notes[(index + 2) % notes.length] * 2, 0.045, "sine", combat ? 0.24 : 0.14, { pan: -0.22 });
-      if (this.step % 4 === 0) this.note(notes[0] / 2, boss ? 0.24 : 0.26, "sine", boss ? 0.7 : 0.28 + intensity * 0.18);
-      if (this.step % 8 === 5) this.note(notes[3 % notes.length] * 2, boss ? 0.12 : 0.08, "triangle", boss ? 0.4 : 0.2);
-      const now = this.ctx.currentTime;
-      if (combat && this.step % 2 === 0) this.noiseBurst(now, 0.022, 0.018 + intensity * 0.018, { bus: this.musicMaster, filterType: "highpass", frequency: 1450, q: 0.45 });
-      if (boss && this.step % 4 === 1) {
-        this.tone(48, "sine", 0.28, 0.15, now, { bus: this.musicMaster, slideTo: 34, attack: 0.006, reverb: 0.08 });
-        this.noiseBurst(now, 0.04, 0.02, { bus: this.musicMaster, filterType: "lowpass", frequency: 190, q: 0.7 });
+      const step = this.step++;
+      const beat = step % 16;
+      if (beat === 0) this.musicPhrase++;
+      const evolution = this.themeEvolutionProfile(state);
+      const root = this.motifRoot(state);
+      const biomeId = this.biome?.id || "forest";
+      const characterMotif = this.motifFor("heroes", this.currentCharacterId(), this.leitmotifs.heroes.swordsman);
+      const powerMotif = this.motifFor("powers", this.currentPowerId(), this.leitmotifs.powers.fire);
+      const locationMotif = this.motifFor("biomes", biomeId, this.leitmotifs.biomes.forest);
+      const bossMotif = this.motifFor("bosses", biomeId, this.leitmotifs.villain);
+      const menuMotif = this.leitmotifs.menu;
+      const melodyRoot = state.mode === "menu" ? 146.83 : state.mode === "victory" ? root : root * 2;
+      const bassRoot = state.mode === "menu" ? root * 0.5 : root;
+
+      if (state.mode === "menu") {
+        this.motifNote(menuMotif, beat, melodyRoot, { now, length: 0.16, gain: 0.052 * evolution.melodyGain, pan: Math.sin(step * 0.4) * 0.2, reverb: 0.22 });
+        if (beat % 4 === 0) this.motifChord(menuMotif, beat, root, { now, length: 0.34, gain: 0.018 + evolution.harmonyGain * 0.018, harmony: [0, 7, 15], reverb: 0.32 });
+        if (beat % 8 === 6) this.motifNote(characterMotif, beat + this.musicPhrase, root * 2, { now, length: 0.08, gain: 0.026, pan: -0.26, type: "sine", reverb: 0.2 });
+        if (beat % 8 === 2) this.motifNote(powerMotif, beat, root * 2.25, { now, length: 0.07, gain: 0.018, pan: 0.28, type: powerMotif.type, reverb: 0.18 });
+      } else if (state.mode === "explore") {
+        this.motifNote(locationMotif, beat + this.musicPhrase, melodyRoot, { now, length: 0.14, gain: 0.036 * evolution.melodyGain, pan: Math.sin(step * 0.31) * 0.24, reverb: 0.24, type: locationMotif.type });
+        if (beat % 4 === 0) this.motifChord(locationMotif, beat, root, { now, length: 0.28, gain: 0.015 + evolution.harmonyGain * 0.012, harmony: [0, 7, 12], reverb: 0.28 });
+        if (beat % 8 === 4) this.motifNote(characterMotif, beat, root * 2, { now, length: 0.09, gain: 0.024, pan: -0.18, type: characterMotif.type, reverb: 0.18 });
+      } else if (combat && !boss) {
+        this.motifNote(characterMotif, beat + this.musicPhrase, melodyRoot, { now, length: 0.115, gain: 0.05 * evolution.melodyGain, pan: -0.18, type: characterMotif.type, reverb: 0.14 });
+        if (beat % 2 === 1) this.motifNote(powerMotif, beat, melodyRoot * 1.2, { now, length: 0.07, gain: 0.034 + intensity * 0.022, pan: 0.24, type: powerMotif.type, reverb: 0.12 });
+        if (beat % 4 === 0) this.tone(bassRoot * 0.5, "sine", 0.22, 0.052 * evolution.bassGain, now, { bus: this.musicMaster, slideTo: bassRoot * 0.42, attack: 0.006, reverb: 0.08 });
+        if (beat % 2 === 0) this.noiseBurst(now, 0.02, 0.012 + intensity * 0.018, { bus: this.musicMaster, filterType: "highpass", frequency: 1550, q: 0.65, pan: beat % 4 ? 0.28 : -0.28 });
+      } else if (boss) {
+        this.motifNote(bossMotif, beat + this.musicPhrase, root * 2, { now, length: 0.13, gain: 0.062 * evolution.melodyGain, pan: Math.sin(step * 0.58) * 0.28, type: bossMotif.type, reverb: 0.18 });
+        if (beat % 2 === 1) this.motifNote(powerMotif, beat + 3, root * 2.4, { now, length: 0.065, gain: 0.028, pan: 0.32, type: powerMotif.type, reverb: 0.1 });
+        if (beat % 4 === 0) this.tone(root * 0.5, "sine", 0.28, 0.095 * evolution.bassGain, now, { bus: this.musicMaster, slideTo: root * 0.34, attack: 0.004, reverb: 0.14 });
+        if (beat % 8 === 4) this.motifChord(bossMotif, beat, root, { now, length: 0.28, gain: 0.03 + evolution.harmonyGain * 0.026, harmony: [0, -12, 6], type: "sawtooth", reverb: 0.26 });
+        if (beat % 2 === 0) this.noiseBurst(now, 0.026, 0.02 + intensity * 0.024, { bus: this.musicMaster, filterType: "lowpass", frequency: beat % 4 ? 240 : 520, q: 0.7 });
+      } else if (state.mode === "victory") {
+        this.motifNote(characterMotif, beat, melodyRoot, { now, length: 0.18, gain: 0.05 * evolution.melodyGain, pan: Math.sin(step * 0.24) * 0.22, type: "triangle", reverb: 0.28 });
+        if (beat % 4 === 0) this.motifChord(characterMotif, beat, root, { now, length: 0.38, gain: 0.032, harmony: [0, 7, 12, 16], reverb: 0.34 });
+        if (beat % 8 === 6) this.motifNote(menuMotif, beat, root * 2.25, { now, length: 0.11, gain: 0.024, type: "sine", reverb: 0.3 });
+      }
+
+      if (beat % 4 === 0 && state.mode !== "menu") {
+        const pedal = notes[(Math.floor(step / 4) + this.musicPhrase) % notes.length] || root;
+        this.tone(pedal * 0.5, "sine", combat ? 0.18 : 0.28, (combat ? 0.035 : 0.022) * evolution.bassGain, now, { bus: this.musicMaster, slide: false, reverb: 0.12 });
+      }
+      if (evolution.sparkle > 0.25 && beat % 8 === 5 && !boss) {
+        this.tone(this.semitone(root, 19, 2), "sine", 0.07, 0.012 + evolution.sparkle * 0.018, now + 0.03, { bus: this.musicMaster, pan: 0.34, reverb: 0.24 });
       }
     }
 
@@ -1764,13 +1930,17 @@
       const spatial = this.spatialOptions(options.x, options.y, 1);
       const pan = spatial.pan;
       const vol = spatial.gain;
+      const heroMotif = this.motifFor("heroes", this.currentCharacterId(), this.leitmotifs.heroes.swordsman);
+      const powerMotif = this.motifFor("powers", this.currentPowerId(), this.leitmotifs.powers.fire);
       if (kind === "chest") {
+        this.motifStinger(powerMotif, this.motifRoot({ mode: "victory" }) * 1.4, now + 0.035, { count: 3, gain: 0.034 * vol, length: 0.075, pan, type: powerMotif.type, reverb: 0.16 });
         this.tone(170, "square", 0.11, 0.12 * vol, now, { pan, slideTo: 118, reverb: 0.08 });
         this.tone(920, "triangle", 0.12, 0.052 * vol, now + 0.055, { pan, slideTo: 1320, reverb: 0.12 });
         this.noiseBurst(now + 0.025, 0.06, 0.052 * vol, { filterType: "bandpass", frequency: 880, q: 0.65, pan });
         return;
       }
       if (kind === "level") {
+        this.motifStinger(heroMotif, 146.83, now, { count: 5, gain: 0.052, length: 0.105, gap: 0.075, pan: 0, type: "triangle", reverb: 0.28 });
         this.tone(620, "triangle", 0.11, 0.09, now, { slideTo: 980, reverb: 0.2 });
         this.tone(1240, "sine", 0.18, 0.06, now + 0.08, { slideTo: 1680, reverb: 0.22 });
         this.tone(1860, "sine", 0.2, 0.045, now + 0.16, { slideTo: 2320, reverb: 0.25 });
@@ -1778,9 +1948,11 @@
       }
       if (kind === "xp") {
         if (!this.canPlay("reward-xp", 0.22)) return;
+        this.motifNote(heroMotif, this.coinStep || 0, 880, { now, length: 0.045, gain: 0.018, pan: 0.12, type: "sine", reverb: 0.1 });
         this.tone(760, "triangle", 0.075, 0.04, now, { slideTo: 920, reverb: 0.08 });
         return;
       }
+      this.motifStinger(powerMotif, 220, now + 0.02, { count: 2, gain: 0.024 * vol, length: 0.075, pan, type: powerMotif.type, reverb: 0.14 });
       this.tone(460, "triangle", 0.09, 0.07 * vol, now, { pan, slideTo: 640, reverb: 0.12 });
       this.tone(980 + Math.min(8, amount) * 22, "sine", 0.13, 0.04 * vol, now + 0.055, { pan, slideTo: 1320, reverb: 0.18 });
     }
@@ -1838,6 +2010,35 @@
       }
     }
 
+    motifStinger(motif, root, now, options = {}) {
+      if (!this.ctx || !motif) return;
+      const count = Math.max(2, Math.min(5, Number(options.count || 4)));
+      const gap = Number(options.gap || 0.055);
+      const gain = Number(options.gain || 0.06);
+      const length = Number(options.length || 0.09);
+      const pan = Number(options.pan || 0);
+      for (let i = 0; i < count; i++) {
+        const interval = motif.intervals?.[i % motif.intervals.length] || 0;
+        this.tone(this.semitone(root, interval, options.octave || 1), options.type || motif.type || "triangle", length * (1 + i * 0.08), gain * (1 - i * 0.08), now + i * gap, {
+          bus: options.bus || this.sfxMaster,
+          pan: clamp(pan + (i - (count - 1) / 2) * 0.08, -0.85, 0.85),
+          reverb: options.reverb ?? 0.18,
+          attack: options.attack ?? 0.006,
+          slide: Boolean(options.slide)
+        });
+      }
+    }
+
+    bossMotifFor(enemy = null) {
+      const biomeId = this.game.run?.biome?.id || this.biome?.id || "forest";
+      const kind = String(enemy?.kind || "").toLowerCase();
+      if (/dragon|fire|demon/.test(kind)) return this.leitmotifs.bosses.lava;
+      if (/ice|frost|winter/.test(kind)) return this.leitmotifs.bosses.frozen;
+      if (/neon|signal|crystal/.test(kind)) return this.leitmotifs.bosses.neon;
+      if (/temple|astrax|knight|idol/.test(kind)) return this.leitmotifs.bosses.temple;
+      return this.motifFor("bosses", biomeId, this.leitmotifs.villain);
+    }
+
     boss(action = "intro", enemy = null) {
       if (!this.ctx) this.start();
       if (!this.ctx || !this.game.save.settings.sfx) return;
@@ -1845,22 +2046,29 @@
       const now = this.ctx.currentTime;
       const spatial = this.spatialOptions(enemy?.x, enemy?.y, 1);
       const pan = spatial.pan;
+      const motif = this.bossMotifFor(enemy);
+      const root = this.motifRoot({ mode: "boss", intensity: 1 });
       if (action === "intro") {
+        this.motifStinger(motif, root * 1.8, now, { count: 5, gain: 0.075, length: 0.11, pan, type: motif.type, reverb: 0.28, bus: this.sfxMaster });
         this.tone(54, "sawtooth", 0.5, 0.19, now, { pan, slideTo: 38, reverb: 0.26 });
         this.tone(360, "triangle", 0.34, 0.08, now + 0.08, { pan, slideTo: 620, reverb: 0.22 });
         this.noiseBurst(now + 0.04, 0.16, 0.075, { filterType: "lowpass", frequency: 340, q: 0.5, pan });
       } else if (action === "phase") {
+        this.motifStinger(motif, root * 2.1, now, { count: 4, gain: 0.07, length: 0.08, gap: 0.04, pan, type: "square", reverb: 0.22 });
         this.tone(82, "sawtooth", 0.32, 0.16, now, { pan, slideTo: 46, reverb: 0.22 });
         this.tone(880, "square", 0.16, 0.055, now + 0.06, { pan, slideTo: 1520, reverb: 0.18 });
         this.noiseBurst(now + 0.03, 0.11, 0.065, { filterType: "bandpass", frequency: 980, q: 0.4, pan });
       } else if (action === "fatigue") {
+        this.motifStinger(motif, root * 1.2, now, { count: 3, gain: 0.042, length: 0.11, gap: 0.075, pan, type: "triangle", reverb: 0.24 });
         this.tone(210, "triangle", 0.18, 0.09, now, { pan, slideTo: 96, reverb: 0.16 });
         this.noiseBurst(now + 0.02, 0.075, 0.035, { filterType: "highpass", frequency: 900, q: 0.45, pan });
       } else if (action === "death") {
+        this.motifStinger(motif, root, now, { count: 5, gain: 0.082, length: 0.18, gap: 0.09, pan, type: "sawtooth", reverb: 0.34, octave: 0.8 });
         this.tone(92, "sawtooth", 0.7, 0.22, now, { pan, slideTo: 32, reverb: 0.32 });
         this.tone(520, "triangle", 0.32, 0.1, now + 0.18, { pan, slideTo: 220, reverb: 0.28 });
         this.noiseBurst(now + 0.08, 0.24, 0.09, { filterType: "lowpass", frequency: 520, q: 0.4, pan });
       } else {
+        this.motifStinger(motif, root * 2, now, { count: 3, gain: 0.046, length: 0.055, gap: 0.032, pan, type: motif.type, reverb: 0.12 });
         this.tone(120, "sawtooth", 0.11, 0.12, now, { pan, slideTo: 76, reverb: 0.1 });
         this.noiseBurst(now, 0.055, 0.055, { filterType: "bandpass", frequency: 720, q: 0.6, pan });
       }
@@ -1992,6 +2200,18 @@
       const pitch = { q: 1, e: 0.86, r: 0.74, f: 0.52 }[key] || 1;
       const baseLength = { q: 0.13, e: 0.15, r: 0.22, f: 0.36 }[key] || 0.13;
       const volume = clamp((awakened ? 0.142 : 0.118) * keyPower, 0.08, awakened ? 0.36 : 0.3);
+      const motif = this.motifFor("powers", kind, this.leitmotifs.powers.fire);
+      const motifRoot = this.motifRoot(this.musicState()) * (key === "f" ? 1.1 : key === "r" ? 1.35 : 1.65);
+      this.motifStinger(motif, motifRoot, now, {
+        count: key === "f" ? 5 : key === "r" ? 4 : 3,
+        gap: key === "f" ? 0.065 : 0.045,
+        gain: volume * (key === "f" ? 0.24 : awakened ? 0.2 : 0.15),
+        length: key === "f" ? 0.12 : 0.07,
+        type: motif.type,
+        reverb: awakened ? 0.26 : 0.16,
+        pan: 0,
+        octave: awakened ? 1.08 : 1
+      });
       this.skillPhase(kind, "cast", key, now, volume, pitch, awakened);
       this.skillPhase(kind, "travel", key, now, volume, pitch, awakened);
       this.skillPhase(kind, "impact", key, now, volume, pitch, awakened);

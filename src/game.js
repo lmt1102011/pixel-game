@@ -9,7 +9,7 @@
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
   const SIGNAL_REALTIME_RELAY_LIMIT = 2;
   const SIGNAL_REALTIME_TYPES = new Set(["state", "snapshot", "attack", "skill", "collect", "openChest", "dropItem", "damage", "chooseDoor"]);
-  const APP_VERSION = "20260607-realistic-audio-textures-292";
+  const APP_VERSION = "20260607-audio-noise-cache-293";
   const CHANGELOG_ENTRIES = [
     {
       version: APP_VERSION,
@@ -1450,6 +1450,9 @@
       this.coinStep = 0;
       this.musicIntensity = 0;
       this.lastSfxAt = new Map();
+      this.noiseBuffers = new Map();
+      this.noiseBufferBuilds = 0;
+      this.noiseBufferUses = 0;
       this.musicBar = 0;
       this.musicPhrase = 0;
       this.lastMusicMode = "";
@@ -1503,6 +1506,7 @@
         convolver.connect(this.reverbReturn);
         this.reverbReturn.connect(this.master);
       }
+      this.warmNoiseBuffers();
     }
 
     setBiome(biome) {
@@ -2149,11 +2153,14 @@
     }
 
     materialCrackle(now, count = 4, volume = 0.03, options = {}) {
-      const total = Math.max(1, Math.min(9, Math.floor(count)));
+      const load = this.audioLoad();
+      const cap = load > 0.85 ? 3 : load > 0.65 ? 4 : load > 0.45 ? 6 : 9;
+      const total = Math.max(1, Math.min(cap, Math.floor(count)));
       const duration = clamp(Number(options.duration || 0.12), 0.025, 0.42);
       const low = Math.max(40, Number(options.low || 1200));
       const high = Math.max(low + 10, Number(options.high || 5200));
       const pan = Number(options.pan || 0);
+      const toneChance = load > 0.85 ? 0.2 : load > 0.65 ? 0.32 : 0.52;
       for (let i = 0; i < total; i++) {
         const offset = rand(0, duration);
         const startFreq = rand(low, high);
@@ -2169,7 +2176,7 @@
           attack: 0.001,
           decay: rand(0.45, 1.7)
         });
-        if (i < 4 && chance(0.52)) {
+        if (i < 4 && chance(toneChance)) {
           this.tone(rand(low, high) * 0.55, "square", rand(0.012, 0.026), volume * 0.32, now + offset, {
             bus: options.bus,
             pan: clamp(pan + rand(-0.08, 0.08), -1, 1),
@@ -2977,39 +2984,75 @@
       osc.stop(start + duration + 0.03);
     }
 
-    noiseBurst(now, length, volume, options = {}) {
-      const start = Math.max(this.ctx.currentTime, Number(now) || this.ctx.currentTime);
-      const duration = Math.max(0.008, Number(length) || 0.03);
-      const frames = Math.max(1, Math.floor(this.ctx.sampleRate * duration));
+    normalizeNoiseColor(color = "white") {
+      const text = String(color || "white").toLowerCase();
+      if (text === "brownian") return "brown";
+      return text === "pink" || text === "brown" ? text : "white";
+    }
+
+    audioLoad() {
+      const combatLoad = Number(this.game.graphicsCombatLoad?.() || 0);
+      const pressure = Number(this.game.performancePressure?.() || 0);
+      const renderPressure = Number(this.game.renderPressure?.() || 0);
+      return clamp(combatLoad * 0.32 + pressure * 0.9 + renderPressure * 0.55, 0, 1);
+    }
+
+    warmNoiseBuffers() {
+      if (!this.ctx) return;
+      this.getNoiseBuffer("white");
+      this.getNoiseBuffer("pink");
+      this.getNoiseBuffer("brown");
+    }
+
+    getNoiseBuffer(color = "white") {
+      if (!this.ctx) return null;
+      const key = this.normalizeNoiseColor(color);
+      const cached = this.noiseBuffers.get(key);
+      if (cached) return cached;
+      const seconds = 2.4;
+      const frames = Math.max(1, Math.floor(this.ctx.sampleRate * seconds));
       const buffer = this.ctx.createBuffer(1, frames, this.ctx.sampleRate);
       const data = buffer.getChannelData(0);
-      const decay = clamp(Number(options.decay ?? 1), 0.25, 5);
-      const color = String(options.color || "white").toLowerCase();
-      const pulse = Math.max(0, Number(options.pulse || 0));
       let pink0 = 0;
       let pink1 = 0;
       let pink2 = 0;
       let brown = 0;
+      let peak = 0.001;
       for (let i = 0; i < frames; i++) {
-        const fade = 1 - i / frames;
         const white = Math.random() * 2 - 1;
         let sample = white;
-        if (color === "pink") {
+        if (key === "pink") {
           pink0 = 0.99765 * pink0 + white * 0.099046;
           pink1 = 0.963 * pink1 + white * 0.2965164;
           pink2 = 0.57 * pink2 + white * 1.0526913;
-          sample = (pink0 + pink1 + pink2 + white * 0.1848) * 0.18;
-        } else if (color === "brown" || color === "brownian") {
+          sample = pink0 + pink1 + pink2 + white * 0.1848;
+        } else if (key === "brown") {
           brown = (brown + 0.025 * white) / 1.025;
           sample = brown * 3.5;
         }
-        const tremolo = pulse > 0 ? 0.78 + 0.22 * Math.sin((i / this.ctx.sampleRate) * Math.PI * 2 * pulse) : 1;
-        data[i] = clamp(sample, -1, 1) * Math.pow(fade, decay) * tremolo;
+        data[i] = sample;
+        peak = Math.max(peak, Math.abs(sample));
       }
+      const normalize = key === "white" ? 0.92 : key === "pink" ? 0.72 / peak : 0.82 / peak;
+      for (let i = 0; i < frames; i++) data[i] = clamp(data[i] * normalize, -1, 1);
+      this.noiseBuffers.set(key, buffer);
+      this.noiseBufferBuilds += 1;
+      return buffer;
+    }
+
+    noiseBurst(now, length, volume, options = {}) {
+      const start = Math.max(this.ctx.currentTime, Number(now) || this.ctx.currentTime);
+      const duration = Math.max(0.008, Number(length) || 0.03);
+      const decay = clamp(Number(options.decay ?? 1), 0.25, 5);
+      const color = this.normalizeNoiseColor(options.color);
+      const buffer = this.getNoiseBuffer(color);
+      if (!buffer) return;
       const src = this.ctx.createBufferSource();
       const filter = this.ctx.createBiquadFilter();
       const env = this.ctx.createGain();
       src.buffer = buffer;
+      src.loop = true;
+      src.playbackRate.value = rand(0.94, 1.06);
       filter.type = options.filterType || "bandpass";
       const filterStart = clamp(Number(options.frequency || options.filterFreq || 920), 40, 9000);
       const filterEnd = Number(options.frequencyEnd ?? options.filterEnd);
@@ -3026,12 +3069,16 @@
       } else {
         env.gain.setValueAtTime(peak, start + 0.001);
       }
-      env.gain.exponentialRampToValueAtTime(0.001, start + duration);
+      const releasePower = clamp(decay / 1.5, 0.25, 2.5);
+      const releaseAt = start + Math.max(0.004, duration * (0.72 - Math.min(0.32, releasePower * 0.08)));
+      env.gain.setTargetAtTime(0.001, releaseAt, Math.max(0.006, duration / (6 + releasePower * 4)));
       src.connect(filter);
       filter.connect(env);
       this.connectWithPan(env, options.bus || this.sfxMaster || this.ctx.destination, Number(options.pan || 0), Number(options.reverb || 0));
-      src.start(start);
+      const maxOffset = Math.max(0, buffer.duration - Math.min(buffer.duration * 0.25, duration));
+      src.start(start, rand(0, maxOffset));
       src.stop(start + duration + 0.01);
+      this.noiseBufferUses += 1;
     }
   }
 
@@ -4770,7 +4817,10 @@
     drainExportedAtlasPreloadQueue() {
       this.pruneExportedAtlasPreloadQueue();
       const baseLimit = this.isMobileDevice() ? 1 : 2;
-      const priorityLimit = this.isMobileDevice() ? 2 : 3;
+      const warmupActive = this.roomAssetWarmupActive();
+      const priorityLimit = this.isMobileDevice()
+        ? (warmupActive ? 4 : 2)
+        : (warmupActive ? 6 : 3);
       const limit = this.exportedAtlasPriorityQueued.size > 0 ? priorityLimit : baseLimit;
       while (this.exportedAtlasPreloadActive < limit && this.exportedAtlasPreloadQueue.length) {
         const priorityIndex = this.exportedAtlasPriorityQueued.size > 0
@@ -5182,7 +5232,14 @@
 
     queueExportedImage(path = "", priority = false) {
       if (!path || this.exportedAssetMissing.has(path)) return;
-      if (this.queueExportedAtlasFrame(path, priority)) return;
+      if (this.queueExportedAtlasFrame(path, priority)) {
+        this.exportedAssetQueued.delete(path);
+        this.exportedAssetPriorityQueued.delete(path);
+        if (this.exportedAssetPreloadQueue?.length) {
+          this.exportedAssetPreloadQueue = this.exportedAssetPreloadQueue.filter((entry) => entry !== path);
+        }
+        return;
+      }
       if (this.exportedAssetQueued.has(path)) {
         if (priority) {
           this.exportedAssetPriorityQueued.add(path);
@@ -5423,16 +5480,28 @@
 
     preloadCurrentRoomExportAssets(priority = true) {
       if (!this.run) return;
-      this.preloadRunExportAssets(this.run.power, this.run.biome, this.run.player?.characterId, priority);
-      const monsterKinds = new Set((this.run.enemies || []).map((enemy) => enemy?.kind).filter((kind) => MONSTER_TYPES[kind]));
-      this.preloadMonsterExportFrames(monsterKinds, priority);
-      for (const hazard of this.run.hazards || []) this.queueExportedSequence(`assets/exported/traps/${hazard.type || "blade"}/active_00.png`, priority);
-      for (const object of this.run.roomObjects || []) {
-        if (object.type === "treasureChest") this.preloadChestExportFrames("treasureChest", true);
-        if (object.type === "nextDoor" || object.type === "bossGate" || object.type === "bossExit") this.preloadDoorExportFrames(this.doorExportId(object), true);
+      const queueRoomAssets = () => {
+        if (!this.run) return;
+        this.preloadRunExportAssets(this.run.power, this.run.biome, this.run.player?.characterId, priority);
+        const monsterKinds = new Set((this.run.enemies || []).map((enemy) => enemy?.kind).filter((kind) => MONSTER_TYPES[kind]));
+        this.preloadMonsterExportFrames(monsterKinds, priority);
+        for (const hazard of this.run.hazards || []) this.queueExportedSequence(`assets/exported/traps/${hazard.type || "blade"}/active_00.png`, priority);
+        for (const object of this.run.roomObjects || []) {
+          if (object.type === "treasureChest") this.preloadChestExportFrames("treasureChest", true);
+          if (object.type === "nextDoor" || object.type === "bossGate" || object.type === "bossExit") this.preloadDoorExportFrames(this.doorExportId(object), true);
+        }
+        if (this.run.currentRoom?.type === "normal") this.preloadDoorExportFrames("normal", false);
+        if (this.run.currentRoom?.type === "boss") this.preloadDoorExportFrames("bossGate", true);
+        this.drainExportedAtlasPreloadQueue();
+      };
+      queueRoomAssets();
+      const atlas = this.loadExportedAtlasManifest();
+      if (atlas?.then && !this.exportedAtlasFrames.size) {
+        atlas.then(() => {
+          queueRoomAssets();
+          if (priority) this.beginRoomAssetWarmup();
+        }, () => {});
       }
-      if (this.run.currentRoom?.type === "normal") this.preloadDoorExportFrames("normal", false);
-      if (this.run.currentRoom?.type === "boss") this.preloadDoorExportFrames("bossGate", true);
       if (priority) this.beginRoomAssetWarmup();
     }
 

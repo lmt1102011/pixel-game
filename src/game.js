@@ -9,7 +9,7 @@
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
   const SIGNAL_REALTIME_RELAY_LIMIT = 2;
   const SIGNAL_REALTIME_TYPES = new Set(["state", "snapshot", "attack", "skill", "collect", "openChest", "dropItem", "damage", "chooseDoor"]);
-  const APP_VERSION = "20260607-door-aura-stable-303";
+  const APP_VERSION = "20260607-no-default-aura-304";
   const CHANGELOG_ENTRIES = [
     {
       version: APP_VERSION,
@@ -1115,7 +1115,7 @@
         color: "#d8b46a",
         eyes: "ember",
         mouth: "scar",
-        aura: "gold",
+        aura: "",
         accessory: "cape",
         trail: "sparks"
       },
@@ -12301,10 +12301,8 @@
       const selected = this.save.account.selectedPower ? powerById(this.save.account.selectedPower) : powerById("fire");
       const character = characterById(this.save.account.selectedCharacter);
       const heroColor = normalizeHeroColor(custom.color, character.color);
-      const aura = { gold: "#f2bf63", crimson: "#ff4b55", teal: "#35d6c9", violet: "#a169ff" }[custom.aura] || selected.color;
       return `
-        <div class="character-preview char-${character.id}" style="--hero:${heroColor}; --aura:${aura}; --power:${selected.color}; --char:${character.color}">
-          <div class="preview-aura"></div>
+        <div class="character-preview char-${character.id}" style="--hero:${heroColor}; --power:${selected.color}; --char:${character.color}">
           <div class="preview-trail preview-${custom.trail}"></div>
           <div class="preview-hero">
             <span class="preview-cloak preview-${custom.accessory}"></span>
@@ -26741,12 +26739,6 @@
       ctx.ellipse(0, 20, 19 + Math.abs(stride) * 2, 5, 0, 0, TAU);
       ctx.fill();
       if (awakenedPowerActive && deathProgress <= 0) this.drawAwakenedPowerAura(ctx, power, t);
-      ctx.fillStyle = auraColor;
-      ctx.globalAlpha *= anim === "ultimate" ? 0.28 : anim === "skill" ? 0.22 : 0.14;
-      ctx.beginPath();
-      ctx.arc(0, 2, 22 + Math.sin(t * 4) * 2 + (castFrame + ultFrame) * 6, 0, TAU);
-      ctx.fill();
-      ctx.globalAlpha = 1;
       if (anim === "skill" || anim === "ultimate") {
         const castPalette = this.powerDesignPalette(castKind, awakenedPowerActive);
         ctx.strokeStyle = castPalette.accent;

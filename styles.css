@@ -4359,19 +4359,6 @@ body.pwa-landing-active .screen {
     rgba(0, 0, 0, 0.28);
 }
 
-.preview-aura {
-  position: absolute;
-  left: 50%;
-  top: 52%;
-  width: 190px;
-  height: 190px;
-  transform: translate(-50%, -50%);
-  border: 2px solid var(--aura);
-  background: color-mix(in srgb, var(--aura), transparent 86%);
-  box-shadow: 0 0 36px color-mix(in srgb, var(--aura), transparent 45%);
-  animation: previewPulse 2.2s ease-in-out infinite;
-}
-
 .preview-trail {
   position: absolute;
   left: 44%;
@@ -4393,7 +4380,7 @@ body.pwa-landing-active .screen {
   content: "";
   position: absolute;
   inset: -12px 18px;
-  border: 2px dashed var(--aura);
+  border: 2px dashed var(--power);
 }
 
 .preview-hero {

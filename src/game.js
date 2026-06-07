@@ -9,7 +9,7 @@
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
   const SIGNAL_REALTIME_RELAY_LIMIT = 2;
   const SIGNAL_REALTIME_TYPES = new Set(["state", "snapshot", "attack", "skill", "collect", "openChest", "dropItem", "damage", "chooseDoor"]);
-  const APP_VERSION = "20260607-combat-query-pool-282";
+  const APP_VERSION = "20260607-query-buffer-clean-283";
   const CHANGELOG_ENTRIES = [
     {
       version: APP_VERSION,
@@ -13545,8 +13545,9 @@
           if (Math.abs(angleDelta(a, angle)) > arc * 0.5) continue;
           this.insertEnemyQueryResult(struck, enemy, d2, limit);
         }
-        for (const enemy of struck) {
-          const d = Math.sqrt(Number(enemy._queryMetric || 0));
+        for (let i = 0; i < struck.length; i++) {
+          const enemy = struck[i];
+          const d = Math.sqrt(Number(struck._metrics?.[i] || 0));
           hitEnemy(enemy, amount * Math.max(0.55, 1 - d / (range * 1.8)));
         }
         return struck;
@@ -14788,12 +14789,12 @@
       const enemies = this.run?.enemies || [];
       for (const enemy of enemies) {
         if (!enemy || enemy.hp <= 0) continue;
-        if (predicate && !predicate(enemy)) continue;
         const dx = enemy.x - x;
         const dy = enemy.y - y;
         const hitRadius = radius + enemy.radius;
         const d2 = dx * dx + dy * dy;
         if (d2 >= hitRadius * hitRadius) continue;
+        if (predicate && !predicate(enemy)) continue;
         this.insertEnemyQueryResult(result, enemy, d2, limit);
       }
       return result;
@@ -20548,25 +20549,30 @@
       }
       const buffer = this.enemyQueryBuffers[this.enemyQueryBufferIndex++ % this.enemyQueryBuffers.length];
       buffer.length = 0;
+      buffer._metrics ||= [];
+      buffer._metrics.length = 0;
       return buffer;
     }
 
     insertEnemyQueryResult(buffer, enemy, metric, limit = 99) {
       if (!buffer || !enemy || limit <= 0) return;
-      enemy._queryMetric = metric;
+      buffer._metrics ||= [];
+      const metrics = buffer._metrics;
       let index = buffer.length;
       if (index < limit) {
         buffer.length = index + 1;
+        metrics.length = buffer.length;
       } else {
-        const last = buffer[index - 1];
-        if (last && metric >= Number(last._queryMetric || 0)) return;
+        if (metric >= Number(metrics[index - 1] || 0)) return;
         index -= 1;
       }
-      while (index > 0 && metric < Number(buffer[index - 1]?._queryMetric || 0)) {
+      while (index > 0 && metric < Number(metrics[index - 1] || 0)) {
         buffer[index] = buffer[index - 1];
+        metrics[index] = metrics[index - 1];
         index -= 1;
       }
       buffer[index] = enemy;
+      metrics[index] = metric;
     }
 
     updateRoomObjects(dt) {

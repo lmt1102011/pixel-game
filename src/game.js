@@ -9,7 +9,7 @@
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
   const SIGNAL_REALTIME_RELAY_LIMIT = 2;
   const SIGNAL_REALTIME_TYPES = new Set(["state", "snapshot", "attack", "skill", "collect", "openChest", "dropItem", "damage", "chooseDoor"]);
-  const APP_VERSION = "20260607-awakened-vfx-aura-302";
+  const APP_VERSION = "20260607-door-aura-stable-303";
   const CHANGELOG_ENTRIES = [
     {
       version: APP_VERSION,
@@ -14847,7 +14847,10 @@
       }
       const p = this.run.player;
       const touchRadius = object.radius * 0.82;
-      if (Math.hypot(p.x - object.x, p.y - object.y) > p.radius + touchRadius) {
+      const dx = p.x - object.x;
+      const dy = p.y - object.y;
+      const leaveRange = p.radius + touchRadius;
+      if (dx * dx + dy * dy > leaveRange * leaveRange) {
         object.enterProgress = 0;
         this.run.pendingDoor = null;
         return;
@@ -25519,15 +25522,19 @@
 
     drawDoorObject(ctx, object) {
       const grow = clamp(object.grow || 0, 0, 1);
+      const previousVisualGrow = Number(object.visualGrow);
+      const fullVisualGrow = grow >= 0.985 || object.enterProgress > 0 || object.opened;
+      const visualGrow = clamp(Math.max(Number.isFinite(previousVisualGrow) ? previousVisualGrow : 0, fullVisualGrow ? 1 : grow), 0, 1);
+      object.visualGrow = visualGrow;
       const color = object.color || this.run.biome.accent;
       const w = object.type === "bossGate" ? 118 : object.type === "bossExit" ? 92 : 84;
       const h = object.type === "bossGate" ? 146 : object.type === "bossExit" ? 112 : 120;
-      const y = object.y + (1 - grow) * 54;
-      if (this.drawExportedDoorObject(ctx, object, grow, y, w, h)) return;
+      const y = object.y + (1 - visualGrow) * 54;
+      // Gameplay doors stay on one render path so late-loading exported sprites cannot resize them during approach.
       this.drawObjectAmbient(ctx, { ...object, y }, Math.max(w, h) * 0.62);
       ctx.save();
       ctx.translate(object.x, y);
-      ctx.scale(grow, grow);
+      ctx.scale(Math.max(0.001, visualGrow), Math.max(0.001, visualGrow));
       ctx.shadowColor = color;
       ctx.shadowBlur = this.glow(object.type === "bossGate" ? 28 : 18);
       ctx.fillStyle = "rgba(0,0,0,0.44)";
@@ -26158,8 +26165,8 @@
       const accent = power?.accent || "#ffffff";
       const quality = this.effectQuality();
       const lowDetail = this.performancePanic() || quality < 0.58;
-      const count = lowDetail ? 6 : (kind === "lightning" ? 11 : 9);
-      const drift = kind === "lightning" ? 4.6 : kind === "fire" ? 3.4 : kind === "time" ? 2.2 : 2.8;
+      const count = lowDetail ? 2 : (kind === "lightning" ? 4 : 3);
+      const drift = kind === "lightning" ? 4.3 : kind === "fire" ? 3.1 : kind === "time" ? 2.0 : 2.5;
       ctx.save();
       ctx.globalCompositeOperation = lowDetail ? "source-over" : "lighter";
       ctx.shadowBlur = 0;
@@ -26170,74 +26177,46 @@
         const seed = i * 1.731 + kind.length * 0.41;
         const phase = (t * drift + seed) % 1;
         const pop = Math.sin(phase * Math.PI);
-        if (pop <= 0.08) continue;
-        const angle = seed * 2.9 + Math.sin(t * 0.9 + seed) * 0.45;
-        const rx = 20 + (i % 3) * 6 + pop * (kind === "lightning" ? 10 : 7);
-        const ry = 25 + (i % 2) * 7;
-        const px = Math.cos(angle) * rx + Math.sin(t * 5.1 + seed) * 3.5;
-        const py = -5 + Math.sin(angle) * ry + Math.cos(t * 4.2 + seed) * 2.5;
-        const size = (lowDetail ? 5.8 : 7.4) + pop * (kind === "lightning" ? 6.8 : 4.4);
+        if (pop <= 0.22) continue;
+        const angle = seed * 2.9 + Math.sin(t * 0.9 + seed) * 0.28;
+        const rx = 12 + (i % 2) * 4 + pop * (kind === "lightning" ? 5 : 3);
+        const ry = 16 + (i % 2) * 4;
+        const px = Math.cos(angle) * rx + Math.sin(t * 5.1 + seed) * 1.8;
+        const py = -4 + Math.sin(angle) * ry + Math.cos(t * 4.2 + seed) * 1.4;
+        const size = (lowDetail ? 4.6 : 5.8) + pop * (kind === "lightning" ? 3.6 : 2.4);
         ctx.save();
         ctx.translate(px, py);
         ctx.rotate(angle + (kind === "time" ? t * 1.2 : phase * 1.8));
-        ctx.globalAlpha = (lowDetail ? 0.68 : 0.9) * pop;
+        ctx.globalAlpha = (lowDetail ? 0.56 : 0.72) * pop;
         this.drawAwakenedAuraVfx(ctx, kind, size, color, accent, phase);
         ctx.restore();
       }
 
       if (kind === "lightning") {
-        const bolts = lowDetail ? 4 : 6;
+        const bolts = lowDetail ? 1 : 2;
         for (let i = 0; i < bolts; i++) {
           const seed = i * 2.17 + 0.33;
           const phase = (t * 5.8 + seed) % 1;
           const alpha = Math.sin(phase * Math.PI);
           if (alpha <= 0.22) continue;
           const side = i % 2 ? 1 : -1;
-          const y = -24 + i * 11 + Math.sin(t * 7 + seed) * 3;
-          const x = side * (10 + i * 2);
+          const y = -19 + i * 14 + Math.sin(t * 7 + seed) * 2;
+          const x = side * (8 + i * 2);
           ctx.save();
-          ctx.globalAlpha = (lowDetail ? 0.62 : 0.9) * alpha;
+          ctx.globalAlpha = (lowDetail ? 0.58 : 0.78) * alpha;
           ctx.strokeStyle = accent;
-          ctx.lineWidth = lowDetail ? 2.2 : 3.0;
+          ctx.lineWidth = lowDetail ? 1.9 : 2.5;
           ctx.shadowColor = color;
-          ctx.shadowBlur = lowDetail ? 0 : 10;
+          ctx.shadowBlur = lowDetail ? 0 : 6;
           ctx.beginPath();
-          ctx.moveTo(x - side * 23, y - 10);
-          ctx.lineTo(x - side * 6, y - 2);
-          ctx.lineTo(x - side * 14, y + 7);
-          ctx.lineTo(x + side * 22, y + 12);
+          ctx.moveTo(x - side * 14, y - 7);
+          ctx.lineTo(x - side * 4, y - 1);
+          ctx.lineTo(x - side * 9, y + 5);
+          ctx.lineTo(x + side * 13, y + 8);
           ctx.stroke();
           ctx.restore();
         }
       }
-
-      const badgeY = -35 + (lowDetail ? 0 : Math.sin(t * 2.4) * 0.7);
-      ctx.globalCompositeOperation = "source-over";
-      ctx.translate(0, badgeY);
-      ctx.globalAlpha = 1;
-      ctx.fillStyle = "rgba(7, 10, 18, 0.86)";
-      ctx.beginPath();
-      ctx.moveTo(0, lowDetail ? -9 : -11);
-      ctx.lineTo(lowDetail ? 9 : 11, 0);
-      ctx.lineTo(0, lowDetail ? 9 : 11);
-      ctx.lineTo(lowDetail ? -9 : -11, 0);
-      ctx.closePath();
-      ctx.fill();
-      ctx.strokeStyle = hexToRgba(color, lowDetail ? 0.72 : 0.95);
-      ctx.lineWidth = lowDetail ? 1.6 : 2;
-      ctx.beginPath();
-      ctx.moveTo(0, lowDetail ? -9 : -11);
-      ctx.lineTo(lowDetail ? 9 : 11, 0);
-      ctx.lineTo(0, lowDetail ? 9 : 11);
-      ctx.lineTo(lowDetail ? -9 : -11, 0);
-      ctx.closePath();
-      ctx.stroke();
-      if (!lowDetail) {
-        ctx.strokeStyle = hexToRgba(accent, 0.48);
-        ctx.lineWidth = 1.1;
-        ctx.strokeRect(-4.2, -4.2, 8.4, 8.4);
-      }
-      this.drawAwakenedAuraVfx(ctx, kind, lowDetail ? 5.6 : 6.6, color, accent, 0.5);
       ctx.restore();
     }
 
@@ -26494,33 +26473,7 @@
       if (actor.invuln > 0 && Math.floor(t * 16) % 2 === 0) ctx.globalAlpha = 0.55;
       block(-18, 18, 36, 5, "rgba(0,0,0,0.26)");
       if (awakened && death <= 0) {
-        const kind = power.id || "fire";
-        const color = power.color || "#ff4655";
-        const accent = power.accent || "#ffffff";
-        ctx.globalCompositeOperation = "lighter";
-        for (let i = 0; i < (kind === "lightning" ? 6 : 5); i++) {
-          const a = t * (kind === "lightning" ? 4.2 : 2.7) + i * TAU / (kind === "lightning" ? 6 : 5);
-          const pulse = 0.65 + Math.sin(t * 5 + i * 1.7) * 0.25;
-          ctx.save();
-          ctx.translate(Math.cos(a) * 26, -5 + Math.sin(a) * 27);
-          ctx.rotate(a + t * 0.8);
-          ctx.globalAlpha = 0.76 + pulse * 0.18;
-          this.drawAwakenedAuraVfx(ctx, kind, kind === "lightning" ? 7.4 : 6.6, color, accent, (t + i * 0.13) % 1);
-          ctx.restore();
-        }
-        if (kind === "lightning") {
-          ctx.strokeStyle = accent;
-          ctx.lineWidth = 2.4;
-          ctx.globalAlpha = 0.84;
-          ctx.beginPath();
-          ctx.moveTo(-24, -24);
-          ctx.lineTo(-6, -13);
-          ctx.lineTo(-14, -3);
-          ctx.lineTo(24, 7);
-          ctx.stroke();
-        }
-        ctx.globalAlpha = 1;
-        ctx.globalCompositeOperation = "source-over";
+        this.drawAwakenedPowerAura(ctx, power, t, "front");
       }
       const legOffset = moving ? (walk % 2 ? 2 : -2) : 0;
       block(-9 + legOffset, 7, 7, 13, dark);

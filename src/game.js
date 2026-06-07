@@ -9,7 +9,7 @@
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
   const SIGNAL_REALTIME_RELAY_LIMIT = 2;
   const SIGNAL_REALTIME_TYPES = new Set(["state", "snapshot", "attack", "skill", "collect", "openChest", "dropItem", "damage", "chooseDoor"]);
-  const APP_VERSION = "20260607-exit-buttons-251";
+  const APP_VERSION = "20260607-exit-inline-252";
   const CHANGELOG_ENTRIES = [
     {
       version: APP_VERSION,
@@ -5824,18 +5824,17 @@
       requestAnimationFrame(() => this.renderMainMenuHero());
     }
 
+    menuExitButton(extraClass = "") {
+      const className = extraClass ? ` ${extraClass}` : "";
+      return `<button class="btn nav-exit-btn${className}" data-action="menu">THOÁT</button>`;
+    }
+
     navHtml(active) {
       const item = (id, label, primary = false) => `
         <button class="btn ${primary ? "primary" : ""} ${active === id ? "active" : ""}" data-action="${id}">${label}</button>
       `;
       if (active !== "home") {
-        return `
-          <nav class="main-nav back-nav">
-            <div class="nav-buttons">
-              <button class="btn nav-exit-btn" data-action="menu">THOÁT</button>
-            </div>
-          </nav>
-        `;
+        return "";
       }
       return `
         <nav class="main-nav">
@@ -6939,7 +6938,10 @@
                 <h2 class="panel-title">Mini game</h2>
                 <p class="panel-subtitle">Chọn chế độ ngắn với luật riêng. Hiện có Đại chiến boss.</p>
               </div>
-              <button class="btn" data-action="play">CHƠI</button>
+              <div class="header-actions command-header-actions">
+                <button class="btn" data-action="play">CHƠI</button>
+                ${this.menuExitButton()}
+              </div>
             </div>
             <div class="grid cols-2">
               <button class="choice-card" data-action="play-boss-rush">
@@ -6972,7 +6974,10 @@
                 <h2 class="panel-title">Đại chiến boss</h2>
                 <p class="panel-subtitle">${selected ? `Power: ${selected.name}. Chọn solo hoặc vào phòng boss cùng bạn.` : "Hãy quay và chọn power trước khi bắt đầu."}</p>
               </div>
-              <button class="btn" data-action="play-minigames">MINI GAME</button>
+              <div class="header-actions command-header-actions">
+                <button class="btn" data-action="play-minigames">MINI GAME</button>
+                ${this.menuExitButton()}
+              </div>
             </div>
             <div class="grid cols-2">
               <button class="choice-card" data-action="play-boss-rush-solo">
@@ -7015,7 +7020,10 @@
                 <h2 class="panel-title">Solo Đại chiến boss</h2>
                 <p class="panel-subtitle">${selected ? `Power: ${selected.name}. Chọn độ khó rồi vào boss ngay.` : "Hãy quay và chọn power trước khi bắt đầu."}</p>
               </div>
-              <button class="btn" data-action="play-boss-rush">ĐẠI CHIẾN BOSS</button>
+              <div class="header-actions command-header-actions">
+                <button class="btn" data-action="play-boss-rush">ĐẠI CHIẾN BOSS</button>
+                ${this.menuExitButton()}
+              </div>
             </div>
             <div class="grid cols-3">${difficultyCards}</div>
           </div>
@@ -7037,7 +7045,10 @@
                 <h2 class="panel-title">Vượt ải</h2>
                 <p class="panel-subtitle">${selected ? `Power: ${selected.name}. Chọn vượt ải thường hoặc Raid A để kiếm ${gem}.` : "Hãy quay và chọn power trước khi bắt đầu."}</p>
               </div>
-              <button class="btn" data-action="play">CHƠI</button>
+              <div class="header-actions command-header-actions">
+                <button class="btn" data-action="play">CHƠI</button>
+                ${this.menuExitButton()}
+              </div>
             </div>
             <div class="grid cols-2">
               <button class="choice-card" data-action="play-gauntlet-normal">
@@ -7069,7 +7080,10 @@
                 <h2 class="panel-title">Vượt ải</h2>
                 <p class="panel-subtitle">${selected ? `Power: ${selected.name}. Chọn chơi đơn hoặc chơi nhiều người.` : "Hãy quay và chọn power trước khi bắt đầu."}</p>
               </div>
-              <button class="btn" data-action="play-gauntlet">VƯỢT ẢI</button>
+              <div class="header-actions command-header-actions">
+                <button class="btn" data-action="play-gauntlet">VƯỢT ẢI</button>
+                ${this.menuExitButton()}
+              </div>
             </div>
             <div class="grid cols-2">
               <button class="choice-card" data-action="play-solo">
@@ -7109,7 +7123,10 @@
                 <h2 class="panel-title">Vượt ải một mình</h2>
                 <p class="panel-subtitle">${selected ? `Power: ${selected.name}` : "Hãy quay và chọn power trước khi bắt đầu."}</p>
               </div>
-              <button class="btn" data-action="play-gauntlet">VƯỢT ẢI</button>
+              <div class="header-actions command-header-actions">
+                <button class="btn" data-action="play-gauntlet">VƯỢT ẢI</button>
+                ${this.menuExitButton()}
+              </div>
             </div>
             <div class="grid cols-3">${difficultyCards}</div>
           </div>
@@ -7138,7 +7155,10 @@
                 <h2 class="panel-title">Raid A</h2>
                 <p class="panel-subtitle">Raid thức tỉnh của ${selected.name}. Thắng raid sẽ nhận 1 ${materialLabel(gemId)}.</p>
               </div>
-              <button class="btn" data-action="play-gauntlet">VƯỢT ẢI</button>
+              <div class="header-actions command-header-actions">
+                <button class="btn" data-action="play-gauntlet">VƯỢT ẢI</button>
+                ${this.menuExitButton()}
+              </div>
             </div>
             <div class="grid cols-3">
               <div class="choice-card locked" style="border-color:${selected.color}">
@@ -7212,7 +7232,10 @@
                 <h2 class="panel-title">Phòng Huấn Luyện</h2>
                 <p class="panel-subtitle">${selected ? `Power: ${selected.name}. Vào phòng có 5 dummy để test chiêu.` : "Hãy quay và chọn power trước khi vào phòng huấn luyện."}</p>
               </div>
-              <button class="btn" data-action="play">CHƠI</button>
+              <div class="header-actions command-header-actions">
+                <button class="btn" data-action="play">CHƠI</button>
+                ${this.menuExitButton()}
+              </div>
             </div>
             <div class="grid">
               ${check("trainingDamage", "Gây sát thương", "Bật để dummy mất máu, tắt để chỉ test hitbox và hiệu ứng.", options.damage)}
@@ -7255,7 +7278,10 @@
                 <h2 class="panel-title">${title}</h2>
                 <p class="panel-subtitle">${subtitle}</p>
               </div>
-              <button class="btn" data-action="${backAction}">${backLabel}</button>
+              <div class="header-actions command-header-actions">
+                <button class="btn" data-action="${backAction}">${backLabel}</button>
+                ${this.menuExitButton()}
+              </div>
             </div>
             ${bossRush ? `<p class="small">Chế độ phòng: Đại chiến boss. Khi bắt đầu sẽ vào thẳng boss, không có phòng quái thường.</p>` : ""}
             ${playerBoss ? `<p class="small">Chế độ phòng: Hóa Trùm. Một người ngẫu nhiên thành boss, những người còn lại phải hạ boss.</p>` : ""}
@@ -7451,6 +7477,7 @@
               <div class="header-actions">
                 <button class="btn icon-label" data-action="reload-rooms"><span class="btn-icon">↻</span> TẢI LẠI</button>
                 <button class="btn" data-action="${backAction}">${modeLabel}</button>
+                ${this.menuExitButton()}
               </div>
             </div>
             <div class="room-finder-layout">
@@ -7857,6 +7884,7 @@
                 <h2 class="panel-title">Bạn bè</h2>
                 <p class="panel-subtitle">Kết bạn bằng tên tài khoản, nhận lời mời và mời bạn vào phòng.</p>
               </div>
+              ${this.menuExitButton()}
             </div>
             <div class="friend-layout">
               <div class="friend-side">
@@ -8485,6 +8513,7 @@
                 <h2 class="panel-title">Nhân Vật</h2>
                 <p class="panel-subtitle">Chọn class sẽ mang vào ải. Điểm nâng và tùy biến đã tách sang tab riêng.</p>
               </div>
+              ${this.menuExitButton()}
             </div>
             ${this.characterTabs("character")}
             <div class="character-layout">
@@ -8529,6 +8558,7 @@
                 <h2 class="panel-title">Điểm Nâng</h2>
                 <p class="panel-subtitle">Mỗi cấp thêm 1 điểm. Điểm nâng không giới hạn, hệ số tăng nhẹ để không phá game.</p>
               </div>
+              ${this.menuExitButton()}
             </div>
             ${this.characterTabs("stats")}
             <div class="character-layout">
@@ -8592,6 +8622,7 @@
                 <h2 class="panel-title">Tùy Biến</h2>
                 <p class="panel-subtitle">Màu nhân vật, khuôn mặt, hào quang, phụ kiện và vệt lướt.</p>
               </div>
+              ${this.menuExitButton()}
             </div>
             ${this.characterTabs("custom")}
             <div class="character-layout">
@@ -8670,6 +8701,7 @@
                 <h2 class="panel-title">Kho Nguyên Liệu</h2>
                 <p class="panel-subtitle">Chỉ nguyên liệu được giữ lại. Phụ trợ và tiền trong ải sẽ mất khi thoát lượt.</p>
               </div>
+              ${this.menuExitButton()}
             </div>
             ${this.characterTabs("inventory")}
             <div class="inventory-list">${materials}</div>
@@ -8750,6 +8782,7 @@
               <div class="header-actions">
                 <button class="btn icon-label" data-action="power-book"><span class="book-icon" aria-hidden="true"></span> TẤT CẢ</button>
                 <button class="btn primary" data-action="spin-power">QUAY SỨC MẠNH</button>
+                ${this.menuExitButton()}
               </div>
             </div>
             ${this.characterTabs("powers")}
@@ -8778,7 +8811,10 @@
                 <h2 class="panel-title">Sách Sức Mạnh</h2>
                 <p class="panel-subtitle">Toàn bộ sức mạnh có thể xuất hiện khi quay. Biểu tượng được làm riêng để dễ nhận diện.</p>
               </div>
-              <button class="btn" data-action="powers">TRỞ LẠI</button>
+              <div class="header-actions command-header-actions">
+                <button class="btn" data-action="powers">TRỞ LẠI</button>
+                ${this.menuExitButton()}
+              </div>
             </div>
             ${this.characterTabs("powers")}
             <div class="grid cols-3">${rows}</div>
@@ -8823,6 +8859,7 @@
                 <h2 class="panel-title">Thức Tỉnh</h2>
                 <p class="panel-subtitle">Cần 1 ngọc riêng của power từ Raid A, 3 Lõi Trùm và 1 Tia Thần. Thất bại vẫn tăng tỉ lệ cho lần sau.</p>
               </div>
+              ${this.menuExitButton()}
             </div>
             ${this.characterTabs("awakening")}
             <div class="awakening-list">${rows || `<div class="empty-state">Bạn chưa sở hữu sức mạnh nào để thức tỉnh.</div>`}</div>
@@ -8844,7 +8881,7 @@
                 <h2 class="panel-title">Cài Đặt</h2>
                 <p class="panel-subtitle">Hiệu chỉnh khe nứt.</p>
               </div>
-              ${inRun ? `<button class="btn" data-action="resume">ĐÓNG</button>` : ""}
+              ${inRun ? `<button class="btn" data-action="resume">ĐÓNG</button>` : this.menuExitButton()}
             </div>
             <div class="grid">
               ${this.settingCheck("music", "Nhạc", s.music)}
@@ -9010,6 +9047,7 @@
                 <h2 class="panel-title">${awakeningRaid ? "Phòng Raid A" : playerBoss ? "Phòng hóa trùm" : bossRush ? "Phòng đại chiến boss" : "Phòng vượt ải"}</h2>
                 <p class="panel-subtitle">${awakeningRaid ? (isHost ? `Chủ phòng bắt đầu Raid ${raidPower.name}; boss trâu hơn và chỉ dùng chiêu hệ ${raidPower.name}.` : `Sẵn sàng để vào Raid ${raidPower.name} cùng chủ phòng.`) : playerBoss ? (isHost ? "Chủ phòng chọn khu rồi bắt đầu để random một người làm boss." : "Bạn sẵn sàng, khi bắt đầu sẽ random một người làm boss.") : bossRush ? (isHost ? "Chủ phòng chọn khu rồi bắt đầu boss-only khi mọi người sẵn sàng." : "Bạn chỉ cần sẵn sàng, chủ phòng sẽ bắt đầu trận boss-only.") : (isHost ? "Chủ phòng chọn khu, độ khó và bắt đầu khi mọi người sẵn sàng." : "Bạn chỉ cần sẵn sàng, chủ phòng sẽ chọn khu, độ khó và bắt đầu.")}</p>
               </div>
+              ${this.menuExitButton()}
             </div>
             <div class="grid cols-2 ${this.lobby.code ? "hidden" : ""}">
               <button class="btn primary" data-action="create-room">TẠO PHÒNG</button>

@@ -283,7 +283,7 @@ body.pwa-landing-active .screen {
   width: min(1180px, 100%);
   max-height: none;
   display: grid;
-  grid-template-columns: minmax(230px, 310px) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr);
   gap: 16px;
 }
 
@@ -381,6 +381,11 @@ body.pwa-landing-active .screen {
 
 .back-nav {
   align-self: start;
+}
+
+.shell > .back-nav,
+.command-page > .back-nav {
+  display: none;
 }
 
 .back-nav .logo,
@@ -3224,7 +3229,7 @@ body.pwa-landing-active .screen {
   min-height: calc(var(--app-height) - 48px);
   max-height: calc(var(--app-height) - 48px);
   display: grid;
-  grid-template-columns: minmax(190px, 230px) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr);
   gap: 12px;
   padding: 16px;
   overflow: hidden;
@@ -3282,9 +3287,13 @@ body.pwa-landing-active .screen {
   min-height: 40px;
 }
 
+.command-header-actions {
+  align-items: center;
+}
+
 .command-page .panel-header .nav-exit-btn,
 .missions-panel .panel-header .nav-exit-btn {
-  align-self: start;
+  align-self: center;
   min-height: 38px;
   padding-inline: 16px;
 }
@@ -8798,7 +8807,7 @@ body.is-mobile-ui .touch-actions [data-touch="f"] {
 
 @media (max-width: 1180px) {
   .command-page {
-    grid-template-columns: minmax(166px, 210px) minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .command-page .character-layout {
@@ -10201,7 +10210,7 @@ body.is-mobile-ui .friends-big-btn {
     width: 100%;
     min-height: var(--app-height);
     max-height: var(--app-height);
-    grid-template-columns: minmax(132px, 176px) minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1fr);
     gap: 6px;
     padding: max(5px, env(safe-area-inset-top)) max(6px, env(safe-area-inset-right)) max(5px, env(safe-area-inset-bottom)) max(6px, env(safe-area-inset-left));
   }

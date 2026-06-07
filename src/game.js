@@ -9,7 +9,7 @@
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
   const SIGNAL_REALTIME_RELAY_LIMIT = 2;
   const SIGNAL_REALTIME_TYPES = new Set(["state", "snapshot", "attack", "skill", "collect", "openChest", "dropItem", "damage", "chooseDoor"]);
-  const APP_VERSION = "20260607-frame-helper-cache-297";
+  const APP_VERSION = "20260607-combat-allocation-cache-298";
   const CHANGELOG_ENTRIES = [
     {
       version: APP_VERSION,
@@ -1648,10 +1648,14 @@
       if (this.game.mode === "victory") return { mode: "victory", intensity: 0.52 };
       if (!run) return { mode: "menu", intensity: 0.12 };
       const enemies = run.enemies || [];
-      const liveEnemies = enemies.filter((enemy) => enemy && enemy.hp > 0 && !enemy.trainingDummy);
-      const boss = liveEnemies.some((enemy) => enemy.boss || enemy.playerBoss);
-      if (boss) return { mode: "boss", intensity: 0.94 };
-      if (liveEnemies.length) return { mode: "combat", intensity: 0.66 };
+      let liveEnemies = 0;
+      for (let i = 0; i < enemies.length; i++) {
+        const enemy = enemies[i];
+        if (!enemy || enemy.hp <= 0 || enemy.trainingDummy) continue;
+        if (enemy.boss || enemy.playerBoss) return { mode: "boss", intensity: 0.94 };
+        liveEnemies += 1;
+      }
+      if (liveEnemies > 0) return { mode: "combat", intensity: 0.66 };
       if (this.game.mode === "game") return { mode: "explore", intensity: 0.24 };
       return { mode: "menu", intensity: 0.14 };
     }
@@ -15336,7 +15340,9 @@
         this.addBasicAttackBurst(x + dirX * range * 0.35 - dirY * 14, y + dirY * range * 0.35 + dirX * 14, angle - 0.18, "martial", range * 0.78);
       }
       let hits = 0;
-      for (const enemy of [...this.run.enemies]) {
+      for (let i = this.run.enemies.length - 1; i >= 0; i--) {
+        const enemy = this.run.enemies[i];
+        if (!enemy || enemy.hp <= 0) continue;
         const dx = enemy.x - x;
         const dy = enemy.y - y;
         const d = Math.hypot(dx, dy);
@@ -15385,7 +15391,9 @@
       const sideY = dirX;
       this.addBasicAttackBurst(x + dirX * length * 0.56, y + dirY * length * 0.56, angle, "spearman", length);
       let hits = 0;
-      for (const enemy of [...this.run.enemies]) {
+      for (let i = this.run.enemies.length - 1; i >= 0; i--) {
+        const enemy = this.run.enemies[i];
+        if (!enemy || enemy.hp <= 0) continue;
         const dx = enemy.x - x;
         const dy = enemy.y - y;
         const forward = dx * dirX + dy * dirY;
@@ -15434,15 +15442,25 @@
       this.addBasicAttackBurst(centerX, centerY, angle, "assassin", range);
       this.audio.attack("assassin", { x: centerX, y: centerY, combo });
       let hits = 0;
-      for (const enemy of [...this.run.enemies]) {
-        const hit = [-0.62, 0.62].some((offset) => {
-          const a = angle + offset;
-          const sx = centerX - Math.cos(a) * armHalf;
-          const sy = centerY - Math.sin(a) * armHalf;
-          const ex = centerX + Math.cos(a) * armHalf;
-          const ey = centerY + Math.sin(a) * armHalf;
-          return this.segmentCircleHit(sx, sy, ex, ey, enemy.x, enemy.y, enemy.radius + hitWidth);
-        });
+      const a1 = angle - 0.62;
+      const a2 = angle + 0.62;
+      const c1 = Math.cos(a1);
+      const s1 = Math.sin(a1);
+      const c2 = Math.cos(a2);
+      const s2 = Math.sin(a2);
+      const sx1 = centerX - c1 * armHalf;
+      const sy1 = centerY - s1 * armHalf;
+      const ex1 = centerX + c1 * armHalf;
+      const ey1 = centerY + s1 * armHalf;
+      const sx2 = centerX - c2 * armHalf;
+      const sy2 = centerY - s2 * armHalf;
+      const ex2 = centerX + c2 * armHalf;
+      const ey2 = centerY + s2 * armHalf;
+      for (let i = this.run.enemies.length - 1; i >= 0; i--) {
+        const enemy = this.run.enemies[i];
+        if (!enemy || enemy.hp <= 0) continue;
+        const hit = this.segmentCircleHit(sx1, sy1, ex1, ey1, enemy.x, enemy.y, enemy.radius + hitWidth)
+          || this.segmentCircleHit(sx2, sy2, ex2, ey2, enemy.x, enemy.y, enemy.radius + hitWidth);
         if (hit) {
           hits++;
           this.damageEnemy(enemy, damage, {
@@ -15489,7 +15507,9 @@
             accent: powerById("time").accent,
             design: true
           });
-          for (const enemy of [...this.run.enemies]) {
+          for (let j = this.run.enemies.length - 1; j >= 0; j--) {
+            const enemy = this.run.enemies[j];
+            if (!enemy || enemy.hp <= 0) continue;
             const dx = enemy.x - strike.x;
             const dy = enemy.y - strike.y;
             const d = Math.hypot(dx, dy);
@@ -15622,7 +15642,9 @@
         const guardianActor = { ...(this.remotePlayers.get(remoteId) || {}), id: remoteId, x, y, radius: 22 };
         this.reflectGuardianAttackProjectiles(guardianActor, angle, range, arc, "ally", remoteId);
       }
-      for (const enemy of [...this.run.enemies]) {
+      for (let i = this.run.enemies.length - 1; i >= 0; i--) {
+        const enemy = this.run.enemies[i];
+        if (!enemy || enemy.hp <= 0) continue;
         const d = Math.hypot(enemy.x - x, enemy.y - y);
         const a = Math.atan2(enemy.y - y, enemy.x - x);
         if (d < range + enemy.radius && Math.abs(angleDelta(a, angle)) < arc * 0.5) {
@@ -16114,18 +16136,22 @@
 
     triangleDamage(cx, cy, angle, side, damage, color, kind, sourceId = this.currentDamageSourceId || "") {
       const h = side * 0.866;
-      const points = [
-        { x: cx + Math.cos(angle) * h * 0.58, y: cy + Math.sin(angle) * h * 0.58 },
-        { x: cx + Math.cos(angle + Math.PI * 2 / 3) * h * 0.58, y: cy + Math.sin(angle + Math.PI * 2 / 3) * h * 0.58 },
-        { x: cx + Math.cos(angle - Math.PI * 2 / 3) * h * 0.58, y: cy + Math.sin(angle - Math.PI * 2 / 3) * h * 0.58 }
-      ];
-      const sign = (p1, p2, p3) => (p1.x - p3.x) * (p2.y - p3.y) - (p2.x - p3.x) * (p1.y - p3.y);
-      const damaged = [];
-      for (const enemy of [...this.run.enemies]) {
-        const p = { x: enemy.x, y: enemy.y };
-        const d1 = sign(p, points[0], points[1]);
-        const d2 = sign(p, points[1], points[2]);
-        const d3 = sign(p, points[2], points[0]);
+      const pointRadius = h * 0.58;
+      const x0 = cx + Math.cos(angle) * pointRadius;
+      const y0 = cy + Math.sin(angle) * pointRadius;
+      const x1 = cx + Math.cos(angle + Math.PI * 2 / 3) * pointRadius;
+      const y1 = cy + Math.sin(angle + Math.PI * 2 / 3) * pointRadius;
+      const x2 = cx + Math.cos(angle - Math.PI * 2 / 3) * pointRadius;
+      const y2 = cy + Math.sin(angle - Math.PI * 2 / 3) * pointRadius;
+      const damaged = this.nextEnemyQueryBuffer();
+      for (let i = this.run.enemies.length - 1; i >= 0; i--) {
+        const enemy = this.run.enemies[i];
+        if (!enemy || enemy.hp <= 0) continue;
+        const px = enemy.x;
+        const py = enemy.y;
+        const d1 = (px - x1) * (y0 - y1) - (x0 - x1) * (py - y1);
+        const d2 = (px - x2) * (y1 - y2) - (x1 - x2) * (py - y2);
+        const d3 = (px - x0) * (y2 - y0) - (x2 - x0) * (py - y0);
         const inside = !((d1 < -enemy.radius || d2 < -enemy.radius || d3 < -enemy.radius) && (d1 > enemy.radius || d2 > enemy.radius || d3 > enemy.radius));
         if (!inside) continue;
         enemy.stun = Math.max(enemy.stun || 0, enemy.boss ? 0.12 : 1.2);
@@ -16139,8 +16165,10 @@
     rectangleSkillDamage(x, y, angle, length, width, damage, color, kind, sourceId = this.currentDamageSourceId || "", options = {}) {
       const dx = Math.cos(angle);
       const dy = Math.sin(angle);
-      const damaged = [];
-      for (const enemy of [...this.run.enemies]) {
+      const damaged = this.nextEnemyQueryBuffer();
+      for (let i = this.run.enemies.length - 1; i >= 0; i--) {
+        const enemy = this.run.enemies[i];
+        if (!enemy || enemy.hp <= 0) continue;
         const ex = enemy.x - x;
         const ey = enemy.y - y;
         const along = ex * dx + ey * dy;
@@ -16579,7 +16607,9 @@
       this.addShockwave(x, y, radius * 0.72, color, 0);
       if (this.isMultiplayerClient()) return 0;
       let frozen = 0;
-      for (const enemy of [...this.run.enemies]) {
+      for (let i = this.run.enemies.length - 1; i >= 0; i--) {
+        const enemy = this.run.enemies[i];
+        if (!enemy || enemy.hp <= 0) continue;
         const d = Math.hypot(enemy.x - x, enemy.y - y);
         if (d > radius + enemy.radius) continue;
         const force = Math.max(0.35, 1 - d / Math.max(1, radius));
@@ -16996,17 +17026,25 @@
       const targets = this.enemiesNear(impact.x, impact.y, radius, key === "f" ? 10 : 6);
       if (!targets.length) return;
       if (this.isMultiplayerClient()) {
-        for (const enemy of targets.slice(0, 3)) this.addParticle(enemy.x, enemy.y, power.color, 14, 0.34, this.powerDomainParticleKind(kind), angle + Math.PI, 90);
+        for (let i = 0; i < targets.length && i < 3; i++) {
+          const enemy = targets[i];
+          this.addParticle(enemy.x, enemy.y, power.color, 14, 0.34, this.powerDomainParticleKind(kind), angle + Math.PI, 90);
+        }
         return;
       }
       if (kind === "fire") {
-        for (const enemy of targets.filter((enemy) => (enemy.burn || 0) > 0).slice(0, 6)) {
+        let detonated = 0;
+        for (const enemy of targets) {
+          if ((enemy.burn || 0) <= 0) continue;
           enemy.burn = Math.max(0.6, (enemy.burn || 0) - 1.4);
           this.damageEnemy(enemy, damage * (key === "r" || key === "f" ? 0.24 : 0.15), { x: 0, y: 0, source: "fireDetonate", kind: "fire", sourceId: casterId });
           this.addShockwave(enemy.x, enemy.y, 78, power.accent, 0);
+          detonated += 1;
+          if (detonated >= 6) break;
         }
       } else if (kind === "ice") {
-        for (const enemy of targets.filter((enemy) => (enemy.chill || 0) > 0.8)) {
+        for (const enemy of targets) {
+          if ((enemy.chill || 0) <= 0.8) continue;
           enemy.stun = Math.max(enemy.stun || 0, enemy.boss ? 0.08 : key === "r" ? 0.62 : 0.34);
           enemy.chill = Math.max(enemy.chill || 0, 3.1);
           this.addParticle(enemy.x, enemy.y, power.accent, 16, 0.42, "snow");
@@ -17034,7 +17072,9 @@
         }
         this.addShockwave(impact.x, impact.y, 125 + radius * 0.25, power.color, 0);
       } else if (kind === "crystal") {
-        for (const enemy of targets.slice(0, key === "r" ? 5 : 3)) {
+        const limit = key === "r" ? 5 : 3;
+        for (let i = 0; i < targets.length && i < limit; i++) {
+          const enemy = targets[i];
           const a = Math.atan2(enemy.y - caster.y, enemy.x - caster.x);
           this.spawnProjectile({ owner, casterId, x: enemy.x - Math.cos(a) * 42, y: enemy.y - Math.sin(a) * 42, vx: Math.cos(a) * 720, vy: Math.sin(a) * 720, radius: 6, damage: damage * 0.18, life: 0.32, color: power.accent, pierce: 0, kind: "crystal" });
         }
@@ -17046,7 +17086,9 @@
           this.addParticle(enemy.x, enemy.y, power.color, 15, 0.4, "leaf");
         }
       } else if (kind === "void") {
-        for (const enemy of targets.filter((enemy) => (enemy.mark || 0) > 0).slice(0, 8)) {
+        let collapsed = 0;
+        for (const enemy of targets) {
+          if ((enemy.mark || 0) <= 0) continue;
           const mark = clamp(enemy.mark || 1, 1, 5);
           enemy.mark = Math.max(0, enemy.mark - mark);
           this.damageEnemy(enemy, damage * (0.1 + mark * 0.04), { x: 0, y: 0, source: "voidCollapse", kind: "void", sourceId: casterId });
@@ -17054,6 +17096,8 @@
           const a = Math.atan2(impact.y - enemy.y, impact.x - enemy.x);
           enemy.vx += Math.cos(a) * (enemy.boss ? 130 : 310);
           enemy.vy += Math.sin(a) * (enemy.boss ? 130 : 310);
+          collapsed += 1;
+          if (collapsed >= 8) break;
         }
       } else if (kind === "time") {
         for (const enemy of targets) {
@@ -17738,10 +17782,12 @@
           this.addEffect({ type: "pull", x: tx, y: ty, radius: 280, time: 1.3, color: power.color });
           this.areaDamage(tx, ty, 130, damage * 1.25, power.color, kind);
           this.lineDamage(x, y, angle, 360, 34, damage * 0.38, power.color, kind, 5);
-          const voidLineTargets = new Set(this.enemiesInLine(x, y, angle, 360, 42, 8).map((enemy) => enemy.id));
           for (const enemy of this.run.enemies) {
             if (Math.hypot(enemy.x - tx, enemy.y - ty) < 220) enemy.mark += 2;
-            if (voidLineTargets.has(enemy.id)) enemy.mark += 1;
+          }
+          const voidLineTargets = this.enemiesInLine(x, y, angle, 360, 42, 8);
+          for (const enemy of voidLineTargets) {
+            if (enemy && enemy.hp > 0) enemy.mark += 1;
           }
         } else if (kind === "time") {
           const stopX = x + Math.cos(angle) * 135;
@@ -22745,7 +22791,8 @@
       if (!targets.length) return;
 
       if (kind === "fire") {
-        for (const enemy of targets.slice(0, 5)) {
+        for (let i = 0; i < targets.length && i < 5; i++) {
+          const enemy = targets[i];
           if (canDamage) {
             enemy.burn = Math.max(enemy.burn || 0, 3.2);
             const burningBonus = (enemy.burn || 0) > 2.4 ? 0.34 : 0.18;
@@ -22755,7 +22802,8 @@
           if (chance(0.35)) this.addSkillShape(kind, "fireballBurst", enemy.x, enemy.y, rand(0, TAU), 72, 0.34);
         }
       } else if (kind === "ice") {
-        for (const enemy of targets.slice(0, 5)) {
+        for (let i = 0; i < targets.length && i < 5; i++) {
+          const enemy = targets[i];
           if (canDamage) {
             enemy.chill = Math.max(enemy.chill || 0, 3.4);
             enemy.stun = Math.max(enemy.stun || 0, enemy.boss ? 0.05 : 0.18);
@@ -22775,7 +22823,8 @@
           }
         }
       } else if (kind === "shadow") {
-        for (const enemy of targets.slice(0, 5)) {
+        for (let i = 0; i < targets.length && i < 5; i++) {
+          const enemy = targets[i];
           enemy.mark += 1;
           if (caster) this.addShadowShard(enemy, caster, 1);
           if (canDamage && (enemy.mark || 0) >= 3) {
@@ -22787,14 +22836,16 @@
           this.applyShadowWeaponBuff(caster, 1, (effect.casterId || this.lobby.id) === this.lobby.id);
         }
       } else if (kind === "blood") {
-        for (const enemy of targets.slice(0, 6)) {
+        for (let i = 0; i < targets.length && i < 6; i++) {
+          const enemy = targets[i];
           this.applyBloodBleed(enemy, damage, 4.8, sourceId);
           if (canDamage && enemy.hp < enemy.maxHp * 0.55) this.damageEnemy(enemy, damage * 0.18, { x: 0, y: 0, source: "domain", kind, noKnockback: true, sourceId });
         }
         if ((effect.casterId || this.lobby.id) === this.lobby.id && canDamage) this.healPlayer(Math.min(5.5, targets.length * 0.75), { source: "power", allowAfterCombat: true });
       } else if (kind === "gravity") {
-        const meteorTargets = targets.slice(0, effect.awakened ? 3 : 2);
-        for (const enemy of meteorTargets) {
+        const limit = effect.awakened ? 3 : 2;
+        for (let i = 0; i < targets.length && i < limit; i++) {
+          const enemy = targets[i];
           const impactX = enemy.x + rand(-enemy.radius * 0.3, enemy.radius * 0.3);
           const impactY = enemy.y + rand(-enemy.radius * 0.2, enemy.radius * 0.2);
           this.addSkillShape(kind, "gravityMeteor", impactX, impactY, -Math.PI / 2, 140, 0.5);
@@ -22805,7 +22856,8 @@
           }
         }
       } else if (kind === "crystal") {
-        for (const enemy of targets.slice(0, 4)) {
+        for (let i = 0; i < targets.length && i < 4; i++) {
+          const enemy = targets[i];
           const a = Math.atan2(enemy.y - effect.y, enemy.x - effect.x);
           this.addSkillShape(kind, "crystalFan", enemy.x, enemy.y, a, 86, 0.3);
           if (canDamage) {
@@ -22830,7 +22882,8 @@
         }
       } else if (kind === "nature") {
         let drained = 0;
-        for (const enemy of targets.slice(0, 6)) {
+        for (let i = 0; i < targets.length && i < 6; i++) {
+          const enemy = targets[i];
           this.addRootSnareVisual(enemy, caster, power.color);
           if (canDamage) {
             enemy.stun = Math.max(enemy.stun || 0, enemy.boss ? 0.04 : 0.2);
@@ -22842,7 +22895,8 @@
         }
         this.restoreDomainEnergy(effect, drained, power.accent);
       } else if (kind === "void") {
-        for (const enemy of targets.slice(0, 6)) {
+        for (let i = 0; i < targets.length && i < 6; i++) {
+          const enemy = targets[i];
           enemy.mark += enemy.boss ? 1 : 2;
           const a = Math.atan2(effect.y - enemy.y, effect.x - enemy.x);
           this.run.slashes.push({ x: enemy.x, y: enemy.y, tx: enemy.x + Math.cos(a) * 46, ty: enemy.y + Math.sin(a) * 46, line: true, life: 0.18, maxLife: 0.18, color: power.accent });
@@ -22857,7 +22911,8 @@
         const center = targets[0] || { x: effect.x, y: effect.y, radius: 0 };
         this.addSkillShape(kind, "timeStop", center.x, center.y, 0, 120, 0.42);
         if (canDamage) {
-          for (const enemy of targets.slice(0, 5)) {
+          for (let i = 0; i < targets.length && i < 5; i++) {
+            const enemy = targets[i];
             enemy.domainFreeze = Math.max(enemy.domainFreeze || 0, enemy.boss ? 0.12 : 0.36);
             enemy.chill = Math.max(enemy.chill || 0, 2.2);
           }
@@ -22958,7 +23013,9 @@
             const sy = dx;
             const halfLen = (effect.length || 240) * 0.5;
             const halfWidth = (effect.width || 80) * 0.5;
-            for (const enemy of [...this.run.enemies]) {
+            for (let j = this.run.enemies.length - 1; j >= 0; j--) {
+              const enemy = this.run.enemies[j];
+              if (!enemy || enemy.hp <= 0) continue;
               const rx = enemy.x - effect.x;
               const ry = enemy.y - effect.y;
               const along = Math.abs(rx * dx + ry * dy);
@@ -23191,7 +23248,9 @@
           trail.damageTick -= dt;
           if (trail.damageTick <= 0) {
             trail.damageTick = 0.18;
-            for (const enemy of [...this.run.enemies]) {
+            for (let j = this.run.enemies.length - 1; j >= 0; j--) {
+              const enemy = this.run.enemies[j];
+              if (!enemy || enemy.hp <= 0) continue;
               if (Math.hypot(enemy.x - trail.x, enemy.y - trail.y) < enemy.radius + trail.radius) {
                 this.damageEnemy(enemy, 10, { x: 0, y: 0, source: "trail", kind: "fire", sourceId: trail.casterId || "" });
               }
@@ -23228,7 +23287,9 @@
         const progress = 1 - wave.life / wave.maxLife;
         const current = wave.radius * progress;
         if (wave.damage > 0 && wave.owner !== "enemy") {
-          for (const enemy of [...this.run.enemies]) {
+          for (let j = this.run.enemies.length - 1; j >= 0; j--) {
+            const enemy = this.run.enemies[j];
+            if (!enemy || enemy.hp <= 0) continue;
             if (!wave.hit.has(enemy.id) && Math.hypot(enemy.x - wave.x, enemy.y - wave.y) < current + enemy.radius) {
               wave.hit.add(enemy.id);
               this.damageEnemy(enemy, wave.damage, { x: (enemy.x - wave.x) / current, y: (enemy.y - wave.y) / current, source: "shockwave" });

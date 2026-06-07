@@ -21,7 +21,7 @@ function usage() {
     "  --min-fps <n>        Fail below this average FPS; default 30",
     "  --max-long <n>       Fail above this long-frame percentage; default 35",
     "  --strict-preload     Also fail when the exported preload queue has not fully settled",
-    "  --scenario <name>    training, normal, or boss; default training",
+    "  --scenario <name>    training, normal, boss, or stress; default training",
     "  --difficulty <id>    Difficulty id for non-training runs; default normal",
     "  --power <id>         Power to test; default fire",
     "  --character <id>     Character to test; default swordsman",
@@ -159,7 +159,7 @@ async function runBenchmark(page, options) {
     game.saveCloudAccountNow = async () => {};
     game.updateAccountCloudCheck = () => {};
     game.applyGraphicsSettings();
-    const runScenario = ["training", "normal", "boss"].includes(scenario) ? scenario : "training";
+    const runScenario = ["training", "normal", "boss", "stress"].includes(scenario) ? scenario : "training";
     const runOptions = runScenario === "training"
       ? { training: true, trainingOptions: { damage: true, freeEnergy: true, noCooldown: true }, difficulty }
       : runScenario === "boss"
@@ -169,7 +169,50 @@ async function runBenchmark(page, options) {
     if (game.run?.currentRoom && runScenario !== "training") {
       game.run.currentRoom.intro = Math.min(Number(game.run.currentRoom.intro || 0), 0.2);
     }
-    game.preloadCurrentRoomExportAssets(true);
+
+    const setupStressCombat = () => {
+      if (!game.run?.player || !game.createEnemy) return;
+      const kinds = [
+        "shadowGoblin", "slime", "fireSlime", "iceSlime", "skeletonWarrior", "skeletonArcher",
+        "goblinScout", "goblinBomber", "batDemon", "spiderMonster", "mushroomMonster", "zombie",
+        "darkKnight", "stoneGolem", "fireDemon", "iceGolem", "necromancer", "werewolf", "crystalBeast"
+      ];
+      game.run.currentRoom.type = "normal";
+      game.run.currentRoom.intro = 0;
+      game.run.currentRoom.cleared = false;
+      game.run.roomObjects = [];
+      game.run.hazards = [];
+      game.run.player.maxHp = Math.max(game.run.player.maxHp || 0, 9999);
+      game.run.player.hp = game.run.player.maxHp;
+      game.run.player.maxEnergy = Math.max(game.run.player.maxEnergy || 0, 999);
+      game.run.player.energy = game.run.player.maxEnergy;
+      game.run.player.ult = 100;
+      game.run.player.invuln = Math.max(game.run.player.invuln || 0, 999);
+      game.run.player.x = 920;
+      game.run.player.y = 580;
+      const targetCount = 34;
+      const enemies = [];
+      for (let i = 0; i < targetCount; i++) {
+        const ring = i % 2 ? 360 : 250;
+        const angle = (i / targetCount) * Math.PI * 2;
+        const x = Math.max(150, Math.min(1690, 920 + Math.cos(angle) * ring + Math.sin(i * 1.7) * 60));
+        const y = Math.max(150, Math.min(1010, 580 + Math.sin(angle) * ring + Math.cos(i * 1.3) * 44));
+        const enemy = game.createEnemy(kinds[i % kinds.length], x, y, i % 7 === 0);
+        enemy.maxHp = Math.max(enemy.maxHp || 0, 1800 + (i % 5) * 220);
+        enemy.hp = enemy.maxHp;
+        enemy.damage *= 0.35;
+        enemy.attackCd = 0.25 + (i % 8) * 0.06;
+        enemy.skillCd = 0.75 + (i % 6) * 0.13;
+        enemies.push(enemy);
+      }
+      game.run.enemies = enemies;
+      game.run.projectiles.length = 0;
+      game.run.effects.length = 0;
+      game.run.particles.length = 0;
+      game.preloadCurrentRoomExportAssets(true);
+    };
+    if (runScenario === "stress") setupStressCombat();
+    else game.preloadCurrentRoomExportAssets(true);
 
     const keys = ["q", "e", "r", "f"];
     let actionIndex = 0;
@@ -177,6 +220,11 @@ async function runBenchmark(page, options) {
       if (!game.run?.player || game.pauseOverlay) return;
       if (runScenario !== "training") {
         game.run.player.energy = game.run.player.maxEnergy;
+      }
+      if (runScenario === "stress") {
+        game.run.player.hp = game.run.player.maxHp;
+        game.run.player.invuln = Math.max(game.run.player.invuln || 0, 2);
+        if ((game.run.enemies || []).length < 26) setupStressCombat();
       }
       const target = (game.run.enemies || []).find((enemy) => enemy && enemy.hp > 0) || game.run.enemies?.[0];
       if (target) {
@@ -293,6 +341,11 @@ async function runBenchmark(page, options) {
           combatLoad: Math.round(Number(game.graphicsCombatLoad?.() || 0) * 1000) / 1000,
           performancePressure: Math.round(Number(game.performancePressure?.() || 0) * 1000) / 1000,
           renderPressure: Math.round(Number(game.renderPressure?.() || 0) * 1000) / 1000,
+          enemySpatialEnabled: Boolean(game.enemySpatialEnabled?.()),
+          enemySpatialCells: game.enemySpatialGrid?.size || 0,
+          enemySpatialLastCells: game.enemySpatialLastCells || 0,
+          enemySpatialBuilds: game.enemySpatialBuilds || 0,
+          enemySpatialQueries: game.enemySpatialQueries || 0,
           updateSpikeHold: Math.round(Number(game.perf?.updateSpikeHold || 0) * 1000) / 1000,
           renderSpikeHold: Math.round(Number(game.perf?.renderSpikeHold || 0) * 1000) / 1000,
           loopSpikeHold: Math.round(Number(game.perf?.loopSpikeHold || 0) * 1000) / 1000,
@@ -398,7 +451,7 @@ async function main() {
     const metrics = await runBenchmark(page, options);
     if (errors.length) throw new Error(errors.join("\n"));
     const failures = [];
-    const expectedRoom = options.scenario === "boss" ? "boss" : options.scenario === "normal" ? "normal" : "training";
+    const expectedRoom = options.scenario === "boss" ? "boss" : (options.scenario === "normal" || options.scenario === "stress") ? "normal" : "training";
     if (metrics.mode !== "game" || metrics.roomType !== expectedRoom) failures.push(`Expected ${expectedRoom} game mode, got ${metrics.mode}/${metrics.roomType}`);
     if (metrics.avgFps < options.minFps) failures.push(`Average FPS ${metrics.avgFps} is below ${options.minFps}`);
     if (metrics.longFramePercent > options.maxLong) failures.push(`Long-frame rate ${metrics.longFramePercent}% is above ${options.maxLong}%`);

@@ -9,7 +9,7 @@
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
   const SIGNAL_REALTIME_RELAY_LIMIT = 2;
   const SIGNAL_REALTIME_TYPES = new Set(["state", "snapshot", "attack", "skill", "collect", "openChest", "dropItem", "damage", "chooseDoor"]);
-  const APP_VERSION = "20260607-room-pattern-cache-290";
+  const APP_VERSION = "20260607-enemy-spatial-grid-291";
   const CHANGELOG_ENTRIES = [
     {
       version: APP_VERSION,
@@ -4073,6 +4073,13 @@
       this.renderActorBuffer = [];
       this.enemyQueryBuffers = Array.from({ length: 8 }, () => []);
       this.enemyQueryBufferIndex = 0;
+      this.enemySpatialGrid = new Map();
+      this.enemySpatialFrame = -1;
+      this.enemySpatialCount = -1;
+      this.enemySpatialCellSize = 192;
+      this.enemySpatialLastCells = 0;
+      this.enemySpatialBuilds = 0;
+      this.enemySpatialQueries = 0;
       this.roomBackgroundCache = new Map();
       this.enemySpriteCache = new Map();
       this.objectPools = {
@@ -13457,7 +13464,10 @@
       this.updatePendingDoor(worldDt);
       this.updateRoomObjects(worldDt);
       this.updateDelayedStrikes(worldDt);
-      if (!this.isMultiplayerClient()) this.updateEnemies(worldDt);
+      if (!this.isMultiplayerClient()) {
+        this.updateEnemies(worldDt);
+        this.resetEnemySpatialGrid();
+      }
       this.updateProjectiles(worldDt);
       this.updateSlashes(worldDt);
       this.updateTrails(worldDt);
@@ -15781,15 +15791,19 @@
     enemiesNear(x, y, radius, limit = 99, predicate = null) {
       const result = this.nextEnemyQueryBuffer();
       const enemies = this.run?.enemies || [];
-      for (const enemy of enemies) {
-        if (!enemy || enemy.hp <= 0) continue;
+      const visit = (enemy) => {
+        if (!enemy || enemy.hp <= 0) return;
         const dx = enemy.x - x;
         const dy = enemy.y - y;
         const hitRadius = radius + enemy.radius;
         const d2 = dx * dx + dy * dy;
-        if (d2 >= hitRadius * hitRadius) continue;
-        if (predicate && !predicate(enemy)) continue;
+        if (d2 >= hitRadius * hitRadius) return;
+        if (predicate && !predicate(enemy)) return;
         this.insertEnemyQueryResult(result, enemy, d2, limit);
+      };
+      if (this.forEachEnemySpatialCircle(x, y, radius + 72, visit)) return result;
+      for (const enemy of enemies) {
+        visit(enemy);
       }
       return result;
     }
@@ -15913,8 +15927,15 @@
       const dx = Math.cos(angle);
       const dy = Math.sin(angle);
       const hits = this.nextEnemyQueryBuffer();
-      for (const enemy of this.run?.enemies || []) {
-        if (!enemy || enemy.hp <= 0) continue;
+      const endX = x + dx * length;
+      const endY = y + dy * length;
+      const pad = Math.max(72, width + 72);
+      const minX = Math.min(x, endX) - pad;
+      const maxX = Math.max(x, endX) + pad;
+      const minY = Math.min(y, endY) - pad;
+      const maxY = Math.max(y, endY) + pad;
+      const visit = (enemy) => {
+        if (!enemy || enemy.hp <= 0) return;
         const ex = enemy.x - x;
         const ey = enemy.y - y;
         const along = ex * dx + ey * dy;
@@ -15922,6 +15943,10 @@
         if (along > -enemy.radius && along < length + enemy.radius && side < width + enemy.radius) {
           this.insertEnemyQueryResult(hits, enemy, along, limit);
         }
+      };
+      if (this.forEachEnemySpatialRect(minX, minY, maxX, maxY, visit)) return hits;
+      for (const enemy of this.run?.enemies || []) {
+        visit(enemy);
       }
       return hits;
     }
@@ -21291,13 +21316,17 @@
       const maxX = Math.max(fromX, projectile.x) + baseRadius + 42;
       const minY = Math.min(fromY, projectile.y) - baseRadius - 42;
       const maxY = Math.max(fromY, projectile.y) + baseRadius + 42;
-      for (const enemy of this.run.enemies) {
-        if (!enemy || enemy.dead || enemy.hp <= 0) continue;
-        if (projectile.hitIds?.includes(enemy.id)) continue;
+      const visit = (enemy) => {
+        if (!enemy || enemy.dead || enemy.hp <= 0) return;
+        if (projectile.hitIds?.includes(enemy.id)) return;
         const hitRadius = enemy.radius + baseRadius;
-        if (enemy.x < minX - enemy.radius || enemy.x > maxX + enemy.radius || enemy.y < minY - enemy.radius || enemy.y > maxY + enemy.radius) continue;
+        if (enemy.x < minX - enemy.radius || enemy.x > maxX + enemy.radius || enemy.y < minY - enemy.radius || enemy.y > maxY + enemy.radius) return;
         const hit = this.segmentCircleHit(fromX, fromY, projectile.x, projectile.y, enemy.x, enemy.y, hitRadius);
         if (hit && (!best || hit.t < best.t)) best = { ...hit, enemy };
+      };
+      if (this.forEachEnemySpatialRect(minX, minY, maxX, maxY, visit)) return best;
+      for (const enemy of this.run.enemies) {
+        visit(enemy);
       }
       return best;
     }
@@ -21523,8 +21552,8 @@
     nearestEnemy(x, y, range) {
       let best = null;
       let bestD = range * range;
-      for (const enemy of this.run.enemies) {
-        if (!enemy || enemy.hp <= 0) continue;
+      const visit = (enemy) => {
+        if (!enemy || enemy.hp <= 0) return;
         const dx = enemy.x - x;
         const dy = enemy.y - y;
         const d = dx * dx + dy * dy;
@@ -21532,8 +21561,77 @@
           bestD = d;
           best = enemy;
         }
+      };
+      if (this.forEachEnemySpatialCircle(x, y, range, visit)) return best;
+      for (const enemy of this.run.enemies) {
+        visit(enemy);
       }
       return best;
+    }
+
+    enemySpatialEnabled() {
+      return Boolean(this.run?.enemies?.length >= 14);
+    }
+
+    resetEnemySpatialGrid() {
+      if (!this.enemySpatialGrid) this.enemySpatialGrid = new Map();
+      this.enemySpatialGrid.clear();
+      this.enemySpatialFrame = -1;
+      this.enemySpatialCount = -1;
+    }
+
+    enemySpatialKey(cx, cy) {
+      return `${cx},${cy}`;
+    }
+
+    ensureEnemySpatialGrid() {
+      if (!this.enemySpatialEnabled()) return null;
+      const enemies = this.run.enemies;
+      if (!this.enemySpatialGrid) this.enemySpatialGrid = new Map();
+      if (this.enemySpatialFrame === this.frameIndex && this.enemySpatialCount === enemies.length) return this.enemySpatialGrid;
+      const cellSize = this.enemySpatialCellSize || 192;
+      this.enemySpatialGrid.clear();
+      for (const enemy of enemies) {
+        if (!enemy || enemy.hp <= 0) continue;
+        const cx = Math.floor(enemy.x / cellSize);
+        const cy = Math.floor(enemy.y / cellSize);
+        const key = this.enemySpatialKey(cx, cy);
+        let bucket = this.enemySpatialGrid.get(key);
+        if (!bucket) {
+          bucket = [];
+          this.enemySpatialGrid.set(key, bucket);
+        }
+        bucket.push(enemy);
+      }
+      this.enemySpatialFrame = this.frameIndex;
+      this.enemySpatialCount = enemies.length;
+      this.enemySpatialLastCells = this.enemySpatialGrid.size;
+      this.enemySpatialBuilds = (this.enemySpatialBuilds || 0) + 1;
+      return this.enemySpatialGrid;
+    }
+
+    forEachEnemySpatialRect(minX, minY, maxX, maxY, visitor) {
+      const grid = this.ensureEnemySpatialGrid();
+      if (!grid || !visitor) return false;
+      this.enemySpatialQueries = (this.enemySpatialQueries || 0) + 1;
+      const cellSize = this.enemySpatialCellSize || 192;
+      const pad = 72;
+      const minCx = Math.floor((minX - pad) / cellSize);
+      const maxCx = Math.floor((maxX + pad) / cellSize);
+      const minCy = Math.floor((minY - pad) / cellSize);
+      const maxCy = Math.floor((maxY + pad) / cellSize);
+      for (let cy = minCy; cy <= maxCy; cy++) {
+        for (let cx = minCx; cx <= maxCx; cx++) {
+          const bucket = grid.get(this.enemySpatialKey(cx, cy));
+          if (!bucket) continue;
+          for (const enemy of bucket) visitor(enemy);
+        }
+      }
+      return true;
+    }
+
+    forEachEnemySpatialCircle(x, y, radius, visitor) {
+      return this.forEachEnemySpatialRect(x - radius, y - radius, x + radius, y + radius, visitor);
     }
 
     nextEnemyQueryBuffer() {

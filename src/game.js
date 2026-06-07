@@ -9,7 +9,7 @@
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
   const SIGNAL_REALTIME_RELAY_LIMIT = 2;
   const SIGNAL_REALTIME_TYPES = new Set(["state", "snapshot", "attack", "skill", "collect", "openChest", "dropItem", "damage", "chooseDoor"]);
-  const APP_VERSION = "20260607-combat-allocation-trim-294";
+  const APP_VERSION = "20260607-frame-load-cache-295";
   const CHANGELOG_ENTRIES = [
     {
       version: APP_VERSION,
@@ -4545,6 +4545,11 @@
       this.domainContainmentCacheFrame = -1;
       this.domainContainmentCacheRun = null;
       this.domainContainmentCache = [];
+      this.combatLoadCacheFrame = -1;
+      this.combatLoadCacheRun = null;
+      this.combatLoadCacheValue = 0;
+      this.visualStressCacheFrame = -1;
+      this.visualStressCacheValue = 0;
       this.roomBackgroundCache = new Map();
       this.enemySpriteCache = new Map();
       this.objectPools = {
@@ -7383,11 +7388,30 @@
 
     graphicsCombatLoad() {
       if (!this.run || this.mode !== "game" || this.pauseOverlay) return 0;
+      if (this.combatLoadCacheFrame === this.frameIndex && this.combatLoadCacheRun === this.run) {
+        return this.combatLoadCacheValue;
+      }
       const room = this.run.currentRoom || {};
-      if (["treasure", "merchant", "healing", "curse", "secret"].includes(room.type)) return 0.08;
-      if (room.intro > 0.2) return 0.12;
+      if (["treasure", "merchant", "healing", "curse", "secret"].includes(room.type)) {
+        this.combatLoadCacheFrame = this.frameIndex;
+        this.combatLoadCacheRun = this.run;
+        this.combatLoadCacheValue = 0.08;
+        return 0.08;
+      }
+      if (room.intro > 0.2) {
+        this.combatLoadCacheFrame = this.frameIndex;
+        this.combatLoadCacheRun = this.run;
+        this.combatLoadCacheValue = 0.12;
+        return 0.12;
+      }
       const enemies = this.run.enemies?.length || 0;
-      const boss = this.run.enemies?.some((enemy) => enemy.boss) ? 0.42 : 0;
+      let boss = 0;
+      for (let i = 0; i < enemies; i++) {
+        if (this.run.enemies[i]?.boss) {
+          boss = 0.42;
+          break;
+        }
+      }
       const particles = this.run.particles?.length || 0;
       const effects = this.run.effects?.length || 0;
       const projectiles = this.run.projectiles?.length || 0;
@@ -7395,7 +7419,7 @@
       const trails = this.run.trails?.length || 0;
       const slashes = this.run.slashes?.length || 0;
       const remote = this.isMultiplayerRun() ? Math.min(0.28, this.remotePlayers.size * 0.07) : 0;
-      return clamp(
+      const value = clamp(
         boss +
         enemies * 0.04 +
         projectiles * 0.052 +
@@ -7408,6 +7432,10 @@
         0,
         2.4
       );
+      this.combatLoadCacheFrame = this.frameIndex;
+      this.combatLoadCacheRun = this.run;
+      this.combatLoadCacheValue = value;
+      return value;
     }
 
     devicePerformanceBias() {
@@ -7464,11 +7492,15 @@
     }
 
     visualStress() {
+      if (this.visualStressCacheFrame === this.frameIndex) return this.visualStressCacheValue;
       const pressure = this.performancePressure();
       const weakBias = this.devicePerformanceBias();
       const load = this.graphicsCombatLoad();
       const hold = this.performancePanic() ? 0.22 : this.performanceEmergency() ? 0.12 : 0;
-      return clamp(pressure * 0.62 + this.renderPressure() * 0.34 + weakBias * 0.28 + load * 0.13 + hold, 0, 1);
+      const value = clamp(pressure * 0.62 + this.renderPressure() * 0.34 + weakBias * 0.28 + load * 0.13 + hold, 0, 1);
+      this.visualStressCacheFrame = this.frameIndex;
+      this.visualStressCacheValue = value;
+      return value;
     }
 
     effectQuality() {

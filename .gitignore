@@ -3,6 +3,8 @@ node_modules/
 dist/
 build/
 .vite/
+assets/exported-sheets/
+assets/exported-sheets-test/
 
 # Local environment
 .env

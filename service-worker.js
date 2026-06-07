@@ -1,20 +1,20 @@
-const SOULRIFT_CACHE = "soulrift-pwa-20260607-audio-realism-296";
+const SOULRIFT_CACHE = "soulrift-pwa-20260607-frame-helper-cache-297";
 const SOULRIFT_ASSETS = [
   "./",
   "./index.html",
-  "./styles.css?v=20260607-audio-realism-296",
-  "./src/pwa.js?v=20260607-audio-realism-296",
-  "./src/game.js?v=20260607-audio-realism-296",
-  "./manifest.webmanifest?v=20260607-audio-realism-296",
+  "./styles.css?v=20260607-frame-helper-cache-297",
+  "./src/pwa.js?v=20260607-frame-helper-cache-297",
+  "./src/game.js?v=20260607-frame-helper-cache-297",
+  "./manifest.webmanifest?v=20260607-frame-helper-cache-297",
   "./version.json",
   "./assets/icons/app-icon-20260605-logo-xl-149.svg",
   "./assets/icons/app-icon-20260605-logo-xl-149-192.png",
   "./assets/icons/app-icon-20260605-logo-xl-149-512.png",
   "./assets/icons/app-icon-20260605-logo-xl-149-maskable-512.png",
   "./assets/icons/apple-touch-icon-20260605-logo-xl-149.png",
-  "./assets/exported/asset-manifest.json?v=20260607-audio-realism-296",
-  "./assets/exported-atlas/atlas-manifest.json?v=20260607-audio-realism-296",
-  "./assets/sprites/monsters/shadow-goblin.png?v=20260607-audio-realism-296"
+  "./assets/exported/asset-manifest.json?v=20260607-frame-helper-cache-297",
+  "./assets/exported-atlas/atlas-manifest.json?v=20260607-frame-helper-cache-297",
+  "./assets/sprites/monsters/shadow-goblin.png?v=20260607-frame-helper-cache-297"
 ];
 
 self.addEventListener("install", (event) => {

@@ -9,7 +9,7 @@
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
   const SIGNAL_REALTIME_RELAY_LIMIT = 2;
   const SIGNAL_REALTIME_TYPES = new Set(["state", "snapshot", "attack", "skill", "collect", "openChest", "dropItem", "damage", "chooseDoor"]);
-  const APP_VERSION = "20260607-audio-realism-296";
+  const APP_VERSION = "20260607-frame-helper-cache-297";
   const CHANGELOG_ENTRIES = [
     {
       version: APP_VERSION,
@@ -4636,6 +4636,18 @@
       this.combatLoadCacheValue = 0;
       this.visualStressCacheFrame = -1;
       this.visualStressCacheValue = 0;
+      this.activeCombatCacheFrame = -1;
+      this.activeCombatCacheRun = null;
+      this.activeCombatCacheValue = false;
+      this.skillActiveCacheFrame = -1;
+      this.skillActiveCacheRun = null;
+      this.skillActiveCacheValue = false;
+      this.mobileDeviceCacheFrame = -1;
+      this.mobileDeviceCacheKey = "";
+      this.mobileDeviceCacheValue = false;
+      this.deviceBiasCacheFrame = -1;
+      this.deviceBiasCacheKey = "";
+      this.deviceBiasCacheValue = 0;
       this.roomBackgroundCache = new Map();
       this.enemySpriteCache = new Map();
       this.objectPools = {
@@ -7159,14 +7171,24 @@
     }
 
     isMobileDevice() {
-      const ua = navigator.userAgent || "";
-      const uaMobile = Boolean(navigator.userAgentData?.mobile) || /Android.+Mobile|iPhone|iPod|Windows Phone|IEMobile|Opera Mini|Mobile/i.test(ua);
-      const touch = (navigator.maxTouchPoints || 0) > 0;
-      const coarse = Boolean(this.pointerQuery?.matches);
       const shortSide = Math.min(window.innerWidth || 0, window.innerHeight || 0);
       const longSide = Math.max(window.innerWidth || 0, window.innerHeight || 0);
+      const touchPoints = navigator.maxTouchPoints || 0;
+      const coarse = Boolean(this.pointerQuery?.matches);
+      const uaDataMobile = Boolean(navigator.userAgentData?.mobile);
+      const key = `${shortSide}|${longSide}|${touchPoints}|${coarse ? 1 : 0}|${uaDataMobile ? 1 : 0}`;
+      if (this.mobileDeviceCacheFrame === this.frameIndex && this.mobileDeviceCacheKey === key) {
+        return this.mobileDeviceCacheValue;
+      }
+      const ua = navigator.userAgent || "";
+      const uaMobile = uaDataMobile || /Android.+Mobile|iPhone|iPod|Windows Phone|IEMobile|Opera Mini|Mobile/i.test(ua);
+      const touch = touchPoints > 0;
       const phoneSizedTouch = touch && coarse && shortSide <= 700 && longSide <= 1400;
-      return uaMobile || phoneSizedTouch;
+      const value = uaMobile || phoneSizedTouch;
+      this.mobileDeviceCacheFrame = this.frameIndex;
+      this.mobileDeviceCacheKey = key;
+      this.mobileDeviceCacheValue = value;
+      return value;
     }
 
     updateDeviceUiMode() {
@@ -7440,36 +7462,73 @@
     }
 
     graphicsActiveCombat() {
-      if (!this.run || this.mode !== "game" || this.pauseOverlay) return false;
-      const room = this.run.currentRoom;
-      if (!room || room.cleared || room.rewardDropped || room.nextOpened) return false;
-      if (["treasure", "merchant", "healing", "curse", "secret", "training"].includes(room.type)) return false;
-      if (room.type === "boss" && !room.started) return false;
-      return true;
+      if (this.activeCombatCacheFrame === this.frameIndex && this.activeCombatCacheRun === this.run) {
+        return this.activeCombatCacheValue;
+      }
+      let value = false;
+      if (this.run && this.mode === "game" && !this.pauseOverlay) {
+        const room = this.run.currentRoom;
+        value = Boolean(room
+          && !room.cleared
+          && !room.rewardDropped
+          && !room.nextOpened
+          && !["treasure", "merchant", "healing", "curse", "secret", "training"].includes(room.type)
+          && !(room.type === "boss" && !room.started));
+      }
+      this.activeCombatCacheFrame = this.frameIndex;
+      this.activeCombatCacheRun = this.run;
+      this.activeCombatCacheValue = value;
+      return value;
     }
 
     graphicsPlayerSkillActive() {
-      if (!this.run || this.mode !== "game") return false;
-      const actorBusy = (actor) => Boolean(actor && (
-        (["skill", "ultimate"].includes(actor.animation) && (actor.actionTime || 0) > 0)
-        || (actor.domainLock || 0) > 0
-      ));
-      if (actorBusy(this.run.player)) return true;
-      for (const remote of this.remotePlayers?.values?.() || []) {
-        if (actorBusy(remote)) return true;
+      if (this.skillActiveCacheFrame === this.frameIndex && this.skillActiveCacheRun === this.run) {
+        return this.skillActiveCacheValue;
       }
-      const playerOwned = (entry) => entry?.owner === "player" || entry?.owner === "ally" || Boolean(entry?.casterId);
-      const skillProjectile = (projectile) => playerOwned(projectile)
-        && !projectile.visualOnly
-        && !["mageBasic", "rangerBasic"].includes(projectile.kind)
-        && (projectile.life ?? 0) > 0;
-      if ((this.run.projectiles || []).some(skillProjectile)) return true;
-      const skillEffectTypes = new Set(["skillShape", "castBurst", "castCone", "powerGlyph", "shadowShard"]);
-      const skillEffect = (effect) => skillEffectTypes.has(effect?.type)
-        && playerOwned(effect)
-        && (effect.time ?? 0) > 0.03;
-      if ((this.run.effects || []).some(skillEffect)) return true;
-      return false;
+      let value = false;
+      if (this.run && this.mode === "game") {
+        const player = this.run.player;
+        if (player && (((player.animation === "skill" || player.animation === "ultimate") && (player.actionTime || 0) > 0) || (player.domainLock || 0) > 0)) {
+          value = true;
+        }
+        if (!value && this.remotePlayers?.size) {
+          for (const remote of this.remotePlayers.values()) {
+            if (remote && (((remote.animation === "skill" || remote.animation === "ultimate") && (remote.actionTime || 0) > 0) || (remote.domainLock || 0) > 0)) {
+              value = true;
+              break;
+            }
+          }
+        }
+        if (!value) {
+          const projectiles = this.run.projectiles || [];
+          for (let i = 0; i < projectiles.length; i++) {
+            const projectile = projectiles[i];
+            if (!projectile || projectile.visualOnly || (projectile.life ?? 0) <= 0) continue;
+            if (projectile.kind === "mageBasic" || projectile.kind === "rangerBasic") continue;
+            if (projectile.owner === "player" || projectile.owner === "ally" || projectile.casterId) {
+              value = true;
+              break;
+            }
+          }
+        }
+        if (!value) {
+          const effects = this.run.effects || [];
+          for (let i = 0; i < effects.length; i++) {
+            const effect = effects[i];
+            if (!effect || (effect.time ?? 0) <= 0.03) continue;
+            const type = effect.type;
+            if (type !== "skillShape" && type !== "castBurst" && type !== "castCone" && type !== "powerGlyph" && type !== "shadowShard") continue;
+            if (effect.owner === "player" || effect.owner === "ally" || effect.casterId) {
+              value = true;
+              break;
+            }
+          }
+        }
+      }
+      this.skillActiveCacheFrame = this.frameIndex;
+      this.skillActiveCacheRun = this.run;
+      this.skillActiveCacheValue = value;
+      return value;
     }
 
     graphicsCombatLoad() {
@@ -7528,7 +7587,12 @@
       const memory = Number(navigator.deviceMemory || 0);
       const cores = Number(navigator.hardwareConcurrency || 0);
       const dpr = Number(window.devicePixelRatio || 1);
-      let bias = this.isMobileDevice() ? 0.22 : 0;
+      const mobile = this.isMobileDevice();
+      const key = `${memory}|${cores}|${Math.round(dpr * 100)}|${mobile ? 1 : 0}`;
+      if (this.deviceBiasCacheFrame === this.frameIndex && this.deviceBiasCacheKey === key) {
+        return this.deviceBiasCacheValue;
+      }
+      let bias = mobile ? 0.22 : 0;
       if (memory > 0) {
         if (memory <= 2) bias += 0.36;
         else if (memory <= 4) bias += 0.22;
@@ -7541,7 +7605,11 @@
       }
       if (dpr >= 2.75) bias += 0.08;
       else if (dpr >= 2.1) bias += 0.04;
-      return clamp(bias, 0, 0.82);
+      const value = clamp(bias, 0, 0.82);
+      this.deviceBiasCacheFrame = this.frameIndex;
+      this.deviceBiasCacheKey = key;
+      this.deviceBiasCacheValue = value;
+      return value;
     }
 
     renderPressure() {

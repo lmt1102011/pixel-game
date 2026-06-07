@@ -9,7 +9,7 @@
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
   const SIGNAL_REALTIME_RELAY_LIMIT = 2;
   const SIGNAL_REALTIME_TYPES = new Set(["state", "snapshot", "attack", "skill", "collect", "openChest", "dropItem", "damage", "chooseDoor"]);
-  const APP_VERSION = "20260607-no-default-aura-304";
+  const APP_VERSION = "20260607-cinematic-stage-vfx-305";
   const CHANGELOG_ENTRIES = [
     {
       version: APP_VERSION,
@@ -8423,7 +8423,8 @@
           effect.type === "castBurst" ||
           effect.type === "castCone" ||
           effect.type === "shadowShard" ||
-          effect.type === "powerBolt"
+          effect.type === "powerBolt" ||
+          effect.type === "powerStageVfx"
         ));
         const fallbackIndex = index >= 0 ? index : this.performancePanic()
           ? this.run.effects.findIndex((effect) => effect.type === "skillShape" || effect.type === "powerGlyph")
@@ -13290,7 +13291,8 @@
     networkEffects(compact = false) {
       const visibleTypes = new Set([
         "pull", "zone", "fireWall", "danger", "ultimate", "domainCutin", "skillShape", "castBurst", "castCone",
-        "powerGlyph", "attackBurst", "hitSpark", "lineTell", "crystalPrism", "skillBurst", "playerBossReveal", "powerBolt"
+        "powerGlyph", "attackBurst", "hitSpark", "lineTell", "crystalPrism", "skillBurst", "playerBossReveal", "powerBolt",
+        "powerStageVfx"
       ]);
       const effects = this.run.effects.filter((effect) => visibleTypes.has(effect.type));
       if (compact) {
@@ -16519,6 +16521,9 @@
           remote.facing = angle;
         }
       }
+      this.addPowerStageVfx(power.id, "anticipation", key, caster.x, caster.y, angle, { x: style.targetX, y: style.targetY }, {
+        awakened: Boolean(options.awakened)
+      });
     }
 
     setDesignedCasterPosition(caster, x, y, options = {}) {
@@ -17318,6 +17323,143 @@
       }
     }
 
+    powerStageVfxLimit() {
+      return this.isMobileDevice() ? 8 : 13;
+    }
+
+    trimPowerStageVfx(limit = this.powerStageVfxLimit()) {
+      if (!this.run?.effects) return;
+      let count = 0;
+      for (const effect of this.run.effects) if (effect.type === "powerStageVfx") count++;
+      while (count > limit) {
+        let removeIndex = this.run.effects.findIndex((effect) => effect.type === "powerStageVfx" && (effect.stage === "aftermath" || effect.stage === "anticipation"));
+        if (removeIndex < 0) removeIndex = this.run.effects.findIndex((effect) => effect.type === "powerStageVfx" && effect.stage === "travel");
+        if (removeIndex < 0) removeIndex = this.run.effects.findIndex((effect) => effect.type === "powerStageVfx");
+        if (removeIndex < 0) break;
+        const [removed] = this.run.effects.splice(removeIndex, 1);
+        this.releasePooledObject("effect", removed);
+        count--;
+      }
+    }
+
+    addPowerStageVfx(kind, stage, key, x, y, angle, target = null, options = {}) {
+      if (!this.run || !Number.isFinite(x) || !Number.isFinite(y)) return;
+      const spec = this.powerVfxSpec(kind);
+      const powerScale = ({ q: 0.86, e: 1.0, r: 1.18, f: 1.58 }[key] || 1) * (options.awakened ? 1.12 : 1);
+      const tx = Number.isFinite(target?.x) ? target.x : x + Math.cos(angle || 0) * (130 + powerScale * 80);
+      const ty = Number.isFinite(target?.y) ? target.y : y + Math.sin(angle || 0) * (130 + powerScale * 80);
+      const length = Math.max(42, Math.hypot(tx - x, ty - y));
+      const radius = {
+        anticipation: 48,
+        cast: 66,
+        travel: Math.max(90, length),
+        impact: 82,
+        aftermath: 76
+      }[stage] * powerScale;
+      const time = {
+        anticipation: 0.34,
+        cast: 0.24,
+        travel: 0.34,
+        impact: 0.34,
+        aftermath: 0.78
+      }[stage] * (key === "f" ? 1.2 : 1);
+      const effect = {
+        type: "powerStageVfx",
+        kind,
+        key,
+        stage,
+        x,
+        y,
+        tx,
+        ty,
+        angle: Number.isFinite(angle) ? angle : Math.atan2(ty - y, tx - x),
+        radius,
+        length,
+        width: (stage === "travel" ? 34 : 52) * powerScale,
+        time,
+        maxTime: time,
+        color: options.color || spec.color,
+        accent: options.accent || spec.accent,
+        dark: spec.dark,
+        awakened: Boolean(options.awakened),
+        seed: rand(0, TAU),
+        important: stage === "cast" || stage === "impact" || key === "f"
+      };
+      this.addEffect(effect);
+      this.trimPowerStageVfx();
+      const particleScale = key === "f" ? 1.4 : key === "r" ? 1.12 : 0.82;
+      if (stage === "anticipation") {
+        this.emitPowerVfx(kind, "cast", x, y, 2.4 * particleScale, {
+          spread: 34 * powerScale,
+          speed: 28,
+          size: rand(5, 10),
+          life: rand(0.22, 0.42),
+          moveAngle: angle,
+          moveArc: Math.PI * 0.65,
+          min: 1
+        });
+      } else if (stage === "cast") {
+        this.emitPowerVfx(kind, "cast", x, y, 3.4 * particleScale, {
+          spread: 28 * powerScale,
+          speed: 105,
+          size: rand(7, 15),
+          life: rand(0.16, 0.34),
+          important: key === "f",
+          min: 1
+        });
+      } else if (stage === "impact") {
+        this.emitPowerVfx(kind, "hit", tx, ty, 4.6 * particleScale, {
+          spread: 44 * powerScale,
+          speed: kind === "blood" ? 145 : 120,
+          size: rand(7, 16),
+          life: rand(0.18, 0.48),
+          important: key === "f" || key === "r",
+          min: key === "f" ? 3 : 1
+        });
+        if (!this.performancePanic()) this.addShockwave(tx, ty, Math.min(220, 58 + radius * 0.28), spec.color, 0);
+      } else if (stage === "aftermath") {
+        this.emitPowerVfx(kind, "zone", tx, ty, 2.2 * particleScale, {
+          spread: 58 * powerScale,
+          speed: 18,
+          size: rand(6, 14),
+          life: rand(0.35, 0.78),
+          min: 0
+        });
+      }
+    }
+
+    emitCinematicPowerVfx(kind, key, caster, angle, impact, awakened = false) {
+      if (!this.run || !caster) return;
+      const x = caster.x;
+      const y = caster.y;
+      const tx = Number.isFinite(impact?.x) ? impact.x : x + Math.cos(angle) * 170;
+      const ty = Number.isFinite(impact?.y) ? impact.y : y + Math.sin(angle) * 170;
+      const target = { x: tx, y: ty };
+      this.addPowerStageVfx(kind, "cast", key, x, y, angle, target, { awakened });
+      this.addPowerStageVfx(kind, "travel", key, x, y, angle, target, { awakened });
+      this.addPowerStageVfx(kind, "impact", key, tx, ty, angle, target, { awakened });
+      this.addPowerStageVfx(kind, "aftermath", key, tx, ty, angle, target, { awakened });
+      if (kind === "lightning") {
+        this.addPowerBolt(x, y - 8, tx, ty, powerById(kind).accent, key === "f" ? 0.18 : 0.12, {
+          kind,
+          amp: key === "f" ? 34 : 20,
+          segments: key === "f" ? 10 : 7,
+          width: key === "f" ? 3.4 : 2.4,
+          important: key === "f" || key === "r"
+        });
+      } else if (kind === "shadow" || kind === "void") {
+        this.addPowerBolt(x, y - 4, tx, ty, powerById(kind).accent, 0.16, {
+          kind,
+          amp: key === "f" ? 40 : 26,
+          segments: key === "f" ? 8 : 5,
+          width: key === "f" ? 3.1 : 2.2
+        });
+      }
+      const shake = ({ q: 2.8, e: 3.8, r: 5.2, f: 8.5 }[key] || 3.4) * (awakened ? 1.12 : 1);
+      this.camera.shake = Math.max(this.camera.shake, kind === "lightning" ? shake * 1.1 : shake);
+      if (key === "r" || key === "f") this.hitStop = Math.max(this.hitStop || 0, key === "f" ? 0.058 : 0.035);
+    }
+
     emitPowerCastVfx(kind, key, caster, angle, impact, awakened = false) {
       if (!this.run || !caster) return;
       const spec = this.powerVfxSpec(kind);
@@ -17586,7 +17728,7 @@
     }
 
     finishDesignedPowerSkill(kind, key, caster, angle, impact, damage, owner, casterId, remote, awakened) {
-      this.emitPowerCastVfx(kind, key, caster, angle, impact, awakened);
+      this.emitCinematicPowerVfx(kind, key, caster, angle, impact, awakened);
       if (awakened && key !== "f") this.applyDesignedAwakenedBonus(kind, key, caster, angle, impact, damage, owner, casterId, remote);
       const previousSkip = this.skipPowerSignatureVisual;
       this.skipPowerSignatureVisual = true;
@@ -17709,7 +17851,7 @@
           r: { ...clampTarget(220), radius: 210 }
         }
       }[kind]?.[key] || {};
-      this.markDesignedCast(caster, power, key, angle, target, { owner, casterId });
+      this.markDesignedCast(caster, power, key, angle, target, { owner, casterId, awakened });
       this.addDesignedSkillVisual(kind, key, caster, angle, { x: tx, y: ty }, awakened, visualExtra);
 
       if (key === "q") {
@@ -28921,6 +29063,266 @@
       }
     }
 
+    drawPowerStageVfx(ctx, effect) {
+      const maxTime = Math.max(0.001, Number(effect.maxTime || effect.time || 0.3));
+      const progress = clamp(1 - Number(effect.time || 0) / maxTime, 0, 1);
+      const fade = clamp(Math.sin(progress * Math.PI), 0, 1);
+      const stage = effect.stage || "cast";
+      const kind = effect.kind || "fire";
+      const color = effect.color || powerById(kind).color;
+      const accent = effect.accent || powerById(kind).accent;
+      const dark = effect.dark || "#05030d";
+      const radius = Number(effect.radius || 80);
+      const width = Number(effect.width || 46);
+      const x = Number(effect.x || 0);
+      const y = Number(effect.y || 0);
+      const tx = Number.isFinite(effect.tx) ? effect.tx : x + Math.cos(effect.angle || 0) * Number(effect.length || radius);
+      const ty = Number.isFinite(effect.ty) ? effect.ty : y + Math.sin(effect.angle || 0) * Number(effect.length || radius);
+      const dx = tx - x;
+      const dy = ty - y;
+      const len = Math.max(1, Math.hypot(dx, dy));
+      const angle = Number.isFinite(effect.angle) ? effect.angle : Math.atan2(dy, dx);
+      const lowDetail = this.isMobileDevice() || this.effectQuality() < 0.72 || this.fastVisualMode();
+      const alpha = (lowDetail ? 0.72 : 0.9) * fade;
+      const seed = Number(effect.seed || 0);
+      const px = (v) => Math.round(v);
+      const drawIcon = (size, alphaMult = 0.7) => {
+        ctx.save();
+        ctx.globalAlpha = alpha * alphaMult;
+        this.drawPowerIconShape(ctx, kind, size, color, accent);
+        ctx.restore();
+      };
+      const ring = (cx, cy, r, line, alphaMult = 0.7, stroke = accent) => {
+        ctx.save();
+        ctx.globalAlpha = alpha * alphaMult;
+        ctx.strokeStyle = stroke;
+        ctx.lineWidth = line;
+        ctx.beginPath();
+        ctx.arc(cx, cy, r, 0, TAU);
+        ctx.stroke();
+        ctx.restore();
+      };
+      const ray = (a, inner, outer, stroke = accent, line = 2, alphaMult = 0.7) => {
+        ctx.save();
+        ctx.globalAlpha = alpha * alphaMult;
+        ctx.strokeStyle = stroke;
+        ctx.lineWidth = line;
+        ctx.lineCap = "butt";
+        ctx.beginPath();
+        ctx.moveTo(Math.cos(a) * inner, Math.sin(a) * inner);
+        ctx.lineTo(Math.cos(a) * outer, Math.sin(a) * outer);
+        ctx.stroke();
+        ctx.restore();
+      };
+      const jaggedPath = (length, amp, segments) => {
+        ctx.moveTo(0, 0);
+        for (let i = 1; i <= segments; i++) {
+          const t = i / segments;
+          const jitter = Math.sin(seed + i * 2.11 + progress * 7) * amp * (1 - t * 0.18);
+          ctx.lineTo(length * t, jitter);
+        }
+      };
+      const materialTravel = () => {
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.rotate(angle);
+        ctx.lineCap = "round";
+        ctx.lineJoin = "round";
+        if (kind === "lightning") {
+          ctx.strokeStyle = accent;
+          ctx.lineWidth = lowDetail ? 3 : 4.5;
+          ctx.globalAlpha = alpha;
+          ctx.beginPath();
+          jaggedPath(len, width * 0.5, lowDetail ? 5 : 8);
+          ctx.stroke();
+          ctx.strokeStyle = color;
+          ctx.lineWidth = 1.5;
+          ctx.globalAlpha = alpha * 0.72;
+          ctx.beginPath();
+          jaggedPath(len, width * 0.26, lowDetail ? 4 : 7);
+          ctx.stroke();
+        } else if (kind === "fire") {
+          ctx.fillStyle = hexToRgba(color, alpha * 0.22);
+          ctx.beginPath();
+          ctx.moveTo(0, -width * 0.28);
+          ctx.quadraticCurveTo(len * 0.34, -width * 0.7, len, -width * 0.18);
+          ctx.lineTo(len, width * 0.18);
+          ctx.quadraticCurveTo(len * 0.34, width * 0.7, 0, width * 0.28);
+          ctx.closePath();
+          ctx.fill();
+          ctx.strokeStyle = accent;
+          ctx.lineWidth = lowDetail ? 2.4 : 3.4;
+          ctx.globalAlpha = alpha * 0.78;
+          ctx.beginPath();
+          ctx.moveTo(0, 0);
+          ctx.quadraticCurveTo(len * 0.36, Math.sin(seed + progress * 5) * width * 0.34, len, 0);
+          ctx.stroke();
+        } else if (kind === "ice" || kind === "crystal") {
+          ctx.strokeStyle = accent;
+          ctx.lineWidth = lowDetail ? 2.2 : 3.2;
+          ctx.globalAlpha = alpha * 0.82;
+          ctx.beginPath();
+          ctx.moveTo(0, 0);
+          ctx.lineTo(len, 0);
+          ctx.stroke();
+          const shards = lowDetail ? 3 : 5;
+          for (let i = 1; i <= shards; i++) {
+            const t = i / (shards + 1);
+            const side = i % 2 ? 1 : -1;
+            ctx.save();
+            ctx.translate(len * t, side * width * 0.22);
+            ctx.rotate(side * 0.7);
+            ctx.fillStyle = hexToRgba(color, alpha * 0.45);
+            ctx.strokeStyle = accent;
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.moveTo(0, -width * 0.32);
+            ctx.lineTo(width * 0.18, 0);
+            ctx.lineTo(0, width * 0.38);
+            ctx.lineTo(-width * 0.18, 0);
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+            ctx.restore();
+          }
+        } else if (kind === "shadow" || kind === "void") {
+          ctx.strokeStyle = dark;
+          ctx.lineWidth = lowDetail ? width * 0.34 : width * 0.48;
+          ctx.globalAlpha = alpha * 0.58;
+          ctx.beginPath();
+          jaggedPath(len, width * 0.26, lowDetail ? 4 : 6);
+          ctx.stroke();
+          ctx.strokeStyle = accent;
+          ctx.lineWidth = lowDetail ? 2.2 : 3;
+          ctx.globalAlpha = alpha * 0.82;
+          ctx.beginPath();
+          jaggedPath(len, width * 0.16, lowDetail ? 4 : 6);
+          ctx.stroke();
+        } else if (kind === "gravity") {
+          ctx.strokeStyle = accent;
+          ctx.globalAlpha = alpha * 0.72;
+          for (let i = 0; i < (lowDetail ? 3 : 5); i++) {
+            const t = (i + 1) / (lowDetail ? 4 : 6);
+            const s = width * (0.18 + i * 0.035);
+            ctx.save();
+            ctx.translate(len * t, Math.sin(seed + i) * width * 0.18);
+            ctx.rotate(progress * 1.8 + i * 0.55);
+            ctx.lineWidth = 1.8;
+            ctx.strokeRect(-s, -s, s * 2, s * 2);
+            ctx.restore();
+          }
+          ctx.lineWidth = 2.2;
+          ctx.beginPath();
+          ctx.moveTo(0, 0);
+          ctx.lineTo(len, 0);
+          ctx.stroke();
+        } else if (kind === "nature") {
+          ctx.strokeStyle = color;
+          ctx.lineWidth = lowDetail ? 3 : 4.4;
+          ctx.globalAlpha = alpha * 0.75;
+          ctx.beginPath();
+          ctx.moveTo(0, 0);
+          ctx.bezierCurveTo(len * 0.25, -width * 0.42, len * 0.52, width * 0.42, len, 0);
+          ctx.stroke();
+          ctx.fillStyle = accent;
+          for (let i = 1; i < (lowDetail ? 4 : 7); i++) {
+            const t = i / (lowDetail ? 4 : 7);
+            ctx.fillRect(px(len * t), px(Math.sin(seed + i) * width * 0.26), 5, 3);
+          }
+        } else if (kind === "blood") {
+          ctx.strokeStyle = color;
+          ctx.lineWidth = lowDetail ? 4 : 5.4;
+          ctx.globalAlpha = alpha * 0.76;
+          ctx.beginPath();
+          ctx.arc(len * 0.5, 0, len * 0.42, Math.PI * 0.78, Math.PI * 1.22, true);
+          ctx.stroke();
+          ctx.strokeStyle = accent;
+          ctx.lineWidth = 1.8;
+          ctx.globalAlpha = alpha * 0.58;
+          ctx.beginPath();
+          ctx.arc(len * 0.5, 0, len * 0.3, Math.PI * 0.8, Math.PI * 1.2, true);
+          ctx.stroke();
+        } else {
+          ctx.strokeStyle = accent;
+          ctx.lineWidth = lowDetail ? 2.5 : 3.4;
+          ctx.globalAlpha = alpha * 0.78;
+          ctx.beginPath();
+          ctx.moveTo(0, 0);
+          ctx.lineTo(len, 0);
+          ctx.stroke();
+          if (kind === "time") {
+            for (let i = 1; i < (lowDetail ? 4 : 7); i++) ring(len * i / (lowDetail ? 4 : 7), 0, 5 + i, 1.2, 0.4);
+          }
+        }
+        ctx.restore();
+      };
+
+      ctx.save();
+      ctx.globalCompositeOperation = lowDetail ? "source-over" : "lighter";
+      ctx.shadowColor = color;
+      ctx.shadowBlur = lowDetail ? 0 : this.glow(stage === "impact" ? 16 : 10);
+      if (stage === "anticipation") {
+        ctx.translate(x, y);
+        const r = radius * (0.48 + progress * 0.12);
+        ring(0, 0, r, lowDetail ? 2 : 3, 0.52, color);
+        ring(0, 0, r * 0.62, 1.4, 0.36, accent);
+        for (let i = 0; i < (lowDetail ? 3 : 5); i++) {
+          const a = seed + i * TAU / (lowDetail ? 3 : 5) - progress * 1.6;
+          ray(a, r * 0.92, r * (0.52 + progress * 0.16), i % 2 ? color : accent, 1.8, 0.5);
+        }
+        drawIcon(Math.max(8, radius * 0.12), 0.45);
+      } else if (stage === "cast") {
+        ctx.translate(x, y);
+        const r = radius * (0.35 + progress * 0.8);
+        ring(0, 0, r, lowDetail ? 3 : 4.5, 0.76, accent);
+        ring(0, 0, r * 0.58, 1.5, 0.42, color);
+        const rays = lowDetail ? 6 : 9;
+        for (let i = 0; i < rays; i++) ray(seed + i * TAU / rays, r * 0.24, r * 0.9, i % 3 ? color : accent, lowDetail ? 1.6 : 2.4, 0.58);
+        drawIcon(Math.max(10, radius * 0.13), 0.7);
+      } else if (stage === "travel") {
+        materialTravel();
+      } else if (stage === "impact") {
+        ctx.translate(x, y);
+        const r = radius * (0.22 + progress * 0.92);
+        ring(0, 0, r, lowDetail ? 3 : 5, 0.82, accent);
+        ring(0, 0, r * 0.55, 1.6, 0.42, color);
+        const rays = lowDetail ? 7 : 11;
+        for (let i = 0; i < rays; i++) {
+          const a = seed + i * TAU / rays;
+          const shard = r * (0.6 + ((i % 3) * 0.12));
+          ray(a, r * 0.18, shard, i % 2 ? accent : color, lowDetail ? 1.8 : 2.6, 0.64);
+        }
+        if (kind === "gravity" || kind === "fire" || kind === "blood") {
+          ctx.globalCompositeOperation = "source-over";
+          ctx.globalAlpha = alpha * 0.28;
+          ctx.fillStyle = kind === "blood" ? color : dark;
+          ctx.beginPath();
+          ctx.ellipse(0, 0, r * 0.62, r * 0.2, 0, 0, TAU);
+          ctx.fill();
+        }
+        drawIcon(Math.max(11, radius * 0.12), 0.72);
+      } else if (stage === "aftermath") {
+        ctx.translate(x, y);
+        const r = radius * (0.55 + progress * 0.18);
+        ctx.globalCompositeOperation = "source-over";
+        ctx.globalAlpha = alpha * 0.28;
+        ctx.fillStyle = kind === "shadow" || kind === "void" ? dark : color;
+        ctx.beginPath();
+        ctx.ellipse(0, 0, r * 0.8, r * 0.28, 0, 0, TAU);
+        ctx.fill();
+        ctx.globalCompositeOperation = lowDetail ? "source-over" : "lighter";
+        ring(0, 0, r * 0.72, 1.5, 0.36, accent);
+        const marks = lowDetail ? 4 : 7;
+        for (let i = 0; i < marks; i++) {
+          const a = seed + i * TAU / marks;
+          const inner = r * 0.18;
+          const outer = r * (0.42 + (i % 2) * 0.18);
+          ray(a, inner, outer, i % 2 ? color : accent, 1.2, 0.28);
+        }
+      }
+      ctx.restore();
+    }
+
     drawEffects(ctx, foreground = false) {
       const emergency = this.performanceEmergency();
       const fast = this.fastVisualMode();
@@ -28942,6 +29344,7 @@
           || effect.type === "domainCutin"
           || effect.type === "crystalPrism"
           || effect.type === "playerBossReveal"
+          || (effect.type === "powerStageVfx" && (effect.important || effect.stage === "cast" || effect.stage === "impact"))
           || (effect.type === "skillShape" && (effect.variant === "ultimate" || effect.awakened));
         if (drawn >= budget && !important) continue;
         if (fast && !important && this.optionalVisualEffect(effect.type) && drawn > budget * 0.55) continue;
@@ -29137,6 +29540,7 @@
           ctx.quadraticCurveTo(size * 0.18, -size * 0.46, size * 0.78, 0);
           ctx.stroke();
         }
+        if (effect.type === "powerStageVfx") this.drawPowerStageVfx(ctx, effect);
         if (effect.type === "skillShape") this.drawSkillShape(ctx, effect);
         if (effect.type === "crystalPrism") {
           const progress = 1 - effect.time / Math.max(0.1, effect.maxTime || effect.time || 1);

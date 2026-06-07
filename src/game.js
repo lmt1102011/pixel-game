@@ -9,7 +9,7 @@
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
   const SIGNAL_REALTIME_RELAY_LIMIT = 2;
   const SIGNAL_REALTIME_TYPES = new Set(["state", "snapshot", "attack", "skill", "collect", "openChest", "dropItem", "damage", "chooseDoor"]);
-  const APP_VERSION = "20260607-sharp-perf-279";
+  const APP_VERSION = "20260607-render-cpu-split-280";
   const CHANGELOG_ENTRIES = [
     {
       version: APP_VERSION,
@@ -6038,18 +6038,22 @@
       const quality = this.perf?.quality ?? 1;
       const lag = this.performancePressure();
       const renderLag = this.renderPressure();
+      const renderMs = Number(this.perf?.avgRenderMs || this.perf?.renderMs || 0);
       const weakBias = this.devicePerformanceBias();
       const ultra = this.ultraPerformanceMode();
       const mobile = this.isMobileDevice();
+      const renderBound = renderLag > 0.08 || renderMs > (mobile ? 6.4 : 6.8);
+      const resolutionLag = renderLag + lag * (renderBound ? (mobile ? 0.42 : 0.48) : (mobile ? 0.16 : 0.24));
+      const renderHealthy = renderMs > 0 && renderMs < (mobile ? 5.8 : 6.2) && renderLag < 0.12;
       const base = (mobile ? 0.9 : 0.74)
-        - lag * (mobile ? 0.36 : 0.22)
-        - renderLag * (mobile ? 0.22 : 0.1)
+        - resolutionLag * (mobile ? 0.3 : 0.2)
+        - renderLag * (mobile ? 0.18 : 0.1)
         - weakBias * (mobile ? 0.018 : 0.05);
       const range = (mobile ? 0.17 : 0.26) - weakBias * (mobile ? 0.025 : 0.06);
       const floor = this.performancePanic()
-        ? (mobile ? 0.76 : 0.76)
+        ? (mobile ? (renderHealthy ? 0.82 : 0.76) : 0.76)
         : this.performanceEmergency()
-          ? (mobile ? 0.82 : 0.8)
+          ? (mobile ? (renderHealthy ? 0.86 : 0.82) : 0.8)
           : ultra
             ? (mobile ? 0.86 : 0.82)
             : (mobile ? 1 : 0.76);
@@ -6087,6 +6091,16 @@
       );
       const idle = !this.run || this.mode !== "game" || this.pauseOverlay || !visualBusy;
       const combatResize = visualBusy;
+      const current = Number.isFinite(this.perf.appliedRenderScale) ? this.perf.appliedRenderScale : 1;
+      const lowSharpnessRecovery = visualBusy
+        && activeCombat
+        && skillQuietReady
+        && current < (this.isMobileDevice() ? 0.86 : 0.82)
+        && (this.perf.stableTime || 0) > 1.4 + weakBias * 0.7
+        && pressure < 0.06
+        && (this.perf.lagTime || 0) < 0.06
+        && this.renderPressure() < 0.1
+        && !this.performancePanic();
       const stableCombatRecover = visualBusy
         && activeCombat
         && skillQuietReady
@@ -6104,7 +6118,7 @@
         ) || (
           !visualBusy
           && this.perf.lagTime < 0.14
-        ) || stableCombatRecover
+        ) || lowSharpnessRecovery || stableCombatRecover
       );
       let stableTarget = currentTarget;
       const targetGap = desired - currentTarget;
@@ -6123,13 +6137,12 @@
       if (!manualScale && combatResize && stableTarget < currentTarget) next = stableTarget;
       this.perf.renderScaleTarget = next;
       this.perf.renderScale = next;
-      const current = Number.isFinite(this.perf.appliedRenderScale) ? this.perf.appliedRenderScale : 1;
       const now = performance.now();
       const diff = Math.abs(next - current);
       const resizeThreshold = manualScale
         ? 0.025
         : combatResize
-          ? (next < current ? (this.performanceEmergency() ? 0.04 : 0.065) : stableCombatRecover ? 0.045 : 0.2)
+          ? (next < current ? (this.performanceEmergency() ? 0.04 : 0.065) : lowSharpnessRecovery ? 0.035 : stableCombatRecover ? 0.045 : 0.2)
           : next < current ? 0.035 : idle ? 0.08 : 0.14;
       if (diff < resizeThreshold) return;
       const urgentDrop = !manualScale && force && next < current && diff > (combatResize ? 0.045 : 0.04) && (this.performancePanic() || this.performanceEmergency() || pressure > 0.22);

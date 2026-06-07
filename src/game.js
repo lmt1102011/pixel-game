@@ -9,7 +9,7 @@
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
   const SIGNAL_REALTIME_RELAY_LIMIT = 2;
   const SIGNAL_REALTIME_TYPES = new Set(["state", "snapshot", "attack", "skill", "collect", "openChest", "dropItem", "damage", "chooseDoor"]);
-  const APP_VERSION = "20260607-fidelity-floor-274";
+  const APP_VERSION = "20260607-stable-frames-275";
   const CHANGELOG_ENTRIES = [
     {
       version: APP_VERSION,
@@ -3579,6 +3579,10 @@
       this.hudSkillMarkup = "";
       this.hudStatusMarkup = "";
       this.quickActionSignature = "";
+      this.resizeScheduled = false;
+      this.resizePending = false;
+      this.resizeDelayTimer = null;
+      this.lastViewportSyncKey = "";
       this.renderActorBuffer = [];
       this.roomBackgroundCache = new Map();
       this.enemySpriteCache = new Map();
@@ -3591,6 +3595,7 @@
       this.bootReady = false;
       this.loopStarted = false;
       this.lastLoopErrorAt = 0;
+      const initialRenderScale = this.startupRenderScale();
       this.perf = {
         avgDt: 1 / 60,
         fastDt: 1 / 60,
@@ -3610,11 +3615,14 @@
         schedulerLagTime: 0,
         effectQuality: 1,
         coreAutoLevel: 5,
-        renderScale: 1,
-        renderScaleTarget: 1,
-        appliedRenderScale: 1,
+        renderScale: initialRenderScale,
+        renderScaleTarget: initialRenderScale,
+        appliedRenderScale: initialRenderScale,
         renderMs: 0,
         avgRenderMs: 0,
+        updateSpikeHold: 0,
+        renderSpikeHold: 0,
+        loopSpikeHold: 0,
         resizeAt: 0
       };
       if (window.SOULRIFT_EXPORT_ONLY) {
@@ -3680,6 +3688,20 @@
       return paths;
     }
 
+    exportedSequenceReady(path = "") {
+      const paths = this.exportedSequencePaths(path);
+      return paths.length > 0 && paths.every((entry) => this.isExportedImageReady(this.exportedAssetImages.get(entry)));
+    }
+
+    stableExportedSequenceFallback(path = "") {
+      const key = this.exportedSequenceKey(path);
+      const fallback = this.exportedAssetFallback.get(key);
+      if (this.isExportedImageReady(fallback)) return fallback;
+      const firstPath = this.exportedSequencePaths(path)[0] || path;
+      const first = this.exportedAssetImages.get(firstPath);
+      return this.isExportedImageReady(first) ? first : null;
+    }
+
     isExportedImageReady(image) {
       return Boolean(image && image.complete && image.naturalWidth > 0 && !image._soulriftMissing);
     }
@@ -3713,7 +3735,10 @@
       this.exportedAssetLoadRetries.delete(path);
       this.exportedAssetPriorityQueued.delete(path);
       const key = this.exportedSequenceKey(path);
-      this.exportedAssetFallback.set(key, image);
+      const currentFallback = this.exportedAssetFallback.get(key);
+      if (/_00\.png$/i.test(path) || !this.isExportedImageReady(currentFallback)) {
+        this.exportedAssetFallback.set(key, image);
+      }
       this.exportedAssetFallback.set(path, image);
       if (shouldWarmGpu) this.warmExportedImageOnGpu(image);
     }
@@ -3761,9 +3786,21 @@
       if (!image) {
         image = new Image();
         image.decoding = "async";
-        image.loading = "eager";
+        image.loading = priority ? "eager" : "lazy";
+        try {
+          image.fetchPriority = priority ? "high" : "low";
+        } catch {
+          // Older browsers simply ignore fetch priority.
+        }
         image._soulriftPath = path;
         this.exportedAssetImages.set(path, image);
+      } else if (priority) {
+        try {
+          image.fetchPriority = "high";
+          image.loading = "eager";
+        } catch {
+          // Priority hints are optional.
+        }
       }
       image._soulriftLoadPromise = new Promise((resolve) => {
         let settled = false;
@@ -3961,12 +3998,7 @@
 
     preloadCharacterExportFrames(characterId = this.save?.account?.selectedCharacter || "swordsman", priority = false) {
       const id = characterById(characterId)?.id || "swordsman";
-      const weakPriority = priority && this.devicePerformanceBias() > 0.5;
-      const immediateStates = weakPriority ? [
-        `assets/exported/characters/${id}/idle_00.png`,
-        `assets/exported/characters/${id}/run_00.png`,
-        `assets/exported/characters/${id}/attack_00.png`
-      ] : [
+      const immediateStates = [
         `assets/exported/characters/${id}/idle_00.png`,
         `assets/exported/characters/${id}/run_00.png`,
         `assets/exported/characters/${id}/attack_00.png`,
@@ -3975,10 +4007,6 @@
       ];
       this.queueExportedAssetFamily(immediateStates, priority);
       this.queueExportedSequence(`assets/exported/characters/${id}/death_00.png`, false);
-      if (weakPriority) {
-        this.queueExportedSequence(`assets/exported/characters/${id}/skill_00.png`, false);
-        this.queueExportedSequence(`assets/exported/characters/${id}/ultimate_00.png`, false);
-      }
     }
 
     preloadMonsterExportFrames(kinds = [], priority = false) {
@@ -3997,7 +4025,7 @@
       if (!power?.id) return;
       const leanPriority = Boolean(priority);
       const activeVariant = this.powerAwakeningActive(power.id) ? "awakened" : "normal";
-      const priorityKeys = leanPriority ? ["q", "e"] : ["q", "e", "r", "f"];
+      const priorityKeys = leanPriority ? ["q", "e", "r", "f"] : ["q", "e", "r", "f"];
       const keys = priority ? priorityKeys : ["q", "e", "r", "f"];
       for (const key of keys) {
         if (!POWER_SKILL_SIGNATURES[power.id]?.[key]) continue;
@@ -4042,7 +4070,7 @@
       this.preloadRunExportAssets(this.run.power, this.run.biome, this.run.player?.characterId, priority);
       const monsterKinds = new Set((this.run.enemies || []).map((enemy) => enemy?.kind).filter((kind) => MONSTER_TYPES[kind]));
       this.preloadMonsterExportFrames(monsterKinds, priority);
-      for (const hazard of this.run.hazards || []) this.queueExportedSequence(`assets/exported/traps/${hazard.type || "blade"}/active_00.png`, false);
+      for (const hazard of this.run.hazards || []) this.queueExportedSequence(`assets/exported/traps/${hazard.type || "blade"}/active_00.png`, priority);
       for (const object of this.run.roomObjects || []) {
         if (object.type === "treasureChest") this.preloadChestExportFrames("treasureChest", true);
         if (object.type === "nextDoor" || object.type === "bossGate" || object.type === "bossExit") this.preloadDoorExportFrames(this.doorExportId(object), true);
@@ -4129,20 +4157,23 @@
       else queue();
     }
 
-    exportedImage(path) {
+    exportedImage(path, options = {}) {
       if (!path) return null;
+      if (options.stableSequence && !this.exportedSequenceReady(path)) {
+        this.queueExportedSequence(path, true);
+        return this.stableExportedSequenceFallback(path);
+      }
       let image = this.exportedAssetImages.get(path);
       if (!image) {
         this.queueExportedSequence(path, true);
-        const fallback = this.exportedAssetFallback.get(this.exportedSequenceKey(path));
-        return fallback || null;
+        return this.stableExportedSequenceFallback(path);
       }
       if (this.isExportedImageReady(image)) {
         this.markExportedImageReady(path, image);
         return image;
       }
       this.queueExportedSequence(path, true);
-      return this.exportedAssetFallback.get(this.exportedSequenceKey(path)) || null;
+      return this.stableExportedSequenceFallback(path);
     }
 
     drawExportedImage(ctx, path, x, y, w, h) {
@@ -4207,7 +4238,7 @@
       const type = hazard?.type || "blade";
       const frame = Math.floor(Math.abs((hazard?.pulse || this.menuTime) * 2.8)) % 6;
       const path = `assets/exported/traps/${type}/active_${String(frame).padStart(2, "0")}.png`;
-      const image = this.exportedImage(path);
+      const image = this.exportedImage(path, { stableSequence: true });
       if (!image) return false;
       const scale = Math.max(0.55, Number(hazard.radius || 54) / 54);
       const size = 192 * scale;
@@ -4230,7 +4261,7 @@
       const id = this.doorExportId(object);
       const frame = Math.round(clamp(grow, 0, 1) * 4);
       const path = `assets/exported/doors/${id}/grow_${String(frame).padStart(2, "0")}.png`;
-      const image = this.exportedImage(path);
+      const image = this.exportedImage(path, { stableSequence: true });
       if (!image) return false;
       const boss = object.type === "bossGate";
       const scale = 1;
@@ -4274,7 +4305,7 @@
       const frame = this.exportedAnimationFrame(rawOpening, 6);
       const type = gold ? "goldChest" : "woodChest";
       const path = `assets/exported/chests/${type}/open_${String(frame).padStart(2, "0")}.png`;
-      const image = this.exportedImage(path);
+      const image = this.exportedImage(path, { stableSequence: true });
       if (!image) return false;
       const smoothing = ctx.imageSmoothingEnabled;
       ctx.imageSmoothingEnabled = false;
@@ -4286,7 +4317,7 @@
     drawExportedTreasureChest(ctx, object, grow, y, rawOpening) {
       const frame = this.exportedAnimationFrame(rawOpening, 6);
       const path = `assets/exported/chests/treasureChest/open_${String(frame).padStart(2, "0")}.png`;
-      const image = this.exportedImage(path);
+      const image = this.exportedImage(path, { stableSequence: true });
       if (!image) return false;
       this.drawObjectAmbient(ctx, { ...object, y }, 74);
       ctx.save();
@@ -4328,7 +4359,7 @@
       if (normalizeHeroColor(custom.color, character.color) !== DEFAULT_HERO_COLOR) return false;
       const frame = this.exportedHeroFrame(actor);
       const path = `assets/exported/characters/${character.id}/${frame.state}_${String(frame.frame).padStart(2, "0")}.png`;
-      const image = this.exportedImage(path);
+      const image = this.exportedImage(path, { stableSequence: true });
       if (!image) return false;
       const exportScale = 3.15;
       const runtimeScale = Math.max(0.2, scale / exportScale);
@@ -4376,9 +4407,11 @@
       const key = this.skillExportKey(effect);
       if (!kind || !key) return false;
       const awakened = Boolean(effect.awakened || String(effect.variant || "").startsWith("awakened-") || String(effect.variant || "").startsWith("design-awakened-"));
+      const variant = String(effect.variant || "");
+      const cinematic = /ultimate|domain/i.test(variant);
       const frame = this.exportedAnimationFrame(progress, 4);
       const path = `assets/exported/skills/${kind}/${key}/${awakened ? "awakened" : "normal"}_${String(frame).padStart(2, "0")}.png`;
-      const image = this.exportedImage(path);
+      const image = this.exportedImage(path, { stableSequence: !cinematic });
       if (!image) return false;
       const signature = effect.signature || (POWER_SKILL_SIGNATURES[kind] || {})[key] || {};
       const line = signature.anchor === "line";
@@ -5366,17 +5399,13 @@
 
     bindEvents() {
       window.addEventListener("resize", () => {
-        this.resize();
-        this.updateMobileGate();
-        this.updateQuickActions();
+        this.scheduleResize();
       });
       window.addEventListener("orientationchange", () => {
-        window.setTimeout(() => {
-          this.resize();
-          this.updateMobileGate();
-          this.updateQuickActions();
-        }, 220);
+        this.scheduleResize(220);
       });
+      window.visualViewport?.addEventListener("resize", () => this.scheduleResize());
+      window.visualViewport?.addEventListener("scroll", () => this.scheduleResize());
       document.addEventListener("fullscreenchange", () => this.updateMobileGate());
       document.addEventListener("webkitfullscreenchange", () => this.updateMobileGate());
       const notifyLeave = () => {
@@ -5454,6 +5483,7 @@
 
     updateDeviceUiMode() {
       const mobile = this.isMobileDevice();
+      if (this.mobileUi === mobile) return;
       this.mobileUi = mobile;
       document.body.classList.toggle("is-mobile-ui", mobile);
       document.body.classList.toggle("is-desktop-ui", !mobile);
@@ -5554,6 +5584,9 @@
       const warmupHitch = warmupActive && schedulerHitch;
       const frame = schedulerHitch ? Math.min(rawFrame, targetDt * (warmupHitch ? 1 : 1.18)) : rawFrame;
       this.perf.warmupTime = Math.max(0, (this.perf.warmupTime || 0) - rawFrame);
+      this.perf.updateSpikeHold = Math.max(0, (this.perf.updateSpikeHold || 0) - rawFrame);
+      this.perf.renderSpikeHold = Math.max(0, (this.perf.renderSpikeHold || 0) - rawFrame);
+      this.perf.loopSpikeHold = Math.max(0, (this.perf.loopSpikeHold || 0) - rawFrame);
       this.perf.avgDt = this.perf.avgDt * 0.955 + frame * 0.045;
       this.perf.fastDt = (this.perf.fastDt || this.perf.avgDt) * 0.76 + frame * 0.24;
       if (this.save.settings.graphicsMode === "manual") {
@@ -5787,7 +5820,8 @@
       const ms = Number(this.perf?.avgRenderMs || this.perf?.renderMs || 0);
       const start = this.isMobileDevice() ? 5.8 : 5.4;
       const range = this.isMobileDevice() ? 11.5 : 10.5;
-      return clamp((ms - start) / range, 0, 1);
+      const spikeHold = Math.max(Number(this.perf?.renderSpikeHold || 0), Number(this.perf?.loopSpikeHold || 0));
+      return clamp((ms - start) / range + clamp(spikeHold / 1.35, 0, 1) * 0.72, 0, 1);
     }
 
     performancePressure() {
@@ -5795,11 +5829,11 @@
     }
 
     performanceEmergency() {
-      return (this.perf?.emergencyHold || 0) > 0 || this.performancePressure() > 0.22 || this.renderPressure() > 0.24;
+      return (this.perf?.emergencyHold || 0) > 0 || (this.perf?.updateSpikeHold || 0) > 0.05 || this.performancePressure() > 0.22 || this.renderPressure() > 0.24;
     }
 
     performancePanic() {
-      return (this.perf?.panicHold || 0) > 0 || this.performancePressure() > 0.62 || this.renderPressure() > 0.62;
+      return (this.perf?.panicHold || 0) > 0 || (this.perf?.updateSpikeHold || 0) > 0.85 || this.performancePressure() > 0.62 || this.renderPressure() > 0.62;
     }
 
     visualBudgetScale() {
@@ -5828,6 +5862,9 @@
       const quality = this.effectQuality();
       const load = this.graphicsCombatLoad();
       return this.performancePanic()
+        || (this.perf?.updateSpikeHold || 0) > 0.05
+        || (this.perf?.renderSpikeHold || 0) > 0.05
+        || (this.perf?.loopSpikeHold || 0) > 0.05
         || this.renderPressure() > 0.18
         || this.performancePressure() > 0.26
         || (this.graphicsActiveCombat() && (load > 0.65 || quality < 0.66));
@@ -5839,6 +5876,9 @@
       const pressure = this.performancePressure();
       const combatLoad = this.graphicsCombatLoad();
       return this.performancePanic()
+        || (this.perf?.updateSpikeHold || 0) > 0.85
+        || (this.perf?.renderSpikeHold || 0) > 0.85
+        || (this.perf?.loopSpikeHold || 0) > 0.85
         || renderPressure > 0.62
         || pressure > 0.62
         || (this.graphicsActiveCombat() && combatLoad > 1.35 && (renderPressure > 0.34 || pressure > 0.42))
@@ -5890,7 +5930,13 @@
       return start + (end - start) * (value - low);
     }
 
+    startupRenderScale() {
+      if (!this.isMobileDevice()) return 1;
+      return clamp(0.9 - this.devicePerformanceBias() * 0.06, 0.84, 0.92);
+    }
+
     graphicsRenderScale() {
+      if (this.isMobileDevice() && (!this.run || this.mode !== "game")) return this.startupRenderScale();
       const quality = this.perf?.quality ?? 1;
       const lag = this.performancePressure();
       const renderLag = this.renderPressure();
@@ -6025,7 +6071,7 @@
       const weakBias = this.devicePerformanceBias();
       const mobile = this.isMobileDevice();
       const preferred = mobile
-        ? clamp(0.9 - weakBias * 0.06, 0.84, 0.92)
+        ? this.startupRenderScale()
         : clamp(0.88 - weakBias * 0.1, 0.78, 0.9);
       const current = Number.isFinite(this.perf?.appliedRenderScale) ? this.perf.appliedRenderScale : 1;
       if (Math.abs(current - preferred) < 0.045) return;
@@ -6387,20 +6433,61 @@
       if (action === "pause") this.showPause();
     }
 
-    resize() {
+    scheduleResize(delay = 0) {
+      const run = () => {
+        if (this.resizeScheduled) {
+          this.resizePending = true;
+          return;
+        }
+        this.resizeScheduled = true;
+        requestAnimationFrame(() => {
+          this.resizeScheduled = false;
+          this.resize();
+          this.updateMobileGate();
+          this.updateQuickActions();
+          if (this.resizePending) {
+            this.resizePending = false;
+            this.scheduleResize();
+          }
+        });
+      };
+      if (delay > 0) {
+        clearTimeout(this.resizeDelayTimer);
+        this.resizeDelayTimer = setTimeout(run, delay);
+        return;
+      }
+      run();
+    }
+
+    resize(force = false) {
       const resizeStart = typeof performance !== "undefined" && performance.now ? performance.now() : 0;
-      this.updateDeviceUiMode();
-      window.SoulriftPwaGate?.syncViewport?.();
       const mobile = this.isMobileDevice();
       const maxDpr = Math.min(window.devicePixelRatio || 1, mobile ? 1.35 : 1.25);
       const renderScale = Number.isFinite(this.perf?.appliedRenderScale) ? this.perf.appliedRenderScale : 1;
       const minDpr = this.ultraPerformanceMode() ? (mobile ? 0.92 : 0.76) : (mobile ? 1 : 0.8);
-      this.dpr = Math.max(minDpr, maxDpr * renderScale);
+      const nextDpr = Math.max(minDpr, maxDpr * renderScale);
       const viewport = window.visualViewport;
-      this.width = Math.round(viewport?.width || window.innerWidth);
-      this.height = Math.round(viewport?.height || window.innerHeight);
-      this.canvas.width = Math.ceil(this.width * this.dpr);
-      this.canvas.height = Math.ceil(this.height * this.dpr);
+      const nextWidth = Math.max(1, Math.round(viewport?.width || window.innerWidth));
+      const nextHeight = Math.max(1, Math.round(viewport?.height || window.innerHeight));
+      const nextCanvasWidth = Math.ceil(nextWidth * nextDpr);
+      const nextCanvasHeight = Math.ceil(nextHeight * nextDpr);
+      const sameCanvas = this.width === nextWidth
+        && this.height === nextHeight
+        && Math.abs((this.dpr || 0) - nextDpr) < 0.001
+        && this.canvas.width === nextCanvasWidth
+        && this.canvas.height === nextCanvasHeight;
+      this.updateDeviceUiMode();
+      const viewportSyncKey = `${nextWidth}x${nextHeight}:${mobile ? 1 : 0}:${this.isStandaloneApp() ? 1 : 0}`;
+      if (force || this.lastViewportSyncKey !== viewportSyncKey) {
+        this.lastViewportSyncKey = viewportSyncKey;
+        window.SoulriftPwaGate?.syncViewport?.();
+      }
+      if (!force && sameCanvas) return;
+      this.width = nextWidth;
+      this.height = nextHeight;
+      this.dpr = nextDpr;
+      this.canvas.width = nextCanvasWidth;
+      this.canvas.height = nextCanvasHeight;
       this.canvas.style.width = `${this.width}px`;
       this.canvas.style.height = `${this.height}px`;
       this.ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
@@ -6525,6 +6612,29 @@
       if (event.code === "Tab" && this.run.roomObjects?.some((object) => object.type === "nextDoor")) this.toast("Đi lên phía trên bản đồ để vào cửa tiếp theo");
     }
 
+    recordFrameSpike(renderMs = 0, loopMs = 0, updateMs = 0) {
+      if (!this.run || this.mode !== "game" || !this.perf) return;
+      const mobile = this.isMobileDevice();
+      const updateWarn = mobile ? 16 : 14;
+      const updateSevere = mobile ? 34 : 30;
+      const renderWarn = mobile ? 18 : 16;
+      const renderSevere = mobile ? 38 : 34;
+      const loopWarn = mobile ? 34 : 30;
+      const loopSevere = mobile ? 54 : 48;
+      if (updateMs > updateWarn) {
+        const hold = updateMs > updateSevere ? 1.35 : 0.68;
+        this.perf.updateSpikeHold = Math.max(this.perf.updateSpikeHold || 0, hold);
+      }
+      if (renderMs > renderWarn) {
+        const hold = renderMs > renderSevere ? 1.35 : 0.68;
+        this.perf.renderSpikeHold = Math.max(this.perf.renderSpikeHold || 0, hold);
+      }
+      if (loopMs > loopWarn) {
+        const hold = loopMs > loopSevere ? 1.45 : 0.72;
+        this.perf.loopSpikeHold = Math.max(this.perf.loopSpikeHold || 0, hold);
+      }
+    }
+
     loop(time) {
       try {
         const loopStart = performance.now();
@@ -6564,6 +6674,7 @@
         this.perf.avgLoopMs = this.perf.avgLoopMs
           ? this.perf.avgLoopMs * 0.86 + loopMs * 0.14
           : loopMs;
+        this.recordFrameSpike(renderMs, loopMs, updateMs);
       } catch (error) {
         this.reportLoopError(error);
       }
@@ -24719,7 +24830,7 @@
       const frame = this.exportedMonsterFrame(enemy, variant);
       const file = `${frame.state}_${String(frame.frame).padStart(2, "0")}.png`;
       const path = `assets/exported/monsters/${kind}/${file}`;
-      const image = this.exportedImage(path);
+      const image = this.exportedImage(path, { stableSequence: true });
       if (!image) return false;
       const smoothing = ctx.imageSmoothingEnabled;
       const previousFilter = ctx.filter || "none";

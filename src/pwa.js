@@ -1,11 +1,12 @@
 (() => {
   "use strict";
 
-  const APP_VERSION = "20260607-fidelity-floor-274";
+  const APP_VERSION = "20260607-stable-frames-275";
   const APP_ICON = "assets/icons/app-icon-20260605-logo-xl-149.svg";
   let deferredInstallPrompt = null;
   let startGame = null;
   let iosGuideShown = false;
+  let viewportSyncKey = "";
 
   function qs(selector) {
     return document.querySelector(selector);
@@ -50,10 +51,15 @@
     const viewport = window.visualViewport;
     const width = Math.round(viewport?.width || window.innerWidth || document.documentElement.clientWidth || 0);
     const height = Math.round(viewport?.height || window.innerHeight || document.documentElement.clientHeight || 0);
+    const standalone = isStandalone();
+    const fullscreen = isFullscreenDisplayMode();
+    const nextKey = `${width}x${height}:${standalone ? 1 : 0}:${fullscreen ? 1 : 0}`;
+    if (nextKey === viewportSyncKey) return;
+    viewportSyncKey = nextKey;
     if (width > 0) document.documentElement.style.setProperty("--app-width", `${width}px`);
     if (height > 0) document.documentElement.style.setProperty("--app-height", `${height}px`);
-    document.body.classList.toggle("pwa-standalone", isStandalone());
-    document.body.classList.toggle("pwa-fullscreen-mode", isFullscreenDisplayMode());
+    document.body.classList.toggle("pwa-standalone", standalone);
+    document.body.classList.toggle("pwa-fullscreen-mode", fullscreen);
   }
 
   async function requestInstalledFullscreen() {

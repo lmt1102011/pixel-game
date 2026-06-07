@@ -10,7 +10,7 @@ function usage() {
   return [
     "Usage: node tools/perf-smoke.js [options]",
     "",
-    "Runs a browser smoke benchmark in a training room and reports FPS, render time, preload state, and missing exported frames.",
+    "Runs a browser smoke benchmark and reports FPS, render time, preload state, and missing exported frames.",
     "",
     "Options:",
     "  --url <url>          Use an already running server instead of starting a local static server",
@@ -21,6 +21,8 @@ function usage() {
     "  --min-fps <n>        Fail below this average FPS; default 30",
     "  --max-long <n>       Fail above this long-frame percentage; default 35",
     "  --strict-preload     Also fail when the exported preload queue has not fully settled",
+    "  --scenario <name>    training, normal, or boss; default training",
+    "  --difficulty <id>    Difficulty id for non-training runs; default normal",
     "  --power <id>         Power to test; default fire",
     "  --character <id>     Character to test; default swordsman",
     "  --no-audio           Disable music and SFX during the smoke run",
@@ -36,6 +38,8 @@ function parseArgs(argv) {
     maxLong: 35,
     power: "fire",
     character: "swordsman",
+    scenario: "training",
+    difficulty: "normal",
     mobile: false
   };
   for (let i = 0; i < argv.length; i++) {
@@ -50,6 +54,8 @@ function parseArgs(argv) {
     else if (arg === "--cooldown") options.cooldown = Math.max(0, Number(argv[++i] || options.cooldown) || options.cooldown);
     else if (arg === "--min-fps") options.minFps = Math.max(1, Number(argv[++i] || options.minFps) || options.minFps);
     else if (arg === "--max-long") options.maxLong = Math.max(0, Number(argv[++i] || options.maxLong) || options.maxLong);
+    else if (arg === "--scenario") options.scenario = (argv[++i] || options.scenario).toLowerCase();
+    else if (arg === "--difficulty") options.difficulty = argv[++i] || options.difficulty;
     else if (arg === "--power") options.power = argv[++i] || options.power;
     else if (arg === "--character") options.character = argv[++i] || options.character;
   }
@@ -118,7 +124,7 @@ function startStaticServer() {
 async function runBenchmark(page, options) {
   const durationMs = Math.round(options.duration * 1000);
   const cooldownMs = Math.min(durationMs - 500, Math.round(options.cooldown * 1000));
-  return page.evaluate(async ({ durationMs, cooldownMs, powerId, characterId, noAudio }) => {
+  return page.evaluate(async ({ durationMs, cooldownMs, powerId, characterId, noAudio, scenario, difficulty }) => {
     const game = window.soulrift;
     if (!game) throw new Error("Soulrift game object was not created");
     const accountKey = "perfsmoke";
@@ -153,17 +159,25 @@ async function runBenchmark(page, options) {
     game.saveCloudAccountNow = async () => {};
     game.updateAccountCloudCheck = () => {};
     game.applyGraphicsSettings();
-    game.startSelectedRun("", {
-      training: true,
-      trainingOptions: { damage: true, freeEnergy: true, noCooldown: true },
-      difficulty: "normal"
-    });
+    const runScenario = ["training", "normal", "boss"].includes(scenario) ? scenario : "training";
+    const runOptions = runScenario === "training"
+      ? { training: true, trainingOptions: { damage: true, freeEnergy: true, noCooldown: true }, difficulty }
+      : runScenario === "boss"
+        ? { difficulty, miniGame: "bossRush" }
+        : { difficulty };
+    game.startSelectedRun("", runOptions);
+    if (game.run?.currentRoom && runScenario !== "training") {
+      game.run.currentRoom.intro = Math.min(Number(game.run.currentRoom.intro || 0), 0.2);
+    }
     game.preloadCurrentRoomExportAssets(true);
 
     const keys = ["q", "e", "r", "f"];
     let actionIndex = 0;
     const action = () => {
       if (!game.run?.player || game.pauseOverlay) return;
+      if (runScenario !== "training") {
+        game.run.player.energy = game.run.player.maxEnergy;
+      }
       const target = (game.run.enemies || []).find((enemy) => enemy && enemy.hp > 0) || game.run.enemies?.[0];
       if (target) {
         game.input.mouse.worldX = target.x;
@@ -243,6 +257,7 @@ async function runBenchmark(page, options) {
         const avgFrameMs = totalDt / Math.max(1, frames);
         resolve({
           mode: game.mode,
+          scenario: runScenario,
           roomType: game.run?.currentRoom?.type || "",
           enemies: game.run?.enemies?.length || 0,
           frames,
@@ -278,6 +293,9 @@ async function runBenchmark(page, options) {
           combatLoad: Math.round(Number(game.graphicsCombatLoad?.() || 0) * 1000) / 1000,
           performancePressure: Math.round(Number(game.performancePressure?.() || 0) * 1000) / 1000,
           renderPressure: Math.round(Number(game.renderPressure?.() || 0) * 1000) / 1000,
+          updateSpikeHold: Math.round(Number(game.perf?.updateSpikeHold || 0) * 1000) / 1000,
+          renderSpikeHold: Math.round(Number(game.perf?.renderSpikeHold || 0) * 1000) / 1000,
+          loopSpikeHold: Math.round(Number(game.perf?.loopSpikeHold || 0) * 1000) / 1000,
           readyImages: [...game.exportedAssetImages.values()].filter((image) => game.isExportedImageReady(image)).length,
           queuedAssets: game.exportedAssetPreloadQueue.length,
           activePreloads: game.exportedAssetPreloadActive,
@@ -302,7 +320,9 @@ async function runBenchmark(page, options) {
     cooldownMs,
     powerId: options.power,
     characterId: options.character,
-    noAudio: Boolean(options.noAudio)
+    noAudio: Boolean(options.noAudio),
+    scenario: options.scenario,
+    difficulty: options.difficulty
   });
 }
 
@@ -366,7 +386,8 @@ async function main() {
     const metrics = await runBenchmark(page, options);
     if (errors.length) throw new Error(errors.join("\n"));
     const failures = [];
-    if (metrics.mode !== "game" || metrics.roomType !== "training") failures.push(`Expected training game mode, got ${metrics.mode}/${metrics.roomType}`);
+    const expectedRoom = options.scenario === "boss" ? "boss" : options.scenario === "normal" ? "normal" : "training";
+    if (metrics.mode !== "game" || metrics.roomType !== expectedRoom) failures.push(`Expected ${expectedRoom} game mode, got ${metrics.mode}/${metrics.roomType}`);
     if (metrics.avgFps < options.minFps) failures.push(`Average FPS ${metrics.avgFps} is below ${options.minFps}`);
     if (metrics.longFramePercent > options.maxLong) failures.push(`Long-frame rate ${metrics.longFramePercent}% is above ${options.maxLong}%`);
     if (metrics.missingImages > 0) failures.push(`${metrics.missingImages} exported image(s) missing at runtime`);

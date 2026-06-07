@@ -9,7 +9,7 @@
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
   const SIGNAL_REALTIME_RELAY_LIMIT = 2;
   const SIGNAL_REALTIME_TYPES = new Set(["state", "snapshot", "attack", "skill", "collect", "openChest", "dropItem", "damage", "chooseDoor"]);
-  const APP_VERSION = "20260607-idle-preload-270";
+  const APP_VERSION = "20260607-preload-hotfix-272";
   const CHANGELOG_ENTRIES = [
     {
       version: APP_VERSION,
@@ -3498,9 +3498,11 @@
       this.exportedAssetQueued = new Set();
       this.exportedAssetQueuedSequences = new Set();
       this.exportedAssetPriorityQueued = new Set();
+      this.exportedAssetLoadRetries = new Map();
       this.exportedAssetPreloadQueue = [];
       this.exportedAssetPreloadActive = 0;
       this.exportedAssetPreloadActivePaths = new Set();
+      this.exportedAssetPreloadActivePriorityPaths = new Set();
       this.exportedAssetPreloadScheduled = false;
       this.exportedAssetPreloadLimit = this.isMobileDevice() ? 2 : 4;
       this.exportedAssetDecodeTimeoutMs = this.isMobileDevice() ? 240 : 300;
@@ -3680,6 +3682,8 @@
     markExportedImageReady(path, image) {
       if (!path || !this.isExportedImageReady(image)) return;
       image._soulriftReady = true;
+      this.exportedAssetLoadRetries.delete(path);
+      this.exportedAssetPriorityQueued.delete(path);
       const key = this.exportedSequenceKey(path);
       this.exportedAssetFallback.set(key, image);
       this.exportedAssetFallback.set(path, image);
@@ -3709,13 +3713,17 @@
       });
     }
 
-    loadExportedImage(path = "") {
+    loadExportedImage(path = "", priority = false) {
       if (!path || this.exportedAssetMissing.has(path)) return Promise.resolve(null);
       if (this.exportedAssetManifestPaths.size && !this.exportedAssetManifestPaths.has(path)) {
         this.exportedAssetMissing.add(path);
         return Promise.resolve(null);
       }
       let image = this.exportedAssetImages.get(path);
+      if (image?._soulriftLoadTimedOutAt && !this.isExportedImageReady(image)) {
+        this.exportedAssetImages.delete(path);
+        image = null;
+      }
       if (image?._soulriftLoadPromise) return image._soulriftLoadPromise;
       if (this.isExportedImageReady(image)) {
         this.markExportedImageReady(path, image);
@@ -3754,6 +3762,18 @@
         loadTimer = setTimeout(() => {
           image._soulriftLoadPromise = null;
           image._soulriftLoadTimedOutAt = typeof performance !== "undefined" && performance.now ? performance.now() : Date.now();
+          this.exportedAssetImages.delete(path);
+          this.exportedAssetQueued.delete(path);
+          const retries = (this.exportedAssetLoadRetries.get(path) || 0) + 1;
+          this.exportedAssetLoadRetries.set(path, retries);
+          if (retries <= 2 && !this.exportedAssetMissing.has(path)) {
+            if (priority) {
+              this.exportedAssetPriorityQueued.add(path);
+              this.exportedAssetPreloadQueue.unshift(path);
+            } else {
+              this.exportedAssetPreloadQueue.push(path);
+            }
+          }
           settle(null);
         }, Math.max(900, Number(this.exportedAssetLoadTimeoutMs || 2800)));
         image.src = this.exportedAssetUrl(path);
@@ -3769,6 +3789,8 @@
           const index = this.exportedAssetPreloadQueue.indexOf(path);
           if (index > 0) {
             this.exportedAssetPreloadQueue.splice(index, 1);
+            this.exportedAssetPreloadQueue.unshift(path);
+          } else if (index < 0 && !this.exportedAssetPreloadActivePaths.has(path)) {
             this.exportedAssetPreloadQueue.unshift(path);
           }
           this.scheduleExportedPreloadDrain();
@@ -3826,30 +3848,66 @@
     }
 
     drainExportedPreloadQueue() {
+      this.reconcileExportedPriorityQueue();
       const baseLimit = this.exportedAssetPreloadLimit || (this.isMobileDevice() ? 2 : 4);
       const priorityBacklog = this.exportedAssetPriorityQueued.size > 0;
-      const limit = priorityBacklog ? Math.max(baseLimit, this.isMobileDevice() ? 4 : 6) : baseLimit;
+      const memory = Number(navigator.deviceMemory || 0);
+      const weakPreloadDevice = this.devicePerformanceBias() > 0.62 || (memory > 0 && memory <= 2);
+      const priorityLimit = weakPreloadDevice
+        ? Math.min(baseLimit, this.isMobileDevice() ? 2 : 3)
+        : Math.max(baseLimit, this.isMobileDevice() ? 4 : 6);
+      const limit = priorityBacklog ? priorityLimit : baseLimit;
       while (this.exportedAssetPreloadActive < limit && this.exportedAssetPreloadQueue.length) {
-        const path = this.exportedAssetPreloadQueue.shift();
+        const priorityIndex = priorityBacklog
+          ? this.exportedAssetPreloadQueue.findIndex((entry) => this.exportedAssetPriorityQueued.has(entry))
+          : -1;
+        const path = priorityIndex > 0
+          ? this.exportedAssetPreloadQueue.splice(priorityIndex, 1)[0]
+          : this.exportedAssetPreloadQueue.shift();
         const priority = this.exportedAssetPriorityQueued.has(path);
         const image = this.exportedAssetImages.get(path);
         if (this.isExportedImageReady(image) || this.exportedAssetMissing.has(path)) {
           this.exportedAssetPriorityQueued.delete(path);
           continue;
         }
-        if (!priority && this.mode === "game" && this.renderPressure() > 0.34) {
+        if (!priority && this.mode === "game" && (
+          this.graphicsActiveCombat()
+          || this.graphicsPlayerSkillActive()
+          || this.renderPressure() > 0.2
+          || this.performancePressure() > 0.22
+        )) {
           this.exportedAssetPreloadQueue.push(path);
-          this.scheduleExportedPreloadDrain(140);
+          this.scheduleExportedPreloadDrain(260);
           break;
         }
         this.exportedAssetPriorityQueued.delete(path);
         this.exportedAssetPreloadActive++;
         this.exportedAssetPreloadActivePaths.add(path);
-        this.loadExportedImage(path).finally(() => {
+        if (priority) this.exportedAssetPreloadActivePriorityPaths.add(path);
+        this.loadExportedImage(path, priority).finally(() => {
           this.exportedAssetPreloadActive = Math.max(0, this.exportedAssetPreloadActive - 1);
           this.exportedAssetPreloadActivePaths.delete(path);
+          this.exportedAssetPreloadActivePriorityPaths.delete(path);
+          this.reconcileExportedPriorityQueue();
           if (this.exportedAssetPreloadQueue.length) this.scheduleExportedPreloadDrain();
         });
+      }
+    }
+
+    reconcileExportedPriorityQueue() {
+      if (!this.exportedAssetPriorityQueued.size) return;
+      const queued = new Set(this.exportedAssetPreloadQueue);
+      for (const path of Array.from(this.exportedAssetPriorityQueued)) {
+        const image = this.exportedAssetImages.get(path);
+        if (this.isExportedImageReady(image) || this.exportedAssetMissing.has(path)) {
+          this.exportedAssetPriorityQueued.delete(path);
+          continue;
+        }
+        if (!queued.has(path) && !this.exportedAssetPreloadActivePaths.has(path)) {
+          this.exportedAssetQueued.delete(path);
+          this.exportedAssetPreloadQueue.unshift(path);
+          queued.add(path);
+        }
       }
     }
 
@@ -3874,14 +3932,24 @@
 
     preloadCharacterExportFrames(characterId = this.save?.account?.selectedCharacter || "swordsman", priority = false) {
       const id = characterById(characterId)?.id || "swordsman";
-      this.queueExportedAssetFamily([
+      const weakPriority = priority && this.devicePerformanceBias() > 0.5;
+      const immediateStates = weakPriority ? [
+        `assets/exported/characters/${id}/idle_00.png`,
+        `assets/exported/characters/${id}/run_00.png`,
+        `assets/exported/characters/${id}/attack_00.png`
+      ] : [
         `assets/exported/characters/${id}/idle_00.png`,
         `assets/exported/characters/${id}/run_00.png`,
         `assets/exported/characters/${id}/attack_00.png`,
         `assets/exported/characters/${id}/skill_00.png`,
-        `assets/exported/characters/${id}/ultimate_00.png`,
-        `assets/exported/characters/${id}/death_00.png`
-      ], priority);
+        `assets/exported/characters/${id}/ultimate_00.png`
+      ];
+      this.queueExportedAssetFamily(immediateStates, priority);
+      this.queueExportedSequence(`assets/exported/characters/${id}/death_00.png`, false);
+      if (weakPriority) {
+        this.queueExportedSequence(`assets/exported/characters/${id}/skill_00.png`, false);
+        this.queueExportedSequence(`assets/exported/characters/${id}/ultimate_00.png`, false);
+      }
     }
 
     preloadMonsterExportFrames(kinds = [], priority = false) {
@@ -3898,12 +3966,28 @@
     preloadPowerSkillExportFrames(powerId = this.save?.account?.selectedPower || "fire", priority = false) {
       const power = powerById(powerId || "fire");
       if (!power?.id) return;
-      for (const key of ["q", "e", "r", "f"]) {
+      const weakPriority = priority && this.devicePerformanceBias() > 0.5;
+      const activeVariant = this.powerAwakeningActive(power.id) ? "awakened" : "normal";
+      const priorityKeys = weakPriority ? ["q", "e"] : ["q", "e", "r", "f"];
+      const keys = priority ? priorityKeys : ["q", "e", "r", "f"];
+      for (const key of keys) {
         if (!POWER_SKILL_SIGNATURES[power.id]?.[key]) continue;
-        this.queueExportedAssetFamily([
-          `assets/exported/skills/${power.id}/${key}/normal_00.png`,
-          `assets/exported/skills/${power.id}/${key}/awakened_00.png`
-        ], priority);
+        if (priority) this.queueExportedSequence(`assets/exported/skills/${power.id}/${key}/${activeVariant}_00.png`, true);
+        else {
+          this.queueExportedAssetFamily([
+            `assets/exported/skills/${power.id}/${key}/normal_00.png`,
+            `assets/exported/skills/${power.id}/${key}/awakened_00.png`
+          ], false);
+        }
+      }
+      if (priority) {
+        for (const key of ["q", "e", "r", "f"]) {
+          if (!POWER_SKILL_SIGNATURES[power.id]?.[key]) continue;
+          for (const variant of ["normal", "awakened"]) {
+            if (priorityKeys.includes(key) && variant === activeVariant) continue;
+            this.queueExportedSequence(`assets/exported/skills/${power.id}/${key}/${variant}_00.png`, false);
+          }
+        }
       }
     }
 
@@ -5843,6 +5927,15 @@
         this.trimVisualList(this.run.shockwaves, this.isMobileDevice() ? 10 : 16);
         this.trimVisualList(this.run.trails, this.isMobileDevice() ? 18 : 30);
       }
+    }
+
+    cancelIdleExportedPreloadsForRun() {
+      if (this.exportedAssetIdleWarmupTimer) {
+        clearTimeout(this.exportedAssetIdleWarmupTimer);
+        this.exportedAssetIdleWarmupTimer = null;
+      }
+      if (!this.exportedAssetPreloadQueue.length) return;
+      this.exportedAssetPreloadQueue = this.exportedAssetPreloadQueue.filter((path) => this.exportedAssetPriorityQueued.has(path));
     }
 
     applyGraphicsSettings() {
@@ -10290,6 +10383,7 @@
     startRun(power, forcedBiomeId = "", options = {}) {
       this.audio.start();
       if (this.isMobileDevice()) this.enterMobilePlayMode();
+      this.cancelIdleExportedPreloadsForRun();
       const training = Boolean(options.training);
       const tutorial = Boolean(options.tutorial);
       const trainingOptions = { ...this.defaultTrainingOptions(), ...(options.trainingOptions || {}) };

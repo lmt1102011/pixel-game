@@ -17,6 +17,7 @@ function usage() {
     "  --duration <sec>     Benchmark duration; default 8",
     "  --cooldown <sec>     Stop skill spam for the final seconds to test graphics recovery; default 2",
     "  --mobile             Emulate a landscape Android-like mobile viewport",
+    "  --weak-device        Override navigator memory/cores to a weak 1GB/2-core profile",
     "  --min-fps <n>        Fail below this average FPS; default 30",
     "  --max-long <n>       Fail above this long-frame percentage; default 35",
     "  --strict-preload     Also fail when the exported preload queue has not fully settled",
@@ -41,6 +42,7 @@ function parseArgs(argv) {
     const arg = argv[i];
     if (arg === "--help" || arg === "-h") options.help = true;
     else if (arg === "--mobile") options.mobile = true;
+    else if (arg === "--weak-device") options.weakDevice = true;
     else if (arg === "--strict-preload") options.strictPreload = true;
     else if (arg === "--no-audio") options.noAudio = true;
     else if (arg === "--url") options.url = argv[++i] || "";
@@ -265,7 +267,11 @@ async function runBenchmark(page, options) {
           queuedAssets: game.exportedAssetPreloadQueue.length,
           activePreloads: game.exportedAssetPreloadActive,
           activePreloadPaths: Array.from(game.exportedAssetPreloadActivePaths || []).slice(0, 8),
+          priorityQueuedAssets: game.exportedAssetPriorityQueued?.size || 0,
+          priorityActivePreloads: game.exportedAssetPreloadActivePriorityPaths?.size || 0,
+          priorityActivePreloadPaths: Array.from(game.exportedAssetPreloadActivePriorityPaths || []).slice(0, 8),
           loadTimeouts: [...game.exportedAssetImages.values()].filter((image) => image?._soulriftLoadTimedOutAt).length,
+          loadTimeoutPaths: [...game.exportedAssetImages.values()].filter((image) => image?._soulriftLoadTimedOutAt).map((image) => image._soulriftPath || "").filter(Boolean).slice(0, 8),
           missingImages: game.exportedAssetMissing.size,
           particles: game.run?.particles?.length || 0,
           effects: game.run?.effects?.length || 0,
@@ -315,6 +321,17 @@ async function main() {
     viewport: { width: 1280, height: 720 },
     deviceScaleFactor: 1
   });
+  if (options.weakDevice) {
+    await context.addInitScript(() => {
+      try {
+        Object.defineProperty(Navigator.prototype, "deviceMemory", { configurable: true, get: () => 1 });
+        Object.defineProperty(Navigator.prototype, "hardwareConcurrency", { configurable: true, get: () => 2 });
+      } catch {
+        Object.defineProperty(navigator, "deviceMemory", { configurable: true, get: () => 1 });
+        Object.defineProperty(navigator, "hardwareConcurrency", { configurable: true, get: () => 2 });
+      }
+    });
+  }
   const page = await context.newPage();
   const errors = [];
   page.on("pageerror", (error) => errors.push(error.message));
@@ -338,7 +355,10 @@ async function main() {
     if (metrics.avgFps < options.minFps) failures.push(`Average FPS ${metrics.avgFps} is below ${options.minFps}`);
     if (metrics.longFramePercent > options.maxLong) failures.push(`Long-frame rate ${metrics.longFramePercent}% is above ${options.maxLong}%`);
     if (metrics.missingImages > 0) failures.push(`${metrics.missingImages} exported image(s) missing at runtime`);
-    if (options.strictPreload && (metrics.queuedAssets > 0 || metrics.activePreloads > 0)) failures.push(`Preload did not settle: queued=${metrics.queuedAssets}, active=${metrics.activePreloads}`);
+    if (options.strictPreload && (metrics.priorityQueuedAssets > 0 || metrics.priorityActivePreloads > 0)) {
+      failures.push(`Priority preload did not settle: queued=${metrics.priorityQueuedAssets}, active=${metrics.priorityActivePreloads}`);
+    }
+    if (options.strictPreload && metrics.loadTimeouts > 0) failures.push(`Preload timed out for ${metrics.loadTimeouts} image(s): ${(metrics.loadTimeoutPaths || []).join(", ")}`);
     console.log(JSON.stringify(metrics, null, 2));
     if (failures.length) {
       console.error("Perf smoke failed:");

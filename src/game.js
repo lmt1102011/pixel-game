@@ -9,7 +9,7 @@
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
   const SIGNAL_REALTIME_RELAY_LIMIT = 2;
   const SIGNAL_REALTIME_TYPES = new Set(["state", "snapshot", "attack", "skill", "collect", "openChest", "dropItem", "damage", "chooseDoor"]);
-  const APP_VERSION = "20260607-frame-load-cache-295";
+  const APP_VERSION = "20260607-audio-realism-296";
   const CHANGELOG_ENTRIES = [
     {
       version: APP_VERSION,
@@ -1481,7 +1481,7 @@
       }
       this.output.connect(this.ctx.destination);
       this.master = this.ctx.createGain();
-      this.master.gain.value = 0.92;
+      this.master.gain.value = 0.96;
       this.master.connect(this.output);
       this.musicMaster = this.ctx.createGain();
       this.musicMaster.gain.value = 0.052;
@@ -1490,7 +1490,7 @@
       this.ambienceMaster.gain.value = 0.036;
       this.ambienceMaster.connect(this.master);
       this.sfxMaster = this.ctx.createGain();
-      this.sfxMaster.gain.value = 1.08;
+      this.sfxMaster.gain.value = 1.14;
       this.sfxMaster.connect(this.master);
       this.uiMaster = this.ctx.createGain();
       this.uiMaster.gain.value = 0.62;
@@ -1893,8 +1893,8 @@
       const vol = spatial.gain;
       const crit = Boolean(options.crit);
       const heavy = Boolean(options.heavy);
-      this.tone(crit ? 620 : heavy ? 180 : 340, crit ? "square" : "triangle", crit ? 0.075 : 0.052, (crit ? 0.14 : heavy ? 0.12 : 0.08) * vol, now, { pan, slideTo: crit ? 980 : heavy ? 118 : 260, reverb: crit ? 0.08 : 0.03 });
-      this.noiseBurst(now, crit ? 0.05 : 0.03, (crit ? 0.068 : 0.04) * vol, { filterType: crit ? "highpass" : "bandpass", frequency: crit ? 3200 : 1250, frequencyEnd: crit ? 1300 : 520, q: crit ? 1.7 : 0.95, pan, decay: crit ? 0.85 : 1.45 });
+      this.tone(crit ? 820 : heavy ? 150 : 260, crit ? "triangle" : "sine", crit ? 0.052 : 0.038, (crit ? 0.07 : heavy ? 0.052 : 0.032) * vol, now, { pan, slideTo: crit ? 1320 : heavy ? 92 : 190, reverb: crit ? 0.08 : 0.03 });
+      this.noiseBurst(now, crit ? 0.052 : 0.032, (crit ? 0.078 : 0.048) * vol, { filterType: crit ? "highpass" : "bandpass", frequency: crit ? 3800 : 1250, frequencyEnd: crit ? 1500 : 520, q: crit ? 1.9 : 0.95, pan, decay: crit ? 0.8 : 1.45 });
       this.impactBoom(now + 0.006, (heavy ? 0.06 : crit ? 0.04 : 0.026) * vol, { pan, freq: heavy ? 74 : 105, slideTo: heavy ? 46 : 72, length: heavy ? 0.14 : 0.08 });
       this.materialHitLayer(options.kind || "basic", now + 0.006, (heavy ? 0.072 : crit ? 0.062 : 0.04) * vol, { pan, heavy, crit });
       if (crit) this.tone(1680, "sine", 0.09, 0.05 * vol, now + 0.018, { pan, slideTo: 2100, reverb: 0.12 });
@@ -1925,8 +1925,16 @@
       }
       if (kind === "dash") {
         if (!this.canPlay("player-dash", 0.09)) return;
-        this.tone(180, "sawtooth", 0.055, 0.08, now, { slideTo: 120 });
-        this.noiseBurst(now, 0.035, 0.026, { filterType: "highpass", frequency: 1300, q: 0.5 });
+        this.materialWhoosh(now, 0.085, 0.058, {
+          filterType: "highpass",
+          frequency: 260,
+          frequencyEnd: 2800,
+          q: 0.42,
+          attack: 0.002,
+          decay: 0.58,
+          reverb: 0.06
+        });
+        this.tone(118, "sine", 0.06, 0.052, now + 0.006, { slideTo: 72, reverb: 0.035 });
         return;
       }
       if (kind === "death") {
@@ -2212,6 +2220,17 @@
       const pan = Number(options.pan || 0);
       const sharp = Number(options.sharp || 1);
       const length = Number(options.length || 0.038);
+      this.noiseBurst(now, Math.min(0.016, length * 0.45), volume * 0.42, {
+        color: "white",
+        filterType: "highpass",
+        frequency: options.frequency || 5200 * sharp,
+        frequencyEnd: options.frequencyEnd || 1800,
+        q: 2.5 * sharp,
+        pan,
+        reverb: 0.035,
+        attack: 0,
+        decay: 0.34
+      });
       this.materialWhoosh(now, length, volume * 0.82, {
         pan,
         filterType: "highpass",
@@ -2234,8 +2253,20 @@
 
     stringSnap(now, volume = 0.05, options = {}) {
       const pan = Number(options.pan || 0);
-      this.tone(155, "triangle", 0.045, volume * 0.78, now, { pan, slideTo: 82, reverb: 0.035 });
-      this.tone(940, "triangle", 0.022, volume * 0.54, now + 0.012, { pan, slideTo: 1320, reverb: 0.045 });
+      this.tone(132, "triangle", 0.05, volume * 0.78, now, { pan, slideTo: 72, reverb: 0.035 });
+      this.tone(166, "triangle", 0.045, volume * 0.44, now + 0.006, { pan, slideTo: 92, reverb: 0.035 });
+      this.tone(940, "triangle", 0.022, volume * 0.54, now + 0.012, { pan, slideTo: 1680, reverb: 0.045 });
+      this.noiseBurst(now, 0.012, volume * 0.4, {
+        color: "white",
+        filterType: "highpass",
+        frequency: 5200,
+        frequencyEnd: 2100,
+        q: 2.8,
+        pan,
+        attack: 0,
+        decay: 0.38,
+        reverb: 0.035
+      });
       this.noiseBurst(now + 0.012, 0.022, volume * 0.34, {
         filterType: "highpass",
         frequency: 2800,
@@ -2263,6 +2294,17 @@
         decay: 0.38,
         reverb: 0.04
       });
+      this.noiseBurst(now + rand(0.006, 0.014), heavy ? 0.052 : 0.032, volume * (heavy ? 0.34 : 0.2), {
+        color: "white",
+        filterType: "bandpass",
+        frequency: awakened ? 8600 : 7400,
+        frequencyEnd: heavy ? 3200 : 4100,
+        q: heavy ? 4.4 : 3.2,
+        pan: clamp(pan + rand(-0.06, 0.06), -1, 1),
+        attack: 0,
+        decay: 0.48,
+        reverb: 0.07
+      });
       this.materialCrackle(now + 0.002, heavy ? 8 : 5, volume * (awakened ? 0.18 : 0.13), {
         pan,
         duration: heavy ? 0.18 : 0.095,
@@ -2286,6 +2328,11 @@
         pan,
         decay: heavy ? 3.3 : 2.4,
         reverb: heavy ? 0.24 : 0.15
+      });
+      this.tone(heavy ? 34 : 46, "sine", heavy ? 0.42 : 0.2, volume * (heavy ? 0.36 : 0.18), rumbleAt + 0.018, {
+        pan,
+        slideTo: heavy ? 24 : 32,
+        reverb: heavy ? 0.32 : 0.2
       });
       if (heavy) {
         this.noiseBurst(now + 0.17, 0.22, volume * 0.22, {
@@ -2315,6 +2362,17 @@
         decay: 1.35,
         reverb: 0.08
       });
+      this.noiseBurst(now + 0.006, heavy ? 0.14 : 0.075, volume * (heavy ? 0.2 : 0.13), {
+        color: "white",
+        filterType: "highpass",
+        frequency: heavy ? 2100 : 2600,
+        frequencyEnd: heavy ? 5200 : 4200,
+        q: 0.42,
+        pan,
+        attack: heavy ? 0.018 : 0.012,
+        decay: 0.72,
+        reverb: 0.07
+      });
       this.materialCrackle(now + 0.02, heavy ? 7 : 4, volume * 0.075, {
         pan,
         duration: heavy ? 0.22 : 0.12,
@@ -2324,6 +2382,16 @@
         reverb: 0.06
       });
       if (heavy) {
+        this.noiseBurst(now + 0.018, 0.052, volume * 0.22, {
+          color: "brown",
+          filterType: "lowpass",
+          frequency: 190,
+          frequencyEnd: 82,
+          q: 0.5,
+          pan,
+          decay: 2.3,
+          reverb: 0.15
+        });
         this.impactBoom(now + 0.035, volume * 0.23, {
           pan,
           freq: 76,
@@ -2347,6 +2415,17 @@
         filterType: "highpass",
         reverb: 0.17
       });
+      this.noiseBurst(now, heavy ? 0.12 : 0.07, volume * (heavy ? 0.2 : 0.12), {
+        color: "white",
+        filterType: "highpass",
+        frequency: heavy ? 720 : 980,
+        frequencyEnd: heavy ? 3600 : 2800,
+        q: 0.38,
+        pan,
+        attack: heavy ? 0.025 : 0.014,
+        decay: 0.9,
+        reverb: 0.18
+      });
       for (let i = 0; i < (heavy ? 4 : 2); i++) {
         const offset = 0.018 + i * rand(0.018, 0.034);
         this.tone(rand(980, 2100), i % 2 ? "sine" : "triangle", rand(0.045, 0.095), volume * rand(0.12, 0.22), now + offset, {
@@ -2356,6 +2435,12 @@
           attack: 0.002
         });
       }
+      this.tone(rand(2800, 5200), "sine", heavy ? 0.12 : 0.075, volume * (heavy ? 0.15 : 0.09), now + 0.02, {
+        pan,
+        slideTo: rand(1400, 2400),
+        reverb: heavy ? 0.34 : 0.24,
+        attack: 0.001
+      });
       this.noiseBurst(now + 0.018, heavy ? 0.075 : 0.042, volume * 0.13, {
         color: "white",
         filterType: "highpass",
@@ -2838,7 +2923,7 @@
       this.motifStinger(motif, motifRoot, now, {
         count: key === "f" ? 5 : key === "r" ? 4 : 3,
         gap: key === "f" ? 0.065 : 0.045,
-        gain: volume * (key === "f" ? 0.16 : awakened ? 0.13 : 0.09),
+        gain: volume * (key === "f" ? 0.1 : awakened ? 0.08 : 0.055),
         length: key === "f" ? 0.12 : 0.07,
         type: motif.type,
         reverb: awakened ? 0.26 : 0.16,
@@ -2849,10 +2934,11 @@
       this.skillPhase(kind, "cast", key, now, volume, pitch, awakened);
       this.skillPhase(kind, "travel", key, now, volume, pitch, awakened);
       this.skillPhase(kind, "impact", key, now, volume, pitch, awakened);
+      const legacyToneGain = 0.58;
       const play = (freq, type = "triangle", gain = 1, offset = 0, length = baseLength, slide = true) => {
-        this.tone(freq, type, length, volume * gain, now + offset, { slide });
+        this.tone(freq, type, length, volume * gain * legacyToneGain, now + offset, { slide });
       };
-      const burst = (gain = 0.18, length = 0.035, offset = 0) => this.noiseBurst(now + offset, length, volume * gain);
+      const burst = (gain = 0.18, length = 0.035, offset = 0) => this.noiseBurst(now + offset, length, volume * gain * 0.72);
       const taps = (base, count, gap, type = "triangle", gain = 0.4, length = 0.035) => {
         for (let i = 0; i < count; i++) play(base * (1 + i * 0.045), type, gain * (1 - i * 0.05), i * gap, length, false);
       };
@@ -2948,7 +3034,7 @@
     tone(freq, type, length, volume, now, options = {}) {
       const osc = this.ctx.createOscillator();
       const env = this.ctx.createGain();
-      const safeFreq = clamp(freq, 32, 3600);
+      const safeFreq = clamp(freq, 28, 9000);
       const start = Math.max(this.ctx.currentTime, Number(now) || this.ctx.currentTime);
       const duration = Math.max(0.012, Number(length) || 0.05);
       const attack = clamp(Number(options.attack ?? 0.004), 0.001, Math.max(0.001, duration * 0.55));
@@ -2956,7 +3042,7 @@
       if (Number.isFinite(Number(options.detune))) osc.detune.value = Number(options.detune);
       osc.frequency.setValueAtTime(options.slide ? safeFreq * 1.08 : safeFreq, start);
       if (Number.isFinite(Number(options.slideTo))) {
-        osc.frequency.exponentialRampToValueAtTime(clamp(Number(options.slideTo), 32, 3600), start + Math.max(0.012, duration * 0.75));
+        osc.frequency.exponentialRampToValueAtTime(clamp(Number(options.slideTo), 28, 9000), start + Math.max(0.012, duration * 0.75));
       } else if (options.slide) {
         osc.frequency.exponentialRampToValueAtTime(Math.max(32, safeFreq * 0.82), start + Math.max(0.012, duration * 0.75));
       }
@@ -14667,7 +14753,6 @@
       }
       p.facing = Math.atan2(dy, dx);
       this.camera.shake = Math.max(this.camera.shake, 3);
-      this.audio.sfx(160, "sawtooth", 0.055, 0.11);
       this.audio.player("dash");
       if (this.run.power.id === "shadow") {
         for (const enemy of this.run.enemies) {
@@ -14850,7 +14935,7 @@
       boss.facingDir = Math.cos(angle) >= 0 ? 1 : -1;
       const aimTarget = target || this.nearestCombatTarget(boss.x, boss.y) || this.run.player;
       this.castPlayerBossPattern(boss, normalizedKey, angle, aimTarget);
-      this.audio.sfx(normalizedKey === "f" ? 82 : 160 + randi(0, 80), normalizedKey === "basic" ? "sawtooth" : "square", normalizedKey === "f" ? 0.14 : 0.08, normalizedKey === "f" ? 0.24 : 0.14);
+      this.audio.boss(normalizedKey === "f" ? "phase" : "attack", boss);
       this.broadcastFastSnapshot(0.08);
     }
 
@@ -14870,7 +14955,6 @@
       const arc = Math.PI * 0.72;
       const damage = p.damage * this.playerDamageOutputMult() * (1 + p.combo * 0.04);
       this.addBasicAttackBurst(p.x + Math.cos(angle) * range * 0.4, p.y + Math.sin(angle) * range * 0.4, angle, "swordsman", range);
-      this.audio.sfx(220 + p.combo * 22, "sawtooth", 0.048, 0.11);
       let hits = 0;
       for (const enemy of this.run.enemies) {
         if (!enemy || enemy.hp <= 0) continue;
@@ -14930,7 +15014,6 @@
       }
       if (hits > 0) this.hitStop = Math.max(this.hitStop || 0, 0.075);
       this.camera.shake = Math.max(this.camera.shake, hits ? 10 : reflected ? 8 : 3);
-      this.audio.sfx(155, "square", 0.09, 0.14);
     }
 
     spawnPhantomBlade(x, y, angle, damage, owner = "player", casterId = "") {
@@ -14959,7 +15042,7 @@
         color: "#e8edf7"
       });
       this.trimVisualList(this.run.slashes, this.isMobileDevice() ? 24 : 38);
-      this.audio.sfx(520, "triangle", 0.04, 0.07);
+      this.audio.attack("swordsman", { x, y });
     }
 
     basicMageAttack(p, angle) {
@@ -14979,12 +15062,10 @@
         pierce: 0,
         kind: "mageBasic"
       });
-      this.audio.sfx(420, "sine", 0.085, 0.11);
     }
 
     basicRangerAttack(p, angle) {
       p.pendingBasicAttack = { kind: "ranger", angle, combo: p.combo, time: 0.36 };
-      this.audio.sfx(180, "triangle", 0.04, 0.14);
     }
 
     fireRangerShot(p, angle, combo = p.combo) {
@@ -15006,7 +15087,7 @@
         kind: "rangerBasic"
       });
       this.camera.shake = Math.max(this.camera.shake, 4);
-      this.audio.sfx(330, "triangle", 0.065, 0.12);
+      this.audio.attack("ranger", { x: p.x, y: p.y, combo });
       if (this.isMultiplayerClient()) this.sendBasicAttackPacket(characterById("ranger"), p, angle, combo);
     }
 
@@ -15021,7 +15102,6 @@
         this.hitStop = Math.max(this.hitStop || 0, p.combo % 3 === 0 ? 0.06 : 0.035);
         this.camera.shake = Math.max(this.camera.shake, p.combo % 3 === 0 ? 7 + hits : 3.5 + hits * 0.6);
       }
-      this.audio.sfx(p.combo % 3 === 0 ? 165 : 260 + p.combo * 12, p.combo % 3 === 0 ? "square" : "triangle", 0.05, p.combo % 3 === 0 ? 0.14 : 0.075);
     }
 
     performPowerBasicStrike(x, y, angle, baseDamage, combo = 1, sourceId = "", kind = this.run?.power?.id || "fire", actor = null) {
@@ -15226,7 +15306,6 @@
         this.hitStop = Math.max(this.hitStop || 0, 0.052);
         this.camera.shake = Math.max(this.camera.shake, 5 + hits * 0.8);
       }
-      this.audio.sfx(235 + p.combo * 10, "sawtooth", 0.046, 0.105);
     }
 
     performSpearThrust(x, y, angle, baseDamage, combo = 1, sourceId = "") {
@@ -15268,7 +15347,6 @@
       const arc = Math.PI * 0.72;
       const damage = p.damage * this.playerDamageOutputMult() * (0.8 + p.combo * 0.025);
       const flurry = chance(0.2);
-      this.audio.sfx(360 + p.combo * 18, "triangle", 0.038, 0.08);
       const hits = this.performAssassinSlash(p.x, p.y, angle, range, arc, damage, p.combo);
       if (flurry) {
         this.queueAssassinSlash(p.x, p.y, angle + 0.22, range * 0.96, arc, damage * 0.65, p.combo, 0.12);
@@ -15286,7 +15364,7 @@
       const armHalf = range * 0.56;
       const hitWidth = 20;
       this.addBasicAttackBurst(centerX, centerY, angle, "assassin", range);
-      this.audio.sfx(410 + combo * 12, "triangle", 0.03, 0.07);
+      this.audio.attack("assassin", { x: centerX, y: centerY, combo });
       let hits = 0;
       for (const enemy of [...this.run.enemies]) {
         const hit = [-0.62, 0.62].some((offset) => {
@@ -18368,7 +18446,7 @@
         kind: "guardian"
       });
       this.camera.shake = Math.max(this.camera.shake, 9);
-      this.audio.sfx(130, "square", 0.08, 0.14);
+      this.audio.attack("guardian", { x: target.x, y: target.y });
       return true;
     }
 
@@ -18422,7 +18500,7 @@
       this.addBasicAttackBurst(guardian.x + Math.cos(reflectAngle) * 58, guardian.y + Math.sin(reflectAngle) * 58, reflectAngle, "guardian", 112);
       this.addShockwave(guardian.x + Math.cos(reflectAngle) * 42, guardian.y + Math.sin(reflectAngle) * 42, 104, "#ffd36a", 0);
       this.camera.shake = Math.max(this.camera.shake, 8);
-      this.audio.sfx(150, "square", 0.08, 0.13);
+      this.audio.attack("guardian", { x: guardian.x, y: guardian.y });
       return true;
     }
 
@@ -18467,7 +18545,7 @@
       this.addBasicAttackBurst(guardian.x + Math.cos(angle) * 52, guardian.y + Math.sin(angle) * 52, angle, "guardian", 104);
       this.addShockwave(guardian.x, guardian.y, 106, "#ffd36a", 0);
       this.camera.shake = Math.max(this.camera.shake, 8);
-      this.audio.sfx(150, "square", 0.08, 0.13);
+      this.audio.attack("guardian", { x: guardian.x, y: guardian.y });
       return true;
     }
 
@@ -23147,7 +23225,6 @@
       if (this.save.settings.damageNumbers && pressure < damageNumberLimit) {
         this.addDamageText(x, y, `${crit ? "CRIT " : ""}${Math.ceil(damage)}`, crit ? "#ffe45e" : "#ffffff", crit);
       }
-      this.audio.sfx(crit ? 520 : 360, crit ? "square" : "triangle", 0.055, crit ? 0.18 : 0.11);
     }
 
     isBasicHit(options) {

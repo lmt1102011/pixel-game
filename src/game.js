@@ -9,7 +9,7 @@
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
   const SIGNAL_REALTIME_RELAY_LIMIT = 2;
   const SIGNAL_REALTIME_TYPES = new Set(["state", "snapshot", "attack", "skill", "collect", "openChest", "dropItem", "damage", "chooseDoor"]);
-  const APP_VERSION = "20260607-cinematic-stage-vfx-305";
+  const APP_VERSION = "20260607-subtle-front-vfx-306";
   const CHANGELOG_ENTRIES = [
     {
       version: APP_VERSION,
@@ -7633,6 +7633,8 @@
       const weakBias = this.devicePerformanceBias();
       const targetDt = this.isMobileDevice() ? 0.0215 : 0.0205;
       const renderMs = Number(this.perf.avgRenderMs || this.perf.renderMs || 0);
+      const updateMs = Number(this.perf.avgUpdateMs || this.perf.updateMs || 0);
+      const loopMs = Number(this.perf.avgLoopMs || this.perf.loopMs || 0);
       const renderBudget = this.isMobileDevice() ? 6.8 : 7.2;
       const renderLight = renderMs < renderBudget * 1.15;
       const schedulerHitch = rawFrame > targetDt * 1.65 && renderLight;
@@ -7731,6 +7733,18 @@
         || sustainedPanicFrame
         || this.perf.pressure > 0.72 - weakBias * 0.06
       );
+      const throughputComfort = stressActive
+        && !warmupActive
+        && !panicLag
+        && !renderSevere
+        && renderMs < renderBudget * (this.isMobileDevice() ? 0.7 : 0.74)
+        && (!updateMs || updateMs < (this.isMobileDevice() ? 5.9 : 6.5))
+        && (!loopMs || loopMs < (this.isMobileDevice() ? 10.8 : 11.8))
+        && fastDt < targetDt * 1.28
+        && avgDt < targetDt * 1.24
+        && (this.perf.pressure || 0) < 0.18
+        && (this.perf.lagTime || 0) < 0.16
+        && this.renderPressure() < 0.12;
       this.perf.emergencyHold = emergencyLag
         ? Math.max(this.perf.emergencyHold || 0, 1.8)
         : idle || skillQuietReady ? 0 : Math.max(0, (this.perf.emergencyHold || 0) - frame);
@@ -7777,10 +7791,12 @@
         && this.perf.stableTime > 0.85 + weakBias * 0.45
         && this.perf.pressure < 0.06
         && this.perf.lagTime < 0.06
-      );
-      const sustainedQualityDrop = panicLag
+      ) || throughputComfort;
+      const sustainedQualityDrop = !throughputComfort && (
+        panicLag
         || (emergencyLag && (this.perf.lagTime > 0.34 - weakBias * 0.05 || this.perf.pressure > 0.28 - weakBias * 0.04 || severeLag))
-        || (this.perf.overloadTime > 0.55 && (realLag || renderLag));
+        || (this.perf.overloadTime > 0.55 && (realLag || renderLag))
+      );
       if ((idle || !stressActive) && skillQuiet && !realLag) {
         targetLevel = baseLevel;
         this.perf.levelChangeLock = 0;
@@ -7792,22 +7808,22 @@
         targetLevel = Math.max(Math.min(baseLevel, targetLevel) - dropStep, Math.min(baseLevel, floor));
         this.perf.levelChangeLock = panicLag ? 0.12 : emergencyLag ? 0.18 : 0.3;
       } else if (stableForRecover && canShiftLevel && targetLevel < baseLevel) {
-        const recoverStep = idle ? 0.75 : lowLoadHeadroom ? 0.55 : throughputHeadroom ? 0.34 : this.perf.stableTime > 5.5 ? 0.28 : 0.12;
+        const recoverStep = idle ? 0.75 : throughputComfort ? 0.72 : lowLoadHeadroom ? 0.55 : throughputHeadroom ? 0.34 : this.perf.stableTime > 5.5 ? 0.28 : 0.12;
         targetLevel = Math.min(baseLevel, targetLevel + recoverStep);
-        this.perf.levelChangeLock = idle ? 0.38 : 1.25 + weakBias * 0.75;
+        this.perf.levelChangeLock = throughputComfort ? 0.18 : idle ? 0.38 : 1.25 + weakBias * 0.75;
       }
-      const calmVisualFloor = (throughputHeadroom || lowLoadHeadroom) ? baseLevel : clamp(baseLevel - (weakBias > 0.72 ? 0.5 : 0.35), 4.25, baseLevel);
-      const calmVisual = !realLag
+      const calmVisualFloor = (throughputComfort || throughputHeadroom || lowLoadHeadroom) ? baseLevel : clamp(baseLevel - (weakBias > 0.72 ? 0.5 : 0.35), 4.25, baseLevel);
+      const calmVisual = throughputComfort || (!realLag
         && !renderLag
         && this.perf.pressure < 0.18
         && this.perf.lagTime < 0.12
-        && this.renderPressure() < 0.16;
+        && this.renderPressure() < 0.16);
       if (calmVisual && targetLevel < Math.min(baseLevel, calmVisualFloor)) {
         targetLevel = Math.min(baseLevel, calmVisualFloor);
         this.perf.levelChangeLock = Math.min(this.perf.levelChangeLock || 0, 0.12);
       }
       targetLevel = clamp(Math.round(targetLevel * 10) / 10, 1, 5);
-      if (skillActive && targetLevel > currentLevel && !calmSkillRecovery && !calmVisual) targetLevel = currentLevel;
+      if (skillActive && targetLevel > currentLevel && !calmSkillRecovery && !calmVisual && !throughputComfort) targetLevel = currentLevel;
       this.perf.targetAutoLevel = targetLevel;
       const levelDelta = targetLevel - currentLevel;
       const maxStep = (levelDelta < 0
@@ -7815,7 +7831,9 @@
         : (skillQuiet && !realLag ? 3.6 : idle ? 2.6 : calmVisual ? 2.25 + (1 - weakBias) * 0.45 : 0.28 + (1 - weakBias) * 0.22)) * frame;
       this.perf.autoLevel = currentLevel + clamp(levelDelta, -maxStep, maxStep);
       if (Math.abs(this.perf.autoLevel - baseLevel) < 0.02 && targetLevel === baseLevel) this.perf.autoLevel = baseLevel;
-      const effectFloorLevel = panicLag
+      const effectFloorLevel = throughputComfort
+        ? baseLevel
+        : panicLag
         ? clamp(baseLevel - 1.6, 2.7, baseLevel)
         : emergencyLag
           ? clamp(baseLevel - 1.0, 3.45, baseLevel)
@@ -7827,7 +7845,9 @@
       }
       this.perf.displayedAutoLevel = Math.round(this.perf.autoLevel * 100) / 100;
       this.perf.effectQuality = this.graphicsQualityFromLevel(Math.max(this.perf.displayedAutoLevel, Math.min(baseLevel, effectFloorLevel)));
-      const fidelityFloorLevel = this.isMobileDevice()
+      const fidelityFloorLevel = throughputComfort
+        ? baseLevel
+        : this.isMobileDevice()
         ? clamp(baseLevel - (weakBias > 0.72 ? 0.58 : 0.42), 4.25, baseLevel)
         : clamp(baseLevel - (weakBias > 0.62 ? 0.82 : 0.62), 3.85, baseLevel);
       this.perf.coreAutoLevel = Math.round(Math.max(this.perf.displayedAutoLevel, Math.min(baseLevel, fidelityFloorLevel)) * 100) / 100;
@@ -17345,16 +17365,16 @@
     addPowerStageVfx(kind, stage, key, x, y, angle, target = null, options = {}) {
       if (!this.run || !Number.isFinite(x) || !Number.isFinite(y)) return;
       const spec = this.powerVfxSpec(kind);
-      const powerScale = ({ q: 0.86, e: 1.0, r: 1.18, f: 1.58 }[key] || 1) * (options.awakened ? 1.12 : 1);
+      const powerScale = ({ q: 0.82, e: 0.94, r: 1.08, f: 1.36 }[key] || 1) * (options.awakened ? 1.08 : 1);
       const tx = Number.isFinite(target?.x) ? target.x : x + Math.cos(angle || 0) * (130 + powerScale * 80);
       const ty = Number.isFinite(target?.y) ? target.y : y + Math.sin(angle || 0) * (130 + powerScale * 80);
       const length = Math.max(42, Math.hypot(tx - x, ty - y));
       const radius = {
-        anticipation: 48,
-        cast: 66,
-        travel: Math.max(90, length),
-        impact: 82,
-        aftermath: 76
+        anticipation: 36,
+        cast: 48,
+        travel: Math.max(76, length),
+        impact: 76,
+        aftermath: 58
       }[stage] * powerScale;
       const time = {
         anticipation: 0.34,
@@ -17375,7 +17395,7 @@
         angle: Number.isFinite(angle) ? angle : Math.atan2(ty - y, tx - x),
         radius,
         length,
-        width: (stage === "travel" ? 34 : 52) * powerScale,
+        width: (stage === "travel" ? 25 : stage === "impact" ? 40 : 31) * powerScale,
         time,
         maxTime: time,
         color: options.color || spec.color,
@@ -17389,39 +17409,39 @@
       this.trimPowerStageVfx();
       const particleScale = key === "f" ? 1.4 : key === "r" ? 1.12 : 0.82;
       if (stage === "anticipation") {
-        this.emitPowerVfx(kind, "cast", x, y, 2.4 * particleScale, {
-          spread: 34 * powerScale,
+        this.emitPowerVfx(kind, "cast", x, y, 1.4 * particleScale, {
+          spread: 22 * powerScale,
           speed: 28,
-          size: rand(5, 10),
+          size: rand(4, 8),
           life: rand(0.22, 0.42),
           moveAngle: angle,
           moveArc: Math.PI * 0.65,
           min: 1
         });
       } else if (stage === "cast") {
-        this.emitPowerVfx(kind, "cast", x, y, 3.4 * particleScale, {
-          spread: 28 * powerScale,
-          speed: 105,
-          size: rand(7, 15),
+        this.emitPowerVfx(kind, "cast", x, y, 2.0 * particleScale, {
+          spread: 20 * powerScale,
+          speed: 82,
+          size: rand(5, 10),
           life: rand(0.16, 0.34),
           important: key === "f",
           min: 1
         });
       } else if (stage === "impact") {
-        this.emitPowerVfx(kind, "hit", tx, ty, 4.6 * particleScale, {
-          spread: 44 * powerScale,
-          speed: kind === "blood" ? 145 : 120,
-          size: rand(7, 16),
+        this.emitPowerVfx(kind, "hit", tx, ty, 3.4 * particleScale, {
+          spread: 36 * powerScale,
+          speed: kind === "blood" ? 126 : 108,
+          size: rand(6, 13),
           life: rand(0.18, 0.48),
           important: key === "f" || key === "r",
           min: key === "f" ? 3 : 1
         });
-        if (!this.performancePanic()) this.addShockwave(tx, ty, Math.min(220, 58 + radius * 0.28), spec.color, 0);
+        if (!this.performancePanic()) this.addShockwave(tx, ty, Math.min(170, 46 + radius * 0.24), spec.color, 0);
       } else if (stage === "aftermath") {
-        this.emitPowerVfx(kind, "zone", tx, ty, 2.2 * particleScale, {
-          spread: 58 * powerScale,
+        this.emitPowerVfx(kind, "zone", tx, ty, 1.3 * particleScale, {
+          spread: 40 * powerScale,
           speed: 18,
-          size: rand(6, 14),
+          size: rand(5, 11),
           life: rand(0.35, 0.78),
           min: 0
         });
@@ -24704,10 +24724,8 @@
       }
       if (!emergency) {
         this.drawParticles(ctx);
-        if (!fastVisual) {
-          this.drawEffects(ctx, true);
-          this.drawDamageTexts(ctx);
-        }
+        this.drawEffects(ctx, true);
+        if (!fastVisual) this.drawDamageTexts(ctx);
       } else if (!panic && this.performancePressure() < 0.62) {
         this.drawParticles(ctx);
       }
@@ -26319,15 +26337,16 @@
         const pop = Math.sin(phase * Math.PI);
         if (pop <= 0.22) continue;
         const angle = seed * 2.9 + Math.sin(t * 0.9 + seed) * 0.28;
-        const rx = 12 + (i % 2) * 4 + pop * (kind === "lightning" ? 5 : 3);
-        const ry = 16 + (i % 2) * 4;
+        const sideBias = i % 2 ? 1 : -1;
+        const rx = 9 + (i % 2) * 3 + pop * (kind === "lightning" ? 3.4 : 2.2);
+        const ry = 13 + (i % 2) * 3;
         const px = Math.cos(angle) * rx + Math.sin(t * 5.1 + seed) * 1.8;
-        const py = -4 + Math.sin(angle) * ry + Math.cos(t * 4.2 + seed) * 1.4;
-        const size = (lowDetail ? 4.6 : 5.8) + pop * (kind === "lightning" ? 3.6 : 2.4);
+        const py = -6 + Math.sin(angle) * ry + Math.cos(t * 4.2 + seed) * 1.2;
+        const size = (lowDetail ? 4.2 : 5.2) + pop * (kind === "lightning" ? 2.8 : 1.9);
         ctx.save();
-        ctx.translate(px, py);
+        ctx.translate(px + sideBias * 1.5, py);
         ctx.rotate(angle + (kind === "time" ? t * 1.2 : phase * 1.8));
-        ctx.globalAlpha = (lowDetail ? 0.56 : 0.72) * pop;
+        ctx.globalAlpha = (lowDetail ? 0.5 : 0.62) * pop;
         this.drawAwakenedAuraVfx(ctx, kind, size, color, accent, phase);
         ctx.restore();
       }
@@ -26341,13 +26360,13 @@
           if (alpha <= 0.22) continue;
           const side = i % 2 ? 1 : -1;
           const y = -19 + i * 14 + Math.sin(t * 7 + seed) * 2;
-          const x = side * (8 + i * 2);
+          const x = side * (7 + i * 1.5);
           ctx.save();
-          ctx.globalAlpha = (lowDetail ? 0.58 : 0.78) * alpha;
+          ctx.globalAlpha = (lowDetail ? 0.56 : 0.72) * alpha;
           ctx.strokeStyle = accent;
-          ctx.lineWidth = lowDetail ? 1.9 : 2.5;
+          ctx.lineWidth = lowDetail ? 1.8 : 2.2;
           ctx.shadowColor = color;
-          ctx.shadowBlur = lowDetail ? 0 : 6;
+          ctx.shadowBlur = lowDetail ? 0 : 4;
           ctx.beginPath();
           ctx.moveTo(x - side * 14, y - 7);
           ctx.lineTo(x - side * 4, y - 1);
@@ -29083,7 +29102,7 @@
       const len = Math.max(1, Math.hypot(dx, dy));
       const angle = Number.isFinite(effect.angle) ? effect.angle : Math.atan2(dy, dx);
       const lowDetail = this.isMobileDevice() || this.effectQuality() < 0.72 || this.fastVisualMode();
-      const alpha = (lowDetail ? 0.72 : 0.9) * fade;
+      const alpha = (lowDetail ? 0.6 : 0.74) * fade;
       const seed = Number(effect.seed || 0);
       const px = (v) => Math.round(v);
       const drawIcon = (size, alphaMult = 0.7) => {
@@ -29130,19 +29149,19 @@
         ctx.lineJoin = "round";
         if (kind === "lightning") {
           ctx.strokeStyle = accent;
-          ctx.lineWidth = lowDetail ? 3 : 4.5;
+          ctx.lineWidth = lowDetail ? 2.4 : 3.4;
           ctx.globalAlpha = alpha;
           ctx.beginPath();
-          jaggedPath(len, width * 0.5, lowDetail ? 5 : 8);
+          jaggedPath(len, width * 0.42, lowDetail ? 5 : 8);
           ctx.stroke();
           ctx.strokeStyle = color;
-          ctx.lineWidth = 1.5;
-          ctx.globalAlpha = alpha * 0.72;
+          ctx.lineWidth = 1.2;
+          ctx.globalAlpha = alpha * 0.66;
           ctx.beginPath();
-          jaggedPath(len, width * 0.26, lowDetail ? 4 : 7);
+          jaggedPath(len, width * 0.22, lowDetail ? 4 : 7);
           ctx.stroke();
         } else if (kind === "fire") {
-          ctx.fillStyle = hexToRgba(color, alpha * 0.22);
+          ctx.fillStyle = hexToRgba(color, alpha * 0.13);
           ctx.beginPath();
           ctx.moveTo(0, -width * 0.28);
           ctx.quadraticCurveTo(len * 0.34, -width * 0.7, len, -width * 0.18);
@@ -29151,16 +29170,16 @@
           ctx.closePath();
           ctx.fill();
           ctx.strokeStyle = accent;
-          ctx.lineWidth = lowDetail ? 2.4 : 3.4;
-          ctx.globalAlpha = alpha * 0.78;
+          ctx.lineWidth = lowDetail ? 1.9 : 2.8;
+          ctx.globalAlpha = alpha * 0.66;
           ctx.beginPath();
           ctx.moveTo(0, 0);
           ctx.quadraticCurveTo(len * 0.36, Math.sin(seed + progress * 5) * width * 0.34, len, 0);
           ctx.stroke();
         } else if (kind === "ice" || kind === "crystal") {
           ctx.strokeStyle = accent;
-          ctx.lineWidth = lowDetail ? 2.2 : 3.2;
-          ctx.globalAlpha = alpha * 0.82;
+          ctx.lineWidth = lowDetail ? 1.8 : 2.7;
+          ctx.globalAlpha = alpha * 0.72;
           ctx.beginPath();
           ctx.moveTo(0, 0);
           ctx.lineTo(len, 0);
@@ -29172,7 +29191,7 @@
             ctx.save();
             ctx.translate(len * t, side * width * 0.22);
             ctx.rotate(side * 0.7);
-            ctx.fillStyle = hexToRgba(color, alpha * 0.45);
+            ctx.fillStyle = hexToRgba(color, alpha * 0.28);
             ctx.strokeStyle = accent;
             ctx.lineWidth = 1.5;
             ctx.beginPath();
@@ -29187,20 +29206,20 @@
           }
         } else if (kind === "shadow" || kind === "void") {
           ctx.strokeStyle = dark;
-          ctx.lineWidth = lowDetail ? width * 0.34 : width * 0.48;
-          ctx.globalAlpha = alpha * 0.58;
+          ctx.lineWidth = lowDetail ? width * 0.28 : width * 0.36;
+          ctx.globalAlpha = alpha * 0.44;
           ctx.beginPath();
           jaggedPath(len, width * 0.26, lowDetail ? 4 : 6);
           ctx.stroke();
           ctx.strokeStyle = accent;
-          ctx.lineWidth = lowDetail ? 2.2 : 3;
-          ctx.globalAlpha = alpha * 0.82;
+          ctx.lineWidth = lowDetail ? 1.8 : 2.5;
+          ctx.globalAlpha = alpha * 0.7;
           ctx.beginPath();
           jaggedPath(len, width * 0.16, lowDetail ? 4 : 6);
           ctx.stroke();
         } else if (kind === "gravity") {
           ctx.strokeStyle = accent;
-          ctx.globalAlpha = alpha * 0.72;
+          ctx.globalAlpha = alpha * 0.62;
           for (let i = 0; i < (lowDetail ? 3 : 5); i++) {
             const t = (i + 1) / (lowDetail ? 4 : 6);
             const s = width * (0.18 + i * 0.035);
@@ -29218,8 +29237,8 @@
           ctx.stroke();
         } else if (kind === "nature") {
           ctx.strokeStyle = color;
-          ctx.lineWidth = lowDetail ? 3 : 4.4;
-          ctx.globalAlpha = alpha * 0.75;
+          ctx.lineWidth = lowDetail ? 2.2 : 3.2;
+          ctx.globalAlpha = alpha * 0.64;
           ctx.beginPath();
           ctx.moveTo(0, 0);
           ctx.bezierCurveTo(len * 0.25, -width * 0.42, len * 0.52, width * 0.42, len, 0);
@@ -29231,21 +29250,21 @@
           }
         } else if (kind === "blood") {
           ctx.strokeStyle = color;
-          ctx.lineWidth = lowDetail ? 4 : 5.4;
-          ctx.globalAlpha = alpha * 0.76;
+          ctx.lineWidth = lowDetail ? 2.9 : 4.0;
+          ctx.globalAlpha = alpha * 0.66;
           ctx.beginPath();
           ctx.arc(len * 0.5, 0, len * 0.42, Math.PI * 0.78, Math.PI * 1.22, true);
           ctx.stroke();
           ctx.strokeStyle = accent;
           ctx.lineWidth = 1.8;
-          ctx.globalAlpha = alpha * 0.58;
+          ctx.globalAlpha = alpha * 0.48;
           ctx.beginPath();
           ctx.arc(len * 0.5, 0, len * 0.3, Math.PI * 0.8, Math.PI * 1.2, true);
           ctx.stroke();
         } else {
           ctx.strokeStyle = accent;
-          ctx.lineWidth = lowDetail ? 2.5 : 3.4;
-          ctx.globalAlpha = alpha * 0.78;
+          ctx.lineWidth = lowDetail ? 1.9 : 2.7;
+          ctx.globalAlpha = alpha * 0.68;
           ctx.beginPath();
           ctx.moveTo(0, 0);
           ctx.lineTo(len, 0);
@@ -29260,64 +29279,64 @@
       ctx.save();
       ctx.globalCompositeOperation = lowDetail ? "source-over" : "lighter";
       ctx.shadowColor = color;
-      ctx.shadowBlur = lowDetail ? 0 : this.glow(stage === "impact" ? 16 : 10);
+      ctx.shadowBlur = lowDetail ? 0 : this.glow(stage === "impact" ? 10 : 5);
       if (stage === "anticipation") {
         ctx.translate(x, y);
-        const r = radius * (0.48 + progress * 0.12);
-        ring(0, 0, r, lowDetail ? 2 : 3, 0.52, color);
-        ring(0, 0, r * 0.62, 1.4, 0.36, accent);
+        const r = radius * (0.36 + progress * 0.08);
+        ring(0, 0, r, lowDetail ? 1.6 : 2.2, 0.34, color);
+        ring(0, 0, r * 0.58, 1.1, 0.22, accent);
         for (let i = 0; i < (lowDetail ? 3 : 5); i++) {
           const a = seed + i * TAU / (lowDetail ? 3 : 5) - progress * 1.6;
-          ray(a, r * 0.92, r * (0.52 + progress * 0.16), i % 2 ? color : accent, 1.8, 0.5);
+          ray(a, r * 0.88, r * (0.5 + progress * 0.12), i % 2 ? color : accent, 1.35, 0.28);
         }
-        drawIcon(Math.max(8, radius * 0.12), 0.45);
+        drawIcon(Math.max(6, radius * 0.1), 0.22);
       } else if (stage === "cast") {
         ctx.translate(x, y);
-        const r = radius * (0.35 + progress * 0.8);
-        ring(0, 0, r, lowDetail ? 3 : 4.5, 0.76, accent);
-        ring(0, 0, r * 0.58, 1.5, 0.42, color);
-        const rays = lowDetail ? 6 : 9;
-        for (let i = 0; i < rays; i++) ray(seed + i * TAU / rays, r * 0.24, r * 0.9, i % 3 ? color : accent, lowDetail ? 1.6 : 2.4, 0.58);
-        drawIcon(Math.max(10, radius * 0.13), 0.7);
+        const r = radius * (0.3 + progress * 0.5);
+        ring(0, 0, r, lowDetail ? 2 : 3.2, 0.52, accent);
+        ring(0, 0, r * 0.56, 1.2, 0.28, color);
+        const rays = lowDetail ? 5 : 7;
+        for (let i = 0; i < rays; i++) ray(seed + i * TAU / rays, r * 0.3, r * 0.82, i % 3 ? color : accent, lowDetail ? 1.2 : 1.9, 0.36);
+        drawIcon(Math.max(7, radius * 0.1), 0.34);
       } else if (stage === "travel") {
         materialTravel();
       } else if (stage === "impact") {
         ctx.translate(x, y);
-        const r = radius * (0.22 + progress * 0.92);
-        ring(0, 0, r, lowDetail ? 3 : 5, 0.82, accent);
-        ring(0, 0, r * 0.55, 1.6, 0.42, color);
+        const r = radius * (0.18 + progress * 0.78);
+        ring(0, 0, r, lowDetail ? 2.5 : 4, 0.72, accent);
+        ring(0, 0, r * 0.55, 1.4, 0.32, color);
         const rays = lowDetail ? 7 : 11;
         for (let i = 0; i < rays; i++) {
           const a = seed + i * TAU / rays;
           const shard = r * (0.6 + ((i % 3) * 0.12));
-          ray(a, r * 0.18, shard, i % 2 ? accent : color, lowDetail ? 1.8 : 2.6, 0.64);
+          ray(a, r * 0.22, shard, i % 2 ? accent : color, lowDetail ? 1.4 : 2.1, 0.48);
         }
         if (kind === "gravity" || kind === "fire" || kind === "blood") {
           ctx.globalCompositeOperation = "source-over";
-          ctx.globalAlpha = alpha * 0.28;
+          ctx.globalAlpha = alpha * 0.16;
           ctx.fillStyle = kind === "blood" ? color : dark;
           ctx.beginPath();
-          ctx.ellipse(0, 0, r * 0.62, r * 0.2, 0, 0, TAU);
+          ctx.ellipse(0, 0, r * 0.52, r * 0.16, 0, 0, TAU);
           ctx.fill();
         }
-        drawIcon(Math.max(11, radius * 0.12), 0.72);
+        drawIcon(Math.max(8, radius * 0.1), 0.46);
       } else if (stage === "aftermath") {
         ctx.translate(x, y);
-        const r = radius * (0.55 + progress * 0.18);
+        const r = radius * (0.48 + progress * 0.12);
         ctx.globalCompositeOperation = "source-over";
-        ctx.globalAlpha = alpha * 0.28;
+        ctx.globalAlpha = alpha * 0.16;
         ctx.fillStyle = kind === "shadow" || kind === "void" ? dark : color;
         ctx.beginPath();
-        ctx.ellipse(0, 0, r * 0.8, r * 0.28, 0, 0, TAU);
+        ctx.ellipse(0, 0, r * 0.68, r * 0.2, 0, 0, TAU);
         ctx.fill();
         ctx.globalCompositeOperation = lowDetail ? "source-over" : "lighter";
-        ring(0, 0, r * 0.72, 1.5, 0.36, accent);
+        ring(0, 0, r * 0.7, 1.2, 0.22, accent);
         const marks = lowDetail ? 4 : 7;
         for (let i = 0; i < marks; i++) {
           const a = seed + i * TAU / marks;
           const inner = r * 0.18;
           const outer = r * (0.42 + (i % 2) * 0.18);
-          ray(a, inner, outer, i % 2 ? color : accent, 1.2, 0.28);
+          ray(a, inner, outer, i % 2 ? color : accent, 1, 0.18);
         }
       }
       ctx.restore();
@@ -29334,7 +29353,8 @@
       let drawn = 0;
       for (const effect of this.run.effects) {
         if (emergency && this.optionalVisualEffect(effect.type)) continue;
-        const combatFlash = effect.type === "attackBurst" || effect.type === "hitSpark";
+        const actorOverlayVfx = effect.type === "powerStageVfx" && (effect.stage === "anticipation" || effect.stage === "cast");
+        const combatFlash = effect.type === "attackBurst" || effect.type === "hitSpark" || actorOverlayVfx;
         if (foreground !== combatFlash) continue;
         if (Number.isFinite(effect.x) && Number.isFinite(effect.y) && !this.inView(effect.x, effect.y, (effect.radius || effect.reach || 180) + 80)) continue;
         const telegraph = effect.type === "danger" || effect.type === "lineTell";

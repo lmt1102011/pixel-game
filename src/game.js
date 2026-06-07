@@ -9,7 +9,7 @@
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
   const SIGNAL_REALTIME_RELAY_LIMIT = 2;
   const SIGNAL_REALTIME_TYPES = new Set(["state", "snapshot", "attack", "skill", "collect", "openChest", "dropItem", "damage", "chooseDoor"]);
-  const APP_VERSION = "20260607-query-buffer-clean-283";
+  const APP_VERSION = "20260607-stable-auto-visuals-284";
   const CHANGELOG_ENTRIES = [
     {
       version: APP_VERSION,
@@ -5786,13 +5786,16 @@
           && this.perf.lagTime < 0.045
         )
       );
+      const sustainedQualityDrop = panicLag
+        || (emergencyLag && (this.perf.lagTime > 0.34 - weakBias * 0.05 || this.perf.pressure > 0.28 - weakBias * 0.04 || severeLag))
+        || (this.perf.overloadTime > 0.55 && (realLag || renderLag));
       if ((idle || !stressActive) && skillQuiet && !realLag) {
         targetLevel = baseLevel;
         this.perf.levelChangeLock = 0;
-      } else if ((panicLag || emergencyLag || this.perf.overloadTime > 0.16) && (canShiftLevel || panicLag || emergencyLag)) {
+      } else if (sustainedQualityDrop && (canShiftLevel || panicLag || emergencyLag)) {
         const dropStep = (panicLag ? 1.18 : emergencyLag ? 0.64 : 0.42) + weakBias * (panicLag ? 0.72 : emergencyLag ? 0.36 : 0.24);
-        const emergencyFloor = clamp(1.75 - weakBias * 0.45, 1.15, 1.75);
-        const overloadFloor = clamp(2.25 - weakBias * 0.35, 1.45, 2.25);
+        const emergencyFloor = clamp(baseLevel - (1.0 + weakBias * 0.36), 3.1, baseLevel);
+        const overloadFloor = clamp(baseLevel - (0.62 + weakBias * 0.24), 3.75, baseLevel);
         const floor = panicLag ? 1 : emergencyLag ? emergencyFloor : overloadFloor;
         targetLevel = Math.max(Math.min(baseLevel, targetLevel) - dropStep, Math.min(baseLevel, floor));
         this.perf.levelChangeLock = panicLag ? 0.12 : emergencyLag ? 0.18 : 0.3;
@@ -5801,7 +5804,7 @@
         targetLevel = Math.min(baseLevel, targetLevel + recoverStep);
         this.perf.levelChangeLock = idle ? 0.38 : 1.25 + weakBias * 0.75;
       }
-      const calmVisualFloor = clamp(3.2 - weakBias * 0.35, 2.65, 3.2);
+      const calmVisualFloor = clamp(baseLevel - (weakBias > 0.72 ? 0.5 : 0.35), 4.25, baseLevel);
       const calmVisual = !realLag
         && !renderLag
         && this.perf.pressure < 0.18
@@ -5812,19 +5815,29 @@
         this.perf.levelChangeLock = Math.min(this.perf.levelChangeLock || 0, 0.12);
       }
       targetLevel = clamp(Math.round(targetLevel * 10) / 10, 1, 5);
-      if (skillActive && targetLevel > currentLevel && !calmSkillRecovery) targetLevel = currentLevel;
+      if (skillActive && targetLevel > currentLevel && !calmSkillRecovery && !calmVisual) targetLevel = currentLevel;
       this.perf.targetAutoLevel = targetLevel;
       const levelDelta = targetLevel - currentLevel;
       const maxStep = (levelDelta < 0
         ? (panicLag ? 8.5 : emergencyLag ? 5.8 : 3.2)
-        : (skillQuiet && !realLag ? 3.6 : idle ? 2.6 : calmVisual ? 1.05 + (1 - weakBias) * 0.35 : 0.28 + (1 - weakBias) * 0.22)) * frame;
+        : (skillQuiet && !realLag ? 3.6 : idle ? 2.6 : calmVisual ? 2.25 + (1 - weakBias) * 0.45 : 0.28 + (1 - weakBias) * 0.22)) * frame;
       this.perf.autoLevel = currentLevel + clamp(levelDelta, -maxStep, maxStep);
       if (Math.abs(this.perf.autoLevel - baseLevel) < 0.02 && targetLevel === baseLevel) this.perf.autoLevel = baseLevel;
+      const effectFloorLevel = panicLag
+        ? clamp(baseLevel - 1.6, 2.7, baseLevel)
+        : emergencyLag
+          ? clamp(baseLevel - 1.0, 3.45, baseLevel)
+          : clamp(baseLevel - (weakBias > 0.72 ? 0.65 : 0.48), 4.2, baseLevel);
+      const autoFloorLevel = Math.min(baseLevel, effectFloorLevel);
+      if (this.perf.autoLevel < autoFloorLevel) {
+        this.perf.autoLevel = autoFloorLevel;
+        this.perf.targetAutoLevel = Math.max(this.perf.targetAutoLevel, autoFloorLevel);
+      }
       this.perf.displayedAutoLevel = Math.round(this.perf.autoLevel * 100) / 100;
-      this.perf.effectQuality = this.graphicsQualityFromLevel(this.perf.displayedAutoLevel);
+      this.perf.effectQuality = this.graphicsQualityFromLevel(Math.max(this.perf.displayedAutoLevel, Math.min(baseLevel, effectFloorLevel)));
       const fidelityFloorLevel = this.isMobileDevice()
-        ? clamp(baseLevel - (weakBias > 0.72 ? 1.1 : 0.65), 3.35, baseLevel)
-        : clamp(baseLevel - (weakBias > 0.62 ? 1.65 : 1.25), 2.8, baseLevel);
+        ? clamp(baseLevel - (weakBias > 0.72 ? 0.58 : 0.42), 4.25, baseLevel)
+        : clamp(baseLevel - (weakBias > 0.62 ? 0.82 : 0.62), 3.85, baseLevel);
       this.perf.coreAutoLevel = Math.round(Math.max(this.perf.displayedAutoLevel, Math.min(baseLevel, fidelityFloorLevel)) * 100) / 100;
       this.perf.quality = this.graphicsQualityFromLevel(this.perf.coreAutoLevel);
       this.updateRenderScale(overloaded && (panicLag || emergencyLag || this.renderPressure() > 0.22 || (activeCombat && this.perf.overloadTime > 1.2)));
@@ -6014,9 +6027,8 @@
     projectileLimit() {
       const quality = this.effectQuality();
       const weakBias = this.devicePerformanceBias();
-      const ultra = this.ultraPerformanceMode();
-      const base = ultra ? (this.isMobileDevice() ? 12 : 22) : (this.isMobileDevice() ? 18 : 34);
-      const renderTrim = 1 - this.renderPressure() * 0.28;
+      const base = this.isMobileDevice() ? 18 : 34;
+      const renderTrim = 1 - this.renderPressure() * 0.18;
       return Math.max(this.performancePanic() ? 6 : 10, Math.round(base * (1 - weakBias * 0.24) * renderTrim * (0.34 + quality * 0.66) * this.visualBudgetScale()));
     }
 
@@ -6037,35 +6049,15 @@
 
     graphicsRenderScale() {
       if (this.isMobileDevice() && (!this.run || this.mode !== "game")) return this.startupRenderScale();
-      const quality = this.perf?.quality ?? 1;
-      const lag = this.performancePressure();
-      const renderLag = this.renderPressure();
-      const renderMs = Number(this.perf?.avgRenderMs || this.perf?.renderMs || 0);
       const weakBias = this.devicePerformanceBias();
-      const ultra = this.ultraPerformanceMode();
       const mobile = this.isMobileDevice();
-      const renderBound = renderLag > 0.08 || renderMs > (mobile ? 6.4 : 6.8);
-      const resolutionLag = renderLag + lag * (renderBound ? (mobile ? 0.42 : 0.48) : (mobile ? 0.16 : 0.24));
-      const renderOverloaded = renderMs > (mobile ? 8.8 : 9.6) || renderLag > 0.38;
-      const deepResolutionCut = renderOverloaded
-        && (this.perf?.overloadTime || 0) > 1.2
-        && (this.perf?.lagTime || 0) > 0.28;
-      const base = (mobile ? 0.9 : 0.74)
-        - resolutionLag * (mobile ? 0.3 : 0.2)
-        - renderLag * (mobile ? 0.18 : 0.1)
-        - weakBias * (mobile ? 0.018 : 0.05);
-      const range = (mobile ? 0.17 : 0.26) - weakBias * (mobile ? 0.025 : 0.06);
-      const floor = this.performancePanic()
-        ? (mobile ? (deepResolutionCut ? 0.76 : 0.84) : 0.76)
-        : this.performanceEmergency()
-          ? (mobile ? (deepResolutionCut ? 0.82 : 0.86) : 0.8)
-          : ultra
-            ? (mobile ? 0.86 : 0.82)
-            : (mobile ? 1 : 0.76);
-      const cap = ultra ? (mobile ? 0.96 : 0.92) : (mobile ? 1.04 : 1);
-      const rawScale = clamp(base + quality * range, floor, cap);
-      const step = this.performanceEmergency() ? 0.025 : mobile ? 0.025 : 0.04;
-      return clamp(Math.round(rawScale / step) * step, floor, 1);
+      const manual = this.save?.settings?.graphicsMode === "manual";
+      if (manual) {
+        const quality = this.graphicsQualityFromLevel(this.save.settings.graphicsLevel || 5);
+        const base = mobile ? 0.82 + quality * 0.18 : 0.76 + quality * 0.24;
+        return clamp(base - weakBias * (mobile ? 0.025 : 0.04), mobile ? 0.82 : 0.76, 1);
+      }
+      return mobile ? clamp(0.97 - weakBias * 0.04, 0.92, 0.98) : 1;
     }
 
     updateRenderScale(force = false) {
@@ -6199,14 +6191,7 @@
 
     prepareCombatRenderScale(context = {}) {
       if (this.save?.settings?.graphicsMode === "manual") return;
-      const weakBias = this.devicePerformanceBias();
-      const mobile = this.isMobileDevice();
-      const heavyRoom = context.roomType === "boss" || context.miniGame === "bossRush" || context.miniGame === "playerBoss" || context.miniGame === "awakeningRaid";
-      const preferred = mobile
-        ? heavyRoom
-          ? clamp(0.94 - weakBias * 0.12, 0.8, 0.94)
-          : clamp(0.98 - weakBias * 0.08, 0.88, 0.98)
-        : clamp(0.88 - weakBias * 0.1, 0.78, 0.9);
+      const preferred = this.graphicsRenderScale();
       const current = Number.isFinite(this.perf?.appliedRenderScale) ? this.perf.appliedRenderScale : 1;
       if (Math.abs(current - preferred) < 0.045) return;
       this.perf.renderScaleTarget = preferred;
@@ -6237,18 +6222,16 @@
     particleLimit() {
       const quality = this.effectQuality();
       const weakBias = this.devicePerformanceBias();
-      const ultra = this.ultraPerformanceMode();
-      const base = ultra ? (this.isMobileDevice() ? 18 : 38) : (this.isMobileDevice() ? 42 : 82);
-      const renderTrim = 1 - this.renderPressure() * 0.42;
+      const base = this.isMobileDevice() ? 42 : 82;
+      const renderTrim = 1 - this.renderPressure() * 0.32;
       return Math.max(this.performancePanic() ? 3 : 10, Math.round(base * (1 - weakBias * 0.38) * renderTrim * (0.2 + quality * 0.8) * this.visualBudgetScale()));
     }
 
     effectLimit() {
       const quality = this.effectQuality();
       const weakBias = this.devicePerformanceBias();
-      const ultra = this.ultraPerformanceMode();
-      const base = ultra ? (this.isMobileDevice() ? 10 : 20) : (this.isMobileDevice() ? 22 : 40);
-      const renderTrim = 1 - this.renderPressure() * 0.36;
+      const base = this.isMobileDevice() ? 22 : 40;
+      const renderTrim = 1 - this.renderPressure() * 0.26;
       return Math.max(this.performancePanic() ? 4 : 8, Math.round(base * (1 - weakBias * 0.28) * renderTrim * (0.3 + quality * 0.7) * this.visualBudgetScale()));
     }
 
@@ -10497,7 +10480,7 @@
       const autoLevel = Number.isFinite(this.perf?.displayedAutoLevel) ? this.perf.displayedAutoLevel.toFixed(2) : "5.00";
       return `
         <label class="setting-row">
-          <div><h3>Chế độ đồ họa</h3><p>${mode === "manual" ? "Khóa chất lượng theo mức bên dưới." : `Tự động giữ mức gốc, chỉ hạ tạm khi lag nặng. Hiện ${autoLevel}/5.`}</p></div>
+          <div><h3>Chế độ đồ họa</h3><p>${mode === "manual" ? "Khóa chất lượng theo mức bên dưới." : `Tự động giữ độ nét ổn định, chỉ giảm hiệu ứng phụ khi tải nặng. Hiện ${autoLevel}/5.`}</p></div>
           <select class="field setting-select" data-setting="graphicsMode" data-setting-type="string">
             <option value="auto" ${mode === "auto" ? "selected" : ""}>Tự động</option>
             <option value="manual" ${mode === "manual" ? "selected" : ""}>Thủ công</option>
@@ -10532,7 +10515,7 @@
       const levelRow = this.screen.querySelector('[data-setting="graphicsLevel"]')?.closest(".setting-row");
       const modeText = modeRow?.querySelector("p");
       const levelText = levelRow?.querySelector("p");
-      if (modeText) modeText.textContent = mode === "manual" ? "Khóa chất lượng theo mức bên dưới." : `Tự động giữ mức gốc, chỉ hạ tạm khi lag nặng. Hiện ${autoLevel}/5.`;
+      if (modeText) modeText.textContent = mode === "manual" ? "Khóa chất lượng theo mức bên dưới." : `Tự động giữ độ nét ổn định, chỉ giảm hiệu ứng phụ khi tải nặng. Hiện ${autoLevel}/5.`;
       if (levelText) levelText.textContent = mode === "manual" ? `Mức ${level}/5 đang được áp dụng.` : `Auto sẽ cố giữ mức gốc ${level}/5.`;
     }
 
@@ -22159,18 +22142,17 @@
       const emergency = this.performanceEmergency();
       const panic = this.performancePanic();
       const fastVisual = this.fastVisualMode();
-      const ultra = this.ultraPerformanceMode();
       ctx.save();
       ctx.scale(scale, scale);
       ctx.translate(-camX, -camY);
-      this.drawRoom(ctx, panic || (fastVisual && this.performancePressure() > 0.4));
+      this.drawRoom(ctx, false);
       if (!emergency && !fastVisual) this.drawTrails(ctx);
       this.drawHazards(ctx);
       this.drawPickups(ctx);
       this.drawRoomObjects(ctx);
       this.drawEffects(ctx);
       this.drawProjectiles(ctx);
-      if (!panic && !ultra) for (const drone of this.run.drones) this.drawDrone(ctx, drone);
+      for (const drone of this.run.drones) this.drawDrone(ctx, drone);
       const actorY = (actor) => Number.isFinite(actor.displayY) ? actor.displayY : actor.y;
       const localGhost = this.run.player.dead && this.run.spectating;
       const bossProxyVisible = Boolean(this.playerBossEnemy());
@@ -22189,8 +22171,7 @@
       for (const actor of actors) {
         if (actor === this.run.player) {
           if (!this.drawExportedHeroSprite(ctx, actor.x, actor.y, 2.2, actor, this.run.power, this.save.customization)) {
-            if (ultra) this.drawHeroLite(ctx, actor.x, actor.y, 2.2, actor, this.run.power, this.save.customization);
-            else this.drawHero(ctx, actor.x, actor.y, 2.2, actor, this.run.power, this.save.customization);
+            this.drawHero(ctx, actor.x, actor.y, 2.2, actor, this.run.power, this.save.customization);
           }
           if (this.isMultiplayerRun()) this.drawNameTag(ctx, actor.x, actor.y - 58, actor.name || this.save.account.username || "Bạn", true, actor.hp, actor.maxHp);
         } else {
@@ -22227,27 +22208,6 @@
           shadowWeapon: remote.shadowWeapon || 0,
           shadowWeaponDamageMult: remote.shadowWeaponDamageMult || 1
         };
-        if (ultra) {
-          if (!this.drawExportedHeroSprite(ctx, remoteX, remoteY, 2.0, remoteActor, remotePower, remoteCustom)) {
-          this.drawHeroLite(ctx, remoteX, remoteY, 2.0, {
-            facing: remote.facing,
-            animation: remote.dead ? "death" : remote.animation || "run",
-            animTime: remote.animTime || this.menuTime,
-            actionTime: remote.actionTime || 0,
-            actionTotal: remote.actionTotal || 0,
-            skillCastStyle: remote.skillCastStyle || null,
-            invuln: remote.invuln || 0,
-            hp: remote.hp,
-            dead: remote.dead,
-            characterId: remote.characterId,
-            powerAwakened: Boolean(remote.powerAwakened),
-            shadowWeapon: remote.shadowWeapon || 0,
-            shadowWeaponDamageMult: remote.shadowWeaponDamageMult || 1
-          }, remotePower, remoteCustom);
-          }
-          this.drawNameTagLite(ctx, remoteX, remoteY - 54, remote.name || "NgÆ°á»i chÆ¡i", false, remote.hp, remote.maxHp);
-          continue;
-        }
         if (!this.drawExportedHeroSprite(ctx, remoteX, remoteY, 2.0, remoteActor, remotePower, remoteCustom)) {
         this.drawHero(ctx, remoteX, remoteY, 2.0, {
           facing: remote.facing,
@@ -22290,7 +22250,7 @@
       ctx.restore();
       this.renderViewW = 0;
       this.renderViewH = 0;
-      if (!ultra) this.drawVignette(ctx);
+      this.drawVignette(ctx);
       this.drawDomainCutinOverlay(ctx);
     }
 
@@ -22779,8 +22739,8 @@
       const viewBottom = Math.min(WORLD_H, bounds.bottom);
       const viewW = Math.max(1, viewRight - viewLeft);
       const viewH = Math.max(1, viewBottom - viewTop);
-      if (this.drawExportedRoomBackground(ctx, biome, viewLeft, viewTop, viewRight, viewBottom, lowDetail || this.ultraPerformanceMode())) {
-        if (lowDetail || this.ultraPerformanceMode() || (this.fastVisualMode() && this.renderPressure() > 0.2)) return;
+      if (this.drawExportedRoomBackground(ctx, biome, viewLeft, viewTop, viewRight, viewBottom, lowDetail)) {
+        if (lowDetail) return;
         ctx.fillStyle = biome.haze;
         for (let i = 0; i < 6; i++) {
           const x = ROOM_PAD + ((i * 317 + this.menuTime * 18) % (WORLD_W - ROOM_PAD * 2));
@@ -22790,7 +22750,7 @@
         }
         return;
       }
-      if (this.ultraPerformanceMode()) {
+      if (lowDetail && this.ultraPerformanceMode()) {
         ctx.fillStyle = "#05070b";
         ctx.fillRect(viewLeft, viewTop, viewW, viewH);
         ctx.fillStyle = biome.floor;
@@ -22825,7 +22785,6 @@
         if (floorRight > floorLeft && floorBottom > floorTop) ctx.fillRect(floorLeft, floorTop, floorRight - floorLeft, floorBottom - floorTop);
       }
       if (lowDetail) return;
-      if (this.fastVisualMode() && this.renderPressure() > 0.2) return;
       ctx.fillStyle = biome.haze;
       for (let i = 0; i < 8; i++) {
         const x = ROOM_PAD + ((i * 317 + this.menuTime * 18) % (WORLD_W - ROOM_PAD * 2));
@@ -22847,21 +22806,6 @@
         }[hazard.type] || this.run.biome.accent;
         const r = hazard.radius + Math.sin(hazard.pulse * 3) * 6;
         if (this.drawExportedTrapSprite(ctx, hazard)) continue;
-        if (this.ultraPerformanceMode()) {
-          ctx.save();
-          ctx.translate(hazard.x, hazard.y);
-          ctx.globalAlpha = 0.72;
-          ctx.fillStyle = "rgba(8,10,15,0.82)";
-          ctx.fillRect(-r, -r, r * 2, r * 2);
-          ctx.strokeStyle = color;
-          ctx.lineWidth = 3;
-          ctx.strokeRect(-r, -r, r * 2, r * 2);
-          ctx.fillStyle = color;
-          ctx.globalAlpha = 0.28;
-          ctx.fillRect(-r * 0.64, -r * 0.64, r * 1.28, r * 1.28);
-          ctx.restore();
-          continue;
-        }
         ctx.save();
         ctx.translate(hazard.x, hazard.y);
         ctx.rotate(hazard.pulse * (hazard.type === "blade" ? 1.8 : 0.18));
@@ -26593,9 +26537,10 @@
       const emergency = this.performanceEmergency();
       const fast = this.fastVisualMode();
       const ultra = this.ultraPerformanceMode();
-      const budget = ultra
-        ? (foreground ? (this.isMobileDevice() ? 2 : 4) : (this.isMobileDevice() ? 7 : 12))
-        : fast ? (foreground ? (this.isMobileDevice() ? 5 : 8) : (this.isMobileDevice() ? 14 : 22)) : Infinity;
+      const limit = this.effectLimit();
+      const budget = fast || ultra
+        ? (foreground ? Math.max(this.isMobileDevice() ? 4 : 6, Math.ceil(limit * 0.32)) : limit)
+        : Infinity;
       let drawn = 0;
       for (const effect of this.run.effects) {
         if (emergency && this.optionalVisualEffect(effect.type)) continue;
@@ -26611,7 +26556,6 @@
           || effect.type === "playerBossReveal"
           || (effect.type === "skillShape" && (effect.variant === "ultimate" || effect.awakened));
         if (drawn >= budget && !important) continue;
-        if (ultra && !important && ["attackBurst", "hitSpark", "castBurst", "castCone", "powerGlyph", "shadowShard", "powerBolt"].includes(effect.type)) continue;
         if (fast && !important && this.optionalVisualEffect(effect.type) && drawn > budget * 0.55) continue;
         drawn++;
         ctx.save();
@@ -30188,11 +30132,8 @@
 
     drawParticles(ctx) {
       const stress = this.visualStress();
-      const ultra = this.ultraPerformanceMode();
-      const simple = ultra || this.fastVisualMode() || stress > 0.42 || this.effectQuality() < 0.66;
-      const drawLimit = ultra
-        ? Math.max(2, Math.round(this.particleLimit() * 0.28))
-        : simple ? Math.max(4, Math.round(this.particleLimit() * 0.62)) : this.run.particles.length;
+      const simple = stress > 0.68 || this.effectQuality() < 0.46;
+      const drawLimit = simple ? Math.max(4, Math.round(this.particleLimit() * 0.62)) : Math.min(this.run.particles.length, this.particleLimit());
       const startIndex = Math.max(0, this.run.particles.length - drawLimit);
       ctx.save();
       ctx.globalCompositeOperation = simple ? "source-over" : "lighter";

@@ -101,6 +101,10 @@ async function runStabilitySmoke(page) {
 
     const resetAssetRuntime = () => {
       game.exportedAssetImages = new Map();
+      game.exportedAssetBitmaps = new Map();
+      game.exportedAssetBitmapPromises = new Map();
+      game.exportedAssetBitmapPixels = 0;
+      game.exportedAssetPatterns = new Map();
       game.exportedAssetFallback = new Map();
       game.exportedAssetQueued = new Set();
       game.exportedAssetQueuedSequences = new Set();
@@ -127,6 +131,8 @@ async function runStabilitySmoke(page) {
       if (!condition) throw new Error(message);
     };
 
+    const sameDrawable = (actual, image) => actual === image || (image && actual === image._soulriftBitmap);
+
     const checkSequence = async (label, firstPath) => {
       resetAssetRuntime();
       const paths = game.exportedSequencePaths(firstPath);
@@ -134,11 +140,11 @@ async function runStabilitySmoke(page) {
       const targetIndex = Math.min(paths.length - 1, Math.max(1, Math.floor(paths.length / 2)));
       const first = await loadFrame(paths[0]);
       const partial = game.exportedImage(paths[targetIndex], { stableSequence: true });
-      assert(partial === first, `${label}: partial sequence did not hold frame 00`);
+      assert(sameDrawable(partial, first), `${label}: partial sequence did not hold frame 00`);
 
       const middle = await loadFrame(paths[targetIndex]);
       const partialAfterMiddle = game.exportedImage(paths[paths.length - 1], { stableSequence: true });
-      assert(partialAfterMiddle === first, `${label}: fallback changed before full sequence loaded`);
+      assert(sameDrawable(partialAfterMiddle, first), `${label}: fallback changed before full sequence loaded`);
       assert(game.exportedAssetFallback.get(game.exportedSequenceKey(firstPath)) === first, `${label}: sequence fallback was not stable`);
 
       const loaded = new Map([[paths[0], first], [paths[targetIndex], middle]]);
@@ -147,7 +153,7 @@ async function runStabilitySmoke(page) {
       }
       assert(game.exportedSequenceReady(firstPath), `${label}: sequence did not report ready after all frames loaded`);
       const final = game.exportedImage(paths[paths.length - 1], { stableSequence: true });
-      assert(final === loaded.get(paths[paths.length - 1]), `${label}: full sequence did not return requested frame`);
+      assert(sameDrawable(final, loaded.get(paths[paths.length - 1])), `${label}: full sequence did not return requested frame`);
       return {
         label,
         frames: paths.length,

@@ -9,7 +9,7 @@
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
   const SIGNAL_REALTIME_RELAY_LIMIT = 2;
   const SIGNAL_REALTIME_TYPES = new Set(["state", "snapshot", "attack", "skill", "collect", "openChest", "dropItem", "damage", "chooseDoor"]);
-  const APP_VERSION = "20260607-power-audio-286";
+  const APP_VERSION = "20260607-runtime-asset-cache-287";
   const CHANGELOG_ENTRIES = [
     {
       version: APP_VERSION,
@@ -3807,6 +3807,10 @@
       this.lobby = new PeerLobby(this);
       this.monsterSprites = new Map();
       this.exportedAssetImages = new Map();
+      this.exportedAssetBitmaps = new Map();
+      this.exportedAssetBitmapPromises = new Map();
+      this.exportedAssetBitmapPixels = 0;
+      this.exportedAssetPatterns = new Map();
       this.exportedAssetFallback = new Map();
       this.exportedAssetQueued = new Set();
       this.exportedAssetQueuedSequences = new Set();
@@ -4018,10 +4022,10 @@
     stableExportedSequenceFallback(path = "") {
       const key = this.exportedSequenceKey(path);
       const fallback = this.exportedAssetFallback.get(key);
-      if (this.isExportedImageReady(fallback)) return fallback;
+      if (this.isExportedImageReady(fallback)) return this.exportedDrawableFor(fallback._soulriftPath || path, fallback);
       const firstPath = this.exportedSequencePaths(path)[0] || path;
       const first = this.exportedAssetImages.get(firstPath);
-      return this.isExportedImageReady(first) ? first : null;
+      return this.isExportedImageReady(first) ? this.exportedDrawableFor(firstPath, first) : null;
     }
 
     isExportedImageReady(image) {
@@ -4032,6 +4036,123 @@
       if (!path || !image) return;
       image._soulriftPath = path;
       image._soulriftLastUsed = typeof performance !== "undefined" && performance.now ? performance.now() : Date.now();
+    }
+
+    exportedBitmapPixelBudget() {
+      const mobile = this.isMobileDevice();
+      const memory = Number(navigator.deviceMemory || 0);
+      const weakBias = this.devicePerformanceBias();
+      let budget = mobile ? 18000000 : 62000000;
+      budget *= 1 - weakBias * (mobile ? 0.34 : 0.18);
+      if (memory > 0 && memory <= 2) budget = Math.min(budget, mobile ? 11000000 : 26000000);
+      return Math.max(mobile ? 8000000 : 22000000, Math.round(budget));
+    }
+
+    exportedBitmapImportant(path = "") {
+      const value = String(path || "");
+      const powerId = this.run?.power?.id || this.save?.account?.selectedPower || "";
+      return value.includes("/characters/")
+        || value.includes("/monsters/")
+        || value.includes("/chests/")
+        || value.includes("/doors/")
+        || value.includes("/traps/")
+        || value.includes("/backgrounds/")
+        || (powerId && value.includes(`/skills/${powerId}/`));
+    }
+
+    dropExportedBitmap(path = "") {
+      const entry = this.exportedAssetBitmaps.get(path);
+      if (!entry) return;
+      try {
+        if (entry.bitmap && typeof entry.bitmap.close === "function") entry.bitmap.close();
+      } catch {
+        // ImageBitmap cleanup is best effort.
+      }
+      this.exportedAssetBitmapPixels = Math.max(0, this.exportedAssetBitmapPixels - Number(entry.pixels || 0));
+      this.exportedAssetBitmaps.delete(path);
+      const image = this.exportedAssetImages.get(path);
+      if (image?._soulriftBitmap === entry.bitmap) image._soulriftBitmap = null;
+      for (const key of Array.from(this.exportedAssetPatterns.keys())) {
+        if (key.startsWith(`${path}|`)) this.exportedAssetPatterns.delete(key);
+      }
+    }
+
+    trimExportedBitmapBudget(extraPixels = 0, aggressive = false) {
+      if (!this.exportedAssetBitmaps?.size) return;
+      const budget = this.exportedBitmapPixelBudget();
+      if (!aggressive && this.exportedAssetBitmapPixels + extraPixels <= budget) return;
+      const protectedPaths = this.run ? this.protectedExportedAssetPaths() : new Set();
+      const candidates = [];
+      for (const [path, entry] of this.exportedAssetBitmaps.entries()) {
+        if (!aggressive && protectedPaths.has(path)) continue;
+        candidates.push({ path, lastUsed: Number(entry.lastUsed || 0), pixels: Number(entry.pixels || 0) });
+      }
+      candidates.sort((a, b) => a.lastUsed - b.lastUsed || b.pixels - a.pixels);
+      for (const candidate of candidates) {
+        if (this.exportedAssetBitmapPixels + extraPixels <= budget) break;
+        this.dropExportedBitmap(candidate.path);
+      }
+    }
+
+    promoteExportedImageBitmap(path, image, important = false) {
+      if (!path || !this.isExportedImageReady(image) || !window.createImageBitmap) return;
+      if (this.exportedAssetBitmaps.has(path) || this.exportedAssetBitmapPromises.has(path)) return;
+      const pixels = Math.max(1, Number(image.naturalWidth || image.width || 1) * Number(image.naturalHeight || image.height || 1));
+      const activeCombat = this.run && this.mode === "game" && this.graphicsActiveCombat() && !this.roomAssetWarmupActive();
+      const quietCombat = activeCombat
+        && !this.graphicsPlayerSkillActive()
+        && (this.perf?.skillQuietTime || 0) > 1.2
+        && this.performancePressure() < 0.06
+        && this.renderPressure() < 0.08;
+      if (activeCombat && !quietCombat) return;
+      const importantAsset = important || this.exportedBitmapImportant(path);
+      if (!importantAsset && this.performanceEmergency()) return;
+      const budget = this.exportedBitmapPixelBudget();
+      if (!importantAsset && this.exportedAssetBitmapPixels + pixels > budget * 0.72) return;
+      this.trimExportedBitmapBudget(pixels, importantAsset);
+      if (!importantAsset && this.exportedAssetBitmapPixels + pixels > budget) return;
+      const promise = window.createImageBitmap(image)
+        .then((bitmap) => {
+          if (!this.exportedAssetImages.has(path) || !this.isExportedImageReady(image)) {
+            try {
+              if (bitmap && typeof bitmap.close === "function") bitmap.close();
+            } catch {
+              // Bitmap may already be gone.
+            }
+            return null;
+          }
+          this.trimExportedBitmapBudget(pixels, importantAsset);
+          if (!importantAsset && this.exportedAssetBitmapPixels + pixels > this.exportedBitmapPixelBudget()) {
+            try {
+              if (bitmap && typeof bitmap.close === "function") bitmap.close();
+            } catch {
+              // Bitmap cleanup is best effort.
+            }
+            return null;
+          }
+          const now = typeof performance !== "undefined" && performance.now ? performance.now() : Date.now();
+          if (this.exportedAssetBitmaps.has(path)) this.dropExportedBitmap(path);
+          this.exportedAssetBitmaps.set(path, { bitmap, pixels, lastUsed: now });
+          this.exportedAssetBitmapPixels += pixels;
+          image._soulriftBitmap = bitmap;
+          return bitmap;
+        })
+        .catch(() => null)
+        .finally(() => {
+          this.exportedAssetBitmapPromises.delete(path);
+        });
+      this.exportedAssetBitmapPromises.set(path, promise);
+    }
+
+    exportedDrawableFor(path, image) {
+      if (!this.isExportedImageReady(image)) return null;
+      this.markExportedImageUsed(path, image);
+      const entry = this.exportedAssetBitmaps.get(path);
+      if (entry?.bitmap) {
+        entry.lastUsed = typeof performance !== "undefined" && performance.now ? performance.now() : Date.now();
+        return entry.bitmap;
+      }
+      return image;
     }
 
     warmExportedImageOnGpu(image) {
@@ -4069,6 +4190,7 @@
         this.exportedAssetFallback.set(key, image);
       }
       this.exportedAssetFallback.set(path, image);
+      this.promoteExportedImageBitmap(path, image, shouldWarmGpu);
       if (shouldWarmGpu) this.warmExportedImageOnGpu(image);
     }
 
@@ -4226,6 +4348,21 @@
       }
     }
 
+    exportedRuntimePreloadPriority() {
+      if (!this.run || this.mode !== "game") return true;
+      if (this.roomAssetWarmupActive()) return true;
+      if (!this.graphicsActiveCombat() && !this.graphicsPlayerSkillActive()) return true;
+      return false;
+    }
+
+    demoteCombatExportedPreloadBacklog() {
+      if (!this.run || this.mode !== "game" || !this.graphicsActiveCombat()) return;
+      if (!this.exportedAssetPriorityQueued.size) return;
+      for (const path of Array.from(this.exportedAssetPriorityQueued)) {
+        if (!this.exportedAssetPreloadActivePriorityPaths.has(path)) this.exportedAssetPriorityQueued.delete(path);
+      }
+    }
+
     scheduleExportedPreloadDrain(delay = 0) {
       if (this.exportedAssetPreloadScheduled) return;
       this.exportedAssetPreloadScheduled = true;
@@ -4248,9 +4385,10 @@
       const priorityBacklog = this.exportedAssetPriorityQueued.size > 0;
       const memory = Number(navigator.deviceMemory || 0);
       const weakPreloadDevice = this.devicePerformanceBias() > 0.62 || (memory > 0 && memory <= 2);
+      const warmupActive = this.roomAssetWarmupActive();
       const priorityLimit = weakPreloadDevice
-        ? Math.min(baseLimit, this.isMobileDevice() ? 2 : 3)
-        : Math.max(baseLimit, this.isMobileDevice() ? 4 : 6);
+        ? (warmupActive ? Math.max(baseLimit, this.isMobileDevice() ? 3 : 4) : Math.min(baseLimit, this.isMobileDevice() ? 2 : 3))
+        : Math.max(baseLimit, this.isMobileDevice() ? (warmupActive ? 5 : 4) : (warmupActive ? 7 : 6));
       const limit = priorityBacklog ? priorityLimit : baseLimit;
       while (this.exportedAssetPreloadActive < limit && this.exportedAssetPreloadQueue.length) {
         const priorityIndex = priorityBacklog
@@ -4414,10 +4552,16 @@
       const pending = this.exportedAssetPreloadQueue.length + this.exportedAssetPreloadActive;
       if (pending <= 0) return;
       const current = this.run.assetWarmup || {};
+      const mobile = this.isMobileDevice();
+      const weakBias = this.devicePerformanceBias();
+      const minWarm = mobile ? (0.34 + weakBias * 0.24) : 0.24;
+      const maxWarm = mobile
+        ? clamp(0.95 + pending * 0.012 + weakBias * 0.42, 1.15, weakBias > 0.68 ? 2.05 : 1.7)
+        : clamp(0.75 + pending * 0.008, 0.85, 1.35);
       this.run.assetWarmup = {
         time: Number(current.time || 0),
-        min: Math.max(Number(current.min || 0), this.isMobileDevice() ? 0.28 : 0.22),
-        max: Math.max(Number(current.max || 0), this.isMobileDevice() ? 0.95 : 0.85)
+        min: Math.max(Number(current.min || 0), minWarm),
+        max: Math.max(Number(current.max || 0), maxWarm)
       };
     }
 
@@ -4427,6 +4571,7 @@
       warmup.time = Math.min(4, Number(warmup.time || 0) + Math.max(0, dt || 0));
       if (!this.roomAssetWarmupActive()) {
         this.run.assetWarmup = null;
+        this.demoteCombatExportedPreloadBacklog();
         return false;
       }
       return true;
@@ -4488,21 +4633,21 @@
 
     exportedImage(path, options = {}) {
       if (!path) return null;
+      const priority = this.exportedRuntimePreloadPriority();
       if (options.stableSequence && !this.exportedSequenceReady(path)) {
-        this.queueExportedSequence(path, true);
+        this.queueExportedSequence(path, priority);
         return this.stableExportedSequenceFallback(path);
       }
       let image = this.exportedAssetImages.get(path);
       if (!image) {
-        this.queueExportedSequence(path, true);
+        this.queueExportedSequence(path, priority);
         return this.stableExportedSequenceFallback(path);
       }
       if (this.isExportedImageReady(image)) {
         this.markExportedImageReady(path, image);
-        this.markExportedImageUsed(path, image);
-        return image;
+        return this.exportedDrawableFor(path, image);
       }
-      this.queueExportedSequence(path, true);
+      this.queueExportedSequence(path, priority);
       return this.stableExportedSequenceFallback(path);
     }
 
@@ -4552,6 +4697,9 @@
       const maxImages = mobile
         ? Math.round(190 - weakBias * 60)
         : Math.round(360 - weakBias * 80);
+      if ((this.exportedAssetBitmapPixels || 0) > this.exportedBitmapPixelBudget() * 1.05) {
+        this.trimExportedBitmapBudget(0, true);
+      }
       if (this.exportedAssetImages.size <= maxImages) {
         this.assetCleanupTimer = 4;
         return;
@@ -4571,6 +4719,7 @@
       const target = Math.max(60, maxImages - (mobile ? 24 : 36));
       for (const candidate of candidates) {
         if (this.exportedAssetImages.size <= target) break;
+        this.dropExportedBitmap(candidate.path);
         this.exportedAssetImages.delete(candidate.path);
         this.exportedAssetQueued.delete(candidate.path);
         this.exportedAssetLoadRetries.delete(candidate.path);
@@ -4585,10 +4734,26 @@
       const image = this.exportedImage(path);
       if (!image) return false;
       const smoothing = ctx.imageSmoothingEnabled;
-      ctx.imageSmoothingEnabled = false;
+      if (smoothing) ctx.imageSmoothingEnabled = false;
       ctx.drawImage(image, x, y, w, h);
-      ctx.imageSmoothingEnabled = smoothing;
+      if (smoothing) ctx.imageSmoothingEnabled = smoothing;
       return true;
+    }
+
+    exportedPatternFor(ctx, path, source) {
+      if (!ctx?.createPattern || !path || !source) return null;
+      const bitmap = this.exportedAssetBitmaps.get(path)?.bitmap;
+      const key = `${path}|${source === bitmap ? "bitmap" : "image"}`;
+      if (this.exportedAssetPatterns.has(key)) return this.exportedAssetPatterns.get(key);
+      try {
+        const pattern = ctx.createPattern(source, "repeat");
+        if (!pattern) return null;
+        this.exportedAssetPatterns.set(key, pattern);
+        this.trimCache(this.exportedAssetPatterns, this.isMobileDevice() ? 16 : 28);
+        return pattern;
+      } catch {
+        return null;
+      }
     }
 
     exportedAnimationFrame(progress, frames) {
@@ -4596,7 +4761,8 @@
     }
 
     drawExportedRoomBackground(ctx, biome, viewLeft, viewTop, viewRight, viewBottom, lowDetail = false) {
-      const tile = this.exportedImage(`assets/exported/backgrounds/${biome?.id || "forest"}/floor_tile.png`);
+      const tilePath = `assets/exported/backgrounds/${biome?.id || "forest"}/floor_tile.png`;
+      const tile = this.exportedImage(tilePath);
       if (!tile) return false;
       const viewW = Math.max(1, viewRight - viewLeft);
       const viewH = Math.max(1, viewBottom - viewTop);
@@ -4613,7 +4779,7 @@
         ctx.rect(floorLeft, floorTop, floorRight - floorLeft, floorBottom - floorTop);
         ctx.clip();
         const smoothing = ctx.imageSmoothingEnabled;
-        ctx.imageSmoothingEnabled = false;
+        if (smoothing) ctx.imageSmoothingEnabled = false;
         const startX = Math.floor(floorLeft / tileSize) * tileSize;
         const startY = Math.floor(floorTop / tileSize) * tileSize;
         for (let y = startY; y < floorBottom; y += tileSize) {
@@ -4621,7 +4787,7 @@
             ctx.drawImage(tile, x, y, tileSize, tileSize);
           }
         }
-        ctx.imageSmoothingEnabled = smoothing;
+        if (smoothing) ctx.imageSmoothingEnabled = smoothing;
         ctx.restore();
       }
       ctx.fillStyle = biome?.wall || "#121823";
@@ -22412,8 +22578,9 @@
     render() {
       const ctx = this.ctx;
       ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
-      ctx.imageSmoothingEnabled = true;
-      ctx.imageSmoothingQuality = this.dpr < 0.9 ? "high" : "medium";
+      const inGame = Boolean(this.run);
+      ctx.imageSmoothingEnabled = !inGame;
+      if (!inGame) ctx.imageSmoothingQuality = this.dpr < 0.9 ? "high" : "medium";
       ctx.clearRect(0, 0, this.width, this.height);
       if (this.run) this.drawGame(ctx);
       else this.drawMenuBackdrop(ctx);

@@ -9,7 +9,7 @@
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
   const SIGNAL_REALTIME_RELAY_LIMIT = 2;
   const SIGNAL_REALTIME_TYPES = new Set(["state", "snapshot", "attack", "skill", "collect", "openChest", "dropItem", "damage", "chooseDoor"]);
-  const APP_VERSION = "20260607-premium-audio-texture-299";
+  const APP_VERSION = "20260607-headroom-visual-cache-300";
   const CHANGELOG_ENTRIES = [
     {
       version: APP_VERSION,
@@ -4865,6 +4865,11 @@
       this.exportedAtlasPreloadActivePriorityPaths = new Set();
       this.exportedAtlasPreloadScheduled = false;
       this.exportedAtlasEnabled = true;
+      this.exportedProtectedPathScratch = new Set();
+      this.exportedProtectedSheetScratch = new Set();
+      this.exportedBitmapTrimScratch = [];
+      this.exportedAtlasTrimScratch = [];
+      this.exportedImageTrimScratch = [];
       this.exportedAssetMissing = new Set();
       this.exportedAssetIdleWarmupTimer = null;
       this.exportedAssetIdleWarmupStarted = false;
@@ -5415,6 +5420,11 @@
         || (powerId && value.includes(`/skills/${powerId}/`));
     }
 
+    emptySet() {
+      if (!this.emptySetScratch) this.emptySetScratch = new Set();
+      return this.emptySetScratch;
+    }
+
     dropExportedBitmap(path = "") {
       const entry = this.exportedAssetBitmaps.get(path);
       if (!entry) return;
@@ -5436,8 +5446,9 @@
       if (!this.exportedAssetBitmaps?.size) return;
       const budget = this.exportedBitmapPixelBudget();
       if (!aggressive && this.exportedAssetBitmapPixels + extraPixels <= budget) return;
-      const protectedPaths = this.run ? this.protectedExportedAssetPaths() : new Set();
-      const candidates = [];
+      const protectedPaths = this.run ? this.protectedExportedAssetPaths() : this.emptySet();
+      const candidates = this.exportedBitmapTrimScratch || (this.exportedBitmapTrimScratch = []);
+      candidates.length = 0;
       for (const [path, entry] of this.exportedAssetBitmaps.entries()) {
         if (!aggressive && protectedPaths.has(path)) continue;
         candidates.push({ path, lastUsed: Number(entry.lastUsed || 0), pixels: Number(entry.pixels || 0) });
@@ -5447,6 +5458,7 @@
         if (this.exportedAssetBitmapPixels + extraPixels <= budget) break;
         this.dropExportedBitmap(candidate.path);
       }
+      candidates.length = 0;
     }
 
     promoteExportedImageBitmap(path, image, important = false) {
@@ -6056,11 +6068,15 @@
     }
 
     protectedExportedAssetPaths() {
-      const protectedPaths = new Set([
-        ...this.exportedAssetPreloadActivePaths,
-        ...this.exportedAssetPreloadActivePriorityPaths,
-        ...this.exportedAssetPriorityQueued
-      ]);
+      const protectedPaths = this.exportedProtectedPathScratch || (this.exportedProtectedPathScratch = new Set());
+      protectedPaths.clear();
+      const addActive = (set) => {
+        if (!set) return;
+        for (const path of set) protectedPaths.add(path);
+      };
+      addActive(this.exportedAssetPreloadActivePaths);
+      addActive(this.exportedAssetPreloadActivePriorityPaths);
+      addActive(this.exportedAssetPriorityQueued);
       const keep = (path) => {
         if (!path) return;
         const normalized = this.exportedAssetPath(path);
@@ -6093,11 +6109,15 @@
     }
 
     protectedExportedAtlasSheets() {
-      const sheets = new Set([
-        ...this.exportedAtlasPreloadActivePaths,
-        ...this.exportedAtlasPreloadActivePriorityPaths,
-        ...this.exportedAtlasPriorityQueued
-      ]);
+      const sheets = this.exportedProtectedSheetScratch || (this.exportedProtectedSheetScratch = new Set());
+      sheets.clear();
+      const addActive = (set) => {
+        if (!set) return;
+        for (const path of set) sheets.add(path);
+      };
+      addActive(this.exportedAtlasPreloadActivePaths);
+      addActive(this.exportedAtlasPreloadActivePriorityPaths);
+      addActive(this.exportedAtlasPriorityQueued);
       for (const path of this.protectedExportedAssetPaths()) {
         const frame = this.atlasFrameForPath(path);
         if (frame?.sheet) sheets.add(frame.sheet);
@@ -6116,7 +6136,8 @@
       const protectedSheets = this.protectedExportedAtlasSheets();
       const now = typeof performance !== "undefined" && performance.now ? performance.now() : Date.now();
       const minAge = mobile ? 14000 : 22000;
-      const candidates = [];
+      const candidates = this.exportedAtlasTrimScratch || (this.exportedAtlasTrimScratch = []);
+      candidates.length = 0;
       for (const [path, image] of this.exportedAtlasSheets.entries()) {
         if (!this.isExportedImageReady(image)) continue;
         if (protectedSheets.has(path) || this.exportedAtlasPreloadActivePaths.has(path)) continue;
@@ -6131,6 +6152,7 @@
         this.exportedAtlasSheets.delete(candidate.path);
         this.exportedAtlasQueued.delete(candidate.path);
       }
+      candidates.length = 0;
     }
 
     updateAssetMemoryBudget(dt) {
@@ -6157,7 +6179,8 @@
       const protectedPaths = this.protectedExportedAssetPaths();
       const now = typeof performance !== "undefined" && performance.now ? performance.now() : Date.now();
       const minAge = mobile ? 12000 : 18000;
-      const candidates = [];
+      const candidates = this.exportedImageTrimScratch || (this.exportedImageTrimScratch = []);
+      candidates.length = 0;
       for (const [path, image] of this.exportedAssetImages.entries()) {
         if (!this.isExportedImageReady(image)) continue;
         if (protectedPaths.has(path) || this.exportedAssetPreloadActivePaths.has(path)) continue;
@@ -6177,6 +6200,7 @@
           if (key === candidate.path || value === candidate.image) this.exportedAssetFallback.delete(key);
         }
       }
+      candidates.length = 0;
       this.assetCleanupTimer = mobile ? 2.5 : 4.5;
     }
 
@@ -7648,6 +7672,27 @@
       const fastDt = this.perf.fastDt || frame;
       const renderLag = stressActive && !warmupActive && renderMs > renderBudget;
       const renderSevere = stressActive && !warmupActive && renderMs > (this.isMobileDevice() ? 11.5 : 12.6);
+      const spikeQuiet = (this.perf.updateSpikeHold || 0) < 0.08
+        && (this.perf.renderSpikeHold || 0) < 0.08
+        && (this.perf.loopSpikeHold || 0) < 0.12;
+      const lowLoadHeadroom = activeCombat
+        && load < 0.48
+        && spikeQuiet
+        && !warmupActive
+        && this.perf.pressure < 0.09
+        && this.perf.lagTime < 0.08
+        && this.renderPressure() < 0.1
+        && (skillQuietReady || this.perf.stableTime > 0.35);
+      const throughputHeadroom = stressActive
+        && load > 0.85
+        && !warmupActive
+        && spikeQuiet
+        && renderMs < renderBudget * 0.72
+        && fastDt < targetDt * 1.08
+        && avgDt < targetDt * 1.1
+        && (this.perf.pressure || 0) < 0.05
+        && (this.perf.lagTime || 0) < 0.05
+        && this.renderPressure() < 0.08;
       this.perf.skillQuietTime = skillActive ? 0 : Math.min(8, (this.perf.skillQuietTime || 0) + frame);
       const schedulerLagFrame = stressActive && schedulerHitch && !warmupActive && rawFrame > targetDt * 1.65;
       this.perf.schedulerLagTime = schedulerLagFrame
@@ -7724,6 +7769,13 @@
           && this.perf.pressure < 0.045
           && this.perf.lagTime < 0.045
         )
+      ) || (
+        lowLoadHeadroom
+      ) || (
+        throughputHeadroom
+        && this.perf.stableTime > 0.85 + weakBias * 0.45
+        && this.perf.pressure < 0.06
+        && this.perf.lagTime < 0.06
       );
       const sustainedQualityDrop = panicLag
         || (emergencyLag && (this.perf.lagTime > 0.34 - weakBias * 0.05 || this.perf.pressure > 0.28 - weakBias * 0.04 || severeLag))
@@ -7739,11 +7791,11 @@
         targetLevel = Math.max(Math.min(baseLevel, targetLevel) - dropStep, Math.min(baseLevel, floor));
         this.perf.levelChangeLock = panicLag ? 0.12 : emergencyLag ? 0.18 : 0.3;
       } else if (stableForRecover && canShiftLevel && targetLevel < baseLevel) {
-        const recoverStep = idle ? 0.75 : this.perf.stableTime > 5.5 ? 0.28 : 0.12;
+        const recoverStep = idle ? 0.75 : lowLoadHeadroom ? 0.55 : throughputHeadroom ? 0.34 : this.perf.stableTime > 5.5 ? 0.28 : 0.12;
         targetLevel = Math.min(baseLevel, targetLevel + recoverStep);
         this.perf.levelChangeLock = idle ? 0.38 : 1.25 + weakBias * 0.75;
       }
-      const calmVisualFloor = clamp(baseLevel - (weakBias > 0.72 ? 0.5 : 0.35), 4.25, baseLevel);
+      const calmVisualFloor = (throughputHeadroom || lowLoadHeadroom) ? baseLevel : clamp(baseLevel - (weakBias > 0.72 ? 0.5 : 0.35), 4.25, baseLevel);
       const calmVisual = !realLag
         && !renderLag
         && this.perf.pressure < 0.18
@@ -7946,6 +7998,40 @@
       return clamp(Number(this.perf?.pressure || 0), 0, 1);
     }
 
+    graphicsThroughputHeadroom() {
+      if (!this.run || this.mode !== "game" || this.pauseOverlay) return false;
+      const targetDt = this.isMobileDevice() ? 0.0215 : 0.0205;
+      const renderMs = Number(this.perf?.avgRenderMs || this.perf?.renderMs || 0);
+      const renderBudget = this.isMobileDevice() ? 6.8 : 7.2;
+      const fastDt = Number(this.perf?.fastDt || targetDt);
+      const avgDt = Number(this.perf?.avgDt || targetDt);
+      const spikeQuiet = Number(this.perf?.updateSpikeHold || 0) < 0.08
+        && Number(this.perf?.renderSpikeHold || 0) < 0.08
+        && Number(this.perf?.loopSpikeHold || 0) < 0.12;
+      return this.graphicsCombatLoad() > 0.85
+        && spikeQuiet
+        && renderMs < renderBudget * 0.76
+        && fastDt < targetDt * 1.12
+        && avgDt < targetDt * 1.14
+        && this.performancePressure() < 0.07
+        && Number(this.perf?.lagTime || 0) < 0.07
+        && this.renderPressure() < 0.1
+        && Number(this.perf?.stableTime || 0) > 0.38;
+    }
+
+    graphicsLoadPenaltyScale() {
+      if (!this.graphicsActiveCombat()) return 1;
+      if (this.graphicsThroughputHeadroom()) return 0.18;
+      const pressure = this.performancePressure();
+      const renderPressure = this.renderPressure();
+      if (pressure < 0.1 && renderPressure < 0.16 && Number(this.perf?.lagTime || 0) < 0.12) return 0.48;
+      return 1;
+    }
+
+    graphicsLoadStress(load = this.graphicsCombatLoad()) {
+      return Number(load || 0) * this.graphicsLoadPenaltyScale();
+    }
+
     performanceEmergency() {
       return (this.perf?.emergencyHold || 0) > 0 || (this.perf?.updateSpikeHold || 0) > 0.05 || this.performancePressure() > 0.22 || this.renderPressure() > 0.24;
     }
@@ -7961,7 +8047,7 @@
       const pressure = this.performancePressure();
       const weakBias = this.devicePerformanceBias();
       const renderPressure = this.renderPressure();
-      const loadTrim = clamp(this.graphicsCombatLoad() * (0.09 + weakBias * 0.13), 0, 0.28 + weakBias * 0.12);
+      const loadTrim = clamp(this.graphicsLoadStress() * (0.09 + weakBias * 0.13), 0, 0.28 + weakBias * 0.12);
       const floor = this.performancePanic() ? 0.05 : this.performanceEmergency() ? 0.09 : 0.14;
       return clamp(1 - pressure * 0.86 - renderPressure * 0.72 - weakBias * 0.22 - loadTrim, floor, 1);
     }
@@ -7970,7 +8056,7 @@
       if (this.visualStressCacheFrame === this.frameIndex) return this.visualStressCacheValue;
       const pressure = this.performancePressure();
       const weakBias = this.devicePerformanceBias();
-      const load = this.graphicsCombatLoad();
+      const load = this.graphicsLoadStress();
       const hold = this.performancePanic() ? 0.22 : this.performanceEmergency() ? 0.12 : 0;
       const value = clamp(pressure * 0.62 + this.renderPressure() * 0.34 + weakBias * 0.28 + load * 0.13 + hold, 0, 1);
       this.visualStressCacheFrame = this.frameIndex;
@@ -7985,14 +8071,14 @@
     fastVisualMode() {
       if (!this.run || this.mode !== "game") return false;
       const quality = this.effectQuality();
-      const load = this.graphicsCombatLoad();
+      const load = this.graphicsLoadStress();
       return this.performancePanic()
         || (this.perf?.updateSpikeHold || 0) > 0.05
         || (this.perf?.renderSpikeHold || 0) > 0.05
         || (this.perf?.loopSpikeHold || 0) > 0.05
         || this.renderPressure() > (this.isMobileDevice() ? 0.12 : 0.18)
         || this.performancePressure() > (this.isMobileDevice() ? 0.18 : 0.26)
-        || (this.graphicsActiveCombat() && (load > (this.isMobileDevice() ? 0.42 : 0.65) || quality < 0.66));
+        || (this.graphicsActiveCombat() && (load > (this.isMobileDevice() ? 0.9 : 1.15) || quality < 0.66));
     }
 
     ultraPerformanceMode() {
@@ -23894,7 +23980,12 @@
         const relay = !this.lobby.hasOpenPeers();
         const p = this.run.player;
         const moving = Math.hypot(p.vx || 0, p.vy || 0) > 18;
-        const acting = (p.attackCd || 0) > 0 || Object.values(p.cooldowns || {}).some((cd) => Number(cd || 0) > 0);
+        const cooldowns = p.cooldowns || {};
+        const acting = (p.attackCd || 0) > 0
+          || Number(cooldowns.q || 0) > 0
+          || Number(cooldowns.e || 0) > 0
+          || Number(cooldowns.r || 0) > 0
+          || Number(cooldowns.f || 0) > 0;
         this.networkTimer = relay
           ? (moving || acting ? NET_STATE_RELAY_INTERVAL * 0.78 : NET_STATE_RELAY_INTERVAL)
           : (moving || acting ? NET_STATE_PEER_INTERVAL * 0.82 : NET_STATE_PEER_INTERVAL);
@@ -23917,7 +24008,7 @@
         }
       }
       this.maybeRequestNetworkResync(dt);
-      for (const [id, remote] of [...this.remotePlayers]) {
+      for (const [id, remote] of this.remotePlayers) {
         const stillInRoom = this.lobby.slots.some((slot) => slot?.id === id);
         if (!stillInRoom && performance.now() - remote.t > 6500) this.remotePlayers.delete(id);
       }
@@ -23986,9 +24077,13 @@
         { x: 54, y: 34 },
         { x: 0, y: 76 }
       ];
-      const slots = (this.lobby.slots || []).filter((slot) => slot?.id && slot.id !== this.lobby.id);
-      slots.forEach((slot, index) => {
-        if (this.remotePlayers.has(slot.id)) return;
+      let index = 0;
+      for (const slot of this.lobby.slots || []) {
+        if (!slot?.id || slot.id === this.lobby.id) continue;
+        if (this.remotePlayers.has(slot.id)) {
+          index++;
+          continue;
+        }
         const character = characterById(slot.characterId || "swordsman");
         const offset = offsets[index % offsets.length];
         this.remotePlayers.set(slot.id, {
@@ -24017,7 +24112,8 @@
           facing: -Math.PI / 2,
           t: performance.now()
         });
-      });
+        index++;
+      }
     }
 
     sendNetworkSnapshotTo(remoteId) {

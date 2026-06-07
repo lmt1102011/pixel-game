@@ -22,6 +22,7 @@ function usage() {
     "  --strict-preload     Also fail when the exported preload queue has not fully settled",
     "  --power <id>         Power to test; default fire",
     "  --character <id>     Character to test; default swordsman",
+    "  --no-audio           Disable music and SFX during the smoke run",
     "  --help               Show this help"
   ].join("\n");
 }
@@ -41,6 +42,7 @@ function parseArgs(argv) {
     if (arg === "--help" || arg === "-h") options.help = true;
     else if (arg === "--mobile") options.mobile = true;
     else if (arg === "--strict-preload") options.strictPreload = true;
+    else if (arg === "--no-audio") options.noAudio = true;
     else if (arg === "--url") options.url = argv[++i] || "";
     else if (arg === "--duration") options.duration = Math.max(2, Number(argv[++i] || options.duration) || options.duration);
     else if (arg === "--cooldown") options.cooldown = Math.max(0, Number(argv[++i] || options.cooldown) || options.cooldown);
@@ -114,7 +116,7 @@ function startStaticServer() {
 async function runBenchmark(page, options) {
   const durationMs = Math.round(options.duration * 1000);
   const cooldownMs = Math.min(durationMs - 500, Math.round(options.cooldown * 1000));
-  return page.evaluate(async ({ durationMs, cooldownMs, powerId, characterId }) => {
+  return page.evaluate(async ({ durationMs, cooldownMs, powerId, characterId, noAudio }) => {
     const game = window.soulrift;
     if (!game) throw new Error("Soulrift game object was not created");
     const accountKey = "perfsmoke";
@@ -130,6 +132,10 @@ async function runBenchmark(page, options) {
     game.save.settings.graphicsMode = "auto";
     game.save.settings.graphicsLevel = 5;
     game.save.settings.particles = 1.5;
+    if (noAudio) {
+      game.save.settings.music = false;
+      game.save.settings.sfx = false;
+    }
     if (game.save.powers?.[powerId]) {
       game.save.powers[powerId].unlocked = true;
       game.save.powers[powerId].level = Math.max(1, game.save.powers[powerId].level || 1);
@@ -274,7 +280,8 @@ async function runBenchmark(page, options) {
     durationMs,
     cooldownMs,
     powerId: options.power,
-    characterId: options.character
+    characterId: options.character,
+    noAudio: Boolean(options.noAudio)
   });
 }
 

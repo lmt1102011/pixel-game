@@ -9,7 +9,7 @@
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
   const SIGNAL_REALTIME_RELAY_LIMIT = 2;
   const SIGNAL_REALTIME_TYPES = new Set(["state", "snapshot", "attack", "skill", "collect", "openChest", "dropItem", "damage", "chooseDoor"]);
-  const APP_VERSION = "20260607-smooth-frame-269";
+  const APP_VERSION = "20260607-idle-preload-270";
   const CHANGELOG_ENTRIES = [
     {
       version: APP_VERSION,
@@ -3509,6 +3509,8 @@
       this.exportedAssetManifestPaths = new Set();
       this.exportedAssetManifestPromise = null;
       this.exportedAssetMissing = new Set();
+      this.exportedAssetIdleWarmupTimer = null;
+      this.exportedAssetIdleWarmupStarted = false;
       if (!window.SOULRIFT_EXPORT_ONLY) this.loadMonsterSprites();
       this.run = null;
       this.mode = "loading";
@@ -3974,6 +3976,44 @@
       this.preloadPowerSkillExportFrames(this.save?.account?.selectedPower || "fire", false);
       this.queueExportedImage("assets/exported/backgrounds/forest/floor_tile.png", false);
       this.preloadMonsterExportFrames(["shadowGoblin", "slime", "skeletonWarrior", "goblinScout"], false);
+      this.scheduleIdleExportedAssetWarmup();
+    }
+
+    scheduleIdleExportedAssetWarmup(delay = 1400) {
+      if (this.exportedAssetIdleWarmupStarted || this.exportedAssetIdleWarmupTimer) return;
+      this.exportedAssetIdleWarmupTimer = setTimeout(() => {
+        this.exportedAssetIdleWarmupTimer = null;
+        if (this.run || this.mode === "game" || this.mode === "loading" || this.mode === "account") return;
+        this.preloadIdleExportedAssets();
+      }, Math.max(250, delay));
+    }
+
+    preloadIdleExportedAssets() {
+      if (this.exportedAssetIdleWarmupStarted) return;
+      this.exportedAssetIdleWarmupStarted = true;
+      const queue = () => {
+        if (this.run || this.mode === "game" || this.mode === "loading" || this.mode === "account") {
+          this.exportedAssetIdleWarmupStarted = false;
+          return;
+        }
+        const memory = Number(navigator.deviceMemory || 0);
+        const weak = this.devicePerformanceBias() > 0.62 || (memory > 0 && memory <= 2);
+        for (const biome of BIOMES) this.queueExportedImage(`assets/exported/backgrounds/${biome.id}/floor_tile.png`, false);
+        for (const room of ROOM_TYPES) this.preloadDoorExportFrames(room.id, false);
+        this.preloadDoorExportFrames("bossGate", false);
+        this.preloadDoorExportFrames("bossExit", false);
+        for (const type of ["thorn", "ice", "lava", "voltage", "blade"]) {
+          this.queueExportedSequence(`assets/exported/traps/${type}/active_00.png`, false);
+        }
+        this.preloadChestExportFrames("woodChest", false);
+        this.preloadChestExportFrames("goldChest", false);
+        this.preloadChestExportFrames("treasureChest", false);
+        const commonMonsters = ["shadowGoblin", "slime", "fireSlime", "iceSlime", "skeletonWarrior", "skeletonArcher", "goblinScout", "goblinBomber"];
+        this.preloadMonsterExportFrames(weak ? commonMonsters : Object.keys(MONSTER_TYPES), false);
+      };
+      const manifest = this.loadExportedAssetManifest();
+      if (manifest?.then) manifest.then(queue, queue);
+      else queue();
     }
 
     exportedImage(path) {
@@ -6770,6 +6810,7 @@
       const profile = this.mainMenuProfile();
       this.setScreen(this.mainMenuHtml(profile));
       requestAnimationFrame(() => this.renderMainMenuHero());
+      this.scheduleIdleExportedAssetWarmup();
     }
 
     menuExitButton(extraClass = "", action = "menu") {
@@ -9334,6 +9375,7 @@
         return;
       }
       this.save.account.selectedPower = powerId;
+      this.preloadPowerSkillExportFrames(powerId, true);
       this.persist();
       this.toast(`Đã chọn ${powerById(powerId).name}`);
       this.showPowers();
@@ -9369,6 +9411,7 @@
     selectCharacter(characterId) {
       const character = characterById(characterId);
       this.save.account.selectedCharacter = character.id;
+      this.preloadCharacterExportFrames(character.id, true);
       this.persist();
       if (this.lobby?.syncOwnSlot) this.lobby.syncOwnSlot();
       this.toast(`Đã chọn ${character.name}`);
@@ -9425,6 +9468,7 @@
       this.save.account.ownedPowers = [power.id];
       meta.unlocked = true;
       this.save.account.selectedPower = power.id;
+      this.preloadPowerSkillExportFrames(power.id, true);
       this.persist();
       this.toast(previous ? `Đã thay ${powerById(previous).name} bằng ${power.name}` : `Quay được ${power.name}`);
       this.showPowers();

@@ -1,19 +1,19 @@
-const SOULRIFT_CACHE = "soulrift-pwa-20260607-smooth-frame-269";
+const SOULRIFT_CACHE = "soulrift-pwa-20260607-idle-preload-270";
 const SOULRIFT_ASSETS = [
   "./",
   "./index.html",
-  "./styles.css?v=20260607-smooth-frame-269",
-  "./src/pwa.js?v=20260607-smooth-frame-269",
-  "./src/game.js?v=20260607-smooth-frame-269",
-  "./manifest.webmanifest?v=20260607-smooth-frame-269",
+  "./styles.css?v=20260607-idle-preload-270",
+  "./src/pwa.js?v=20260607-idle-preload-270",
+  "./src/game.js?v=20260607-idle-preload-270",
+  "./manifest.webmanifest?v=20260607-idle-preload-270",
   "./version.json",
   "./assets/icons/app-icon-20260605-logo-xl-149.svg",
   "./assets/icons/app-icon-20260605-logo-xl-149-192.png",
   "./assets/icons/app-icon-20260605-logo-xl-149-512.png",
   "./assets/icons/app-icon-20260605-logo-xl-149-maskable-512.png",
   "./assets/icons/apple-touch-icon-20260605-logo-xl-149.png",
-  "./assets/exported/asset-manifest.json?v=20260607-smooth-frame-269",
-  "./assets/sprites/monsters/shadow-goblin.png?v=20260607-smooth-frame-269"
+  "./assets/exported/asset-manifest.json?v=20260607-idle-preload-270",
+  "./assets/sprites/monsters/shadow-goblin.png?v=20260607-idle-preload-270"
 ];
 
 self.addEventListener("install", (event) => {

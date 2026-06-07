@@ -9,7 +9,7 @@
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
   const SIGNAL_REALTIME_RELAY_LIMIT = 2;
   const SIGNAL_REALTIME_TYPES = new Set(["state", "snapshot", "attack", "skill", "collect", "openChest", "dropItem", "damage", "chooseDoor"]);
-  const APP_VERSION = "20260607-image-runtime-248";
+  const APP_VERSION = "20260607-training-squad-249";
   const CHANGELOG_ENTRIES = [
     {
       version: APP_VERSION,
@@ -6654,10 +6654,16 @@
             </span>
             <span class="start-btn-edge bottom" aria-hidden="true"></span>
           </button>
+          <div class="squad-side-actions">
           <button class="valorant-mode-btn ${this.squadModePickerOpen ? "active" : ""}" style="--mode:${modeMeta.color}" data-action="open-squad-modes">
             <span class="mode-btn-icon" aria-hidden="true"></span>
             <span>CHẾ ĐỘ</span>
           </button>
+            <button class="valorant-training-btn" style="--mode:#82ffd3" data-action="play-training">
+              <span class="training-btn-icon" aria-hidden="true"></span>
+              <span>HUẤN LUYỆN</span>
+            </button>
+          </div>
         </div>
         ${modePanel}
       `;

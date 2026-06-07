@@ -6549,15 +6549,29 @@ body.is-mobile-ui .touch-actions [data-touch="f"] {
 
 .squad-action-bar {
   display: grid;
-  grid-template-columns: 132px minmax(320px, 470px) 132px;
+  grid-template-columns: minmax(180px, 1fr) minmax(320px, 470px) minmax(180px, 1fr);
   align-items: center;
   justify-content: center;
   gap: 14px;
-  width: min(790px, 94vw);
+  width: min(1040px, 96vw);
+}
+
+.squad-side-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(118px, 136px));
+  align-items: center;
+  justify-content: start;
+  gap: 10px;
+  min-width: 0;
+}
+
+.valorant-exit-btn {
+  justify-self: end;
 }
 
 .valorant-exit-btn,
-.valorant-mode-btn {
+.valorant-mode-btn,
+.valorant-training-btn {
   position: relative;
   display: inline-grid;
   grid-template-columns: auto auto;
@@ -6579,14 +6593,16 @@ body.is-mobile-ui .touch-actions [data-touch="f"] {
   transition: transform 160ms ease, border-color 160ms ease, background 160ms ease, box-shadow 160ms ease;
 }
 
-.valorant-mode-btn {
+.valorant-mode-btn,
+.valorant-training-btn {
   --mode: #ff4655;
   border-color: color-mix(in srgb, var(--mode), transparent 58%);
   box-shadow: 0 14px 34px rgba(0, 0, 0, 0.48), inset 0 0 0 1px color-mix(in srgb, var(--mode), transparent 86%);
 }
 
 .valorant-exit-btn::after,
-.valorant-mode-btn::after {
+.valorant-mode-btn::after,
+.valorant-training-btn::after {
   content: "";
   position: absolute;
   inset: 0;
@@ -6597,6 +6613,7 @@ body.is-mobile-ui .touch-actions [data-touch="f"] {
 
 .valorant-exit-btn:hover,
 .valorant-mode-btn:hover,
+.valorant-training-btn:hover,
 .valorant-mode-btn.active {
   transform: translateY(-1px);
   border-color: color-mix(in srgb, var(--mode), transparent 26%);
@@ -6609,17 +6626,20 @@ body.is-mobile-ui .touch-actions [data-touch="f"] {
 
 .valorant-exit-btn:hover::after,
 .valorant-mode-btn:hover::after,
+.valorant-training-btn:hover::after,
 .valorant-mode-btn.active::after {
   transform: translateX(-120%) skewX(-18deg);
 }
 
 .valorant-exit-btn:active,
-.valorant-mode-btn:active {
+.valorant-mode-btn:active,
+.valorant-training-btn:active {
   transform: translateY(1px) scale(0.985);
 }
 
 .valorant-exit-btn span,
-.valorant-mode-btn span {
+.valorant-mode-btn span,
+.valorant-training-btn span {
   position: relative;
   z-index: 1;
   font-size: 12px;
@@ -6627,10 +6647,12 @@ body.is-mobile-ui .touch-actions [data-touch="f"] {
   letter-spacing: 0;
   line-height: 1;
   text-transform: uppercase;
+  text-align: center;
 }
 
 .exit-btn-icon,
-.mode-btn-icon {
+.mode-btn-icon,
+.training-btn-icon {
   width: 13px;
   height: 13px;
   filter: drop-shadow(0 0 7px rgba(236, 232, 225, 0.22));
@@ -6646,6 +6668,33 @@ body.is-mobile-ui .touch-actions [data-touch="f"] {
   border: 2px solid currentColor;
   transform: rotate(45deg);
   box-shadow: inset 0 0 0 3px color-mix(in srgb, var(--mode), transparent 88%), 0 0 10px color-mix(in srgb, var(--mode), transparent 78%);
+}
+
+.training-btn-icon {
+  position: relative;
+  border: 2px solid currentColor;
+  border-radius: 50%;
+  box-shadow: 0 0 10px color-mix(in srgb, var(--mode), transparent 70%);
+}
+
+.training-btn-icon::before,
+.training-btn-icon::after {
+  content: "";
+  position: absolute;
+  background: currentColor;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.training-btn-icon::before {
+  width: 2px;
+  height: 9px;
+}
+
+.training-btn-icon::after {
+  width: 9px;
+  height: 2px;
 }
 
 .valorant-start-btn {
@@ -7696,25 +7745,33 @@ body.is-mobile-ui .touch-actions [data-touch="f"] {
   }
 
   .squad-action-bar {
-    grid-template-columns: minmax(60px, 72px) minmax(0, 1fr) minmax(70px, 78px);
+    grid-template-columns: minmax(72px, 1fr) minmax(180px, 220px) minmax(72px, 1fr);
     gap: 6px;
-    width: min(430px, calc(100vw - 24px));
+    width: min(600px, calc(100vw - 24px));
+  }
+
+  .squad-side-actions {
+    grid-template-columns: repeat(2, minmax(70px, 84px));
+    gap: 5px;
   }
 
   .valorant-exit-btn,
-  .valorant-mode-btn {
+  .valorant-mode-btn,
+  .valorant-training-btn {
     min-height: 54px;
     padding: 0 8px;
     gap: 6px;
   }
 
   .valorant-exit-btn span,
-  .valorant-mode-btn span {
+  .valorant-mode-btn span,
+  .valorant-training-btn span {
     font-size: 10px;
   }
 
   .exit-btn-icon,
-  .mode-btn-icon {
+  .mode-btn-icon,
+  .training-btn-icon {
     width: 10px;
     height: 10px;
   }
@@ -9897,14 +9954,25 @@ body.is-mobile-ui .friends-big-btn {
   }
 
   body.is-mobile-ui .squad-action-bar {
-    grid-template-columns: minmax(82px, 100px) minmax(210px, 1fr) minmax(92px, 112px);
+    grid-template-columns: minmax(150px, 1fr) minmax(220px, 320px) minmax(150px, 1fr);
     width: min(700px, 96vw);
   }
 
+  body.is-mobile-ui .squad-side-actions {
+    grid-template-columns: repeat(2, minmax(78px, 96px));
+    gap: 6px;
+  }
+
   body.is-mobile-ui .valorant-exit-btn,
-  body.is-mobile-ui .valorant-mode-btn {
+  body.is-mobile-ui .valorant-mode-btn,
+  body.is-mobile-ui .valorant-training-btn {
     min-height: 38px;
     padding: 0 8px;
+  }
+
+  body.is-mobile-ui .valorant-training-btn span:not(.training-btn-icon) {
+    font-size: 8px;
+    line-height: 1.05;
   }
 
   body.is-mobile-ui .valorant-start-btn {

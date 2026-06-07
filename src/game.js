@@ -9,7 +9,7 @@
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
   const SIGNAL_REALTIME_RELAY_LIMIT = 2;
   const SIGNAL_REALTIME_TYPES = new Set(["state", "snapshot", "attack", "skill", "collect", "openChest", "dropItem", "damage", "chooseDoor"]);
-  const APP_VERSION = "20260607-resize-lock-273";
+  const APP_VERSION = "20260607-fidelity-floor-274";
   const CHANGELOG_ENTRIES = [
     {
       version: APP_VERSION,
@@ -3608,6 +3608,8 @@
         overloadTime: 0,
         lagTime: 0,
         schedulerLagTime: 0,
+        effectQuality: 1,
+        coreAutoLevel: 5,
         renderScale: 1,
         renderScaleTarget: 1,
         appliedRenderScale: 1,
@@ -5559,6 +5561,8 @@
         this.perf.targetAutoLevel = baseLevel;
         this.perf.displayedAutoLevel = Math.round(baseLevel * 100) / 100;
         this.perf.quality = this.graphicsQualityFromLevel(baseLevel);
+        this.perf.effectQuality = this.perf.quality;
+        this.perf.coreAutoLevel = this.perf.displayedAutoLevel;
         this.perf.pressure = 0;
         this.perf.emergencyHold = 0;
         this.perf.panicHold = 0;
@@ -5688,7 +5692,12 @@
       this.perf.autoLevel = currentLevel + clamp(levelDelta, -maxStep, maxStep);
       if (Math.abs(this.perf.autoLevel - baseLevel) < 0.02 && targetLevel === baseLevel) this.perf.autoLevel = baseLevel;
       this.perf.displayedAutoLevel = Math.round(this.perf.autoLevel * 100) / 100;
-      this.perf.quality = this.graphicsQualityFromLevel(this.perf.displayedAutoLevel);
+      this.perf.effectQuality = this.graphicsQualityFromLevel(this.perf.displayedAutoLevel);
+      const fidelityFloorLevel = this.isMobileDevice()
+        ? clamp(baseLevel - (weakBias > 0.72 ? 1.1 : 0.65), 3.35, baseLevel)
+        : clamp(baseLevel - (weakBias > 0.62 ? 1.65 : 1.25), 2.8, baseLevel);
+      this.perf.coreAutoLevel = Math.round(Math.max(this.perf.displayedAutoLevel, Math.min(baseLevel, fidelityFloorLevel)) * 100) / 100;
+      this.perf.quality = this.graphicsQualityFromLevel(this.perf.coreAutoLevel);
       this.updateRenderScale(overloaded && (panicLag || emergencyLag || this.renderPressure() > 0.22 || (activeCombat && this.perf.overloadTime > 1.2)));
     }
 
@@ -5810,9 +5819,13 @@
       return clamp(pressure * 0.62 + this.renderPressure() * 0.34 + weakBias * 0.28 + load * 0.13 + hold, 0, 1);
     }
 
+    effectQuality() {
+      return clamp(Number(this.perf?.effectQuality ?? this.perf?.quality ?? 1), 0.08, 1);
+    }
+
     fastVisualMode() {
       if (!this.run || this.mode !== "game") return false;
-      const quality = this.perf?.quality ?? 1;
+      const quality = this.effectQuality();
       const load = this.graphicsCombatLoad();
       return this.performancePanic()
         || this.renderPressure() > 0.18
@@ -5833,7 +5846,7 @@
     }
 
     prettyVisualScale(min = 0.18) {
-      const quality = this.perf?.quality ?? 1;
+      const quality = this.effectQuality();
       const stress = this.visualStress();
       return clamp((0.48 + quality * 0.52) * (1 - stress * 0.56), min, 1);
     }
@@ -5859,7 +5872,7 @@
     }
 
     projectileLimit() {
-      const quality = this.perf?.quality ?? 1;
+      const quality = this.effectQuality();
       const weakBias = this.devicePerformanceBias();
       const ultra = this.ultraPerformanceMode();
       const base = ultra ? (this.isMobileDevice() ? 12 : 22) : (this.isMobileDevice() ? 18 : 34);
@@ -5890,11 +5903,11 @@
         - weakBias * (mobile ? 0.035 : 0.05);
       const range = (mobile ? 0.18 : 0.26) - weakBias * (mobile ? 0.035 : 0.06);
       const floor = this.performancePanic()
-        ? (mobile ? 0.78 : 0.52)
+        ? (mobile ? 0.84 : 0.76)
         : this.performanceEmergency()
-          ? (mobile ? 0.88 : 0.6)
+          ? (mobile ? 0.9 : 0.8)
           : ultra
-            ? (mobile ? 0.92 : 0.68)
+            ? (mobile ? 0.92 : 0.82)
             : (mobile ? 1 : 0.76);
       const cap = ultra ? (mobile ? 1 : 0.92) : (mobile ? 1.08 : 1);
       const rawScale = clamp(base + quality * range, floor, cap);
@@ -5991,14 +6004,18 @@
       this.normalizeSettings();
       if (this.save.settings.graphicsMode === "manual") {
         this.perf.quality = this.graphicsQualityFromLevel(this.save.settings.graphicsLevel);
+        this.perf.effectQuality = this.perf.quality;
         this.perf.autoLevel = this.save.settings.graphicsLevel;
         this.perf.targetAutoLevel = this.save.settings.graphicsLevel;
         this.perf.displayedAutoLevel = Math.round(this.perf.autoLevel * 100) / 100;
+        this.perf.coreAutoLevel = this.perf.displayedAutoLevel;
       } else if (!Number.isFinite(this.perf.autoLevel)) {
         this.perf.autoLevel = this.save.settings.graphicsLevel;
         this.perf.targetAutoLevel = this.save.settings.graphicsLevel;
         this.perf.displayedAutoLevel = Math.round(this.perf.autoLevel * 100) / 100;
         this.perf.quality = this.graphicsQualityFromLevel(this.perf.displayedAutoLevel);
+        this.perf.effectQuality = this.perf.quality;
+        this.perf.coreAutoLevel = this.perf.displayedAutoLevel;
       }
       this.updateRenderScale(true);
     }
@@ -6008,8 +6025,8 @@
       const weakBias = this.devicePerformanceBias();
       const mobile = this.isMobileDevice();
       const preferred = mobile
-        ? clamp(0.88 - weakBias * 0.12, 0.78, 0.9)
-        : clamp(0.86 - weakBias * 0.18, 0.62, 0.88);
+        ? clamp(0.9 - weakBias * 0.06, 0.84, 0.92)
+        : clamp(0.88 - weakBias * 0.1, 0.78, 0.9);
       const current = Number.isFinite(this.perf?.appliedRenderScale) ? this.perf.appliedRenderScale : 1;
       if (Math.abs(current - preferred) < 0.045) return;
       this.perf.renderScaleTarget = preferred;
@@ -6029,7 +6046,7 @@
       const pressure = this.performancePressure();
       if (this.performancePanic() && !["ring"].includes(shape)) return 0.02;
       if (["crit", "plus"].includes(shape)) return pressure > 0.48 ? 0.25 : 1;
-      const quality = this.perf?.quality ?? 1;
+      const quality = this.effectQuality();
       const weakBias = this.devicePerformanceBias();
       const stress = this.visualStress();
       const mobileBias = this.isMobileDevice() ? 0.58 : 0.82;
@@ -6038,7 +6055,7 @@
     }
 
     particleLimit() {
-      const quality = this.perf?.quality ?? 1;
+      const quality = this.effectQuality();
       const weakBias = this.devicePerformanceBias();
       const ultra = this.ultraPerformanceMode();
       const base = ultra ? (this.isMobileDevice() ? 18 : 38) : (this.isMobileDevice() ? 42 : 82);
@@ -6047,7 +6064,7 @@
     }
 
     effectLimit() {
-      const quality = this.perf?.quality ?? 1;
+      const quality = this.effectQuality();
       const weakBias = this.devicePerformanceBias();
       const ultra = this.ultraPerformanceMode();
       const base = ultra ? (this.isMobileDevice() ? 10 : 20) : (this.isMobileDevice() ? 22 : 40);
@@ -6057,7 +6074,7 @@
 
     glow(value) {
       if (this.performancePanic()) return 0;
-      const quality = this.perf?.quality ?? 1;
+      const quality = this.effectQuality();
       const weakBias = this.devicePerformanceBias();
       const stress = this.visualStress();
       const renderStress = this.renderPressure();
@@ -6377,7 +6394,7 @@
       const mobile = this.isMobileDevice();
       const maxDpr = Math.min(window.devicePixelRatio || 1, mobile ? 1.35 : 1.25);
       const renderScale = Number.isFinite(this.perf?.appliedRenderScale) ? this.perf.appliedRenderScale : 1;
-      const minDpr = this.ultraPerformanceMode() ? (mobile ? 0.92 : 0.62) : (mobile ? 1 : 0.8);
+      const minDpr = this.ultraPerformanceMode() ? (mobile ? 0.92 : 0.76) : (mobile ? 1 : 0.8);
       this.dpr = Math.max(minDpr, maxDpr * renderScale);
       const viewport = window.visualViewport;
       this.width = Math.round(viewport?.width || window.innerWidth);
@@ -13751,7 +13768,7 @@
     }
 
     addSkillShape(kind, variant, x, y, angle, radius, time = 0.62, extra = {}) {
-      const quality = this.perf?.quality ?? 1;
+      const quality = this.effectQuality();
       const cap = extra.design || String(variant || "").startsWith("design-")
         ? (quality < 0.5 ? 3 : this.isMobileDevice() ? 4 : 7)
         : (quality < 0.58 ? 2 : this.isMobileDevice() ? 3 : 5);
@@ -14610,7 +14627,7 @@
     addPowerSignatureShape(kind, key, caster, angle, impact, awakened = false) {
       const spec = POWER_SKILL_SIGNATURES[kind]?.[key];
       if (!spec || !this.run || !caster) return;
-      const quality = this.perf?.quality ?? 1;
+      const quality = this.effectQuality();
       if (quality < 0.44 && key !== "r" && key !== "f") return;
       const power = powerById(kind);
       const scale = awakened ? 1.12 : 1;
@@ -14762,7 +14779,7 @@
 
     emitPowerVfx(kind, role, x, y, count = 6, options = {}) {
       if (!this.run) return;
-      const quality = this.perf?.quality ?? 1;
+      const quality = this.effectQuality();
       const mobileScale = this.isMobileDevice() ? 0.68 : 1;
       const amount = this.particleCount(count * mobileScale * clamp(quality + 0.14, 0.38, 1), {
         min: options.min ?? (options.important ? 3 : 1),
@@ -16019,7 +16036,7 @@
         void: "void",
         time: "clock"
       }[kind] || "spark";
-      const particleScale = clamp(this.perf?.quality ?? 1, 0.35, 1) * (this.isMobileDevice() ? 0.55 : 0.78);
+      const particleScale = clamp(this.effectQuality(), 0.35, 1) * (this.isMobileDevice() ? 0.55 : 0.78);
       const count = this.particleCount((subtle ? 3 + intensity * 1.6 : 7 + intensity * 5) * particleScale, { important: !subtle && kind === "lightning" });
       for (let i = 0; i < count; i++) {
         const directional = i % 2 === 0;
@@ -16112,7 +16129,7 @@
           });
         }
       }
-      const particleScale = clamp(this.perf?.quality ?? 1, 0.35, 1) * (this.isMobileDevice() ? 0.56 : 0.78);
+      const particleScale = clamp(this.effectQuality(), 0.35, 1) * (this.isMobileDevice() ? 0.56 : 0.78);
       const count = this.particleCount((ultimate ? 16 : 7) * particleScale, { important: ultimate });
       for (let i = 0; i < count; i++) {
         const angle = rand(0, TAU);
@@ -20627,7 +20644,7 @@
           const caster = this.domainCaster(effect);
           if (caster?.domainBound === domainId) caster.domainBound = "";
         }
-        if (chance(0.35 * clamp(this.perf?.quality ?? 1, 0.35, 1))) {
+        if (chance(0.35 * clamp(this.effectQuality(), 0.35, 1))) {
           const a = rand(0, TAU);
           this.addParticle(effect.x + Math.cos(a) * radius, effect.y + Math.sin(a) * radius, color, rand(7, 15), rand(0.22, 0.45), this.powerDomainParticleKind(kind), a + Math.PI, rand(50, 135));
         }
@@ -20658,7 +20675,7 @@
       if (effect.tick > 0) return;
       effect.tick = this.powerDomainTickRate(kind);
       this.updatePowerDomainIdentity(effect, radius, color);
-      const particleScale = clamp(this.perf?.quality ?? 1, 0.35, 1) * (this.isMobileDevice() ? 0.35 : 0.55);
+      const particleScale = clamp(this.effectQuality(), 0.35, 1) * (this.isMobileDevice() ? 0.35 : 0.55);
       const count = this.particleCount(5 * particleScale, { min: 2 });
       for (let i = 0; i < count; i++) {
         const a = rand(0, TAU);
@@ -21248,7 +21265,7 @@
         }
       }
       if (this.isMultiplayerHost() && this.lobby.guestCount() > 0 && this.snapshotTimer <= 0) {
-        this.snapshotTimer = this.lobby.hasOpenPeers() ? (this.perf.quality < 0.75 ? 0.18 : NET_SNAPSHOT_PEER_INTERVAL) : NET_SNAPSHOT_RELAY_INTERVAL;
+        this.snapshotTimer = this.lobby.hasOpenPeers() ? (this.effectQuality() < 0.75 ? 0.18 : NET_SNAPSHOT_PEER_INTERVAL) : NET_SNAPSHOT_RELAY_INTERVAL;
         const snapshot = this.networkSnapshot(true);
         if (snapshot) {
           this.lobby.broadcastSnapshot(snapshot, snapshot);
@@ -21525,7 +21542,7 @@
         }
       }
       if (hudNow < this.nextHudSkillAt) return;
-      this.nextHudSkillAt = hudNow + (this.perf.quality < 0.7 ? 150 : 95);
+      this.nextHudSkillAt = hudNow + (this.effectQuality() < 0.7 ? 150 : 95);
       const ultimateCost = this.ultimateEnergyCost(p);
       const bossLabels = this.isLocalPlayerBoss() ? this.playerBossSkillLabels() : null;
       const skills = this.isLocalPlayerBoss() ? [
@@ -21829,6 +21846,8 @@
         height: this.height,
         camera: { ...this.camera },
         quality: this.perf?.quality ?? 1,
+        effectQuality: this.perf?.effectQuality ?? this.perf?.quality ?? 1,
+        coreAutoLevel: this.perf?.coreAutoLevel ?? this.perf?.displayedAutoLevel ?? 5,
         particles: this.save?.settings?.particles,
         screenShake: this.save?.settings?.screenShake
       };
@@ -21962,6 +21981,8 @@
         this.mode = "asset-export";
         this.menuTime = 0;
         this.perf.quality = 1;
+        this.perf.effectQuality = 1;
+        this.perf.coreAutoLevel = 5;
         this.perf.pressure = 0;
         this.perf.emergencyHold = 0;
         this.perf.panicHold = 0;
@@ -22203,6 +22224,8 @@
         this.height = previous.height;
         this.camera = previous.camera;
         this.perf.quality = previous.quality;
+        this.perf.effectQuality = previous.effectQuality;
+        this.perf.coreAutoLevel = previous.coreAutoLevel;
         if (Number.isFinite(previous.particles)) this.save.settings.particles = previous.particles;
         if (Number.isFinite(previous.screenShake)) this.save.settings.screenShake = previous.screenShake;
       }
@@ -22694,7 +22717,7 @@
     drawObjectAmbient(ctx, object, radius) {
       const effect = object.effect || "spark";
       const color = object.color || this.run.biome.accent;
-      const count = this.perf.quality < 0.65 ? 7 : 12;
+      const count = this.effectQuality() < 0.65 ? 7 : 12;
       ctx.save();
       ctx.globalCompositeOperation = "lighter";
       for (let i = 0; i < count; i++) {
@@ -23393,7 +23416,7 @@
       const kind = power?.id || "fire";
       const color = power?.color || "#f2bf63";
       const accent = power?.accent || "#ffffff";
-      const quality = this.perf?.quality ?? 1;
+      const quality = this.effectQuality();
       const lowDetail = this.performanceEmergency() || this.performancePanic() || quality < 0.78 || this.isMobileDevice();
       const pulse = lowDetail ? 0 : 0.5 + Math.sin(t * 3.2) * 0.5;
 
@@ -26813,7 +26836,7 @@
       const t = this.menuTime;
       const color = power.color;
       const accent = power.accent;
-      const lowDetail = this.isMobileDevice() || (this.perf?.quality ?? 1) < 0.72;
+      const lowDetail = this.isMobileDevice() || this.effectQuality() < 0.72;
       ctx.save();
       ctx.globalCompositeOperation = "source-over";
       ctx.globalAlpha = alpha;
@@ -27142,7 +27165,7 @@
       const accent = effect.accent || effect.color;
       const variant = String(effect.variant || "");
       const alpha = Math.min(0.9, fade * 0.92);
-      const quality = this.perf?.quality ?? 1;
+      const quality = this.effectQuality();
       const lowDetail = this.isMobileDevice() || quality < 0.74;
       if (quality < 0.52 && effect.variant !== "ultimate" && progress > 0.62) return;
       if (this.drawExportedSkillShape(ctx, effect, progress, fade, r)) return;
@@ -29666,7 +29689,7 @@
     drawParticles(ctx) {
       const stress = this.visualStress();
       const ultra = this.ultraPerformanceMode();
-      const simple = ultra || this.fastVisualMode() || stress > 0.42 || (this.perf?.quality ?? 1) < 0.66;
+      const simple = ultra || this.fastVisualMode() || stress > 0.42 || this.effectQuality() < 0.66;
       const drawLimit = ultra
         ? Math.max(2, Math.round(this.particleLimit() * 0.28))
         : simple ? Math.max(4, Math.round(this.particleLimit() * 0.62)) : this.run.particles.length;

@@ -9,7 +9,7 @@
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
   const SIGNAL_REALTIME_RELAY_LIMIT = 2;
   const SIGNAL_REALTIME_TYPES = new Set(["state", "snapshot", "attack", "skill", "collect", "openChest", "dropItem", "damage", "chooseDoor"]);
-  const APP_VERSION = "20260607-engine-opt-278";
+  const APP_VERSION = "20260607-sharp-perf-279";
   const CHANGELOG_ENTRIES = [
     {
       version: APP_VERSION,
@@ -5671,8 +5671,7 @@
       const renderLight = renderMs < renderBudget * 1.15;
       const schedulerHitch = rawFrame > targetDt * 1.65 && renderLight;
       const warmupActive = (this.perf.warmupTime || 0) > 0;
-      const warmupHitch = warmupActive && schedulerHitch;
-      const frame = warmupHitch ? Math.min(rawFrame, targetDt) : rawFrame;
+      const frame = warmupActive ? Math.min(rawFrame, targetDt) : rawFrame;
       this.perf.warmupTime = Math.max(0, (this.perf.warmupTime || 0) - rawFrame);
       this.perf.updateSpikeHold = Math.max(0, (this.perf.updateSpikeHold || 0) - rawFrame);
       this.perf.renderSpikeHold = Math.max(0, (this.perf.renderSpikeHold || 0) - rawFrame);
@@ -5732,12 +5731,18 @@
       const pressureRate = rawPressure > pressureNow ? 8.5 + weakBias * 3 : idle || skillQuietReady ? 5.2 : 0.68 + (1 - weakBias) * 0.35;
       const pressureBlend = 1 - Math.exp(-frame * pressureRate);
       this.perf.pressure = pressureNow + (rawPressure - pressureNow) * pressureBlend;
-      const emergencyLag = stressActive && (this.perf.lagTime > 0.12 - weakBias * 0.045 || severeLag || this.perf.pressure > 0.13 - weakBias * 0.045);
-      const sustainedPanicFrame = frame > 0.058 - weakBias * 0.01 && (this.perf.lagTime || 0) > 0.24 - weakBias * 0.07;
+      const emergencyLag = stressActive && (
+        this.perf.lagTime > 0.2 - weakBias * 0.05
+        || (severeLag && this.perf.lagTime > 0.12 - weakBias * 0.035)
+        || this.perf.pressure > 0.24 - weakBias * 0.05
+      );
+      const sustainedPanicFrame = frame > 0.058 - weakBias * 0.01
+        && (this.perf.lagTime || 0) > 0.56 - weakBias * 0.06
+        && (this.perf.overloadTime || 0) > 0.16;
       const panicLag = stressActive && (
-        this.perf.lagTime > 0.42 - weakBias * 0.12
+        this.perf.lagTime > 0.78 - weakBias * 0.08
         || sustainedPanicFrame
-        || this.perf.pressure > 0.42 - weakBias * 0.1
+        || this.perf.pressure > 0.72 - weakBias * 0.06
       );
       this.perf.emergencyHold = emergencyLag
         ? Math.max(this.perf.emergencyHold || 0, 1.8)
@@ -5910,7 +5915,8 @@
       const start = this.isMobileDevice() ? 5.8 : 5.4;
       const range = this.isMobileDevice() ? 11.5 : 10.5;
       const spikeHold = Math.max(Number(this.perf?.renderSpikeHold || 0), Number(this.perf?.loopSpikeHold || 0));
-      return clamp((ms - start) / range + clamp(spikeHold / 1.35, 0, 1) * 0.72, 0, 1);
+      const spikePressure = clamp((spikeHold - 0.72) / 1.45, 0, 1) * 0.34;
+      return clamp((ms - start) / range + spikePressure, 0, 1);
     }
 
     performancePressure() {
@@ -5922,7 +5928,10 @@
     }
 
     performancePanic() {
-      return (this.perf?.panicHold || 0) > 0 || (this.perf?.updateSpikeHold || 0) > 0.85 || this.performancePressure() > 0.62 || this.renderPressure() > 0.62;
+      return (this.perf?.panicHold || 0) > 0
+        || ((this.perf?.updateSpikeHold || 0) > 1.55 && (this.perf?.lagTime || 0) > 0.48)
+        || this.performancePressure() > 0.62
+        || this.renderPressure() > 0.62;
     }
 
     visualBudgetScale() {
@@ -6032,19 +6041,19 @@
       const weakBias = this.devicePerformanceBias();
       const ultra = this.ultraPerformanceMode();
       const mobile = this.isMobileDevice();
-      const base = (mobile ? 0.84 : 0.74)
-        - lag * (this.isMobileDevice() ? 0.32 : 0.22)
-        - renderLag * (this.isMobileDevice() ? 0.18 : 0.1)
-        - weakBias * (mobile ? 0.035 : 0.05);
-      const range = (mobile ? 0.2 : 0.26) - weakBias * (mobile ? 0.04 : 0.06);
+      const base = (mobile ? 0.9 : 0.74)
+        - lag * (mobile ? 0.36 : 0.22)
+        - renderLag * (mobile ? 0.22 : 0.1)
+        - weakBias * (mobile ? 0.018 : 0.05);
+      const range = (mobile ? 0.17 : 0.26) - weakBias * (mobile ? 0.025 : 0.06);
       const floor = this.performancePanic()
-        ? (mobile ? 0.66 : 0.76)
+        ? (mobile ? 0.76 : 0.76)
         : this.performanceEmergency()
-          ? (mobile ? 0.74 : 0.8)
+          ? (mobile ? 0.82 : 0.8)
           : ultra
-            ? (mobile ? 0.78 : 0.82)
+            ? (mobile ? 0.86 : 0.82)
             : (mobile ? 1 : 0.76);
-      const cap = ultra ? (mobile ? 0.94 : 0.92) : (mobile ? 1.04 : 1);
+      const cap = ultra ? (mobile ? 0.96 : 0.92) : (mobile ? 1.04 : 1);
       const rawScale = clamp(base + quality * range, floor, cap);
       const step = this.performanceEmergency() ? 0.025 : mobile ? 0.025 : 0.04;
       return clamp(Math.round(rawScale / step) * step, floor, 1);
@@ -6078,6 +6087,14 @@
       );
       const idle = !this.run || this.mode !== "game" || this.pauseOverlay || !visualBusy;
       const combatResize = visualBusy;
+      const stableCombatRecover = visualBusy
+        && activeCombat
+        && skillQuietReady
+        && (this.perf.stableTime || 0) > 6.2 + weakBias * 1.8
+        && pressure < 0.04
+        && (this.perf.lagTime || 0) < 0.04
+        && this.renderPressure() < 0.08
+        && !this.performanceEmergency();
       const stableForResizeRecover = skillQuietReady && (
         idle || (
           !visualBusy
@@ -6087,7 +6104,7 @@
         ) || (
           !visualBusy
           && this.perf.lagTime < 0.14
-        )
+        ) || stableCombatRecover
       );
       let stableTarget = currentTarget;
       const targetGap = desired - currentTarget;
@@ -6112,7 +6129,7 @@
       const resizeThreshold = manualScale
         ? 0.025
         : combatResize
-          ? (next < current ? (this.performanceEmergency() ? 0.04 : 0.065) : 0.2)
+          ? (next < current ? (this.performanceEmergency() ? 0.04 : 0.065) : stableCombatRecover ? 0.045 : 0.2)
           : next < current ? 0.035 : idle ? 0.08 : 0.14;
       if (diff < resizeThreshold) return;
       const urgentDrop = !manualScale && force && next < current && diff > (combatResize ? 0.045 : 0.04) && (this.performancePanic() || this.performanceEmergency() || pressure > 0.22);
@@ -6166,8 +6183,8 @@
       const heavyRoom = context.roomType === "boss" || context.miniGame === "bossRush" || context.miniGame === "playerBoss" || context.miniGame === "awakeningRaid";
       const preferred = mobile
         ? heavyRoom
-          ? clamp(0.84 - weakBias * 0.2, 0.66, 0.82)
-          : clamp(0.92 - weakBias * 0.18, 0.74, 0.92)
+          ? clamp(0.94 - weakBias * 0.12, 0.8, 0.94)
+          : clamp(0.98 - weakBias * 0.08, 0.88, 0.98)
         : clamp(0.88 - weakBias * 0.1, 0.78, 0.9);
       const current = Number.isFinite(this.perf?.appliedRenderScale) ? this.perf.appliedRenderScale : 1;
       if (Math.abs(current - preferred) < 0.045) return;
@@ -6626,15 +6643,15 @@
       const renderScale = Number.isFinite(this.perf?.appliedRenderScale) ? this.perf.appliedRenderScale : 1;
       const stress = Math.max(this.performancePressure(), this.renderPressure());
       const mobileMinDpr = this.performancePanic()
-        ? 0.72
+        ? 0.9
         : this.performanceEmergency()
-          ? 0.82
+          ? 1
           : this.ultraPerformanceMode()
-            ? 0.88
+            ? 1
             : stress > 0.2
-              ? 0.9
+              ? 1
               : this.run && this.mode === "game"
-                ? clamp(0.98 - this.devicePerformanceBias() * 0.12, 0.86, 1)
+                ? 1
                 : 1;
       const minDpr = mobile ? mobileMinDpr : (this.ultraPerformanceMode() ? 0.76 : 0.8);
       const nextDpr = Math.max(minDpr, maxDpr * renderScale);

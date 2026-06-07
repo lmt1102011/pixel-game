@@ -9,7 +9,7 @@
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
   const SIGNAL_REALTIME_RELAY_LIMIT = 2;
   const SIGNAL_REALTIME_TYPES = new Set(["state", "snapshot", "attack", "skill", "collect", "openChest", "dropItem", "damage", "chooseDoor"]);
-  const APP_VERSION = "20260607-frame-preload-254";
+  const APP_VERSION = "20260607-smooth-frame-269";
   const CHANGELOG_ENTRIES = [
     {
       version: APP_VERSION,
@@ -904,6 +904,9 @@
     shards: "Mảnh Vỡ"
   };
 
+  const DEFAULT_HERO_COLOR = "#d8b46a";
+  const WHITE_HERO_COLOR = "#f6f8ff";
+
   function clamp(value, min, max) {
     return Math.max(min, Math.min(max, value));
   }
@@ -983,6 +986,16 @@
 
   function customLabel(value) {
     return CUSTOM_LABELS[value] || title(value);
+  }
+
+  function normalizeHeroColor(value, fallback = DEFAULT_HERO_COLOR) {
+    const raw = String(value || "").trim().toLowerCase();
+    if (raw === "#fff" || raw === "#ffffff" || raw === "#f2f0e6") return WHITE_HERO_COLOR;
+    if (/^#[0-9a-f]{6}$/.test(raw)) return raw;
+    if (/^#[0-9a-f]{3}$/.test(raw)) {
+      return `#${raw[1]}${raw[1]}${raw[2]}${raw[2]}${raw[3]}${raw[3]}`;
+    }
+    return normalizeHeroColor(fallback, DEFAULT_HERO_COLOR);
   }
 
   function characterById(id) {
@@ -1421,14 +1434,22 @@
       this.game = game;
       this.ctx = null;
       this.master = null;
+      this.musicMaster = null;
+      this.ambienceMaster = null;
       this.sfxMaster = null;
+      this.uiMaster = null;
+      this.reverbSend = null;
+      this.reverbReturn = null;
       this.output = null;
       this.timer = 0;
+      this.ambientTimer = 0;
       this.step = 0;
       this.biome = BIOMES[0];
       this.enabled = true;
       this.lastCoinAt = 0;
       this.coinStep = 0;
+      this.musicIntensity = 0;
+      this.lastSfxAt = new Map();
     }
 
     start() {
@@ -1445,72 +1466,420 @@
       this.ctx = new Ctor();
       this.output = this.ctx.createDynamicsCompressor ? this.ctx.createDynamicsCompressor() : this.ctx.createGain();
       if (this.output.threshold) {
-        this.output.threshold.value = -18;
-        this.output.knee.value = 18;
-        this.output.ratio.value = 4.5;
+        this.output.threshold.value = -20;
+        this.output.knee.value = 20;
+        this.output.ratio.value = 5.2;
         this.output.attack.value = 0.003;
-        this.output.release.value = 0.16;
+        this.output.release.value = 0.18;
       }
       this.output.connect(this.ctx.destination);
       this.master = this.ctx.createGain();
-      this.master.gain.value = 0.058;
+      this.master.gain.value = 0.92;
       this.master.connect(this.output);
+      this.musicMaster = this.ctx.createGain();
+      this.musicMaster.gain.value = 0.052;
+      this.musicMaster.connect(this.master);
+      this.ambienceMaster = this.ctx.createGain();
+      this.ambienceMaster.gain.value = 0.036;
+      this.ambienceMaster.connect(this.master);
       this.sfxMaster = this.ctx.createGain();
-      this.sfxMaster.gain.value = 1.28;
-      this.sfxMaster.connect(this.output);
+      this.sfxMaster.gain.value = 1.08;
+      this.sfxMaster.connect(this.master);
+      this.uiMaster = this.ctx.createGain();
+      this.uiMaster.gain.value = 0.62;
+      this.uiMaster.connect(this.master);
+      if (this.ctx.createConvolver) {
+        const convolver = this.ctx.createConvolver();
+        convolver.buffer = this.createReverbImpulse(0.72, 2.6);
+        this.reverbSend = this.ctx.createGain();
+        this.reverbSend.gain.value = 0.16;
+        this.reverbReturn = this.ctx.createGain();
+        this.reverbReturn.gain.value = 0.18;
+        this.reverbSend.connect(convolver);
+        convolver.connect(this.reverbReturn);
+        this.reverbReturn.connect(this.master);
+      }
     }
 
     setBiome(biome) {
       this.biome = biome;
+      this.ambientTimer = 0;
     }
 
     update(dt) {
-      if (!this.ctx || !this.game.save.settings.music) return;
-      this.timer -= dt;
-      if (this.timer > 0) return;
-      const boss = this.game.run?.currentRoom?.type === "boss";
-      this.timer = boss ? 0.18 : 0.26;
-      const notes = this.biome.music;
-      const pattern = [0, 2, 1, 3, 2, 0, 3, 1];
-      const index = pattern[this.step % pattern.length] % notes.length;
-      const freq = notes[index] * (this.step % 8 === 0 ? 0.5 : this.step % 8 === 6 ? 1.5 : 1);
-      this.step++;
-      this.note(freq, boss ? 0.14 : 0.12, boss ? "sawtooth" : "triangle", boss ? 0.62 : 0.48);
-      if (this.step % 2 === 0) this.note(notes[(index + 2) % notes.length] * 2, 0.045, "sine", boss ? 0.22 : 0.16);
-      if (this.step % 4 === 0) this.note(notes[0] / 2, boss ? 0.22 : 0.24, "sine", boss ? 0.58 : 0.34);
-      if (this.step % 8 === 5) this.note(notes[3 % notes.length] * 2, boss ? 0.1 : 0.08, "triangle", boss ? 0.34 : 0.22);
+      if (!this.ctx) return;
+      if (this.game.save.settings.music) this.updateDynamicMusic(dt);
+      if (this.game.save.settings.music) this.updateAmbience(dt);
     }
 
-    note(freq, length = 0.08, type = "square", gain = 1) {
-      if (!this.ctx || !this.game.save.settings.music) return;
-      const osc = this.ctx.createOscillator();
-      const env = this.ctx.createGain();
-      osc.type = type;
-      osc.frequency.value = freq;
-      env.gain.value = 0;
-      osc.connect(env);
-      env.connect(this.master);
+    musicState() {
+      const run = this.game.run;
+      if (this.game.mode === "victory") return { mode: "victory", intensity: 0.52 };
+      if (!run) return { mode: "menu", intensity: 0.12 };
+      const enemies = run.enemies || [];
+      const liveEnemies = enemies.filter((enemy) => enemy && enemy.hp > 0 && !enemy.trainingDummy);
+      const boss = liveEnemies.some((enemy) => enemy.boss || enemy.playerBoss);
+      if (boss) return { mode: "boss", intensity: 0.94 };
+      if (liveEnemies.length) return { mode: "combat", intensity: 0.66 };
+      if (this.game.mode === "game") return { mode: "explore", intensity: 0.24 };
+      return { mode: "menu", intensity: 0.14 };
+    }
+
+    updateDynamicMusic(dt) {
+      this.timer -= dt;
+      if (this.timer > 0) return;
+      const state = this.musicState();
+      this.musicIntensity += (state.intensity - this.musicIntensity) * clamp(dt * 1.9, 0, 1);
+      const intensity = this.musicIntensity;
+      this.timer = clamp(0.34 - intensity * 0.16, 0.15, 0.36);
+      const notes = this.biome?.music?.length ? this.biome.music : [196, 233, 262, 311];
+      const boss = state.mode === "boss";
+      const combat = boss || state.mode === "combat";
+      const pattern = boss ? [0, 3, 1, 2, 3, 1, 2, 0] : [0, 2, 1, 3, 2, 0, 3, 1];
+      const index = pattern[this.step % pattern.length] % notes.length;
+      const octave = this.step % 8 === 0 ? 0.5 : this.step % 8 === 6 ? 1.5 : 1;
+      const freq = notes[index] * octave;
+      this.step++;
+      this.note(freq, boss ? 0.16 : 0.13, boss ? "sawtooth" : "triangle", boss ? 0.72 : 0.45 + intensity * 0.18, { pan: Math.sin(this.step * 0.7) * 0.18 });
+      if (this.step % 2 === 0) this.note(notes[(index + 2) % notes.length] * 2, 0.045, "sine", combat ? 0.24 : 0.14, { pan: -0.22 });
+      if (this.step % 4 === 0) this.note(notes[0] / 2, boss ? 0.24 : 0.26, "sine", boss ? 0.7 : 0.28 + intensity * 0.18);
+      if (this.step % 8 === 5) this.note(notes[3 % notes.length] * 2, boss ? 0.12 : 0.08, "triangle", boss ? 0.4 : 0.2);
       const now = this.ctx.currentTime;
-      env.gain.setValueAtTime(0, now);
-      env.gain.linearRampToValueAtTime(0.5 * gain, now + 0.01);
-      env.gain.exponentialRampToValueAtTime(0.001, now + length);
-      osc.start(now);
-      osc.stop(now + length + 0.02);
+      if (combat && this.step % 2 === 0) this.noiseBurst(now, 0.022, 0.018 + intensity * 0.018, { bus: this.musicMaster, filterType: "highpass", frequency: 1450, q: 0.45 });
+      if (boss && this.step % 4 === 1) {
+        this.tone(48, "sine", 0.28, 0.15, now, { bus: this.musicMaster, slideTo: 34, attack: 0.006, reverb: 0.08 });
+        this.noiseBurst(now, 0.04, 0.02, { bus: this.musicMaster, filterType: "lowpass", frequency: 190, q: 0.7 });
+      }
+    }
+
+    updateAmbience(dt) {
+      this.ambientTimer -= dt;
+      if (this.ambientTimer > 0) return;
+      this.ambientTimer = rand(1.4, 3.2);
+      const now = this.ctx.currentTime;
+      const id = this.biome?.id || "forest";
+      if (id === "forest") {
+        this.noiseBurst(now, 0.42, 0.018, { bus: this.ambienceMaster, filterType: "bandpass", frequency: 840, q: 0.18, pan: rand(-0.6, 0.6) });
+        if (chance(0.42)) this.tone(rand(1150, 1740), "sine", 0.08, 0.018, now + 0.05, { bus: this.ambienceMaster, slideTo: rand(1320, 1920), pan: rand(-0.75, 0.75) });
+      } else if (id === "frozen") {
+        this.noiseBurst(now, 0.7, 0.022, { bus: this.ambienceMaster, filterType: "highpass", frequency: 620, q: 0.24, pan: rand(-0.5, 0.5) });
+        if (chance(0.34)) this.tone(rand(620, 980), "triangle", 0.12, 0.014, now + 0.04, { bus: this.ambienceMaster, slideTo: rand(760, 1320), pan: rand(-0.55, 0.55), reverb: 0.18 });
+      } else if (id === "lava") {
+        this.noiseBurst(now, 0.32, 0.03, { bus: this.ambienceMaster, filterType: "lowpass", frequency: 260, q: 0.5, pan: rand(-0.35, 0.35) });
+        if (chance(0.5)) this.tone(rand(72, 118), "sawtooth", 0.16, 0.018, now + 0.03, { bus: this.ambienceMaster, slideTo: rand(48, 82), pan: rand(-0.4, 0.4) });
+      } else if (id === "neon") {
+        this.tone(rand(420, 780), "triangle", 0.055, 0.018, now, { bus: this.ambienceMaster, slideTo: rand(760, 1280), pan: rand(-0.72, 0.72), reverb: 0.1 });
+        if (chance(0.3)) this.noiseBurst(now + 0.04, 0.05, 0.012, { bus: this.ambienceMaster, filterType: "bandpass", frequency: 1800, q: 2.2, pan: rand(-0.6, 0.6) });
+      } else {
+        this.tone(rand(82, 126), "sine", 0.55, 0.018, now, { bus: this.ambienceMaster, slideTo: rand(70, 110), pan: rand(-0.35, 0.35), reverb: 0.22 });
+        if (chance(0.35)) this.noiseBurst(now, 0.24, 0.014, { bus: this.ambienceMaster, filterType: "bandpass", frequency: 420, q: 0.35, pan: rand(-0.55, 0.55) });
+      }
+    }
+
+    note(freq, length = 0.08, type = "square", gain = 1, options = {}) {
+      if (!this.ctx || !this.game.save.settings.music) return;
+      this.tone(freq, type, length, 0.5 * gain, this.ctx.currentTime, {
+        bus: this.musicMaster,
+        slide: false,
+        attack: 0.012,
+        pan: options.pan || 0,
+        reverb: options.reverb ?? 0.08
+      });
+    }
+
+    createReverbImpulse(seconds = 0.72, decay = 2.6) {
+      const sampleRate = this.ctx.sampleRate;
+      const frames = Math.max(1, Math.floor(sampleRate * seconds));
+      const buffer = this.ctx.createBuffer(2, frames, sampleRate);
+      for (let channel = 0; channel < 2; channel++) {
+        const data = buffer.getChannelData(channel);
+        for (let i = 0; i < frames; i++) {
+          const t = i / frames;
+          data[i] = (Math.random() * 2 - 1) * Math.pow(1 - t, decay) * 0.72;
+        }
+      }
+      return buffer;
+    }
+
+    bus(name = "sfx") {
+      if (name === "music") return this.musicMaster || this.master || this.ctx.destination;
+      if (name === "ambience") return this.ambienceMaster || this.master || this.ctx.destination;
+      if (name === "ui") return this.uiMaster || this.sfxMaster || this.ctx.destination;
+      return this.sfxMaster || this.master || this.ctx.destination;
+    }
+
+    canPlay(key, gap = 0.05) {
+      if (!this.ctx) return false;
+      const now = this.ctx.currentTime;
+      const last = this.lastSfxAt.get(key) || -999;
+      if (now - last < gap) return false;
+      this.lastSfxAt.set(key, now);
+      return true;
+    }
+
+    spatialOptions(x = null, y = null, gain = 1) {
+      const p = this.game.run?.player;
+      if (!p || !Number.isFinite(Number(x)) || !Number.isFinite(Number(y))) return { pan: 0, gain };
+      const dx = Number(x) - p.x;
+      const dy = Number(y) - p.y;
+      const distance = Math.hypot(dx, dy);
+      return {
+        pan: clamp(dx / 760, -0.82, 0.82),
+        gain: gain * clamp(1 - distance / 1500, 0.34, 1)
+      };
+    }
+
+    connectWithPan(node, bus, pan = 0, reverb = 0) {
+      let output = node;
+      if (this.ctx.createStereoPanner && Math.abs(pan) > 0.01) {
+        const panner = this.ctx.createStereoPanner();
+        panner.pan.value = clamp(pan, -1, 1);
+        node.connect(panner);
+        output = panner;
+      }
+      output.connect(bus || this.bus());
+      if (reverb > 0 && this.reverbSend) {
+        const send = this.ctx.createGain();
+        send.gain.value = clamp(reverb, 0, 0.6);
+        output.connect(send);
+        send.connect(this.reverbSend);
+      }
+    }
+
+    ui(kind = "click") {
+      if (!this.ctx) this.start();
+      if (!this.ctx || !this.game.save.settings.sfx) return;
+      const now = this.ctx.currentTime;
+      if (kind === "hover") {
+        if (!this.canPlay("ui-hover", 0.055)) return;
+        this.tone(820 * rand(0.96, 1.04), "triangle", 0.028, 0.035, now, { bus: this.uiMaster, slide: false });
+        this.noiseBurst(now, 0.012, 0.008, { bus: this.uiMaster, filterType: "highpass", frequency: 2400, q: 0.5 });
+        return;
+      }
+      if (kind === "notify") {
+        if (!this.canPlay("ui-notify", 0.18)) return;
+        this.tone(620, "triangle", 0.05, 0.055, now, { bus: this.uiMaster, slideTo: 880 });
+        this.tone(1240, "sine", 0.09, 0.032, now + 0.045, { bus: this.uiMaster, slide: false });
+        return;
+      }
+      if (kind === "inventory") {
+        this.tone(520, "triangle", 0.045, 0.052, now, { bus: this.uiMaster, slide: false });
+        this.tone(780, "sine", 0.05, 0.026, now + 0.026, { bus: this.uiMaster, slide: false });
+        return;
+      }
+      this.tone(360, "square", 0.04, 0.07, now, { bus: this.uiMaster, slideTo: 330 });
+      this.tone(910, "triangle", 0.075, 0.038, now + 0.026, { bus: this.uiMaster, slide: false });
+      this.noiseBurst(now, 0.016, 0.012, { bus: this.uiMaster, filterType: "bandpass", frequency: 1800, q: 0.8 });
+    }
+
+    attack(weapon = "swordsman", options = {}) {
+      if (!this.ctx) this.start();
+      if (!this.ctx || !this.game.save.settings.sfx) return;
+      if (!this.canPlay(`attack-${weapon}`, 0.035)) return;
+      const now = this.ctx.currentTime;
+      const spatial = this.spatialOptions(options.x, options.y, 1);
+      const pan = spatial.pan;
+      const vol = spatial.gain;
+      if (weapon === "guardian") {
+        this.tone(108, "square", 0.08, 0.11 * vol, now, { pan, slideTo: 82, reverb: 0.04 });
+        this.noiseBurst(now + 0.01, 0.045, 0.04 * vol, { filterType: "lowpass", frequency: 520, q: 0.6, pan });
+      } else if (weapon === "mage") {
+        this.tone(420, "sine", 0.08, 0.055 * vol, now, { pan, slideTo: 720, reverb: 0.18 });
+        this.tone(1180, "triangle", 0.055, 0.032 * vol, now + 0.03, { pan, slide: false });
+      } else if (weapon === "ranger") {
+        this.tone(220, "triangle", 0.055, 0.052 * vol, now, { pan, slideTo: 380 });
+        this.tone(1460, "sine", 0.035, 0.052 * vol, now + 0.045, { pan, slideTo: 920 });
+        this.noiseBurst(now + 0.04, 0.018, 0.026 * vol, { filterType: "highpass", frequency: 1900, q: 0.8, pan });
+      } else if (weapon === "assassin") {
+        this.tone(720, "triangle", 0.035, 0.05 * vol, now, { pan, slideTo: 1180 });
+        this.tone(980, "square", 0.03, 0.034 * vol, now + 0.04, { pan, slideTo: 1420 });
+        this.noiseBurst(now, 0.019, 0.024 * vol, { filterType: "highpass", frequency: 2600, q: 0.8, pan });
+      } else if (weapon === "martial") {
+        this.tone(150, "sine", 0.045, 0.076 * vol, now, { pan, slideTo: 118 });
+        this.noiseBurst(now + 0.006, 0.024, 0.032 * vol, { filterType: "bandpass", frequency: 760, q: 0.9, pan });
+      } else if (weapon === "spearman") {
+        this.tone(390, "triangle", 0.04, 0.058 * vol, now, { pan, slideTo: 640 });
+        this.noiseBurst(now + 0.008, 0.022, 0.022 * vol, { filterType: "highpass", frequency: 2100, q: 1.0, pan });
+      } else {
+        this.tone(520, "sawtooth", 0.043, 0.066 * vol, now, { pan, slideTo: 330 });
+        this.noiseBurst(now + 0.006, 0.026, 0.028 * vol, { filterType: "highpass", frequency: 1700, q: 0.7, pan });
+      }
+    }
+
+    combatHit(options = {}) {
+      if (!this.ctx) this.start();
+      if (!this.ctx || !this.game.save.settings.sfx) return;
+      const key = options.enemyId ? `hit-${options.enemyId}` : `hit-${options.kind || "any"}`;
+      if (!this.canPlay(key, options.crit ? 0.045 : 0.07)) return;
+      const now = this.ctx.currentTime;
+      const spatial = this.spatialOptions(options.x, options.y, options.heavy ? 1.15 : 1);
+      const pan = spatial.pan;
+      const vol = spatial.gain;
+      const crit = Boolean(options.crit);
+      const heavy = Boolean(options.heavy);
+      this.tone(crit ? 620 : heavy ? 180 : 340, crit ? "square" : "triangle", crit ? 0.075 : 0.052, (crit ? 0.14 : heavy ? 0.12 : 0.08) * vol, now, { pan, slideTo: crit ? 980 : heavy ? 118 : 260, reverb: crit ? 0.08 : 0.03 });
+      this.noiseBurst(now, crit ? 0.045 : 0.028, (crit ? 0.06 : 0.038) * vol, { filterType: crit ? "highpass" : "bandpass", frequency: crit ? 2400 : 1100, q: 0.8, pan });
+      if (crit) this.tone(1680, "sine", 0.09, 0.05 * vol, now + 0.018, { pan, slideTo: 2100, reverb: 0.12 });
+      if (heavy) this.tone(78, "sine", 0.12, 0.09 * vol, now + 0.006, { pan, slideTo: 54 });
+    }
+
+    player(kind = "damage", options = {}) {
+      if (!this.ctx) this.start();
+      if (!this.ctx || !this.game.save.settings.sfx) return;
+      const now = this.ctx.currentTime;
+      if (kind === "damage") {
+        if (!this.canPlay("player-damage", 0.18)) return;
+        this.tone(135, "sawtooth", 0.09, 0.13, now, { slideTo: 82, reverb: 0.05 });
+        this.noiseBurst(now, 0.038, 0.044, { filterType: "bandpass", frequency: 700, q: 0.7 });
+        return;
+      }
+      if (kind === "lowHealth") {
+        if (!this.canPlay("player-low-health", 1.45)) return;
+        this.tone(72, "sine", 0.18, 0.09, now, { slideTo: 66 });
+        this.tone(72, "sine", 0.18, 0.07, now + 0.26, { slideTo: 66 });
+        return;
+      }
+      if (kind === "heal") {
+        if (!this.canPlay("player-heal", 0.22)) return;
+        this.tone(520, "sine", 0.09, 0.052, now, { slideTo: 760, reverb: 0.14 });
+        this.tone(880, "triangle", 0.08, 0.028, now + 0.052, { slideTo: 1120, reverb: 0.12 });
+        return;
+      }
+      if (kind === "dash") {
+        if (!this.canPlay("player-dash", 0.09)) return;
+        this.tone(180, "sawtooth", 0.055, 0.08, now, { slideTo: 120 });
+        this.noiseBurst(now, 0.035, 0.026, { filterType: "highpass", frequency: 1300, q: 0.5 });
+        return;
+      }
+      if (kind === "death") {
+        this.tone(150, "sine", 0.22, 0.13, now, { slideTo: 62, reverb: 0.22 });
+        this.noiseBurst(now + 0.04, 0.12, 0.055, { filterType: "lowpass", frequency: 420, q: 0.45 });
+      }
+    }
+
+    reward(kind = "item", amount = 1, options = {}) {
+      if (!this.ctx) this.start();
+      if (!this.ctx || !this.game.save.settings.sfx) return;
+      const now = this.ctx.currentTime;
+      const spatial = this.spatialOptions(options.x, options.y, 1);
+      const pan = spatial.pan;
+      const vol = spatial.gain;
+      if (kind === "chest") {
+        this.tone(170, "square", 0.11, 0.12 * vol, now, { pan, slideTo: 118, reverb: 0.08 });
+        this.tone(920, "triangle", 0.12, 0.052 * vol, now + 0.055, { pan, slideTo: 1320, reverb: 0.12 });
+        this.noiseBurst(now + 0.025, 0.06, 0.052 * vol, { filterType: "bandpass", frequency: 880, q: 0.65, pan });
+        return;
+      }
+      if (kind === "level") {
+        this.tone(620, "triangle", 0.11, 0.09, now, { slideTo: 980, reverb: 0.2 });
+        this.tone(1240, "sine", 0.18, 0.06, now + 0.08, { slideTo: 1680, reverb: 0.22 });
+        this.tone(1860, "sine", 0.2, 0.045, now + 0.16, { slideTo: 2320, reverb: 0.25 });
+        return;
+      }
+      if (kind === "xp") {
+        if (!this.canPlay("reward-xp", 0.22)) return;
+        this.tone(760, "triangle", 0.075, 0.04, now, { slideTo: 920, reverb: 0.08 });
+        return;
+      }
+      this.tone(460, "triangle", 0.09, 0.07 * vol, now, { pan, slideTo: 640, reverb: 0.12 });
+      this.tone(980 + Math.min(8, amount) * 22, "sine", 0.13, 0.04 * vol, now + 0.055, { pan, slideTo: 1320, reverb: 0.18 });
+    }
+
+    enemy(enemy, action = "hurt", options = {}) {
+      if (!this.ctx) this.start();
+      if (!this.ctx || !this.game.save.settings.sfx || !enemy) return;
+      const key = `enemy-${action}-${enemy.id || enemy.kind || "x"}`;
+      const gap = action === "move" ? 0.28 : action === "hurt" ? 0.14 : action === "spawn" ? 0.18 : 0.05;
+      if (!this.canPlay(key, gap)) return;
+      const now = this.ctx.currentTime;
+      const kind = String(enemy.kind || "").toLowerCase();
+      const spatial = this.spatialOptions(enemy.x, enemy.y, enemy.boss ? 1.25 : 1);
+      const pan = spatial.pan;
+      const vol = spatial.gain;
+      const skeleton = /skeleton|necromancer/.test(kind);
+      const slime = /slime/.test(kind);
+      const spider = /spider/.test(kind);
+      const ghost = /ghost|spirit|shadow/.test(kind);
+      const demon = /demon|dragon|boss|knight/.test(kind) || enemy.boss;
+      const golem = /golem|stone|crystal|ice/.test(kind);
+      if (action === "spawn") {
+        this.tone(demon ? 90 : ghost ? 110 : skeleton ? 360 : 220, demon ? "sawtooth" : "triangle", 0.12, (demon ? 0.11 : 0.055) * vol, now, { pan, slideTo: demon ? 62 : ghost ? 70 : 260, reverb: 0.14 });
+        this.noiseBurst(now + 0.02, 0.045, 0.03 * vol, { filterType: ghost ? "highpass" : "bandpass", frequency: ghost ? 1200 : 700, q: 0.6, pan });
+        return;
+      }
+      if (action === "attack") {
+        this.tone(demon ? 128 : golem ? 92 : skeleton ? 540 : slime ? 210 : 330, demon || golem ? "sawtooth" : "triangle", 0.07, (demon ? 0.11 : 0.07) * vol, now, { pan, slideTo: demon ? 86 : golem ? 62 : 260, reverb: 0.05 });
+        this.noiseBurst(now, 0.035, 0.034 * vol, { filterType: "bandpass", frequency: skeleton ? 1550 : slime ? 420 : 980, q: 0.75, pan });
+        return;
+      }
+      if (action === "death") {
+        this.tone(demon ? 120 : golem ? 84 : ghost ? 180 : skeleton ? 390 : 210, demon || golem ? "sawtooth" : "triangle", enemy.boss ? 0.22 : 0.12, (enemy.boss ? 0.18 : 0.085) * vol, now, { pan, slideTo: demon || golem ? 48 : 120, reverb: enemy.boss ? 0.24 : 0.1 });
+        this.noiseBurst(now + 0.02, enemy.boss ? 0.16 : 0.055, (enemy.boss ? 0.08 : 0.042) * vol, { filterType: golem ? "lowpass" : "bandpass", frequency: golem ? 360 : skeleton ? 1700 : 760, q: 0.65, pan });
+        return;
+      }
+      if (slime) {
+        this.tone(160, "sine", 0.055, 0.052 * vol, now, { pan, slideTo: 110 });
+        this.noiseBurst(now, 0.025, 0.026 * vol, { filterType: "lowpass", frequency: 520, q: 0.5, pan });
+      } else if (skeleton) {
+        this.tone(700, "triangle", 0.032, 0.052 * vol, now, { pan, slideTo: 520 });
+        this.tone(1180, "square", 0.024, 0.026 * vol, now + 0.026, { pan, slide: false });
+      } else if (spider) {
+        this.noiseBurst(now, 0.03, 0.034 * vol, { filterType: "highpass", frequency: 1700, q: 1.1, pan });
+        this.tone(240, "triangle", 0.035, 0.028 * vol, now + 0.012, { pan, slideTo: 180 });
+      } else if (ghost) {
+        this.tone(190, "sine", 0.09, 0.045 * vol, now, { pan, slideTo: 110, reverb: 0.2 });
+        this.noiseBurst(now, 0.05, 0.018 * vol, { filterType: "highpass", frequency: 1100, q: 0.32, pan });
+      } else if (golem) {
+        this.tone(92, "square", 0.07, 0.072 * vol, now, { pan, slideTo: 64 });
+        this.noiseBurst(now, 0.042, 0.044 * vol, { filterType: "lowpass", frequency: 460, q: 0.6, pan });
+      } else {
+        this.tone(260, demon ? "sawtooth" : "triangle", 0.052, (demon ? 0.08 : 0.056) * vol, now, { pan, slideTo: demon ? 160 : 210, reverb: 0.04 });
+        this.noiseBurst(now, 0.026, 0.026 * vol, { filterType: "bandpass", frequency: demon ? 620 : 920, q: 0.7, pan });
+      }
+    }
+
+    boss(action = "intro", enemy = null) {
+      if (!this.ctx) this.start();
+      if (!this.ctx || !this.game.save.settings.sfx) return;
+      if (!this.canPlay(`boss-${action}`, action === "attack" ? 0.32 : 0.9)) return;
+      const now = this.ctx.currentTime;
+      const spatial = this.spatialOptions(enemy?.x, enemy?.y, 1);
+      const pan = spatial.pan;
+      if (action === "intro") {
+        this.tone(54, "sawtooth", 0.5, 0.19, now, { pan, slideTo: 38, reverb: 0.26 });
+        this.tone(360, "triangle", 0.34, 0.08, now + 0.08, { pan, slideTo: 620, reverb: 0.22 });
+        this.noiseBurst(now + 0.04, 0.16, 0.075, { filterType: "lowpass", frequency: 340, q: 0.5, pan });
+      } else if (action === "phase") {
+        this.tone(82, "sawtooth", 0.32, 0.16, now, { pan, slideTo: 46, reverb: 0.22 });
+        this.tone(880, "square", 0.16, 0.055, now + 0.06, { pan, slideTo: 1520, reverb: 0.18 });
+        this.noiseBurst(now + 0.03, 0.11, 0.065, { filterType: "bandpass", frequency: 980, q: 0.4, pan });
+      } else if (action === "fatigue") {
+        this.tone(210, "triangle", 0.18, 0.09, now, { pan, slideTo: 96, reverb: 0.16 });
+        this.noiseBurst(now + 0.02, 0.075, 0.035, { filterType: "highpass", frequency: 900, q: 0.45, pan });
+      } else if (action === "death") {
+        this.tone(92, "sawtooth", 0.7, 0.22, now, { pan, slideTo: 32, reverb: 0.32 });
+        this.tone(520, "triangle", 0.32, 0.1, now + 0.18, { pan, slideTo: 220, reverb: 0.28 });
+        this.noiseBurst(now + 0.08, 0.24, 0.09, { filterType: "lowpass", frequency: 520, q: 0.4, pan });
+      } else {
+        this.tone(120, "sawtooth", 0.11, 0.12, now, { pan, slideTo: 76, reverb: 0.1 });
+        this.noiseBurst(now, 0.055, 0.055, { filterType: "bandpass", frequency: 720, q: 0.6, pan });
+      }
     }
 
     sfx(freq, type = "square", length = 0.05, volume = 0.12) {
       if (!this.ctx) this.start();
       if (!this.ctx || !this.game.save.settings.sfx) return;
       const now = this.ctx.currentTime;
-      const punch = clamp(volume * 1.45, 0.015, 0.28);
+      const variedFreq = freq * rand(0.96, 1.04);
+      const punch = clamp(volume * 1.45 * rand(0.92, 1.06), 0.015, 0.28);
       const mainLength = Math.max(0.018, length);
-      this.tone(freq, type, mainLength, punch, now, { slide: type !== "sine" || volume >= 0.09 });
+      this.tone(variedFreq, type, mainLength, punch, now, { slide: type !== "sine" || volume >= 0.09 });
       if (volume >= 0.045) {
-        const snapFreq = clamp(freq * 2.15, 280, 1320);
+        const snapFreq = clamp(variedFreq * 2.15, 280, 1320);
         this.tone(snapFreq, type === "sine" ? "triangle" : "square", Math.min(0.028, mainLength * 0.42), punch * 0.26, now, { slide: false });
       }
       if (volume >= 0.07 || length >= 0.07) {
-        const bodyFreq = clamp(freq * 0.48, 54, 210);
+        const bodyFreq = clamp(variedFreq * 0.48, 54, 210);
         this.tone(bodyFreq, "sine", Math.min(0.16, mainLength * 0.9 + 0.025), punch * 0.42, now + 0.004, { slide: true });
         this.noiseBurst(now, Math.min(0.036, mainLength * 0.46), punch * 0.24);
       }
@@ -1531,6 +1900,90 @@
       this.noiseBurst(now, 0.016, gain * 0.18);
     }
 
+    skillPhase(kind, phase, key, now, volume, pitch, awakened = false) {
+      const keyWeight = { q: 0.82, e: 0.9, r: 1.1, f: 1.36 }[key] || 1;
+      const gain = volume * keyWeight * (awakened ? 1.1 : 1);
+      const play = (freq, type, length, mult, offset = 0, options = {}) => {
+        this.tone(freq * rand(0.985, 1.015), type, length, gain * mult, now + offset, options);
+      };
+      const burst = (length, mult, offset = 0, options = {}) => {
+        this.noiseBurst(now + offset, length, gain * mult, options);
+      };
+      const impactOffset = { q: 0.08, e: 0.11, r: 0.15, f: 0.22 }[key] || 0.08;
+      if (phase === "cast") {
+        if (kind === "fire") {
+          play(118, "sawtooth", 0.13, 0.48, 0, { slideTo: 180, reverb: 0.05 });
+          burst(0.035, 0.12, 0.012, { filterType: "lowpass", frequency: 560, q: 0.6 });
+        } else if (kind === "ice") {
+          play(720 * pitch, "triangle", 0.09, 0.34, 0, { slideTo: 980 * pitch, reverb: 0.18 });
+          play(1320 * pitch, "sine", 0.06, 0.18, 0.035, { slide: false, reverb: 0.12 });
+        } else if (kind === "lightning") {
+          play(980 * pitch, "square", 0.035, 0.36, 0, { slideTo: 1680 * pitch });
+          burst(0.022, 0.2, 0.005, { filterType: "highpass", frequency: 2400, q: 1.1 });
+        } else if (kind === "shadow" || kind === "void") {
+          play(58, "sine", 0.16, 0.54, 0, { slideTo: 42, reverb: 0.24 });
+          play(360 * pitch, "triangle", 0.07, 0.18, 0.035, { slideTo: 240 * pitch, reverb: 0.18 });
+        } else if (kind === "blood") {
+          play(86, "sine", 0.12, 0.46, 0, { slideTo: 64 });
+          play(210 * pitch, "sawtooth", 0.07, 0.24, 0.035, { slideTo: 170 * pitch });
+        } else if (kind === "gravity") {
+          play(42, "sine", 0.22, 0.64, 0, { slideTo: 32, reverb: 0.2 });
+          burst(0.06, 0.16, 0.02, { filterType: "lowpass", frequency: 220, q: 0.8 });
+        } else if (kind === "crystal") {
+          play(920 * pitch, "triangle", 0.09, 0.28, 0, { slideTo: 1280 * pitch, reverb: 0.18 });
+          play(1540 * pitch, "sine", 0.08, 0.18, 0.04, { slide: false, reverb: 0.18 });
+        } else if (kind === "nature") {
+          play(260 * pitch, "triangle", 0.11, 0.34, 0, { slideTo: 340 * pitch, reverb: 0.1 });
+          burst(0.04, 0.08, 0.02, { filterType: "bandpass", frequency: 700, q: 0.35 });
+        } else if (kind === "time") {
+          play(540 * pitch, "triangle", 0.05, 0.28, 0, { slide: false, reverb: 0.18 });
+          play(270 * pitch, "sine", 0.16, 0.3, 0.02, { slideTo: 330 * pitch, reverb: 0.16 });
+        }
+      } else if (phase === "travel") {
+        const offset = impactOffset * 0.45;
+        if (kind === "fire") burst(0.05, 0.16, offset, { filterType: "bandpass", frequency: 920, q: 0.45 });
+        else if (kind === "ice") play(1180 * pitch, "triangle", 0.05, 0.18, offset, { slideTo: 900 * pitch, reverb: 0.1 });
+        else if (kind === "lightning") {
+          play(1440 * pitch, "square", 0.025, 0.18, offset, { slideTo: 720 * pitch });
+          play(1960 * pitch, "square", 0.022, 0.12, offset + 0.025, { slideTo: 980 * pitch });
+        } else if (kind === "shadow" || kind === "void") burst(0.065, 0.12, offset, { filterType: "highpass", frequency: 950, q: 0.28, reverb: 0.16 });
+        else if (kind === "blood") play(160 * pitch, "sawtooth", 0.07, 0.16, offset, { slideTo: 96 * pitch });
+        else if (kind === "gravity") play(64, "sine", 0.12, 0.18, offset, { slideTo: 46, reverb: 0.18 });
+        else if (kind === "crystal") play(1320 * pitch, "triangle", 0.045, 0.16, offset, { slideTo: 1720 * pitch, reverb: 0.15 });
+        else if (kind === "nature") play(420 * pitch, "sine", 0.08, 0.14, offset, { slideTo: 520 * pitch, reverb: 0.12 });
+        else if (kind === "time") play(840 * pitch, "triangle", 0.04, 0.16, offset, { slideTo: 620 * pitch, reverb: 0.16 });
+      } else {
+        if (kind === "fire") {
+          play(78, "sine", key === "f" ? 0.3 : 0.16, 0.52, impactOffset, { slideTo: 46, reverb: 0.14 });
+          burst(key === "f" ? 0.12 : 0.06, 0.28, impactOffset, { filterType: "lowpass", frequency: 460, q: 0.55 });
+        } else if (kind === "ice") {
+          play(1480 * pitch, "triangle", 0.08, 0.24, impactOffset, { slideTo: 620 * pitch, reverb: 0.2 });
+          burst(0.045, 0.13, impactOffset + 0.015, { filterType: "highpass", frequency: 2000, q: 0.8 });
+        } else if (kind === "lightning") {
+          play(1220 * pitch, "square", 0.055, 0.3, impactOffset, { slideTo: 520 * pitch });
+          burst(0.035, 0.24, impactOffset, { filterType: "highpass", frequency: 2800, q: 1.3 });
+        } else if (kind === "shadow" || kind === "void") {
+          play(48, "sine", 0.22, 0.45, impactOffset, { slideTo: 32, reverb: 0.3 });
+          play(520 * pitch, "sawtooth", 0.08, 0.12, impactOffset + 0.035, { slideTo: 260 * pitch, reverb: 0.2 });
+        } else if (kind === "blood") {
+          play(72, "sine", 0.14, 0.4, impactOffset, { slideTo: 50 });
+          burst(0.05, 0.12, impactOffset + 0.02, { filterType: "bandpass", frequency: 560, q: 0.7 });
+        } else if (kind === "gravity") {
+          play(38, "sine", 0.3, 0.58, impactOffset, { slideTo: 30, reverb: 0.28 });
+          burst(0.085, 0.22, impactOffset, { filterType: "lowpass", frequency: 180, q: 0.7 });
+        } else if (kind === "crystal") {
+          play(1760 * pitch, "sine", 0.11, 0.23, impactOffset, { slideTo: 980 * pitch, reverb: 0.22 });
+          burst(0.038, 0.12, impactOffset + 0.016, { filterType: "highpass", frequency: 2600, q: 0.9 });
+        } else if (kind === "nature") {
+          play(310 * pitch, "triangle", 0.16, 0.28, impactOffset, { slideTo: 460 * pitch, reverb: 0.16 });
+          burst(0.05, 0.08, impactOffset + 0.015, { filterType: "bandpass", frequency: 680, q: 0.3 });
+        } else if (kind === "time") {
+          play(620 * pitch, "triangle", 0.09, 0.22, impactOffset, { slideTo: 1240 * pitch, reverb: 0.25 });
+          play(310 * pitch, "sine", 0.22, 0.22, impactOffset + 0.02, { slideTo: 220 * pitch, reverb: 0.2 });
+        }
+      }
+    }
+
     skill(kind, key = "q", awakened = false) {
       if (!this.ctx) this.start();
       if (!this.ctx || !this.game.save.settings.sfx) return;
@@ -1539,6 +1992,9 @@
       const pitch = { q: 1, e: 0.86, r: 0.74, f: 0.52 }[key] || 1;
       const baseLength = { q: 0.13, e: 0.15, r: 0.22, f: 0.36 }[key] || 0.13;
       const volume = clamp((awakened ? 0.142 : 0.118) * keyPower, 0.08, awakened ? 0.36 : 0.3);
+      this.skillPhase(kind, "cast", key, now, volume, pitch, awakened);
+      this.skillPhase(kind, "travel", key, now, volume, pitch, awakened);
+      this.skillPhase(kind, "impact", key, now, volume, pitch, awakened);
       const play = (freq, type = "triangle", gain = 1, offset = 0, length = baseLength, slide = true) => {
         this.tone(freq, type, length, volume * gain, now + offset, { slide });
       };
@@ -1639,21 +2095,40 @@
       const osc = this.ctx.createOscillator();
       const env = this.ctx.createGain();
       const safeFreq = clamp(freq, 32, 3600);
+      const start = Math.max(this.ctx.currentTime, Number(now) || this.ctx.currentTime);
+      const duration = Math.max(0.012, Number(length) || 0.05);
+      const attack = clamp(Number(options.attack ?? 0.004), 0.001, Math.max(0.001, duration * 0.55));
       osc.type = type;
-      osc.frequency.setValueAtTime(options.slide ? safeFreq * 1.08 : safeFreq, now);
-      if (options.slide) osc.frequency.exponentialRampToValueAtTime(Math.max(32, safeFreq * 0.82), now + Math.max(0.012, length * 0.75));
+      if (Number.isFinite(Number(options.detune))) osc.detune.value = Number(options.detune);
+      osc.frequency.setValueAtTime(options.slide ? safeFreq * 1.08 : safeFreq, start);
+      if (Number.isFinite(Number(options.slideTo))) {
+        osc.frequency.exponentialRampToValueAtTime(clamp(Number(options.slideTo), 32, 3600), start + Math.max(0.012, duration * 0.75));
+      } else if (options.slide) {
+        osc.frequency.exponentialRampToValueAtTime(Math.max(32, safeFreq * 0.82), start + Math.max(0.012, duration * 0.75));
+      }
       env.gain.value = 0;
-      osc.connect(env);
-      env.connect(this.sfxMaster || this.ctx.destination);
-      env.gain.setValueAtTime(0, now);
-      env.gain.linearRampToValueAtTime(volume, now + 0.004);
-      env.gain.exponentialRampToValueAtTime(0.001, now + length);
-      osc.start(now);
-      osc.stop(now + length + 0.02);
+      let node = osc;
+      if (options.filterType || options.filterFreq || options.frequency) {
+        const filter = this.ctx.createBiquadFilter();
+        filter.type = options.filterType || "lowpass";
+        filter.frequency.value = clamp(Number(options.filterFreq || options.frequency || 1200), 40, 8000);
+        filter.Q.value = clamp(Number(options.q || 0.7), 0.05, 12);
+        node.connect(filter);
+        node = filter;
+      }
+      node.connect(env);
+      this.connectWithPan(env, options.bus || this.sfxMaster || this.ctx.destination, Number(options.pan || 0), Number(options.reverb || 0));
+      env.gain.setValueAtTime(0, start);
+      env.gain.linearRampToValueAtTime(Math.max(0.0001, volume), start + attack);
+      env.gain.exponentialRampToValueAtTime(0.001, start + duration);
+      osc.start(start);
+      osc.stop(start + duration + 0.03);
     }
 
-    noiseBurst(now, length, volume) {
-      const frames = Math.max(1, Math.floor(this.ctx.sampleRate * length));
+    noiseBurst(now, length, volume, options = {}) {
+      const start = Math.max(this.ctx.currentTime, Number(now) || this.ctx.currentTime);
+      const duration = Math.max(0.008, Number(length) || 0.03);
+      const frames = Math.max(1, Math.floor(this.ctx.sampleRate * duration));
       const buffer = this.ctx.createBuffer(1, frames, this.ctx.sampleRate);
       const data = buffer.getChannelData(0);
       for (let i = 0; i < frames; i++) {
@@ -1664,16 +2139,16 @@
       const filter = this.ctx.createBiquadFilter();
       const env = this.ctx.createGain();
       src.buffer = buffer;
-      filter.type = "bandpass";
-      filter.frequency.value = 920;
-      filter.Q.value = 0.65;
-      env.gain.setValueAtTime(Math.max(0.001, volume), now);
-      env.gain.exponentialRampToValueAtTime(0.001, now + length);
+      filter.type = options.filterType || "bandpass";
+      filter.frequency.value = clamp(Number(options.frequency || options.filterFreq || 920), 40, 9000);
+      filter.Q.value = clamp(Number(options.q || 0.65), 0.05, 12);
+      env.gain.setValueAtTime(Math.max(0.001, volume), start);
+      env.gain.exponentialRampToValueAtTime(0.001, start + duration);
       src.connect(filter);
       filter.connect(env);
-      env.connect(this.sfxMaster || this.ctx.destination);
-      src.start(now);
-      src.stop(now + length + 0.01);
+      this.connectWithPan(env, options.bus || this.sfxMaster || this.ctx.destination, Number(options.pan || 0), Number(options.reverb || 0));
+      src.start(start);
+      src.stop(start + duration + 0.01);
     }
   }
 
@@ -1736,6 +2211,10 @@
       };
     }
 
+    lobbyViewActive() {
+      return this.game.mode === "lobby" || (this.game.mode === "play" && Boolean(this.game.screen?.querySelector(".valorant-lobby")));
+    }
+
     syncOwnSlot() {
       this.upsertSlot({ ...this.playerProfile(), ready: this.ready, vote: this.mapVote, host: this.host, joinedAt: this.joinedAt });
     }
@@ -1790,7 +2269,7 @@
       this.publishDirectoryPresence(true);
     }
 
-    join(code) {
+    join(code, options = {}) {
       const normalized = (code || "").trim().toUpperCase();
       if (this.joinPending) {
         this.game.toast(`Đang tìm phòng ${this.code}`);
@@ -1820,7 +2299,15 @@
       this.openPeerJsClient();
       this.announceJoin();
       this.game.toast(`Đang vào phòng ${this.code}`);
-      this.game.showRoomFinder(false);
+      if (options.showSquad) {
+        this.game.roomFinderOpen = false;
+        this.game.lobbyFriendInviteOpen = false;
+        this.game.squadModePickerOpen = false;
+        this.game.showPlayMenu();
+      } else {
+        if (options.showSquad) this.game.showPlayMenu();
+        else this.game.showRoomFinder(false);
+      }
     }
 
     openPeerJsHost(options = {}) {
@@ -1830,7 +2317,7 @@
         this.peerJs = new Peer(this.peerJsRoomId, this.peerJsOptions());
         this.peerJs.on("open", () => {
           if (!options.quiet) this.game.toast(`Phòng ${this.code} đã sẵn sàng`);
-          this.publishDirectoryPresence(this.game.mode === "lobby");
+          this.publishDirectoryPresence(this.lobbyViewActive());
         });
         this.peerJs.on("connection", (conn) => this.bindPeerJsConnection(conn));
         this.peerJs.on("error", (error) => {
@@ -1974,7 +2461,7 @@
       this.updateDirectoryPresence(dt);
       this.pollRemoteSignal(dt);
       this.checkJoinTimeout();
-      if (!this.code || this.game.mode !== "lobby") return;
+      if (!this.code || !this.lobbyViewActive()) return;
       this.presenceTimer -= dt;
       if (this.presenceTimer > 0) return;
       this.presenceTimer = this.host ? 0.9 : 0.65;
@@ -1993,7 +2480,7 @@
       this.directoryTimer -= dt;
       if (this.directoryTimer > 0) return;
       this.directoryTimer = 1.35;
-      this.publishDirectoryPresence(this.game.mode === "lobby");
+      this.publishDirectoryPresence(this.lobbyViewActive());
     }
 
     publishDirectoryPresence(open = true) {
@@ -2040,7 +2527,8 @@
       this.joinedAt = Date.now();
       this.slots = [{ ...this.playerProfile(), ready: false, vote: this.mapVote, host: false, joinedAt: this.joinedAt, seenAt: this.joinedAt }];
       this.game.toast("Không tìm thấy phòng này");
-      if (this.game.mode === "lobby" || this.game.roomFinderOpen) this.game.showRoomFinder(false);
+      if (this.game.roomFinderOpen) this.game.showRoomFinder(false);
+      else if (this.lobbyViewActive()) this.game.showPlayMenu();
     }
 
     openSignal() {
@@ -2067,9 +2555,7 @@
           const url = `${relay}/${encodeURIComponent(this.signalTopic)}/sse?since=${since}`;
           const signal = new EventSource(url);
           signal.onmessage = (event) => this.onRemoteSignal(event);
-          signal.onerror = () => {
-            if (this.game.mode === "lobby") this.game.renderLobby();
-          };
+          signal.onerror = () => this.renderLobbyIfVisible();
           this.remoteSignals.push(signal);
           if (!this.remoteSignal) this.remoteSignal = signal;
         } catch {
@@ -2295,9 +2781,7 @@
         this.game.toast("Đã kết nối người chơi");
         this.renderLobbyIfVisible();
       };
-      peer.channel.onclose = () => {
-        if (this.game.mode === "lobby") this.game.renderLobby();
-      };
+      peer.channel.onclose = () => this.renderLobbyIfVisible();
       peer.channel.onmessage = (event) => {
         try {
           this.onPeer(JSON.parse(event.data), peer);
@@ -2333,9 +2817,7 @@
           // Ignore malformed PeerJS messages.
         }
       });
-      conn.on("close", () => {
-        if (this.game.mode === "lobby") this.game.renderLobby();
-      });
+      conn.on("close", () => this.renderLobbyIfVisible());
       conn.on("error", () => {
         if (this.joinPending) this.joinRetryTimers.push(setTimeout(() => this.connectPeerJsRoom(), 900));
       });
@@ -2497,8 +2979,13 @@
     }
 
     renderLobbyIfVisible() {
-      if (this.game.mode === "lobby" || this.game.roomFinderOpen) this.game.renderLobby();
-      else if (this.game.mode === "play" && this.game.screen?.querySelector(".valorant-lobby")) this.game.refreshValorantLobby();
+      if (this.game.mode === "play" && this.game.screen?.querySelector(".valorant-lobby")) {
+        this.game.refreshValorantLobby();
+      } else if (this.game.mode === "lobby") {
+        this.game.showPlayMenu();
+      } else if (this.game.roomFinderOpen) {
+        this.game.showRoomFinder(false);
+      }
     }
 
     upsertSlot(slot) {
@@ -2553,7 +3040,7 @@
       if (before !== this.slots.length || leavingSlot) {
         if (this.host) {
           this.broadcastLobby();
-          this.publishDirectoryPresence(this.game.mode === "lobby");
+          this.publishDirectoryPresence(this.lobbyViewActive());
           if (this.game.run?.multiplayer) {
             const snapshot = this.game.networkSnapshot(true);
             if (snapshot) this.broadcastSnapshot(snapshot, snapshot);
@@ -2802,7 +3289,7 @@
         this.syncOwnSlot();
         this.openPeerJsHost({ retry: true });
         this.broadcastLobby();
-        this.publishDirectoryPresence(this.game.mode === "lobby");
+        this.publishDirectoryPresence(this.lobbyViewActive());
         const immediateSnapshot = this.game.networkSnapshot(true);
         if (immediateSnapshot) this.broadcastSnapshot(immediateSnapshot, immediateSnapshot);
         for (const delay of [220, 650, 1400, 2800]) {
@@ -3010,10 +3497,14 @@
       this.exportedAssetFallback = new Map();
       this.exportedAssetQueued = new Set();
       this.exportedAssetQueuedSequences = new Set();
+      this.exportedAssetPriorityQueued = new Set();
       this.exportedAssetPreloadQueue = [];
       this.exportedAssetPreloadActive = 0;
+      this.exportedAssetPreloadActivePaths = new Set();
       this.exportedAssetPreloadScheduled = false;
       this.exportedAssetPreloadLimit = this.isMobileDevice() ? 2 : 4;
+      this.exportedAssetDecodeTimeoutMs = this.isMobileDevice() ? 240 : 300;
+      this.exportedAssetLoadTimeoutMs = this.isMobileDevice() ? 2600 : 3200;
       this.exportedAssetManifest = [];
       this.exportedAssetManifestPaths = new Set();
       this.exportedAssetManifestPromise = null;
@@ -3040,6 +3531,9 @@
       this.squadModeTransition = null;
       this.squadModeTransitionTimer = null;
       this.squadActionRunMode = "";
+      this.squadGridSignature = "";
+      this.squadActionSignature = "";
+      this.squadInviteSignature = "";
       this.friendFilter = "all";
       this.friendSort = "name";
       this.friendInviteTab = "requests";
@@ -3099,6 +3593,7 @@
         targetAutoLevel: 5,
         displayedAutoLevel: 5,
         pressure: 0,
+        warmupTime: 1.2,
         emergencyHold: 0,
         panicHold: 0,
         levelChangeLock: 0,
@@ -3188,6 +3683,30 @@
       this.exportedAssetFallback.set(path, image);
     }
 
+    decodeExportedImage(image) {
+      if (!image || !image.decode || image._soulriftDecoded || image._soulriftDecodeSkipped) {
+        return Promise.resolve();
+      }
+      const timeout = Math.max(80, Number(this.exportedAssetDecodeTimeoutMs || 260));
+      let timer = null;
+      const decodePromise = image.decode()
+        .then(() => {
+          image._soulriftDecoded = true;
+        })
+        .catch(() => {
+          image._soulriftDecodeSkipped = true;
+        });
+      const timeoutPromise = new Promise((resolve) => {
+        timer = setTimeout(() => {
+          image._soulriftDecodeSkipped = true;
+          resolve();
+        }, timeout);
+      });
+      return Promise.race([decodePromise, timeoutPromise]).finally(() => {
+        if (timer) clearTimeout(timer);
+      });
+    }
+
     loadExportedImage(path = "") {
       if (!path || this.exportedAssetMissing.has(path)) return Promise.resolve(null);
       if (this.exportedAssetManifestPaths.size && !this.exportedAssetManifestPaths.has(path)) {
@@ -3208,26 +3727,52 @@
         this.exportedAssetImages.set(path, image);
       }
       image._soulriftLoadPromise = new Promise((resolve) => {
+        let settled = false;
+        let loadTimer = null;
+        const settle = (value) => {
+          if (settled) return;
+          settled = true;
+          if (loadTimer) clearTimeout(loadTimer);
+          image.onload = null;
+          image.onerror = null;
+          resolve(value);
+        };
         const finish = () => {
           this.markExportedImageReady(path, image);
-          resolve(image);
+          settle(image);
         };
         image.onload = () => {
-          if (image.decode) image.decode().then(finish, finish);
-          else finish();
+          this.decodeExportedImage(image).then(finish, finish);
         };
         image.onerror = () => {
           image._soulriftMissing = true;
           this.exportedAssetMissing.add(path);
-          resolve(null);
+          settle(null);
         };
+        loadTimer = setTimeout(() => {
+          image._soulriftLoadPromise = null;
+          image._soulriftLoadTimedOutAt = typeof performance !== "undefined" && performance.now ? performance.now() : Date.now();
+          settle(null);
+        }, Math.max(900, Number(this.exportedAssetLoadTimeoutMs || 2800)));
         image.src = this.exportedAssetUrl(path);
       });
       return image._soulriftLoadPromise;
     }
 
     queueExportedImage(path = "", priority = false) {
-      if (!path || this.exportedAssetMissing.has(path) || this.exportedAssetQueued.has(path)) return;
+      if (!path || this.exportedAssetMissing.has(path)) return;
+      if (this.exportedAssetQueued.has(path)) {
+        if (priority) {
+          this.exportedAssetPriorityQueued.add(path);
+          const index = this.exportedAssetPreloadQueue.indexOf(path);
+          if (index > 0) {
+            this.exportedAssetPreloadQueue.splice(index, 1);
+            this.exportedAssetPreloadQueue.unshift(path);
+          }
+          this.scheduleExportedPreloadDrain();
+        }
+        return;
+      }
       if (this.exportedAssetManifestPaths.size && !this.exportedAssetManifestPaths.has(path)) {
         this.exportedAssetMissing.add(path);
         return;
@@ -3238,6 +3783,7 @@
         return;
       }
       this.exportedAssetQueued.add(path);
+      if (priority) this.exportedAssetPriorityQueued.add(path);
       if (priority) this.exportedAssetPreloadQueue.unshift(path);
       else this.exportedAssetPreloadQueue.push(path);
       this.scheduleExportedPreloadDrain();
@@ -3245,37 +3791,61 @@
 
     queueExportedSequence(path = "", priority = false) {
       const key = this.exportedSequenceKey(path);
-      if (!key || this.exportedAssetQueuedSequences.has(key)) return;
-      this.exportedAssetQueuedSequences.add(key);
+      if (!key) return;
       const paths = this.exportedSequencePaths(path);
+      if (this.exportedAssetQueuedSequences.has(key)) {
+        if (priority) {
+          for (const entry of paths) this.queueExportedImage(entry, true);
+        }
+        return;
+      }
+      this.exportedAssetQueuedSequences.add(key);
       if (priority) {
-        this.queueExportedImage(path, true);
-        for (const entry of paths) if (entry !== path) this.queueExportedImage(entry, false);
+        for (const entry of paths) this.queueExportedImage(entry, true);
       } else {
         for (const entry of paths) this.queueExportedImage(entry, false);
       }
     }
 
-    scheduleExportedPreloadDrain() {
+    scheduleExportedPreloadDrain(delay = 0) {
       if (this.exportedAssetPreloadScheduled) return;
       this.exportedAssetPreloadScheduled = true;
       const run = () => {
         this.exportedAssetPreloadScheduled = false;
         this.drainExportedPreloadQueue();
       };
-      if ("requestIdleCallback" in window) window.requestIdleCallback(run, { timeout: 120 });
+      if (delay > 0) {
+        setTimeout(run, delay);
+        return;
+      }
+      if (this.exportedAssetPriorityQueued.size > 0) setTimeout(run, 0);
+      else if ("requestIdleCallback" in window) window.requestIdleCallback(run, { timeout: 180 });
       else setTimeout(run, 0);
     }
 
     drainExportedPreloadQueue() {
-      const limit = this.exportedAssetPreloadLimit || (this.isMobileDevice() ? 2 : 4);
+      const baseLimit = this.exportedAssetPreloadLimit || (this.isMobileDevice() ? 2 : 4);
+      const priorityBacklog = this.exportedAssetPriorityQueued.size > 0;
+      const limit = priorityBacklog ? Math.max(baseLimit, this.isMobileDevice() ? 4 : 6) : baseLimit;
       while (this.exportedAssetPreloadActive < limit && this.exportedAssetPreloadQueue.length) {
         const path = this.exportedAssetPreloadQueue.shift();
+        const priority = this.exportedAssetPriorityQueued.has(path);
         const image = this.exportedAssetImages.get(path);
-        if (this.isExportedImageReady(image) || this.exportedAssetMissing.has(path)) continue;
+        if (this.isExportedImageReady(image) || this.exportedAssetMissing.has(path)) {
+          this.exportedAssetPriorityQueued.delete(path);
+          continue;
+        }
+        if (!priority && this.mode === "game" && this.renderPressure() > 0.34) {
+          this.exportedAssetPreloadQueue.push(path);
+          this.scheduleExportedPreloadDrain(140);
+          break;
+        }
+        this.exportedAssetPriorityQueued.delete(path);
         this.exportedAssetPreloadActive++;
+        this.exportedAssetPreloadActivePaths.add(path);
         this.loadExportedImage(path).finally(() => {
           this.exportedAssetPreloadActive = Math.max(0, this.exportedAssetPreloadActive - 1);
+          this.exportedAssetPreloadActivePaths.delete(path);
           if (this.exportedAssetPreloadQueue.length) this.scheduleExportedPreloadDrain();
         });
       }
@@ -3364,6 +3934,38 @@
       }
       if (this.run.currentRoom?.type === "normal") this.preloadDoorExportFrames("normal", false);
       if (this.run.currentRoom?.type === "boss") this.preloadDoorExportFrames("bossGate", true);
+      if (priority) this.beginRoomAssetWarmup();
+    }
+
+    beginRoomAssetWarmup() {
+      if (!this.run?.currentRoom) return;
+      const pending = this.exportedAssetPreloadQueue.length + this.exportedAssetPreloadActive;
+      if (pending <= 0) return;
+      const current = this.run.assetWarmup || {};
+      this.run.assetWarmup = {
+        time: Number(current.time || 0),
+        min: Math.max(Number(current.min || 0), this.isMobileDevice() ? 0.28 : 0.22),
+        max: Math.max(Number(current.max || 0), this.isMobileDevice() ? 0.95 : 0.85)
+      };
+    }
+
+    updateRoomAssetWarmup(dt) {
+      const warmup = this.run?.assetWarmup;
+      if (!warmup) return false;
+      warmup.time = Math.min(4, Number(warmup.time || 0) + Math.max(0, dt || 0));
+      if (!this.roomAssetWarmupActive()) {
+        this.run.assetWarmup = null;
+        return false;
+      }
+      return true;
+    }
+
+    roomAssetWarmupActive() {
+      const warmup = this.run?.assetWarmup;
+      if (!warmup) return false;
+      const pending = this.exportedAssetPreloadQueue.length + this.exportedAssetPreloadActive;
+      return Number(warmup.time || 0) < Number(warmup.min || 0)
+        || (pending > 0 && Number(warmup.time || 0) < Number(warmup.max || 0));
     }
 
     preloadMenuExportedAssets() {
@@ -3570,6 +4172,7 @@
     drawExportedHeroSprite(ctx, x, y, scale, actor = {}, power = null, custom = {}) {
       const character = characterById(actor.characterId || this.save?.account?.selectedCharacter || "swordsman");
       if (!character?.id) return false;
+      if (normalizeHeroColor(custom.color, character.color) !== DEFAULT_HERO_COLOR) return false;
       const frame = this.exportedHeroFrame(actor);
       const path = `assets/exported/characters/${character.id}/${frame.state}_${String(frame.frame).padStart(2, "0")}.png`;
       const image = this.exportedImage(path);
@@ -4015,6 +4618,7 @@
           fromName: String(invite?.fromName || "Bạn bè").trim() || "Bạn bè",
           code,
           roomSession: String(invite?.roomSession || ""),
+          runMode: ["gauntlet", "awakeningRaid", "bossRush", "playerBoss"].includes(invite?.runMode) ? invite.runMode : "gauntlet",
           sentAt: sentAt || now
         };
       }
@@ -4109,7 +4713,7 @@
       this.applyCloudProfileToCurrentRun(previousPower, previousCharacter);
       this.notifyNewSocialActivity(previous, normalized);
       if (this.lobby?.syncOwnSlot) this.lobby.syncOwnSlot();
-      if (this.mode === "lobby") this.renderLobby();
+      if (this.mode === "lobby") this.showPlayMenu();
       if (this.mode === "friends") this.showFriends();
       if (this.mode === "powers") this.showPowers();
       else if (this.mode === "awakening") this.showAwakening();
@@ -4204,6 +4808,8 @@
         this.save.account.selectedCharacter = "swordsman";
       }
       this.save.account.ownedPowers ||= [];
+      this.save.customization ||= defaultProfile(this.save.account.username).customization;
+      this.save.customization.color = normalizeHeroColor(this.save.customization.color);
       if (this.save.account.ownedPowers.length > 1) {
         const keep = this.save.account.selectedPower || this.save.account.ownedPowers[this.save.account.ownedPowers.length - 1];
         this.save.account.ownedPowers = keep ? [keep] : [];
@@ -4642,26 +5248,39 @@
       this.screen.addEventListener("click", (event) => {
         const statusTarget = event.target.closest("[data-status-index]");
         if (statusTarget && this.mode === "status") {
+          this.audio.ui("click");
           this.showStatusEffects(Number(statusTarget.dataset.statusIndex || 0));
           return;
         }
         const target = event.target.closest("[data-action]");
-        if (target) this.handleAction(target.dataset.action, target);
+        if (target) {
+          this.audio.ui(target.dataset.action?.includes("inventory") ? "inventory" : "click");
+          this.handleAction(target.dataset.action, target);
+        }
+      });
+      this.screen.addEventListener("pointerover", (event) => {
+        const target = event.target.closest("[data-action], button, .choice-card, .squad-member, .friend-card, .mode-card");
+        if (target) this.audio.ui("hover");
       });
       this.hud.addEventListener("click", (event) => {
         const target = event.target.closest("[data-status-index]");
-        if (target) this.showStatusEffects(Number(target.dataset.statusIndex || 0));
+        if (target) {
+          this.audio.ui("click");
+          this.showStatusEffects(Number(target.dataset.statusIndex || 0));
+        }
       });
       this.quickActions?.addEventListener("click", (event) => {
         const target = event.target.closest("[data-quick]");
         if (!target) return;
         event.preventDefault();
+        this.audio.ui(target.dataset.quick === "inventory" ? "inventory" : "click");
         this.triggerQuickAction(target.dataset.quick);
       });
       this.inviteNotificationLayer?.addEventListener("click", (event) => {
         const target = event.target.closest("[data-action]");
         if (!target) return;
         event.preventDefault();
+        this.audio.ui("notify");
         this.handleAction(target.dataset.action, target);
       });
       this.screen.addEventListener("input", (event) => this.handleInput(event));
@@ -4771,11 +5390,20 @@
     }
 
     updatePerformanceState(dt) {
-      const frame = clamp(dt || 1 / 60, 1 / 120, 0.12);
-      this.perf.avgDt = this.perf.avgDt * 0.955 + frame * 0.045;
-      this.perf.fastDt = (this.perf.fastDt || this.perf.avgDt) * 0.76 + frame * 0.24;
+      const rawFrame = clamp(dt || 1 / 60, 1 / 120, 0.12);
       const baseLevel = clamp(Number(this.save.settings.graphicsLevel || 5), 1, 5);
       const weakBias = this.devicePerformanceBias();
+      const targetDt = this.isMobileDevice() ? 0.0245 : 0.0225;
+      const renderMs = Number(this.perf.avgRenderMs || this.perf.renderMs || 0);
+      const renderBudget = this.isMobileDevice() ? 8.7 : 8.0;
+      const renderLight = renderMs < renderBudget * 1.15;
+      const schedulerHitch = rawFrame > targetDt * 1.65 && renderLight;
+      const warmupActive = (this.perf.warmupTime || 0) > 0;
+      const warmupHitch = warmupActive && schedulerHitch;
+      const frame = schedulerHitch ? Math.min(rawFrame, targetDt * (warmupHitch ? 1 : 1.18)) : rawFrame;
+      this.perf.warmupTime = Math.max(0, (this.perf.warmupTime || 0) - rawFrame);
+      this.perf.avgDt = this.perf.avgDt * 0.955 + frame * 0.045;
+      this.perf.fastDt = (this.perf.fastDt || this.perf.avgDt) * 0.76 + frame * 0.24;
       if (this.save.settings.graphicsMode === "manual") {
         this.perf.autoLevel = baseLevel;
         this.perf.targetAutoLevel = baseLevel;
@@ -4788,10 +5416,10 @@
         this.perf.skillQuietTime = 0;
         this.perf.lagTime = 0;
         this.perf.overloadTime = 0;
+        this.perf.warmupTime = 0;
         this.updateRenderScale(false);
         return;
       }
-      const targetDt = this.isMobileDevice() ? 0.0215 : 0.0188;
       const load = this.graphicsCombatLoad();
       const activeCombat = this.graphicsActiveCombat();
       const skillActive = this.graphicsPlayerSkillActive();
@@ -4800,17 +5428,16 @@
       const idle = !this.run || this.mode !== "game" || this.pauseOverlay || !stressActive;
       const avgDt = this.perf.avgDt || frame;
       const fastDt = this.perf.fastDt || frame;
-      const renderMs = Number(this.perf.avgRenderMs || this.perf.renderMs || 0);
-      const renderBudget = this.isMobileDevice() ? 8.7 : 8.0;
       const renderLag = stressActive && renderMs > renderBudget;
       const renderSevere = stressActive && renderMs > (this.isMobileDevice() ? 14.5 : 13.2);
       this.perf.skillQuietTime = skillActive ? 0 : Math.min(8, (this.perf.skillQuietTime || 0) + frame);
-      const heavyFrame = frame > (this.isMobileDevice() ? 0.04 : 0.034) || renderLag;
-      const sustainedSlow = (this.perf.fastDt || frame) > targetDt + (this.isMobileDevice() ? 0.012 : 0.01)
-        || this.perf.avgDt > targetDt + (this.isMobileDevice() ? 0.009 : 0.0075);
-      const severeFrame = frame > (this.isMobileDevice() ? 0.058 : 0.05) || renderSevere;
-      const severeSlow = fastDt > targetDt + (this.isMobileDevice() ? 0.014 : 0.012)
-        || avgDt > targetDt + (this.isMobileDevice() ? 0.012 : 0.01);
+      const nonRenderHitch = frame > targetDt * 1.65 && renderMs < renderBudget * 1.15;
+      const heavyFrame = (!nonRenderHitch && frame > (this.isMobileDevice() ? 0.046 : 0.042)) || renderLag;
+      const sustainedSlow = (this.perf.fastDt || frame) > targetDt + (this.isMobileDevice() ? 0.015 : 0.014)
+        || this.perf.avgDt > targetDt + (this.isMobileDevice() ? 0.012 : 0.011);
+      const severeFrame = (!nonRenderHitch && frame > (this.isMobileDevice() ? 0.07 : 0.064)) || renderSevere;
+      const severeSlow = fastDt > targetDt + (this.isMobileDevice() ? 0.02 : 0.018)
+        || avgDt > targetDt + (this.isMobileDevice() ? 0.016 : 0.015);
       const instantLag = stressActive && (heavyFrame || sustainedSlow);
       const realLag = stressActive && (heavyFrame || sustainedSlow);
       const severeLag = stressActive && (severeFrame || severeSlow);
@@ -4823,7 +5450,12 @@
       const pressureBlend = 1 - Math.exp(-frame * pressureRate);
       this.perf.pressure = pressureNow + (rawPressure - pressureNow) * pressureBlend;
       const emergencyLag = stressActive && (this.perf.lagTime > 0.18 - weakBias * 0.055 || severeLag || this.perf.pressure > 0.18 - weakBias * 0.05);
-      const panicLag = stressActive && (this.perf.lagTime > 0.62 - weakBias * 0.14 || frame > 0.075 - weakBias * 0.012 || this.perf.pressure > 0.55 - weakBias * 0.1);
+      const sustainedPanicFrame = frame > 0.075 - weakBias * 0.012 && (this.perf.lagTime || 0) > 0.34 - weakBias * 0.08;
+      const panicLag = stressActive && (
+        this.perf.lagTime > 0.62 - weakBias * 0.14
+        || sustainedPanicFrame
+        || this.perf.pressure > 0.55 - weakBias * 0.1
+      );
       this.perf.emergencyHold = emergencyLag
         ? Math.max(this.perf.emergencyHold || 0, 1.8)
         : idle || skillQuietReady ? 0 : Math.max(0, (this.perf.emergencyHold || 0) - frame);
@@ -4843,7 +5475,14 @@
       let targetLevel = Number.isFinite(this.perf.targetAutoLevel) ? this.perf.targetAutoLevel : currentLevel;
       const canShiftLevel = (this.perf.levelChangeLock || 0) <= 0;
       const skillQuiet = (this.perf.skillQuietTime || 0) > 0.55;
-      const stableForRecover = skillQuiet && (
+      const calmSkillRecovery = skillActive
+        && !realLag
+        && !renderLag
+        && this.perf.stableTime > 0.45 + weakBias * 0.28
+        && this.perf.pressure < 0.16
+        && this.perf.lagTime < 0.12
+        && this.renderPressure() < 0.16;
+      const stableForRecover = (skillQuiet || calmSkillRecovery) && (
         idle || (
           !activeCombat
           && this.perf.stableTime > 1.2 + weakBias * 0.8
@@ -4861,8 +5500,10 @@
         targetLevel = baseLevel;
         this.perf.levelChangeLock = 0;
       } else if ((panicLag || emergencyLag || this.perf.overloadTime > 0.16) && (canShiftLevel || panicLag || emergencyLag)) {
-        const dropStep = (panicLag ? 1.35 : emergencyLag ? 0.9 : 0.48) + weakBias * (panicLag ? 0.72 : emergencyLag ? 0.48 : 0.28);
-        const floor = panicLag ? 1 : emergencyLag ? 1.25 : 2.05;
+        const dropStep = (panicLag ? 1.18 : emergencyLag ? 0.64 : 0.42) + weakBias * (panicLag ? 0.72 : emergencyLag ? 0.36 : 0.24);
+        const emergencyFloor = clamp(2.05 - weakBias * 0.45, 1.45, 2.05);
+        const overloadFloor = clamp(2.55 - weakBias * 0.35, 1.75, 2.55);
+        const floor = panicLag ? 1 : emergencyLag ? emergencyFloor : overloadFloor;
         targetLevel = Math.max(Math.min(baseLevel, targetLevel) - dropStep, Math.min(baseLevel, floor));
         this.perf.levelChangeLock = panicLag ? 0.12 : emergencyLag ? 0.18 : 0.3;
       } else if (stableForRecover && canShiftLevel && targetLevel < baseLevel) {
@@ -4870,8 +5511,18 @@
         targetLevel = Math.min(baseLevel, targetLevel + recoverStep);
         this.perf.levelChangeLock = idle ? 0.38 : 1.25 + weakBias * 0.75;
       }
+      const calmVisualFloor = clamp(3.2 - weakBias * 0.35, 2.65, 3.2);
+      const calmVisual = !realLag
+        && !renderLag
+        && this.perf.pressure < 0.18
+        && this.perf.lagTime < 0.12
+        && this.renderPressure() < 0.16;
+      if (calmVisual && targetLevel < Math.min(baseLevel, calmVisualFloor)) {
+        targetLevel = Math.min(baseLevel, calmVisualFloor);
+        this.perf.levelChangeLock = Math.min(this.perf.levelChangeLock || 0, 0.12);
+      }
       targetLevel = clamp(Math.round(targetLevel * 10) / 10, 1, 5);
-      if (skillActive && targetLevel > currentLevel) targetLevel = currentLevel;
+      if (skillActive && targetLevel > currentLevel && !calmSkillRecovery) targetLevel = currentLevel;
       this.perf.targetAutoLevel = targetLevel;
       const levelDelta = targetLevel - currentLevel;
       const maxStep = (levelDelta < 0
@@ -4909,13 +5560,11 @@
         && !["mageBasic", "rangerBasic"].includes(projectile.kind)
         && (projectile.life ?? 0) > 0;
       if ((this.run.projectiles || []).some(skillProjectile)) return true;
-      const skillEffectTypes = new Set(["skillShape", "castBurst", "castCone", "powerGlyph", "shadowShard", "zone", "pull", "ultimate", "fireWall"]);
+      const skillEffectTypes = new Set(["skillShape", "castBurst", "castCone", "powerGlyph", "shadowShard"]);
       const skillEffect = (effect) => skillEffectTypes.has(effect?.type)
         && playerOwned(effect)
         && (effect.time ?? 0) > 0.03;
       if ((this.run.effects || []).some(skillEffect)) return true;
-      if ((this.run.trails || []).some((trail) => Boolean(trail?.casterId) && trail.damageTick !== undefined && (trail.life ?? 0) > 0.03)) return true;
-      if ((this.run.shockwaves || []).some((wave) => playerOwned(wave) && wave.owner !== "enemy" && (wave.damage || 0) > 0 && (wave.life ?? 0) > 0.03)) return true;
       return false;
     }
 
@@ -5105,12 +5754,18 @@
       const skillActive = this.graphicsPlayerSkillActive();
       const skillQuietReady = !skillActive && (this.perf.skillQuietTime || 0) > 0.55;
       const idle = !this.run || this.mode !== "game" || this.pauseOverlay || (!activeCombat && !skillActive);
+      const combatResize = Boolean(this.run && this.mode === "game" && !this.pauseOverlay && (activeCombat || skillActive));
       const stableForResizeRecover = skillQuietReady && (
         idle || (
-          (this.perf.stableTime || 0) > 1.3
+          !activeCombat
+          && !skillActive
+          && (this.perf.stableTime || 0) > 1.3
           && pressure < 0.1
           && !this.performanceEmergency()
-        ) || this.perf.lagTime < 0.14
+        ) || (
+          !combatResize
+          && this.perf.lagTime < 0.14
+        )
       );
       let stableTarget = currentTarget;
       const targetGap = desired - currentTarget;
@@ -5125,19 +5780,21 @@
         stableTarget = desired;
       }
       const weakBias = this.devicePerformanceBias();
-      const targetBlend = manualScale ? 1 : stableTarget < currentTarget ? (force ? 0.82 : 0.52 + weakBias * 0.18) : skillQuietReady ? 0.36 : idle ? 0.28 : 0.04;
-      const next = currentTarget + (stableTarget - currentTarget) * targetBlend;
+      const targetBlend = manualScale ? 1 : stableTarget < currentTarget ? (force ? 0.82 : combatResize ? 1 : 0.52 + weakBias * 0.18) : skillQuietReady ? 0.36 : idle ? 0.28 : 0.04;
+      let next = currentTarget + (stableTarget - currentTarget) * targetBlend;
+      if (!manualScale && combatResize && stableTarget < currentTarget) next = stableTarget;
       this.perf.renderScaleTarget = next;
       this.perf.renderScale = next;
       const current = Number.isFinite(this.perf.appliedRenderScale) ? this.perf.appliedRenderScale : 1;
       const now = performance.now();
       const diff = Math.abs(next - current);
-      const resizeThreshold = manualScale ? 0.025 : next < current ? 0.02 : idle ? 0.08 : 0.12;
+      const resizeThreshold = manualScale ? 0.025 : combatResize ? (next < current ? 0.095 : 0.18) : next < current ? 0.04 : idle ? 0.08 : 0.14;
       if (diff < resizeThreshold) return;
-      const urgentDrop = !manualScale && force && next < current && diff > 0.045 && (this.performancePanic() || this.performanceEmergency() || pressure > 0.28);
+      const urgentDrop = !manualScale && force && next < current && diff > (combatResize ? 0.13 : 0.045) && (this.performancePanic() || this.performanceEmergency() || pressure > 0.28);
       if (!urgentDrop && now < (this.perf.resizeAt || 0)) return;
       this.perf.appliedRenderScale = next;
-      this.perf.resizeAt = now + (manualScale ? 140 : idle || skillQuietReady ? 260 : next < current ? urgentDrop ? 70 : 150 : 2200 + weakBias * 1500);
+      const dropDelay = combatResize ? (urgentDrop ? 220 : 620 + weakBias * 420) : (urgentDrop ? 70 : 150);
+      this.perf.resizeAt = now + (manualScale ? 140 : idle || skillQuietReady ? 260 : next < current ? dropDelay : 2600 + weakBias * 1800);
       this.resize();
       if (this.run && next < current) {
         this.trimEffectList();
@@ -5162,6 +5819,22 @@
         this.perf.quality = this.graphicsQualityFromLevel(this.perf.displayedAutoLevel);
       }
       this.updateRenderScale(true);
+    }
+
+    prepareCombatRenderScale() {
+      if (this.save?.settings?.graphicsMode === "manual") return;
+      const weakBias = this.devicePerformanceBias();
+      const mobile = this.isMobileDevice();
+      const preferred = mobile
+        ? clamp(0.88 - weakBias * 0.12, 0.78, 0.9)
+        : clamp(0.86 - weakBias * 0.18, 0.62, 0.88);
+      const current = Number.isFinite(this.perf?.appliedRenderScale) ? this.perf.appliedRenderScale : 1;
+      if (Math.abs(current - preferred) < 0.045) return;
+      this.perf.renderScaleTarget = preferred;
+      this.perf.renderScale = preferred;
+      this.perf.appliedRenderScale = preferred;
+      this.perf.resizeAt = (typeof performance !== "undefined" && performance.now ? performance.now() : Date.now()) + 900;
+      this.resize();
     }
 
     particleSpawnChance(shape = "spark") {
@@ -5510,6 +6183,7 @@
     }
 
     resize() {
+      const resizeStart = typeof performance !== "undefined" && performance.now ? performance.now() : 0;
       this.updateDeviceUiMode();
       window.SoulriftPwaGate?.syncViewport?.();
       const mobile = this.isMobileDevice();
@@ -5527,6 +6201,12 @@
       this.ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
       this.ctx.imageSmoothingEnabled = true;
       this.ctx.imageSmoothingQuality = this.dpr < 0.9 ? "high" : "medium";
+      if (resizeStart && this.perf) {
+        const resizeMs = performance.now() - resizeStart;
+        this.perf.resizeMs = resizeMs;
+        this.perf.maxResizeMs = Math.max(Number(this.perf.maxResizeMs || 0), resizeMs);
+        this.perf.resizeCount = (this.perf.resizeCount || 0) + 1;
+      }
     }
 
     updateMouse(event) {
@@ -5656,7 +6336,13 @@
         this.updateRoomDirectory(dt);
         this.updateAccountCloudCheck(dt);
         this.updateQuickActions();
+        const updateStart = performance.now();
         if (this.mode === "game" && this.run) this.update(dt);
+        const updateMs = performance.now() - updateStart;
+        this.perf.updateMs = updateMs;
+        this.perf.avgUpdateMs = this.perf.avgUpdateMs
+          ? this.perf.avgUpdateMs * 0.86 + updateMs * 0.14
+          : updateMs;
         this.audio.update(dt);
         const renderStart = performance.now();
         this.render();
@@ -5773,6 +6459,17 @@
         this.showMainMenu();
         return;
       }
+      const returnToSquad = this.isTrainingRun();
+      const showExitDestination = () => {
+        if (!returnToSquad) {
+          this.showMainMenu();
+          return;
+        }
+        this.run = null;
+        this.remotePlayers.clear();
+        this.pauseOverlay = false;
+        this.showPlayMenu();
+      };
       const spectating = this.run.player.dead && this.run.spectating;
       if (this.isMultiplayerRun()) this.lobby.sendLeaveRun();
       if (spectating) {
@@ -5790,11 +6487,11 @@
         this.updateQuickActions();
         const exitingRun = this.run;
         setTimeout(() => {
-          if (this.run === exitingRun) this.showMainMenu();
+          if (this.run === exitingRun) showExitDestination();
         }, 220);
         return;
       }
-      this.showMainMenu();
+      showExitDestination();
     }
 
     shortNumber(value = 0) {
@@ -5936,9 +6633,10 @@
 
     mainMenuHeroHtml(profile) {
       const custom = this.save.customization || {};
+      const heroColor = normalizeHeroColor(custom.color, profile.character.color);
       const attr = (name, value = "") => `data-${name}="${escapeHtml(value)}"`;
       return `
-        <section class="aaa-hero-stage" style="--hero:${profile.character.color};--power:${profile.power.color};--rank:${profile.rank.color}">
+        <section class="aaa-hero-stage" style="--hero:${heroColor};--power:${profile.power.color};--rank:${profile.rank.color}">
           <div class="aaa-hero-light"></div>
           <canvas
             class="aaa-hero-canvas"
@@ -5946,7 +6644,7 @@
             height="680"
             ${attr("character", profile.character.id)}
             ${attr("power", profile.power.id)}
-            ${attr("color", custom.color || profile.character.color)}
+            ${attr("color", heroColor)}
             ${attr("aura", custom.aura || "")}
             ${attr("eyes", custom.eyes || "")}
             ${attr("mouth", custom.mouth || "")}
@@ -6021,7 +6719,7 @@
       const character = characterById(canvas.dataset.character || "swordsman");
       const power = powerById(canvas.dataset.power || this.save.account.selectedPower || "fire");
       const custom = {
-        color: canvas.dataset.color || character.color,
+        color: normalizeHeroColor(canvas.dataset.color, character.color),
         aura: canvas.dataset.aura || "",
         eyes: canvas.dataset.eyes || "",
         mouth: canvas.dataset.mouth || "",
@@ -6234,6 +6932,10 @@
         if (this.mode === "play" && this.screen?.querySelector(".valorant-lobby")) this.refreshValorantLobby();
         else this.showPlayMenu();
       }
+      if (action === "back-to-squad") {
+        this.showPlayMenu();
+        return;
+      }
       if (action === "start-squad-mode") {
         this.startSelectedSquadMode();
         return;
@@ -6286,7 +6988,7 @@
       if (action === "create-room-from-play") {
         this.lobby.runMode = target.dataset.runMode || this.lobby.runMode || "gauntlet";
         this.lobby.create();
-        this.renderLobby();
+        this.showPlayMenu();
       }
       if (action === "start-solo-difficulty") this.startSelectedRun("", { difficulty: target.dataset.difficulty || "normal" });
       if (action === "start-boss-rush-solo-difficulty") this.startSelectedRun(pick(BIOMES).id, { difficulty: target.dataset.difficulty || "normal", miniGame: "bossRush" });
@@ -6319,14 +7021,14 @@
           this.refreshValorantActionButton();
           this.refreshValorantInvitePanel();
         }
-        else this.refreshValorantInvitePanel() || this.renderLobby();
+        else this.refreshValorantInvitePanel() || this.showPlayMenu();
         return;
       }
       if (action === "close-lobby-invites") {
         const playView = target?.dataset.view === "play" || this.mode === "play";
         this.lobbyFriendInviteOpen = false;
         if (playView) this.refreshValorantInvitePanel();
-        else this.refreshValorantInvitePanel() || this.renderLobby();
+        else this.refreshValorantInvitePanel() || this.showPlayMenu();
         return;
       }
       if (action === "friends-filter") {
@@ -6363,7 +7065,7 @@
       if (action === "powers") this.showPowers();
       if (action === "awakening") this.showAwakening();
       if (action === "settings") this.showSettings();
-      if (action === "multiplayer") this.renderLobby();
+      if (action === "multiplayer") this.showPlayMenu();
       if (action === "menu") this.showMainMenu();
       if (action === "exit-run") this.exitRun();
       if (action === "resume") this.resumeGame();
@@ -6426,7 +7128,7 @@
       if (action === "create-room") this.lobby.create();
       if (action === "join-room") {
         if (target.dataset.runMode) this.lobby.runMode = target.dataset.runMode;
-        this.lobby.join(target.dataset.roomCode || document.getElementById("roomCodeInput")?.value);
+        this.lobby.join(target.dataset.roomCode || document.getElementById("roomCodeInput")?.value, { showSquad: true });
       }
       if (action === "ready-room") this.lobby.toggleReady();
       if (action === "vote-map") {
@@ -6479,7 +7181,8 @@
         if (key === "graphicsMode" || key === "graphicsLevel") this.refreshGraphicsSettingLabels();
       }
       if (target.dataset.custom) {
-        this.save.customization[target.dataset.custom] = target.value;
+        const customKey = target.dataset.custom;
+        this.save.customization[customKey] = customKey === "color" ? normalizeHeroColor(target.value) : target.value;
         this.persist();
         if (this.lobby?.syncOwnSlot) this.lobby.syncOwnSlot();
         if (this.mode === "custom") this.showCustomization(true);
@@ -6567,6 +7270,7 @@
     }
 
     squadHeroCanvasHtml(slot, self, character, power, custom) {
+      const heroColor = normalizeHeroColor(custom.color, character.color);
       const attr = (name, value = "") => `data-${name}="${escapeHtml(value)}"`;
       return `
         <canvas
@@ -6575,7 +7279,7 @@
           height="360"
           ${attr("character", character.id)}
           ${attr("power", power.id)}
-          ${attr("color", custom.color || character.color)}
+          ${attr("color", heroColor)}
           ${attr("aura", custom.aura || "")}
           ${attr("eyes", custom.eyes || "")}
           ${attr("mouth", custom.mouth || "")}
@@ -6594,6 +7298,7 @@
       const character = characterById(slot?.characterId || this.save.account.selectedCharacter || "swordsman");
       const power = powerById(slot?.powerId || this.save.account.selectedPower || "fire");
       const custom = this.squadSlotCustomization(slot, self);
+      const heroColor = normalizeHeroColor(custom.color, character.color);
       const stats = this.squadMockStats(slot, options.index || 0);
       const level = this.squadSlotLevel(slot, self);
       const ready = this.squadReady(slot);
@@ -6608,7 +7313,7 @@
         `;
       }
       return `
-        <article class="valorant-member ${options.key || ""} ${self ? "self" : ""} ${leader ? "leader" : ""} ${ready ? "ready" : "not-ready"} ${empty ? "empty" : "filled"}" style="--hero:${custom.color || character.color}; --power:${power.color}; --rank:${stats.rank.color}; --char:${character.color}">
+        <article class="valorant-member ${options.key || ""} ${self ? "self" : ""} ${leader ? "leader" : ""} ${ready ? "ready" : "not-ready"} ${empty ? "empty" : "filled"}" style="--hero:${heroColor}; --power:${power.color}; --rank:${stats.rank.color}; --char:${character.color}">
           ${leader && !empty ? `<div class="leader-crown">♛</div>` : ""}
           ${ready && !empty ? `<div class="ready-check">✓</div>` : ""}
           <div class="member-frame">
@@ -6661,6 +7366,62 @@
         slotsHtml: members.map((entry) => this.squadMemberCardHtml(entry.slot, entry)).join(""),
         actionHtml: this.squadActionButtonHtml()
       };
+    }
+
+    squadGridRenderSignature(members = this.squadMembers()) {
+      return members.map((entry) => {
+        const slot = entry.slot;
+        if (!slot) return `${entry.key}:empty`;
+        const custom = this.squadSlotCustomization(slot, Boolean(entry.self));
+        return [
+          entry.key,
+          slot.id || "",
+          slot.name || "",
+          slot.host ? 1 : 0,
+          this.squadReady(slot) ? 1 : 0,
+          slot.powerId || "",
+          slot.characterId || "",
+          this.squadSlotLevel(slot, Boolean(entry.self)),
+          slot.powerAwakened ? 1 : 0,
+          normalizeHeroColor(custom.color || ""),
+          custom.aura || "",
+          custom.eyes || "",
+          custom.mouth || "",
+          custom.accessory || "",
+          custom.trail || ""
+        ].join(":");
+      }).join("|");
+    }
+
+    squadActionRenderSignature() {
+      const slots = Array.isArray(this.lobby?.slots) ? this.lobby.slots.filter(Boolean) : [];
+      const slotState = slots
+        .map((slot) => `${slot.id || ""}:${slot.host ? 1 : 0}:${slot.ready ? 1 : 0}`)
+        .sort()
+        .join("|");
+      return [
+        this.lobby?.code || "",
+        this.lobby?.joinPending ? 1 : 0,
+        this.lobby?.host ? 1 : 0,
+        this.lobby?.ready ? 1 : 0,
+        this.lobby?.runMode || "gauntlet",
+        this.lobby?.mapVote || "forest",
+        this.lobby?.difficultyVote || "normal",
+        this.squadModePickerOpen ? 1 : 0,
+        this.squadModeTransition?.token || "",
+        slotState
+      ].join(";");
+    }
+
+    lobbyInviteRenderSignature() {
+      if (!this.lobbyFriendInviteOpen || !this.lobby?.code || !this.lobby.host) return "closed";
+      const account = this.currentAccountRecord();
+      return this.socialEntries(account?.friends).map(([key, friend]) => {
+        const targetKey = accountKey(key);
+        const lockId = `invite:${targetKey}:${this.lobby?.code || ""}`;
+        const cooldown = this.roomInviteCooldownLeft(targetKey) > 0 ? 1 : 0;
+        return `${targetKey}:${friend?.username || ""}:${this.socialActionLocks.has(lockId) ? 1 : 0}:${cooldown}`;
+      }).join("|") || "empty";
     }
 
     squadModeOptions() {
@@ -7070,6 +7831,9 @@
     refreshValorantInvitePanel() {
       const mount = this.screen?.querySelector(".lobby-invite-mount");
       if (!mount) return false;
+      const signature = this.lobbyInviteRenderSignature();
+      if (mount.dataset.signature === signature) return true;
+      mount.dataset.signature = signature;
       mount.innerHTML = this.lobbyFriendInvitePanel();
       return true;
     }
@@ -7081,6 +7845,12 @@
       }
       const mount = this.screen?.querySelector(".squad-action-mount");
       if (!mount) return false;
+      const signature = this.squadActionRenderSignature();
+      if (!options.force && mount.dataset.signature === signature) {
+        this.syncSquadActionButtonDom({ preserveTransition: true });
+        return true;
+      }
+      mount.dataset.signature = signature;
       mount.innerHTML = this.squadActionButtonHtml();
       return true;
     }
@@ -7107,7 +7877,7 @@
         const character = characterById(canvas.dataset.character || "swordsman");
         const power = powerById(canvas.dataset.power || this.save.account.selectedPower || "fire");
         const custom = {
-          color: canvas.dataset.color || character.color,
+          color: normalizeHeroColor(canvas.dataset.color, character.color),
           aura: canvas.dataset.aura || "",
           eyes: canvas.dataset.eyes || "",
           mouth: canvas.dataset.mouth || "",
@@ -7147,10 +7917,15 @@
         return false;
       }
       if (this.lobby?.code) this.lobby.syncOwnSlot();
-      const data = this.valorantLobbyData();
+      const members = this.squadMembers();
+      const gridSignature = this.squadGridRenderSignature(members);
       const grid = root.querySelector(".valorant-squad-grid");
-      if (grid) grid.innerHTML = data.slotsHtml;
-      this.refreshValorantActionButton();
+      if (grid && (options.force || grid.dataset.signature !== gridSignature)) {
+        grid.dataset.signature = gridSignature;
+        grid.innerHTML = members.map((entry) => this.squadMemberCardHtml(entry.slot, entry)).join("");
+        requestAnimationFrame(() => this.renderSquadHeroCanvases());
+      }
+      this.refreshValorantActionButton(options);
       this.refreshValorantInvitePanel();
       return true;
     }
@@ -7189,7 +7964,6 @@
                 <p class="panel-subtitle">Chọn chế độ ngắn với luật riêng. Hiện có Đại chiến boss.</p>
               </div>
               <div class="header-actions command-header-actions">
-                <button class="btn" data-action="play">CHƠI</button>
                 ${this.menuExitButton()}
               </div>
             </div>
@@ -7296,7 +8070,6 @@
                 <p class="panel-subtitle">${selected ? `Power: ${selected.name}. Chọn vượt ải thường hoặc Raid A để kiếm ${gem}.` : "Hãy quay và chọn power trước khi bắt đầu."}</p>
               </div>
               <div class="header-actions command-header-actions">
-                <button class="btn" data-action="play">CHƠI</button>
                 ${this.menuExitButton()}
               </div>
             </div>
@@ -7483,7 +8256,7 @@
                 <p class="panel-subtitle">${selected ? `Power: ${selected.name}. Vào phòng có 5 dummy để test chiêu.` : "Hãy quay và chọn power trước khi vào phòng huấn luyện."}</p>
               </div>
               <div class="header-actions command-header-actions">
-                ${this.menuExitButton("", "play")}
+                ${this.menuExitButton("", "back-to-squad")}
               </div>
             </div>
             <div class="grid">
@@ -7500,6 +8273,12 @@
     }
 
     showMultiplayerHub(runMode = "gauntlet") {
+      this.lobby.runMode = runMode || "gauntlet";
+      this.roomFinderOpen = false;
+      this.lobbyFriendInviteOpen = false;
+      this.squadModePickerOpen = true;
+      this.showPlayMenu();
+      return;
       this.mode = "play";
       this.roomFinderOpen = false;
       this.lobby.runMode = runMode;
@@ -7805,7 +8584,7 @@
 
     refreshRoomInviteCooldownViews() {
       if (this.screen?.querySelector(".lobby-invite-mount") && this.refreshValorantInvitePanel()) return;
-      if (this.mode === "lobby") this.renderLobby();
+      if (this.mode === "lobby") this.showPlayMenu();
       else if (this.mode === "friends") this.showFriends();
     }
 
@@ -8432,6 +9211,7 @@
         fromName: local.username || this.save.account.username || "Bạn",
         code: this.lobby.code,
         roomSession: this.lobby.roomSession || "",
+        runMode: this.lobby.runMode || "gauntlet",
         sentAt: now
       };
       this.setRoomInviteCooldown(targetKey);
@@ -8467,9 +9247,9 @@
       delete local.roomInvites[inviteId];
       this.save.auth.accounts[myKey] = local;
       await this.saveCloudAccountNow(myKey);
-      this.lobby.join(invite.code);
-      if (this.mode === "play" && this.screen?.querySelector(".valorant-lobby")) this.refreshValorantLobby({ fullIfMissing: true });
-      else this.renderLobby();
+      this.lobby.runMode = invite.runMode || this.lobby.runMode || "gauntlet";
+      this.lobby.join(invite.code, { showSquad: true });
+      this.refreshValorantLobby({ fullIfMissing: true, force: true });
     }
 
     async dismissRoomInvite(inviteId = "") {
@@ -8842,9 +9622,10 @@
     }
 
     customizationSwatchesHtml() {
-      const colors = ["#d8b46a", "#f06d6d", "#61d6b4", "#7fa8ff", "#f2f0e6", "#a169ff", "#ff9f43", "#202335"];
+      const currentColor = normalizeHeroColor(this.save.customization.color);
+      const colors = [DEFAULT_HERO_COLOR, "#f06d6d", "#61d6b4", "#7fa8ff", WHITE_HERO_COLOR, "#a169ff", "#ff9f43", "#202335"];
       return colors.map((color) => `
-        <button class="swatch ${this.save.customization.color === color ? "active" : ""}" style="--swatch:${color}" data-action="set-color" onclick="this.dispatchEvent(new Event('input', {bubbles:true}))">
+        <button class="swatch ${currentColor === normalizeHeroColor(color) ? "active" : ""}" style="--swatch:${color}" data-action="set-color" onclick="this.dispatchEvent(new Event('input', {bubbles:true}))">
           <input class="hidden" data-custom="color" value="${color}" />
         </button>
       `).join("");
@@ -8889,7 +9670,7 @@
       for (const swatch of this.screen.querySelectorAll(".swatch")) {
         swatch.addEventListener("click", () => {
           const input = swatch.querySelector("input");
-          this.save.customization.color = input.value;
+          this.save.customization.color = normalizeHeroColor(input.value);
           this.persist();
           this.showCustomization(true);
         }, { once: true });
@@ -8900,9 +9681,10 @@
       const custom = this.save.customization;
       const selected = this.save.account.selectedPower ? powerById(this.save.account.selectedPower) : powerById("fire");
       const character = characterById(this.save.account.selectedCharacter);
+      const heroColor = normalizeHeroColor(custom.color, character.color);
       const aura = { gold: "#f2bf63", crimson: "#ff4b55", teal: "#35d6c9", violet: "#a169ff" }[custom.aura] || selected.color;
       return `
-        <div class="character-preview char-${character.id}" style="--hero:${custom.color}; --aura:${aura}; --power:${selected.color}; --char:${character.color}">
+        <div class="character-preview char-${character.id}" style="--hero:${heroColor}; --aura:${aura}; --power:${selected.color}; --char:${character.color}">
           <div class="preview-aura"></div>
           <div class="preview-trail preview-${custom.trail}"></div>
           <div class="preview-hero">
@@ -9533,6 +10315,7 @@
       };
       this.run.tutorialStartX = this.run.player.x;
       this.run.tutorialStartY = this.run.player.y;
+      this.prepareCombatRenderScale();
       this.audio.setBiome(this.run.biome);
       this.applyEquippedItems();
       this.networkSeq = 0;
@@ -9758,7 +10541,7 @@
           maxEnergy: character.stats.energy,
           damage: character.stats.damage,
           crit: character.stats.crit,
-          color: slot.customization?.color || "#d8b46a",
+          color: normalizeHeroColor(slot.customization?.color),
           characterId: character.id,
           animation: "idle",
           animTime: this.menuTime,
@@ -9791,7 +10574,7 @@
         maxEnergy: player.maxEnergy,
         damage: player.damage,
         crit: player.crit,
-        color: extra.color || this.save.customization.color,
+        color: normalizeHeroColor(extra.color || this.save.customization.color),
         characterId: player.characterId,
         animation: player.animation,
         animTime: player.animTime,
@@ -10423,6 +11206,9 @@
       this.mode = "game";
       this.setScreen("");
       const type = room.type || room.id;
+      this.perf.warmupTime = Math.max(this.perf.warmupTime || 0, type === "boss" ? 1.45 : 1.05);
+      this.perf.lagTime = Math.max(0, (this.perf.lagTime || 0) - 0.08);
+      this.perf.panicHold = 0;
       const meta = ROOM_TYPES.find((r) => r.id === type) || room;
       this.run.currentRoom = {
         ...meta,
@@ -10687,7 +11473,9 @@
       for (let i = 0; i < count; i++) {
         const edge = pick(["top", "bottom", "left", "right"]);
         const pos = this.edgePosition(edge);
-        this.run.enemies.push(this.createEnemy(pick(biome.enemies), pos.x, pos.y, type === "elite" || chance(0.12)));
+        const enemy = this.createEnemy(pick(biome.enemies), pos.x, pos.y, type === "elite" || chance(0.12));
+        this.run.enemies.push(enemy);
+        if (i < 4) this.audio.enemy(enemy, "spawn");
       }
     }
 
@@ -11002,6 +11790,7 @@
       });
       this.camera.shake = 18;
       this.addShockwave(WORLD_W / 2, ROOM_PAD + 210, raid ? 280 : 220, raidPower?.color || this.run.biome.accent);
+      this.audio.boss("intro", this.run.enemies[this.run.enemies.length - 1]);
     }
 
     spawnPlayerBossProxy() {
@@ -11086,6 +11875,7 @@
       this.camera.shake = Math.max(this.camera.shake, 20);
       this.addShockwave(actor.x || WORLD_W / 2, actor.y || ROOM_PAD + 220, 260, biome.accent, 0, { owner: "enemy" });
       this.addPlayerBossRevealEffect(actor.x || WORLD_W / 2, actor.y || ROOM_PAD + 220, this.run.playerBossName, biome.accent);
+      this.audio.boss("intro", this.run.enemies[this.run.enemies.length - 1]);
       this.toast(`${slot?.name || "Một người chơi"} đã hóa thành boss`);
     }
 
@@ -11123,6 +11913,7 @@
       this.updateNetwork(dt);
       this.updateNetworkInterpolation(dt);
       this.syncPlayerBossProxy();
+      if (this.updateRoomAssetWarmup(dt)) return;
       if (this.run.currentRoom.intro > 0) {
         this.run.currentRoom.intro -= dt;
         return;
@@ -11769,7 +12560,7 @@
       const p = this.run?.player;
       const freeEnergy = this.trainingRule("freeEnergy");
       const noCooldown = this.trainingRule("noCooldown");
-      if (!p || p.dead || this.pauseOverlay || (!noCooldown && p.dashCd > 0) || (!freeEnergy && p.energy < 12)) return;
+      if (!p || p.dead || this.pauseOverlay || this.run.currentRoom?.intro > 0 || this.roomAssetWarmupActive() || (!noCooldown && p.dashCd > 0) || (!freeEnergy && p.energy < 12)) return;
       let dx = 0;
       let dy = 0;
       if (this.input.keys.has("KeyW")) dy -= 1;
@@ -11798,6 +12589,7 @@
       p.facing = Math.atan2(dy, dx);
       this.camera.shake = Math.max(this.camera.shake, 3);
       this.audio.sfx(160, "sawtooth", 0.055, 0.11);
+      this.audio.player("dash");
       if (this.run.power.id === "shadow") {
         for (const enemy of this.run.enemies) {
           if (Math.hypot(enemy.x - p.x, enemy.y - p.y) < 76) enemy.mark = Math.max(enemy.mark, 3);
@@ -11807,7 +12599,7 @@
 
     attackBasic() {
       const p = this.run?.player;
-      if (!p || p.dead || this.pauseOverlay || p.attackCd > 0 || this.run.currentRoom.intro > 0) return;
+      if (!p || p.dead || this.pauseOverlay || p.attackCd > 0 || this.run.currentRoom.intro > 0 || this.roomAssetWarmupActive()) return;
       if (this.isLocalPlayerBoss()) {
         this.usePlayerBossAction("basic");
         return;
@@ -11829,6 +12621,7 @@
       p.combo = Math.min(9, p.combo + 1);
       p.comboTimer = 1.15;
       this.addAttackDust(p.x + Math.cos(angle) * 24, p.y + Math.sin(angle) * 24, angle, character.id === "guardian");
+      this.audio.attack(character.id, { x: p.x, y: p.y, combo: p.combo });
       if (this.isMultiplayerClient() && character.id !== "ranger") this.sendBasicAttackPacket(character, p, angle);
       if (character.id === "mage") {
         if (!freeEnergy) {
@@ -12485,7 +13278,7 @@
         angle,
         combo,
         damage,
-        color: this.save.customization.color,
+        color: normalizeHeroColor(this.save.customization.color),
         power: this.run.power.id,
         t: performance.now()
       });
@@ -12534,7 +13327,7 @@
         damage: Number.isFinite(remote.damage) ? remote.damage : character.stats.damage,
         crit: Number.isFinite(remote.crit) ? remote.crit : character.stats.crit,
         characterId: character.id,
-        color: attack.color || remote.color || "#d8b46a",
+        color: normalizeHeroColor(attack.color || remote.color),
         power: attack.power || remote.power || "fire",
         animation: "attack",
         actionTotal: actionDuration,
@@ -12641,7 +13434,7 @@
         crit: Number.isFinite(remote.crit) ? remote.crit : character.stats.crit,
         power: power.id,
         characterId: character.id,
-        color: skill.color || remote.color || "#d8b46a",
+        color: normalizeHeroColor(skill.color || remote.color),
         animation: skill.key === "f" ? "ultimate" : "skill",
         actionTotal: skill.key === "f" ? DOMAIN_CUTIN_TIME + DOMAIN_GROW_TIME + 0.15 : 0.42,
         actionTime: skill.key === "f" ? DOMAIN_CUTIN_TIME + DOMAIN_GROW_TIME + 0.15 : 0.42,
@@ -12658,7 +13451,7 @@
         casterId: remoteId,
         awakened: Boolean(skill.awakened),
         characterId: character.id,
-        casterColor: skill.color || remote.color,
+        casterColor: normalizeHeroColor(skill.color || remote.color),
         casterAura: skill.casterAura || "",
         casterEyes: skill.casterEyes || "",
         casterAccessory: skill.casterAccessory || "",
@@ -12674,6 +13467,7 @@
     useSkill(key) {
       const p = this.run?.player;
       if (!p || p.dead || this.pauseOverlay) return;
+      if (this.run.currentRoom?.intro > 0 || this.roomAssetWarmupActive()) return;
       if (this.isLocalPlayerBoss()) {
         this.usePlayerBossAction(key);
         return;
@@ -12730,7 +13524,7 @@
         targetY: target.y,
         damage: player.damage * this.playerDamageOutputMult(),
         awakened: this.powerAwakeningActive(power.id),
-        color: this.save.customization.color,
+        color: normalizeHeroColor(this.save.customization.color),
         casterAura: this.save.customization.aura || "",
         casterEyes: this.save.customization.eyes || "",
         casterAccessory: this.save.customization.accessory || "",
@@ -14510,6 +15304,7 @@
       const casterId = options.casterId || (owner === "player" ? this.lobby.id : "");
       const domainBoost = key !== "f" ? this.powerDomainBoost(kind, caster, casterId) : { damageMult: 1, areaMult: 1, active: false };
       const skillHealAllowed = !remote && this.powerHealingAvailable();
+      const casterHeroColor = normalizeHeroColor(options.casterColor || (!remote ? this.save.customization.color : caster.color));
       const healFromSkill = (amount) => {
         if (skillHealAllowed) this.healPlayer(amount, { source: "power", allowAfterCombat: true });
       };
@@ -14531,7 +15326,7 @@
         awakened,
         skillHealAllowed,
         characterId: options.characterId,
-        casterColor: options.casterColor,
+        casterColor: casterHeroColor,
         casterAura: options.casterAura,
         casterEyes: options.casterEyes,
         casterAccessory: options.casterAccessory,
@@ -14930,7 +15725,7 @@
         accent: power.accent,
         awakened: Boolean(options.awakened ?? this.powerAwakeningActive(power.id)),
         characterId: options.characterId || caster.characterId || this.run.player.characterId || "swordsman",
-        casterColor: options.casterColor || custom.color || "#d8b46a",
+        casterColor: normalizeHeroColor(options.casterColor || custom.color),
         casterAura: options.casterAura || custom.aura || "",
         casterEyes: options.casterEyes || custom.eyes || "",
         casterAccessory: options.casterAccessory || custom.accessory || "",
@@ -15229,6 +16024,18 @@
       const impactColor = basicHit ? (crit ? "#fff1b8" : "#f3ead7") : crit ? power.accent : power.color;
       if (hitKind) this.emitPowerHitVfx(hitKind, enemy, { ...options, crit });
       this.addImpact(enemy.x, enemy.y, impactColor, damage, crit);
+      const noisyTick = ["domain", "burn", "poison", "bleed", "trail", "awakenedRoot", "voidDecay", "fireWall"].includes(options.source);
+      if (!noisyTick) {
+        this.audio.combatHit({
+          crit,
+          heavy: enemy.boss || options.source === "ultimate" || options.source === "guardianReflect",
+          kind: hitKind || basicKind || options.source || "basic",
+          enemyId: enemy.id,
+          x: enemy.x,
+          y: enemy.y
+        });
+        this.audio.enemy(enemy, "hurt");
+      }
       if (basicHit) {
         const hitAngle = Math.atan2(options.y || 0, options.x || 1);
         this.addBasicHitSpark(enemy.x, enemy.y, hitAngle, basicKind, options.source === "guardian" || crit);
@@ -15540,6 +16347,8 @@
       this.run.flawless = false;
       this.camera.shake = Math.max(this.camera.shake, 13);
       this.addImpact(p.x, p.y, "#ff4b55", damage, false);
+      this.audio.player("damage");
+      if (p.hp > 0 && p.hp / Math.max(1, p.maxHp) <= 0.28) this.audio.player("lowHealth");
       this.maybeApplyBossDebuffFromSource(source);
       if (this.run.curse?.id === "lifesteal" && source) source.hp = Math.min(source.maxHp, source.hp + damage * 0.35);
       if (this.run.curse?.id === "teleport" && chance(0.24)) {
@@ -15571,6 +16380,7 @@
       const actual = p.hp - before;
       if (actual <= 0) return false;
       if (actual >= 2) this.addParticle(p.x, p.y - 18, "#70e083", 18, 0.6, "plus");
+      if (actual >= 2) this.audio.player("heal", { amount: actual });
       return true;
     }
 
@@ -15581,10 +16391,12 @@
       }
       const index = this.run.enemies.indexOf(enemy);
       if (index >= 0) this.run.enemies.splice(index, 1);
+      this.audio.enemy(enemy, "death");
       for (let i = 0; i < this.particleCount(16, { important: enemy.boss }); i++) {
         this.addParticle(enemy.x + rand(-enemy.radius, enemy.radius), enemy.y + rand(-enemy.radius, enemy.radius), enemy.boss ? "#f2bf63" : this.run.power.color, rand(8, 24), rand(0.25, 0.7), "spark");
       }
       if (enemy.boss) {
+        this.audio.boss("death", enemy);
         this.onBossDefeated(enemy);
         return;
       }
@@ -15794,8 +16606,13 @@
         levels++;
       }
       if (options.silent) return;
-      if (levels > 0) this.toast(`Lên cấp ${progress.level}! +${levels} điểm nâng`);
-      else this.toast(`Nhận ${amount} kinh nghiệm`);
+      if (levels > 0) {
+        this.audio.reward("level", levels);
+        this.toast(`Lên cấp ${progress.level}! +${levels} điểm nâng`);
+      } else {
+        this.audio.reward("xp", amount);
+        this.toast(`Nhận ${amount} kinh nghiệm`);
+      }
     }
 
     rollRoomReward() {
@@ -16154,6 +16971,7 @@
         );
       }
       this.audio.sfx(420, "triangle", 0.1, 0.13);
+      this.audio.reward("chest", rewards.length + coinAmount, { x: chest.x, y: chest.y });
       if (this.isMultiplayerHost()) this.broadcastFastSnapshot(0.04);
     }
 
@@ -16519,6 +17337,7 @@
         for (let i = 0; i < this.particleCount(14, { important: true }); i++) {
           this.addParticle(pickup.x, pickup.y, color, rand(8, 20), rand(0.3, 0.75), i % 3 === 0 ? "ring" : "spark");
         }
+        this.audio.reward(pickup.reward.type || "item", pickup.reward.amount || 1, { x: pickup.x, y: pickup.y });
       }
       if (this.run.currentRoom?.cleared && pickup.countsForClaim !== false) {
         if (!this.isMultiplayerClient() && this.run.currentRoom.type === "boss" && this.run.currentRoom.bossExitOpened && this.run.currentRoom.rewardClaimed) {
@@ -16765,7 +17584,7 @@
             <button class="btn primary" data-action="resume">TIẾP TỤC</button>
             <button class="btn" data-action="run-inventory">KHO TRONG ẢI</button>
             <button class="btn" data-action="settings">CÀI ĐẶT</button>
-            <button class="btn danger nav-exit-btn" data-action="menu">THOÁT</button>
+            <button class="btn danger nav-exit-btn" data-action="exit-run">THOÁT</button>
           </div>
         </section>
       `);
@@ -16773,6 +17592,7 @@
 
     showVictory() {
       this.mode = "victory";
+      this.audio.reward("level", 1);
       this.setScreen(`
         <section class="wide-panel">
           <div class="panel-header">
@@ -16893,6 +17713,7 @@
       this.input.mouse.left = false;
       this.camera.shake = Math.max(this.camera.shake, 16);
       this.addShockwave(p.x, p.y, 130, "#d9fbff", 0);
+      this.audio.player("death");
       if (this.isMultiplayerRun()) this.lobby.sendState(this.networkPlayerState(this.lobby.id, p));
       this.updateRunLeader();
       this.persist();
@@ -17255,6 +18076,7 @@
           enemy.attackCd = enemy.role === "skirmisher" ? (enemy.elite ? 0.78 : 1.0) : enemy.role === "duelist" ? (enemy.elite ? 0.82 : 1.08) : enemy.elite ? 0.86 : 1.14;
           enemy.attackAnim = 0.34;
           enemy.attackDir = a;
+          this.audio.enemy(enemy, "attack");
           this.damageCombatTarget(p, enemy.damage * (enemy.role === "brute" ? 1.05 : enemy.role === "skirmisher" ? 0.78 : 0.92), enemy);
           if (monsterDesign) {
             this.addEffect({
@@ -17317,6 +18139,7 @@
       enemy.windupY = targetY;
       enemy.attackAnim = time;
       enemy.attackDir = angle;
+      this.audio.enemy(enemy, "attack");
       const color = enemy.elite ? "#ffbd5e" : this.run.biome.accent;
       if (type === "lineShot") {
         this.addEffect({ type: "lineTell", x: enemy.x, y: enemy.y, angle, length: enemy.elite ? 640 : 560, width: enemy.elite ? 34 : 26, time, maxTime: time, color });
@@ -17519,6 +18342,7 @@
           minion.damage *= 0.72;
           minion.skillCd = Math.max(minion.skillCd || 0, 1.6);
           this.run.enemies.push(minion);
+          this.audio.enemy(minion, "spawn");
           this.addShockwave(x, y, 52, "#a169ff", 0, { owner: "enemy" });
         }
       }
@@ -18685,6 +19509,7 @@
       for (let i = 0; i < this.particleCount(10, { important: true }); i++) {
         this.addParticle(enemy.x + rand(-enemy.radius, enemy.radius), enemy.y + rand(-enemy.radius, enemy.radius * 0.2), "#8feaff", rand(8, 18), rand(0.3, 0.72), i % 3 === 0 ? "ring" : "spark", -Math.PI / 2 + rand(-0.8, 0.8), rand(60, 150));
       }
+      this.audio.boss("fatigue", enemy);
     }
 
     updateBossFatigue(enemy, dt) {
@@ -18725,6 +19550,7 @@
         const cooldown = this.castBossPattern(enemy, this.pickBossPattern(enemy), a, p);
         enemy.attackAnim = 0.42;
         enemy.attackDir = a;
+        this.audio.boss("attack", enemy);
         enemy.fatigueCounter = (enemy.fatigueCounter || 0) + 1;
         if (enemy.fatigueCounter >= this.bossFatigueThreshold(enemy)) this.startBossFatigue(enemy);
         else enemy.attackCd = Math.max(0.85, (cooldown || 1.6) - enemy.phase * 0.08);
@@ -18746,6 +19572,7 @@
       const raidPower = raid ? powerById(enemy.raidPowerId || this.raidBossPower().id) : null;
       this.camera.shake = Math.max(this.camera.shake, 20);
       this.addShockwave(enemy.x, enemy.y, 280 + phase * 70, raidPower?.color || this.run.biome.accent, 0, { owner: "enemy" });
+      this.audio.boss("phase", enemy);
       if (raid) {
         const target = this.nearestCombatTarget(enemy.x, enemy.y) || this.run.player;
         const angle = target ? Math.atan2(target.y - enemy.y, target.x - enemy.x) : rand(0, TAU);
@@ -18780,6 +19607,7 @@
     enemyShoot(enemy, angle) {
       enemy.attackAnim = 0.28;
       enemy.attackDir = angle;
+      this.audio.enemy(enemy, "attack");
       const spread = enemy.elite ? (enemy.role === "caster" ? 0.12 : 0.16) : 0;
       const shots = enemy.elite && enemy.role !== "caster" ? 3 : 1;
       const speed = enemy.role === "caster" ? 270 : enemy.role === "marksman" ? 350 : 330;
@@ -18848,6 +19676,14 @@
       if (!projectile.visualImpact) {
         projectile.visualImpact = true;
         this.addShockwave(projectile.x, projectile.y, projectile.kind === "rangerBasic" ? 42 : 54, projectile.color || "#ffffff", 0);
+        this.audio.combatHit({
+          crit: false,
+          heavy: projectile.kind === "fireball" || projectile.kind === "gravity",
+          kind: projectile.kind || "projectile",
+          enemyId: hit.enemy.id ? `visual-${hit.enemy.id}` : "",
+          x: projectile.x,
+          y: projectile.y
+        });
         for (let i = 0; i < this.particleCount(5); i++) {
           this.addParticle(projectile.x, projectile.y, projectile.color || "#ffffff", rand(5, 12), rand(0.18, 0.36), "spark");
         }
@@ -19150,6 +19986,7 @@
         this.addShockwave(object.x, object.y, 120, "#f2bf63", 0);
         this.camera.shake = Math.max(this.camera.shake, 5);
         this.audio.sfx(520, "triangle", 0.14, 0.16);
+        this.audio.reward("chest", 1, { x: object.x, y: object.y });
         return;
       }
       if (object.type === "bossGate") {
@@ -19161,6 +19998,7 @@
         this.spawnBoss();
         this.addShockwave(object.x, object.y, 260, object.color || this.run.biome.accent, 0);
         this.camera.shake = Math.max(this.camera.shake, 18);
+        this.audio.boss("intro", { x: object.x, y: object.y, boss: true });
         this.toast("Trùm đã xuất hiện");
         return;
       }
@@ -20291,7 +21129,7 @@
           maxEnergy: character.stats.energy,
           damage: character.stats.damage,
           crit: character.stats.crit,
-          color: "#d8b46a",
+          color: normalizeHeroColor(slot.customization?.color),
           characterId: character.id,
           animation: "idle",
           animTime: this.menuTime,
@@ -20662,12 +21500,12 @@
         if (remote.dead && remote.spectating) {
           const target = this.playerByNetworkId(remote.spectateId);
           const pos = this.displayActorPosition(this.aliveActor(target) ? target : remote);
-          if (this.inView(pos.x, pos.y, 160)) this.drawSoulGhost(ctx, pos.x, pos.y, remote.name || "Người chơi", false, remote.color || "#d9fbff");
+          if (this.inView(pos.x, pos.y, 160)) this.drawSoulGhost(ctx, pos.x, pos.y, remote.name || "Người chơi", false, normalizeHeroColor(remote.color, "#d9fbff"));
           continue;
         }
         if (!this.inView(remoteX, remoteY, 120)) continue;
         const remotePower = powerById(remote.power);
-        const remoteCustom = { ...this.save.customization, color: remote.color };
+        const remoteCustom = { ...this.save.customization, color: normalizeHeroColor(remote.color) };
         const remoteActor = {
           facing: remote.facing,
           animation: remote.dead ? "death" : remote.animation || "run",
@@ -20726,7 +21564,7 @@
       if (localGhost) {
         const target = this.currentSpectateTarget();
         const pos = this.displayActorPosition(this.aliveActor(target) ? target : this.run.player);
-        if (this.inView(pos.x, pos.y, 170)) this.drawSoulGhost(ctx, pos.x, pos.y, this.save.account.username || "Bạn", true, this.save.customization.color || "#d9fbff");
+        if (this.inView(pos.x, pos.y, 170)) this.drawSoulGhost(ctx, pos.x, pos.y, this.save.account.username || "Bạn", true, normalizeHeroColor(this.save.customization.color, "#d9fbff"));
       }
       if (!panic) {
         this.drawSlashes(ctx);
@@ -20899,7 +21737,7 @@
         return (((frame - variant) % 4 + 4) % 4) / speed + 0.02;
       };
       const safeSlug = (value) => String(value || "asset").replace(/[^a-z0-9_-]+/gi, "-");
-      const characterCustom = { color: "#d8b46a", aura: "", eyes: "", mouth: "", accessory: "", trail: "" };
+      const characterCustom = { color: DEFAULT_HERO_COLOR, aura: "", eyes: "", mouth: "", accessory: "", trail: "" };
 
       try {
         this.mode = "asset-export";
@@ -22530,7 +23368,7 @@
       const walk = moving ? Math.floor((actor.animTime ?? t) * 7) % 4 : 0;
       const bob = moving ? [0, -1, 0, 1][walk] : 0;
       const death = anim === "death" ? (actor.actionTime > 0 ? 1 - clamp(actor.actionTime / Math.max(0.1, actionTotal), 0, 1) : 1) : 0;
-      const skin = custom.color || "#d8b46a";
+      const skin = normalizeHeroColor(custom.color);
       const trim = character.color || power.color || "#ff4655";
       const armor = character.id === "guardian" ? "#303846" : character.id === "assassin" ? "#1c2433" : "#273142";
       const dark = "#0d111a";
@@ -22824,7 +23662,7 @@
       const lean = dir * (anim === "dash" ? 0.09 : damageFrame ? -0.14 : castFrame ? 0.05 : 0) + attackPose.lean + castPose.lean;
       const squashX = anim === "dash" ? 1.08 : attackPose.squashX * castPose.squashX;
       const squashY = anim === "dash" ? 0.92 : attackPose.squashY * castPose.squashY;
-      const color = custom.color || "#d8b46a";
+      const color = normalizeHeroColor(custom.color);
       const armorDark = character.id === "assassin" ? "#111722" : "#141a25";
       const armorCore = character.id === "guardian" ? "#2d3544" : character.id === "assassin" ? "#202838" : "#283142";
       const armorLight = "#d7e2ec";
@@ -29133,7 +29971,7 @@
       ctx.fillRect(flareX - 160, panelY, 340, panelH);
       ctx.globalAlpha = alpha;
       const custom = {
-        color: effect.casterColor || this.save.customization.color || "#d8b46a",
+        color: normalizeHeroColor(effect.casterColor || this.save.customization.color),
         aura: effect.casterAura || this.save.customization.aura || "",
         eyes: effect.casterEyes || this.save.customization.eyes || "",
         accessory: effect.casterAccessory || "",

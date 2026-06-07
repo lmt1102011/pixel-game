@@ -26,6 +26,41 @@ Repo có thể deploy trực tiếp từ branch `main`, thư mục root:
 
 Không cần bước build.
 
+## Asset frame
+
+Xuất lại toàn bộ frame PNG:
+
+```bash
+node tools/export-assets.js
+```
+
+Xuất lại một nhóm frame để sửa nhanh mà không xóa các asset khác:
+
+```bash
+node tools/export-assets.js --category monster --kind shadowGoblin --state idle --frame 0-1 --keep
+```
+
+Kiểm tra frame thiếu, sai kích thước hoặc PNG hỏng:
+
+```bash
+node tools/verify-exported-assets.js
+```
+
+Kiểm tra decode bằng Chrome/Edge cho frame đã chọn hoặc toàn bộ frame:
+
+```bash
+node tools/verify-exported-assets.js --browser-decode --limit 220
+node tools/verify-exported-assets.js --browser-decode --limit 1000
+```
+
+Smoke test FPS/preload trong phòng huấn luyện:
+
+```bash
+node tools/perf-smoke.js
+node tools/perf-smoke.js --mobile
+node tools/perf-smoke.js --mobile --strict-preload
+```
+
 ## Bật server một lần
 
 Nếu chỉ muốn người chơi mở game mà không cần bật server local mỗi lần, hãy deploy bản static này lên GitHub Pages, Firebase Hosting, Netlify hoặc Vercel. Sau khi cấu hình hosting một lần, người chơi chỉ cần vào URL hoặc cài PWA là có thể chơi.

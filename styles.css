@@ -6414,9 +6414,9 @@ body.is-mobile-ui .quick-actions {
 }
 
 body.is-mobile-ui .quick-actions button {
-  width: 46px;
-  height: 46px;
-  border-radius: 15px;
+  width: 52px;
+  height: 52px;
+  border-radius: 17px;
   box-shadow: 0 7px 15px rgba(0, 0, 0, 0.24), inset 0 0 0 1px rgba(255, 255, 255, 0.055);
 }
 
@@ -6425,30 +6425,35 @@ body.is-mobile-ui .quick-actions.spectating button {
 }
 
 body.is-mobile-ui .touch-icon {
-  width: 18px;
-  height: 18px;
-}
-
-body.is-mobile-ui .bag-icon {
   width: 20px;
   height: 20px;
 }
 
+body.is-mobile-ui .bag-icon {
+  width: 22px;
+  height: 22px;
+}
+
 body.is-mobile-ui .stick {
-  left: calc(38px + env(safe-area-inset-left));
-  bottom: calc(30px + env(safe-area-inset-bottom));
-  width: 112px;
-  height: 112px;
+  left: calc(48px + env(safe-area-inset-left));
+  bottom: calc(42px + env(safe-area-inset-bottom));
+  width: 128px;
+  height: 128px;
   border-width: 2px;
-  background: rgba(8, 10, 16, 0.19);
-  box-shadow: inset 0 0 0 12px rgba(255, 255, 255, 0.026), 0 6px 16px rgba(0, 0, 0, 0.2);
+  background:
+    radial-gradient(circle at 50% 50%, rgba(242, 191, 99, 0.13), transparent 44%),
+    rgba(8, 10, 16, 0.2);
+  box-shadow: inset 0 0 0 14px rgba(255, 255, 255, 0.03), 0 8px 18px rgba(0, 0, 0, 0.22);
 }
 
 body.is-mobile-ui .stick span {
-  left: 36px;
-  top: 36px;
-  width: 40px;
-  height: 40px;
+  left: 41px;
+  top: 41px;
+  width: 46px;
+  height: 46px;
+  background:
+    radial-gradient(circle at 35% 24%, rgba(255, 255, 255, 0.48), transparent 28%),
+    rgba(242, 191, 99, 0.82);
 }
 
 body.is-mobile-ui .touch-actions {
@@ -6495,22 +6500,22 @@ body.is-mobile-ui .touch-actions [data-touch="dash"] {
   }
 
   body.is-mobile-ui .quick-actions button {
-    width: 42px;
-    height: 42px;
+    width: 48px;
+    height: 48px;
   }
 
   body.is-mobile-ui .stick {
-    left: calc(30px + env(safe-area-inset-left));
-    bottom: calc(20px + env(safe-area-inset-bottom));
-    width: 104px;
-    height: 104px;
+    left: calc(40px + env(safe-area-inset-left));
+    bottom: calc(30px + env(safe-area-inset-bottom));
+    width: 116px;
+    height: 116px;
   }
 
   body.is-mobile-ui .stick span {
-    left: 34px;
-    top: 34px;
-    width: 36px;
-    height: 36px;
+    left: 38px;
+    top: 38px;
+    width: 40px;
+    height: 40px;
   }
 
   body.is-mobile-ui .touch-actions {
@@ -6534,11 +6539,11 @@ body.is-mobile-ui .touch-actions [data-touch="dash"] {
 
 /* Mobile combat pad */
 body.is-mobile-ui .touch-actions {
-  right: max(22px, calc(20px + env(safe-area-inset-right)));
-  bottom: max(20px, calc(18px + env(safe-area-inset-bottom)));
+  right: max(34px, calc(30px + env(safe-area-inset-right)));
+  bottom: max(28px, calc(24px + env(safe-area-inset-bottom)));
   display: block;
-  width: 238px;
-  height: 196px;
+  width: 276px;
+  height: 224px;
   pointer-events: auto;
 }
 
@@ -6548,17 +6553,17 @@ body.is-mobile-ui .touch-actions button {
   position: absolute;
   display: grid;
   place-items: center;
-  width: 56px;
-  height: 56px;
+  width: 64px;
+  height: 64px;
   margin: 0;
   overflow: hidden;
   border: 1px solid color-mix(in srgb, var(--accent), transparent 34%);
-  border-radius: 19px;
+  border-radius: 21px;
   background:
     radial-gradient(circle at 50% 18%, color-mix(in srgb, var(--accent), transparent 72%), transparent 42%),
     linear-gradient(180deg, rgba(35, 42, 55, 0.78), rgba(6, 10, 16, 0.68));
   color: #fff4dc;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 950;
   line-height: 1;
   text-shadow: 0 1px 0 rgba(0, 0, 0, 0.52), 0 0 12px var(--glow);
@@ -6590,7 +6595,7 @@ body.is-mobile-ui .touch-actions button::after {
 }
 
 body.is-mobile-ui .touch-actions button:active {
-  transform: translateY(2px) scale(0.96);
+  transform: translateY(2px) scale(0.965);
   filter: brightness(1.18);
 }
 
@@ -6615,12 +6620,12 @@ body.is-mobile-ui .touch-actions [data-touch="attack"] {
   --glow: rgba(255, 107, 58, 0.45);
   right: 0;
   bottom: 2px;
-  width: 92px;
-  height: 92px;
+  width: 108px;
+  height: 108px;
   border-width: 2px;
-  border-radius: 30px;
+  border-radius: 32px;
   color: #ffe2d6;
-  font-size: 14px;
+  font-size: 15px;
   letter-spacing: 0.02em;
   background:
     radial-gradient(circle at 50% 20%, rgba(255, 215, 186, 0.34), transparent 34%),
@@ -6636,98 +6641,98 @@ body.is-mobile-ui .touch-actions [data-touch="attack"] {
 body.is-mobile-ui .touch-actions [data-touch="dash"] {
   --accent: #63ffcb;
   --glow: rgba(99, 255, 203, 0.38);
-  right: 104px;
-  bottom: 8px;
-  width: 64px;
-  height: 64px;
+  right: 122px;
+  bottom: 10px;
+  width: 74px;
+  height: 74px;
   color: #d7fff4;
-  font-size: 11px;
+  font-size: 12px;
 }
 
 body.is-mobile-ui .touch-actions [data-touch="q"] {
   --accent: #7fd8ff;
   --glow: rgba(127, 216, 255, 0.36);
-  right: 156px;
-  bottom: 112px;
+  right: 178px;
+  bottom: 128px;
 }
 
 body.is-mobile-ui .touch-actions [data-touch="e"] {
   --accent: #b894ff;
   --glow: rgba(184, 148, 255, 0.36);
-  right: 96px;
-  bottom: 140px;
+  right: 108px;
+  bottom: 158px;
 }
 
 body.is-mobile-ui .touch-actions [data-touch="r"] {
   --accent: #78ff8d;
   --glow: rgba(120, 255, 141, 0.34);
-  right: 36px;
-  bottom: 126px;
+  right: 38px;
+  bottom: 140px;
 }
 
 body.is-mobile-ui .touch-actions [data-touch="f"] {
   --accent: #ffd166;
   --glow: rgba(255, 209, 102, 0.4);
-  right: 92px;
-  bottom: 74px;
-  width: 66px;
-  height: 66px;
+  right: 104px;
+  bottom: 82px;
+  width: 76px;
+  height: 76px;
   border-width: 2px;
   color: #fff1c6;
-  font-size: 10px;
+  font-size: 11px;
 }
 
 @media (max-height: 420px) {
   body.is-mobile-ui .touch-actions {
-    right: max(16px, calc(14px + env(safe-area-inset-right)));
-    bottom: max(12px, calc(10px + env(safe-area-inset-bottom)));
-    width: 218px;
-    height: 168px;
+    right: max(26px, calc(22px + env(safe-area-inset-right)));
+    bottom: max(20px, calc(16px + env(safe-area-inset-bottom)));
+    width: 248px;
+    height: 190px;
   }
 
   body.is-mobile-ui .touch-actions button {
-    width: 50px;
-    height: 50px;
-    border-radius: 17px;
-    font-size: 10px;
+    width: 58px;
+    height: 58px;
+    border-radius: 19px;
+    font-size: 11px;
   }
 
   body.is-mobile-ui .touch-actions [data-touch="attack"] {
     right: 0;
     bottom: 0;
-    width: 78px;
-    height: 78px;
-    border-radius: 27px;
-    font-size: 12px;
+    width: 92px;
+    height: 92px;
+    border-radius: 29px;
+    font-size: 13px;
   }
 
   body.is-mobile-ui .touch-actions [data-touch="dash"] {
-    right: 86px;
-    bottom: 4px;
-    width: 58px;
-    height: 58px;
+    right: 104px;
+    bottom: 6px;
+    width: 66px;
+    height: 66px;
   }
 
   body.is-mobile-ui .touch-actions [data-touch="q"] {
-    right: 132px;
-    bottom: 94px;
+    right: 150px;
+    bottom: 104px;
   }
 
   body.is-mobile-ui .touch-actions [data-touch="e"] {
-    right: 76px;
-    bottom: 116px;
+    right: 88px;
+    bottom: 128px;
   }
 
   body.is-mobile-ui .touch-actions [data-touch="r"] {
-    right: 20px;
-    bottom: 100px;
+    right: 24px;
+    bottom: 112px;
   }
 
   body.is-mobile-ui .touch-actions [data-touch="f"] {
-    right: 74px;
-    bottom: 64px;
-    width: 58px;
-    height: 58px;
+    right: 86px;
+    bottom: 72px;
+    width: 66px;
+    height: 66px;
   }
 }
 

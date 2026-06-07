@@ -9,7 +9,7 @@
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
   const SIGNAL_REALTIME_RELAY_LIMIT = 2;
   const SIGNAL_REALTIME_TYPES = new Set(["state", "snapshot", "attack", "skill", "collect", "openChest", "dropItem", "damage", "chooseDoor"]);
-  const APP_VERSION = "20260607-stable-frames-275";
+  const APP_VERSION = "20260607-touch-comfort-276";
   const CHANGELOG_ENTRIES = [
     {
       version: APP_VERSION,
@@ -6320,9 +6320,11 @@
       const placeStick = (touch) => {
         const size = stick.offsetWidth || 132;
         const half = size / 2;
-        const maxX = Math.min(window.innerWidth * 0.48, window.innerWidth - half - 8);
-        const x = clamp(touch.clientX, half + 8, maxX);
-        const y = clamp(touch.clientY, half + 8, window.innerHeight - half - 8);
+        const marginX = Math.max(24, Math.min(46, window.innerWidth * 0.035));
+        const marginY = Math.max(22, Math.min(42, window.innerHeight * 0.06));
+        const maxX = Math.min(window.innerWidth * 0.48, window.innerWidth - half - marginX);
+        const x = clamp(touch.clientX, half + marginX, maxX);
+        const y = clamp(touch.clientY, half + marginY, window.innerHeight - half - marginY);
         stick.style.left = `${x - half}px`;
         stick.style.top = `${y - half}px`;
         stick.style.bottom = "auto";
@@ -6334,17 +6336,17 @@
         const dx = touch.clientX - cx;
         const dy = touch.clientY - cy;
         const len = Math.hypot(dx, dy);
-        const max = rect.width * 0.46;
+        const max = rect.width * 0.42;
         const nx = len > 0 ? dx / len : 0;
         const ny = len > 0 ? dy / len : 0;
         const rawMag = clamp(len / max, 0, 1);
-        const deadzone = 0.18;
-        const mag = rawMag <= deadzone ? 0 : Math.pow((rawMag - deadzone) / (1 - deadzone), 1.35);
+        const deadzone = 0.1;
+        const mag = rawMag <= deadzone ? 0 : Math.pow((rawMag - deadzone) / (1 - deadzone), 1.12);
         this.input.touch.rawX = nx * mag;
         this.input.touch.rawY = ny * mag;
         this.input.touch.active = true;
         stick.classList.add("active");
-        if (mag > 0.16) {
+        if (mag > 0.08) {
           this.input.touch.aimX = nx;
           this.input.touch.aimY = ny;
         }
@@ -6402,12 +6404,28 @@
       this.canvas.addEventListener("touchcancel", maybeResetStick);
       this.touchButtons = Array.from(document.querySelectorAll("[data-touch]"));
       for (const button of this.touchButtons) {
+        let repeatTimer = 0;
+        let repeatInterval = 0;
+        const stopRepeat = () => {
+          if (repeatTimer) clearTimeout(repeatTimer);
+          if (repeatInterval) clearInterval(repeatInterval);
+          repeatTimer = 0;
+          repeatInterval = 0;
+        };
         button.addEventListener("touchstart", (event) => {
           event.preventDefault();
           event.stopPropagation();
           this.audio.start();
           this.triggerTouchAction(button.dataset.touch);
+          stopRepeat();
+          if (button.dataset.touch === "attack") {
+            repeatTimer = setTimeout(() => {
+              repeatInterval = setInterval(() => this.triggerTouchAction("attack"), 145);
+            }, 210);
+          }
         }, { passive: false });
+        button.addEventListener("touchend", stopRepeat);
+        button.addEventListener("touchcancel", stopRepeat);
       }
     }
 

@@ -4,12 +4,14 @@
   const TAU = Math.PI * 2;
   const WORLD_W = 3200;
   const WORLD_H = 2200;
+  const OPEN_WORLD_W = 18000;
+  const OPEN_WORLD_H = 12000;
   const ROOM_PAD = 86;
   const SAVE_KEY = "soulrift-save-v1";
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
   const SIGNAL_REALTIME_RELAY_LIMIT = 2;
   const SIGNAL_REALTIME_TYPES = new Set(["state", "snapshot", "attack", "skill", "collect", "openChest", "dropItem", "damage", "chooseDoor"]);
-  const APP_VERSION = "20260609-beginner-island-districts-308";
+  const APP_VERSION = "20260609-rpg-openworld-aggro-309";
   const CHANGELOG_ENTRIES = [
     {
       version: APP_VERSION,
@@ -6260,23 +6262,23 @@
       ctx.fillRect(viewLeft, viewTop, viewW, viewH);
       const floorLeft = Math.max(ROOM_PAD, viewLeft);
       const floorTop = Math.max(ROOM_PAD, viewTop);
-      const floorRight = Math.min(WORLD_W - ROOM_PAD, viewRight);
-      const floorBottom = Math.min(WORLD_H - ROOM_PAD, viewBottom);
+      const floorRight = Math.min(this.worldW() - ROOM_PAD, viewRight);
+      const floorBottom = Math.min(this.worldH() - ROOM_PAD, viewBottom);
       if (floorRight > floorLeft && floorBottom > floorTop) {
         ctx.fillStyle = pattern;
         ctx.fillRect(floorLeft, floorTop, floorRight - floorLeft, floorBottom - floorTop);
       }
       ctx.fillStyle = biome?.wall || "#121823";
       if (viewTop < ROOM_PAD) ctx.fillRect(viewLeft, viewTop, viewW, Math.min(ROOM_PAD, viewBottom) - viewTop);
-      if (viewBottom > WORLD_H - ROOM_PAD) ctx.fillRect(viewLeft, Math.max(viewTop, WORLD_H - ROOM_PAD), viewW, viewBottom - Math.max(viewTop, WORLD_H - ROOM_PAD));
+      if (viewBottom > this.worldH() - ROOM_PAD) ctx.fillRect(viewLeft, Math.max(viewTop, this.worldH() - ROOM_PAD), viewW, viewBottom - Math.max(viewTop, this.worldH() - ROOM_PAD));
       if (viewLeft < ROOM_PAD) ctx.fillRect(viewLeft, viewTop, Math.min(ROOM_PAD, viewRight) - viewLeft, viewH);
-      if (viewRight > WORLD_W - ROOM_PAD) ctx.fillRect(Math.max(viewLeft, WORLD_W - ROOM_PAD), viewTop, viewRight - Math.max(viewLeft, WORLD_W - ROOM_PAD), viewH);
+      if (viewRight > this.worldW() - ROOM_PAD) ctx.fillRect(Math.max(viewLeft, this.worldW() - ROOM_PAD), viewTop, viewRight - Math.max(viewLeft, this.worldW() - ROOM_PAD), viewH);
       if (!lowDetail) {
         ctx.fillStyle = "rgba(0,0,0,0.22)";
-        ctx.fillRect(Math.max(ROOM_PAD, viewLeft), ROOM_PAD, Math.max(0, Math.min(WORLD_W - ROOM_PAD, viewRight) - Math.max(ROOM_PAD, viewLeft)), 18);
-        ctx.fillRect(Math.max(ROOM_PAD, viewLeft), WORLD_H - ROOM_PAD - 18, Math.max(0, Math.min(WORLD_W - ROOM_PAD, viewRight) - Math.max(ROOM_PAD, viewLeft)), 18);
-        ctx.fillRect(ROOM_PAD, Math.max(ROOM_PAD, viewTop), 18, Math.max(0, Math.min(WORLD_H - ROOM_PAD, viewBottom) - Math.max(ROOM_PAD, viewTop)));
-        ctx.fillRect(WORLD_W - ROOM_PAD - 18, Math.max(ROOM_PAD, viewTop), 18, Math.max(0, Math.min(WORLD_H - ROOM_PAD, viewBottom) - Math.max(ROOM_PAD, viewTop)));
+        ctx.fillRect(Math.max(ROOM_PAD, viewLeft), ROOM_PAD, Math.max(0, Math.min(this.worldW() - ROOM_PAD, viewRight) - Math.max(ROOM_PAD, viewLeft)), 18);
+        ctx.fillRect(Math.max(ROOM_PAD, viewLeft), this.worldH() - ROOM_PAD - 18, Math.max(0, Math.min(this.worldW() - ROOM_PAD, viewRight) - Math.max(ROOM_PAD, viewLeft)), 18);
+        ctx.fillRect(ROOM_PAD, Math.max(ROOM_PAD, viewTop), 18, Math.max(0, Math.min(this.worldH() - ROOM_PAD, viewBottom) - Math.max(ROOM_PAD, viewTop)));
+        ctx.fillRect(this.worldW() - ROOM_PAD - 18, Math.max(ROOM_PAD, viewTop), 18, Math.max(0, Math.min(this.worldH() - ROOM_PAD, viewBottom) - Math.max(ROOM_PAD, viewTop)));
       }
       return true;
     }
@@ -8948,18 +8950,18 @@
         const target = this.mobileAutoAimTarget(player, Math.max(1180, distance + 260));
         if (target) {
           return {
-            x: clamp(target.x, ROOM_PAD, WORLD_W - ROOM_PAD),
-            y: clamp(target.y, ROOM_PAD, WORLD_H - ROOM_PAD)
+            x: clamp(target.x, ROOM_PAD, this.worldW() - ROOM_PAD),
+            y: clamp(target.y, ROOM_PAD, this.worldH() - ROOM_PAD)
           };
         }
         return {
-          x: clamp(player.x + Math.cos(angle) * distance, ROOM_PAD, WORLD_W - ROOM_PAD),
-          y: clamp(player.y + Math.sin(angle) * distance, ROOM_PAD, WORLD_H - ROOM_PAD)
+          x: clamp(player.x + Math.cos(angle) * distance, ROOM_PAD, this.worldW() - ROOM_PAD),
+          y: clamp(player.y + Math.sin(angle) * distance, ROOM_PAD, this.worldH() - ROOM_PAD)
         };
       }
       return {
-        x: clamp(this.input.mouse.worldX, ROOM_PAD, WORLD_W - ROOM_PAD),
-        y: clamp(this.input.mouse.worldY, ROOM_PAD, WORLD_H - ROOM_PAD)
+        x: clamp(this.input.mouse.worldX, ROOM_PAD, this.worldW() - ROOM_PAD),
+        y: clamp(this.input.mouse.worldY, ROOM_PAD, this.worldH() - ROOM_PAD)
       };
     }
 
@@ -13130,6 +13132,14 @@
       return Boolean(this.run?.openWorld || this.run?.currentRoom?.type === "openWorld");
     }
 
+    worldW() {
+      return this.isOpenWorldRun() ? OPEN_WORLD_W : WORLD_W;
+    }
+
+    worldH() {
+      return this.isOpenWorldRun() ? OPEN_WORLD_H : WORLD_H;
+    }
+
     isTutorialRun() {
       return Boolean(this.run?.tutorial);
     }
@@ -13180,8 +13190,8 @@
       }
       const actor = this.playerByNetworkId(this.run.playerBossId);
       if (!actor) return;
-      proxy.x = clamp(actor.x, ROOM_PAD + proxy.radius, WORLD_W - ROOM_PAD - proxy.radius);
-      proxy.y = clamp(actor.y, ROOM_PAD + proxy.radius, WORLD_H - ROOM_PAD - proxy.radius);
+      proxy.x = clamp(actor.x, ROOM_PAD + proxy.radius, this.worldW() - ROOM_PAD - proxy.radius);
+      proxy.y = clamp(actor.y, ROOM_PAD + proxy.radius, this.worldH() - ROOM_PAD - proxy.radius);
       proxy.vx = actor.vx || 0;
       proxy.vy = actor.vy || 0;
       proxy.facingDir = Math.cos(actor.facing || 0) >= 0 ? 1 : -1;
@@ -13253,8 +13263,8 @@
 
     centerActorInRoom(actor, syncDisplay = false) {
       if (!actor) return;
-      actor.x = WORLD_W / 2;
-      actor.y = WORLD_H / 2;
+      actor.x = this.worldW() / 2;
+      actor.y = this.worldH() / 2;
       actor.vx = 0;
       actor.vy = 0;
       actor.dashTime = 0;
@@ -13623,7 +13633,7 @@
         this.hud.classList.remove("hidden");
       }
       if (this.run.currentRoom?.type === "healing" && (this.run.roomNumber !== previousRoomNumber || this.run.player.dead)) {
-        this.revivePlayer(this.run.player, { x: WORLD_W / 2, y: WORLD_H / 2, heal: 55, local: true });
+        this.revivePlayer(this.run.player, { x: this.worldW() / 2, y: this.worldH() / 2, heal: 55, local: true });
       }
       if (Array.isArray(snapshot.enemies)) this.run.enemies = this.mergeNetworkActors(this.run.enemies, snapshot.enemies, 620);
       if (Array.isArray(snapshot.hazards)) this.run.hazards = snapshot.hazards.map((hazard) => ({ ...hazard }));
@@ -13711,8 +13721,8 @@
       const character = characterById(this.save.account.selectedCharacter);
       const stats = this.effectiveCharacterStats(character);
       return {
-        x: WORLD_W / 2,
-        y: WORLD_H / 2,
+        x: this.worldW() / 2,
+        y: this.worldH() / 2,
         vx: 0,
         vy: 0,
         radius: 22,
@@ -13853,8 +13863,8 @@
       const facing = Number.isFinite(Number(options.facing)) ? Number(options.facing) : (this.run.player.facing || rand(0, TAU));
       const side = rand(-0.42, 0.42);
       const angle = facing + side;
-      const startX = clamp(x + Math.cos(angle) * 38, ROOM_PAD + 28, WORLD_W - ROOM_PAD - 28);
-      const startY = clamp(y + Math.sin(angle) * 38, ROOM_PAD + 28, WORLD_H - ROOM_PAD - 28);
+      const startX = clamp(x + Math.cos(angle) * 38, ROOM_PAD + 28, this.worldW() - ROOM_PAD - 28);
+      const startY = clamp(y + Math.sin(angle) * 38, ROOM_PAD + 28, this.worldH() - ROOM_PAD - 28);
       const burst = rand(360, 500);
       this.run.pickups.push({
         id: uid("drop"),
@@ -14235,8 +14245,8 @@
       for (let i = 0; i < count; i++) {
         this.run.hazards.push({
           type: pick(biome.hazards),
-          x: rand(ROOM_PAD + 80, WORLD_W - ROOM_PAD - 80),
-          y: rand(ROOM_PAD + 80, WORLD_H - ROOM_PAD - 80),
+          x: rand(ROOM_PAD + 80, this.worldW() - ROOM_PAD - 80),
+          y: rand(ROOM_PAD + 80, this.worldH() - ROOM_PAD - 80),
           radius: rand(26, 52),
           pulse: rand(0, TAU),
           cooldown: rand(0, 2)
@@ -14268,11 +14278,11 @@
     spawnTrainingDummies() {
       if (!this.run) return;
       const positions = [
-        { x: WORLD_W / 2 - 360, y: WORLD_H / 2 - 145 },
-        { x: WORLD_W / 2 - 180, y: WORLD_H / 2 + 120 },
-        { x: WORLD_W / 2, y: WORLD_H / 2 - 40 },
-        { x: WORLD_W / 2 + 180, y: WORLD_H / 2 + 120 },
-        { x: WORLD_W / 2 + 360, y: WORLD_H / 2 - 145 }
+        { x: this.worldW() / 2 - 360, y: this.worldH() / 2 - 145 },
+        { x: this.worldW() / 2 - 180, y: this.worldH() / 2 + 120 },
+        { x: this.worldW() / 2, y: this.worldH() / 2 - 40 },
+        { x: this.worldW() / 2 + 180, y: this.worldH() / 2 + 120 },
+        { x: this.worldW() / 2 + 360, y: this.worldH() / 2 - 145 }
       ];
       this.run.enemies = positions.map((pos, index) => {
         const dummy = this.createEnemy("Training Dummy", pos.x, pos.y, false);
@@ -14299,34 +14309,61 @@
       });
       this.run.player.ult = 100;
       if (this.trainingRule("freeEnergy")) this.run.player.energy = this.run.player.maxEnergy;
-      this.addShockwave(WORLD_W / 2, WORLD_H / 2, 180, this.isTutorialRun() ? "#f2bf63" : "#82ffd3", 0);
+      this.addShockwave(this.worldW() / 2, this.worldH() / 2, 180, this.isTutorialRun() ? "#f2bf63" : "#82ffd3", 0);
       this.toast(this.isTutorialRun() ? "Hướng dẫn: hãy thử di chuyển trước" : "Phòng huấn luyện: 5 dummy đã sẵn sàng");
     }
 
     beginnerIslandSystems() {
       return [
-        { id: "questHouse", label: "Adventurer Guild", icon: "Q", x: 650, y: 620, color: "#f2bf63", effect: "gold", kind: "guildHall", radius: 104 },
-        { id: "partyHouse", label: "Party Plaza", icon: "P", x: 1580, y: 945, color: "#35d6c9", effect: "merchant", kind: "meetingHall", radius: 94 },
-        { id: "dungeonHouse", label: "Dungeon Gate Complex", icon: "D", x: 2570, y: 610, color: "#a169ff", effect: "secret", kind: "dungeonGate", radius: 116 },
-        { id: "shopHouse", label: "Market District", icon: "$", x: 620, y: 1510, color: "#ffbd5e", effect: "gold", kind: "marketStall", radius: 92 },
-        { id: "storageHouse", label: "Storage Vault", icon: "S", x: 1380, y: 1625, color: "#83e8ff", effect: "snow", kind: "vault", radius: 84 },
-        { id: "trainingArea", label: "Training District", icon: "T", x: 2240, y: 1545, color: "#82ffd3", effect: "leaf", kind: "trainingYard", radius: 96 },
-        { id: "trialTower", label: "Trial Tower", icon: "100", x: 2825, y: 1160, color: "#ff4655", effect: "boss", kind: "trialTower", radius: 108 },
-        { id: "monsterZone", label: "Beginner Monster Field", icon: "M", x: 2740, y: 1840, color: "#70e083", effect: "leaf", kind: "monsterField", radius: 126 }
+        { id: "questHouse", label: "Adventurer Guild", icon: "Q", x: 6100, y: 5200, color: "#f2bf63", effect: "gold", kind: "guildHall", radius: 130 },
+        { id: "partyHouse", label: "Party Plaza", icon: "P", x: 8500, y: 6300, color: "#35d6c9", effect: "merchant", kind: "meetingHall", radius: 118 },
+        { id: "dungeonHouse", label: "Dungeon Gate Complex", icon: "D", x: 12300, y: 5000, color: "#a169ff", effect: "secret", kind: "dungeonGate", radius: 148 },
+        { id: "shopHouse", label: "Market District", icon: "$", x: 6050, y: 7450, color: "#ffbd5e", effect: "gold", kind: "marketStall", radius: 118 },
+        { id: "storageHouse", label: "Storage Vault", icon: "S", x: 8050, y: 7600, color: "#83e8ff", effect: "snow", kind: "vault", radius: 104 },
+        { id: "trainingArea", label: "Training Grounds", icon: "T", x: 11000, y: 7550, color: "#82ffd3", effect: "leaf", kind: "trainingYard", radius: 120 },
+        { id: "trialTower", label: "Trial Tower", icon: "100", x: 14000, y: 6500, color: "#ff4655", effect: "boss", kind: "trialTower", radius: 132 },
+        { id: "monsterZone", label: "Slime Meadow Trail", icon: "M", x: 12150, y: 8500, color: "#70e083", effect: "leaf", kind: "monsterField", radius: 138 }
+      ];
+    }
+
+    beginnerIslandLandmasses() {
+      return [
+        { id: "town", label: "Starter Town Island", x: 8500, y: 6100, rx: 5200, ry: 3400, color: "#24331f" },
+        { id: "sacred", label: "Awakening Isle", x: 8500, y: 3000, rx: 2500, ry: 1500, color: "#1f3134" },
+        { id: "west", label: "Graveyard Island", x: 2600, y: 8350, rx: 2600, ry: 1900, color: "#2a2b28" },
+        { id: "north", label: "Crystal Cave Island", x: 2700, y: 2600, rx: 2500, ry: 1800, color: "#1f3038" },
+        { id: "forest", label: "Wolf Forest Island", x: 14600, y: 2600, rx: 2800, ry: 2050, color: "#1d3325" },
+        { id: "meadow", label: "Slime Meadow Island", x: 12400, y: 9300, rx: 3400, ry: 1900, color: "#253b22" },
+        { id: "camp", label: "Goblin Camp Island", x: 15400, y: 7850, rx: 2300, ry: 1650, color: "#332c1e" }
       ];
     }
 
     beginnerIslandDistricts() {
       return [
-        { id: "awakening", label: "Awakening District", x: 1600, y: 410, w: 760, h: 500, color: "#d9fbff", shape: "circle" },
-        { id: "quest", label: "Quest District", x: 650, y: 680, w: 860, h: 560, color: "#f2bf63" },
-        { id: "party", label: "Party District", x: 1580, y: 1000, w: 780, h: 520, color: "#35d6c9" },
-        { id: "dungeon", label: "Dungeon District", x: 2570, y: 660, w: 820, h: 570, color: "#a169ff" },
-        { id: "market", label: "Market District", x: 620, y: 1565, w: 820, h: 520, color: "#ffbd5e" },
-        { id: "storage", label: "Storage District", x: 1380, y: 1640, w: 520, h: 360, color: "#83e8ff" },
-        { id: "training", label: "Training District", x: 2240, y: 1580, w: 760, h: 500, color: "#82ffd3" },
-        { id: "trial", label: "Trial District", x: 2825, y: 1160, w: 560, h: 500, color: "#ff4655" },
-        { id: "monster", label: "Beginner Monster Field", x: 2740, y: 1840, w: 660, h: 420, color: "#70e083" }
+        { id: "town", label: "Starter Town", x: 8500, y: 6100, w: 3500, h: 2300, color: "#ece8e1" },
+        { id: "awakening", label: "Awakening Sacred District", x: 8500, y: 3000, w: 2200, h: 1500, color: "#d9fbff", shape: "circle" },
+        { id: "quest", label: "Adventurer Guild District", x: 6100, y: 5200, w: 2500, h: 1550, color: "#f2bf63" },
+        { id: "party", label: "Social Party District", x: 8500, y: 6450, w: 2200, h: 1450, color: "#35d6c9" },
+        { id: "dungeon", label: "Dungeon Gate District", x: 12300, y: 5000, w: 2500, h: 1650, color: "#a169ff" },
+        { id: "market", label: "Town Market District", x: 6050, y: 7550, w: 2450, h: 1550, color: "#ffbd5e" },
+        { id: "storage", label: "Storage and Craft District", x: 8050, y: 7700, w: 1450, h: 980, color: "#83e8ff" },
+        { id: "training", label: "Training Grounds", x: 11000, y: 7650, w: 2100, h: 1350, color: "#82ffd3" },
+        { id: "trial", label: "Trial Tower District", x: 14000, y: 6500, w: 1600, h: 1450, color: "#ff4655" },
+        { id: "slime", label: "Slime Meadow", x: 12400, y: 9300, w: 2700, h: 1600, color: "#70e083" },
+        { id: "wolf", label: "Wolf Forest", x: 14600, y: 2600, w: 2600, h: 1800, color: "#5fcb6b" },
+        { id: "graveyard", label: "Skeleton Graveyard", x: 2600, y: 8350, w: 2400, h: 1600, color: "#9aa1aa" },
+        { id: "goblin", label: "Goblin Camp", x: 15400, y: 7850, w: 2100, h: 1450, color: "#ffbd5e" },
+        { id: "crystalCave", label: "Crystal Cave", x: 2700, y: 2600, w: 2200, h: 1450, color: "#83e8ff" }
+      ];
+    }
+
+    beginnerIslandMonsterRegions() {
+      return [
+        { id: "slimeMeadow", label: "Slime Meadow", x: 12400, y: 9300, w: 2700, h: 1600, max: 18, kinds: ["slime", "fireSlime", "iceSlime"], color: "#70e083" },
+        { id: "wolfForest", label: "Wolf Forest", x: 14600, y: 2600, w: 2600, h: 1800, max: 16, kinds: ["werewolf", "batDemon", "spiderMonster", "mushroomMonster"], color: "#5fcb6b" },
+        { id: "skeletonGraveyard", label: "Skeleton Graveyard", x: 2600, y: 8350, w: 2400, h: 1600, max: 16, kinds: ["skeletonWarrior", "skeletonArcher", "zombie", "shadowSpirit"], color: "#9aa1aa" },
+        { id: "goblinCamp", label: "Goblin Camp", x: 15400, y: 7850, w: 2100, h: 1450, max: 15, kinds: ["goblinScout", "goblinBomber", "darkKnight"], color: "#ffbd5e" },
+        { id: "crystalCave", label: "Crystal Cave", x: 2700, y: 2600, w: 2200, h: 1450, max: 12, kinds: ["crystalBeast", "iceGolem", "shadowSpirit"], color: "#83e8ff" }
       ];
     }
 
@@ -14337,18 +14374,27 @@
       this.run.currentRoom.cleared = false;
       this.run.currentRoom.respawnTimer = 0;
       this.run.currentRoom.label = "Beginner Island";
-      this.run.player.x = 1600;
-      this.run.player.y = 1250;
+      this.run.player.x = 8500;
+      this.run.player.y = 5900;
       this.run.player.invuln = Math.max(this.run.player.invuln || 0, 1.2);
+      const scale = this.worldViewScale();
+      const viewW = this.width / scale;
+      const viewH = this.height / scale;
+      this.camera.x = clamp(this.run.player.x - viewW / 2, 0, Math.max(0, this.worldW() - viewW));
+      this.camera.y = clamp(this.run.player.y - viewH / 2, 0, Math.max(0, this.worldH() - viewH));
+      this.camera.targetX = this.camera.x;
+      this.camera.targetY = this.camera.y;
       this.addRoomObject("awakeningStone", {
-        x: 1600,
-        y: 395,
-        radius: 128,
+        x: 8500,
+        y: 2920,
+        radius: 210,
         color: "#d9fbff",
-        label: "Giant Awakening Stone",
+        label: "Ancient Sky Awakening Stone",
         icon: "A",
         effect: "secret"
       });
+      this.run.openWorldMonsterRegions = this.beginnerIslandMonsterRegions();
+      this.run.loadedOpenWorldRegions = {};
       this.spawnBeginnerIslandScenery();
       this.spawnBeginnerIslandNpcs();
       for (const system of this.beginnerIslandSystems()) {
@@ -14364,33 +14410,45 @@
           kind: system.kind
         });
       }
-      this.spawnBeginnerIslandMonsters(14);
-      this.addShockwave(1600, 395, 260, "#d9fbff", 0);
-      this.toast("Beginner Island: di chuyen giua cac district, gap NPC va thuc tinh power");
+      this.addShockwave(8500, 2920, 360, "#d9fbff", 0);
+      this.toast("Starter Island: thi tran trung tam, nhieu dao va vung quai ngoai thanh");
     }
 
     spawnBeginnerIslandMonsters(targetCount = 10) {
       if (!this.run) return;
-      const current = (this.run.enemies || []).filter((enemy) => enemy.openWorldMob && enemy.hp > 0).length;
+      const region = this.beginnerIslandMonsterRegions()[0];
+      this.spawnOpenWorldRegionMonsters(region, targetCount);
+    }
+
+    spawnOpenWorldRegionMonsters(region, targetCount = region?.max || 10) {
+      if (!this.run || !region) return;
+      const current = (this.run.enemies || []).filter((enemy) => enemy.openWorldMob && enemy.openWorldRegion === region.id && enemy.hp > 0).length;
       const need = Math.max(0, targetCount - current);
-      const center = { x: 2740, y: 1840 };
-      const kinds = ["slime", "fireSlime", "iceSlime", "goblinScout", "skeletonArcher", "goblinBomber", "mushroomMonster"];
+      const kinds = region.kinds || ["slime"];
       for (let i = 0; i < need; i++) {
         const angle = ((current + i) / Math.max(1, targetCount)) * TAU + rand(-0.22, 0.22);
-        const ring = rand(90, 330);
-        const x = clamp(center.x + Math.cos(angle) * ring, 2380, WORLD_W - ROOM_PAD - 140);
-        const y = clamp(center.y + Math.sin(angle) * ring, 1620, WORLD_H - ROOM_PAD - 120);
+        const ring = rand(Math.min(region.w, region.h) * 0.15, Math.max(region.w, region.h) * 0.45);
+        const x = clamp(region.x + Math.cos(angle) * ring + rand(-region.w * 0.12, region.w * 0.12), region.x - region.w / 2 + 120, region.x + region.w / 2 - 120);
+        const y = clamp(region.y + Math.sin(angle) * ring + rand(-region.h * 0.12, region.h * 0.12), region.y - region.h / 2 + 120, region.y + region.h / 2 - 120);
         const enemy = this.createEnemy(kinds[(current + i) % kinds.length], x, y, false);
         enemy.openWorldMob = true;
+        enemy.openWorldRegion = region.id;
+        enemy.regionLabel = region.label;
         enemy.anchorX = x;
         enemy.anchorY = y;
-        enemy.spawnZoneX = center.x;
-        enemy.spawnZoneY = center.y;
+        enemy.spawnZoneX = region.x;
+        enemy.spawnZoneY = region.y;
+        enemy.aggro = false;
+        enemy.detectRange = enemy.ranged ? 620 : enemy.role === "skirmisher" ? 420 : enemy.role === "brute" || enemy.role === "guard" ? 500 : 460;
+        enemy.leashRadius = Math.max(820, Math.min(region.w, region.h) * 0.62);
+        enemy.patrolRadius = rand(90, Math.min(260, Math.min(region.w, region.h) * 0.18));
+        enemy.patrolAngle = rand(0, TAU);
+        enemy.patrolTimer = rand(0.4, 2.2);
         enemy.radius = Math.max(18, enemy.radius - 2);
-        enemy.maxHp *= 0.58;
+        enemy.maxHp *= 0.68;
         enemy.hp = enemy.maxHp;
-        enemy.damage *= 0.42;
-        enemy.speed *= 0.82;
+        enemy.damage *= 0.5;
+        enemy.speed *= 0.86;
         enemy.attackCd = Math.max(enemy.attackCd, 0.8);
         enemy.skillCd = Math.max(enemy.skillCd, 2.2);
         this.run.enemies.push(enemy);
@@ -14434,69 +14492,92 @@
 
     spawnBeginnerIslandScenery() {
       const add = (kind, x, y, data = {}) => this.addOpenWorldScenery(kind, x, y, data);
-      for (let x = 210; x <= 3020; x += 250) {
-        add("tree", x, 180 + Math.sin(x * 0.01) * 38, { radius: 38, color: "#6edc79" });
-        add("tree", x + 70, 2035 + Math.cos(x * 0.009) * 42, { radius: 40, color: "#5fcb6b" });
-      }
-      for (let y = 330; y <= 1880; y += 250) {
-        add("tree", 180 + Math.cos(y * 0.008) * 32, y, { radius: 38, color: "#5fcb6b" });
-        add("tree", 3030 + Math.sin(y * 0.007) * 34, y + 40, { radius: 38, color: "#6edc79" });
+      const scatter = (kind, cx, cy, w, h, count, data = {}) => {
+        for (let i = 0; i < count; i++) {
+          const px = cx + rand(-w / 2, w / 2);
+          const py = cy + rand(-h / 2, h / 2);
+          add(kind, px, py, typeof data === "function" ? data(i, px, py) : data);
+        }
+      };
+      for (const land of this.beginnerIslandLandmasses()) {
+        const trees = land.id === "town" ? 46 : land.id === "camp" ? 26 : 34;
+        for (let i = 0; i < trees; i++) {
+          const a = (i / trees) * TAU + rand(-0.18, 0.18);
+          const r = rand(0.74, 0.98);
+          add("tree", land.x + Math.cos(a) * land.rx * r, land.y + Math.sin(a) * land.ry * r, {
+            radius: rand(30, 48),
+            color: land.id === "north" ? "#5bbfca" : land.id === "camp" ? "#8aa052" : land.id === "west" ? "#6f756e" : "#5fcb6b"
+          });
+        }
       }
       [
-        [1160, 360], [1310, 555], [1895, 560], [2035, 360],
-        [1245, 275], [1960, 275], [650, 430], [460, 720],
-        [830, 760], [370, 955], [2525, 385], [2790, 420],
-        [2360, 840], [2840, 845], [430, 1350], [790, 1360],
-        [410, 1705], [815, 1735], [2075, 1340], [2430, 1345],
-        [2030, 1735], [2460, 1755], [2560, 1695], [2980, 1710],
-        [2460, 2020], [2985, 2025]
-      ].forEach(([x, y], index) => add(index % 3 === 0 ? "banner" : index % 3 === 1 ? "lamp" : "crate", x, y, {
-        color: index % 3 === 0 ? "#ff4655" : index % 3 === 1 ? "#f2bf63" : "#b6844a",
-        radius: 24
+        [8000, 5650], [9000, 5650], [7900, 6420], [9100, 6420],
+        [7260, 6100], [9740, 6100], [8500, 5400], [8500, 6950]
+      ].forEach(([x, y], index) => add(index % 2 ? "lamp" : "banner", x, y, { color: index % 2 ? "#f2bf63" : "#ff4655", radius: 28 }));
+      [
+        [8250, 6040], [8500, 5920], [8750, 6040], [8500, 6280]
+      ].forEach(([x, y]) => add("fountain", x, y, { color: "#83e8ff", radius: 72 }));
+      [
+        [5650, 4920], [6550, 4920], [5450, 5650], [6800, 5650],
+        [7920, 6300], [9080, 6300], [7850, 6820], [9150, 6820],
+        [5600, 7270], [6500, 7270], [5400, 7900], [6760, 7900]
+      ].forEach(([x, y], index) => add(index % 3 === 0 ? "banner" : index % 3 === 1 ? "bench" : "stall", x, y, {
+        color: index % 3 === 0 ? "#ff4655" : index % 3 === 1 ? "#c79a5b" : "#ffbd5e",
+        radius: 34
       }));
       [
-        [1270, 405], [1395, 280], [1805, 280], [1930, 405],
-        [1290, 500], [1910, 500]
-      ].forEach(([x, y]) => add("pillar", x, y, { color: "#d9fbff", radius: 34 }));
+        [7780, 2940], [8150, 2480], [8850, 2480], [9220, 2940],
+        [7900, 3440], [9100, 3440]
+      ].forEach(([x, y]) => add("pillar", x, y, { color: "#d9fbff", radius: 50 }));
       [
-        [1390, 465], [1810, 465], [1500, 265], [1700, 265]
-      ].forEach(([x, y]) => add("crystal", x, y, { color: "#83e8ff", radius: 30 }));
+        [8120, 3240], [8880, 3240], [8240, 2680], [8760, 2680], [8500, 2280]
+      ].forEach(([x, y]) => add("crystal", x, y, { color: "#83e8ff", radius: 42 }));
       [
-        [520, 790], [720, 795], [1530, 1115], [1685, 1110],
-        [505, 1605], [730, 1600], [2150, 1685], [2325, 1680]
-      ].forEach(([x, y]) => add("bench", x, y, { color: "#c79a5b", radius: 24 }));
+        [11860, 4700], [12740, 4700], [11780, 5350], [12820, 5350], [12300, 4350]
+      ].forEach(([x, y]) => add("statue", x, y, { color: "#a169ff", radius: 58 }));
       [
-        [2450, 730], [2695, 730], [2470, 510], [2670, 510]
-      ].forEach(([x, y]) => add("statue", x, y, { color: "#a169ff", radius: 42 }));
+        [10740, 7340], [10920, 7340], [11100, 7340], [11280, 7340],
+        [10770, 7830], [10950, 7830], [11130, 7830], [11310, 7830]
+      ].forEach(([x, y]) => add("target", x, y, { color: "#ff4655", radius: 30 }));
       [
-        [1500, 1080], [1660, 1085], [1580, 1140]
-      ].forEach(([x, y]) => add("campfire", x, y, { color: "#ffbd5e", radius: 34 }));
+        [8300, 6530], [8550, 6570], [8800, 6535]
+      ].forEach(([x, y]) => add("campfire", x, y, { color: "#ffbd5e", radius: 42 }));
+      scatter("flower", 12400, 9300, 2500, 1450, 42, (i) => ({ color: i % 3 === 0 ? "#ff8bd3" : i % 3 === 1 ? "#f2bf63" : "#82ffd3", radius: 15 }));
+      scatter("rock", 2700, 2600, 2100, 1300, 28, (i) => ({ color: i % 2 ? "#83e8ff" : "#647487", radius: rand(22, 44) }));
+      scatter("tombstone", 2600, 8350, 2100, 1350, 38, { color: "#9aa1aa", radius: 28 });
+      scatter("tent", 15400, 7850, 1800, 1200, 14, (i) => ({ color: i % 2 ? "#ffbd5e" : "#8a5b35", radius: 54 }));
+      scatter("watchtower", 15400, 7850, 1850, 1200, 6, { color: "#b6844a", radius: 62 });
       [
-        [2110, 1510], [2195, 1510], [2280, 1510], [2365, 1510],
-        [2125, 1615], [2210, 1615], [2295, 1615], [2380, 1615]
-      ].forEach(([x, y]) => add("target", x, y, { color: "#ff4655", radius: 28 }));
-      [
-        [530, 1445], [700, 1450], [485, 1540], [780, 1545]
-      ].forEach(([x, y], index) => add("stall", x, y, { color: index % 2 ? "#35d6c9" : "#ffbd5e", radius: 42 }));
+        [12880, 9120], [11950, 9680], [14880, 2140], [15600, 3080],
+        [2270, 7920], [3140, 8870], [2850, 2420], [3420, 3060],
+        [15950, 8250], [15150, 7330]
+      ].forEach(([x, y], index) => add(index % 3 === 0 ? "chest" : index % 3 === 1 ? "resource" : "cave", x, y, {
+        color: index % 3 === 0 ? "#f2bf63" : index % 3 === 1 ? "#83e8ff" : "#222937",
+        radius: index % 3 === 2 ? 78 : 34
+      }));
     }
 
     spawnBeginnerIslandNpcs() {
-      this.addOpenWorldNpc("questHouse", "Guild Master", 650, 795, { color: "#f2bf63", role: "quest", icon: "Q", patrolRadius: 45, phase: 0.2 });
-      this.addOpenWorldNpc("questHouse", "Quest Clerk", 770, 720, { color: "#ffd36a", role: "quest", icon: "!", patrolRadius: 22, phase: 1.1 });
-      this.addOpenWorldNpc("partyHouse", "Party Scout", 1500, 1070, { color: "#35d6c9", role: "party", icon: "P", patrolRadius: 54, phase: 2.2 });
-      this.addOpenWorldNpc("dungeonHouse", "Gate Warden", 2570, 800, { color: "#a169ff", role: "dungeon", icon: "D", patrolRadius: 36, phase: 3.2 });
-      this.addOpenWorldNpc("shopHouse", "Market Trader", 610, 1645, { color: "#ffbd5e", role: "market", icon: "$", patrolRadius: 42, phase: 4.0 });
-      this.addOpenWorldNpc("storageHouse", "Vault Keeper", 1380, 1735, { color: "#83e8ff", role: "storage", icon: "S", patrolRadius: 24, phase: 4.7 });
-      this.addOpenWorldNpc("trainingArea", "Training Coach", 2240, 1695, { color: "#82ffd3", role: "training", icon: "T", patrolRadius: 48, phase: 5.4 });
-      this.addOpenWorldNpc("awakeningStone", "Awakening Sage", 1600, 610, { color: "#d9fbff", role: "awakening", icon: "A", patrolRadius: 36, phase: 0.8 });
-      this.addOpenWorldNpc("monsterZone", "Island Guard", 2440, 1790, { color: "#70e083", role: "monster", icon: "M", patrolRadius: 65, phase: 2.8 });
+      this.addOpenWorldNpc("questHouse", "Guild Master", 6100, 5450, { color: "#f2bf63", role: "quest", icon: "Q", patrolRadius: 58, phase: 0.2 });
+      this.addOpenWorldNpc("questHouse", "Quest Clerk", 6350, 5340, { color: "#ffd36a", role: "quest", icon: "!", patrolRadius: 30, phase: 1.1 });
+      this.addOpenWorldNpc("partyHouse", "Party Scout", 8350, 6620, { color: "#35d6c9", role: "party", icon: "P", patrolRadius: 70, phase: 2.2 });
+      this.addOpenWorldNpc("partyHouse", "Recruiter", 8740, 6650, { color: "#82ffd3", role: "party", icon: "+", patrolRadius: 44, phase: 2.9 });
+      this.addOpenWorldNpc("dungeonHouse", "Gate Warden", 12300, 5300, { color: "#a169ff", role: "dungeon", icon: "D", patrolRadius: 52, phase: 3.2 });
+      this.addOpenWorldNpc("dungeonHouse", "Rune Scholar", 12680, 5060, { color: "#d7c4ff", role: "dungeon", icon: "R", patrolRadius: 34, phase: 3.8 });
+      this.addOpenWorldNpc("shopHouse", "Market Trader", 6050, 7800, { color: "#ffbd5e", role: "market", icon: "$", patrolRadius: 56, phase: 4.0 });
+      this.addOpenWorldNpc("shopHouse", "Craft Merchant", 6400, 7620, { color: "#f2bf63", role: "market", icon: "C", patrolRadius: 42, phase: 4.3 });
+      this.addOpenWorldNpc("storageHouse", "Vault Keeper", 8050, 7900, { color: "#83e8ff", role: "storage", icon: "S", patrolRadius: 28, phase: 4.7 });
+      this.addOpenWorldNpc("trainingArea", "Training Coach", 11000, 7920, { color: "#82ffd3", role: "training", icon: "T", patrolRadius: 60, phase: 5.4 });
+      this.addOpenWorldNpc("awakeningStone", "Awakening Sage", 8500, 3320, { color: "#d9fbff", role: "awakening", icon: "A", patrolRadius: 44, phase: 0.8 });
+      this.addOpenWorldNpc("monsterZone", "Island Guard", 12150, 8720, { color: "#70e083", role: "monster", icon: "M", patrolRadius: 80, phase: 2.8 });
+      this.addOpenWorldNpc("secretCave", "Silent Hermit", 2840, 2860, { color: "#83e8ff", role: "secret", icon: "?", patrolRadius: 24, phase: 1.6 });
     }
 
     addRoomObject(type, data = {}) {
       const object = {
         id: uid(type),
         type,
-        x: WORLD_W / 2,
+        x: this.worldW() / 2,
         y: ROOM_PAD + 220,
         radius: 46,
         grow: 0,
@@ -14521,7 +14602,7 @@
     spawnBossGate() {
       this.run.currentRoom.started = false;
       this.addRoomObject("bossGate", {
-        y: WORLD_H / 2 - 40,
+        y: this.worldH() / 2 - 40,
         radius: 82,
         color: this.run.biome.accent,
         label: "Cổng Trùm",
@@ -14529,10 +14610,10 @@
       });
     }
 
-    spawnBossExit(x = WORLD_W / 2, y = WORLD_H / 2 + 120) {
+    spawnBossExit(x = this.worldW() / 2, y = this.worldH() / 2 + 120) {
       this.addRoomObject("bossExit", {
-        x: clamp(x + 120, ROOM_PAD + 120, WORLD_W - ROOM_PAD - 120),
-        y: clamp(y, ROOM_PAD + 130, WORLD_H - ROOM_PAD - 130),
+        x: clamp(x + 120, ROOM_PAD + 120, this.worldW() - ROOM_PAD - 120),
+        y: clamp(y, ROOM_PAD + 130, this.worldH() - ROOM_PAD - 130),
         radius: 62,
         color: "#f2bf63",
         label: "Cổng Phần Thưởng",
@@ -14547,7 +14628,7 @@
     spawnMerchantStall() {
       this.run.merchantOffers = this.rollMerchantOffers();
       this.addRoomObject("merchantStall", {
-        y: WORLD_H / 2 - 20,
+        y: this.worldH() / 2 - 20,
         radius: 58,
         color: "#35d6c9",
         label: "Quầy Thương Nhân",
@@ -14557,7 +14638,7 @@
 
     spawnCurseBook() {
       this.addRoomObject("curseBook", {
-        y: WORLD_H / 2 - 30,
+        y: this.worldH() / 2 - 30,
         radius: 50,
         color: "#a169ff",
         label: "Sách Nguyền",
@@ -14576,7 +14657,7 @@
     spawnSecretAltar() {
       const riddle = this.currentSecretRiddle();
       this.addRoomObject("secretAltar", {
-        y: WORLD_H / 2 - 22,
+        y: this.worldH() / 2 - 22,
         radius: 58,
         color: riddle.color || "#82ffd3",
         label: "Bia Bí Mật",
@@ -14584,14 +14665,14 @@
         effect: "secret",
         riddleId: riddle.id
       });
-      this.addShockwave(WORLD_W / 2, WORLD_H / 2 - 22, 170, riddle.color || "#82ffd3", 0);
+      this.addShockwave(this.worldW() / 2, this.worldH() / 2 - 22, 170, riddle.color || "#82ffd3", 0);
     }
 
     edgePosition(edge) {
-      if (edge === "top") return { x: rand(180, WORLD_W - 180), y: ROOM_PAD + 70 };
-      if (edge === "bottom") return { x: rand(180, WORLD_W - 180), y: WORLD_H - ROOM_PAD - 70 };
-      if (edge === "left") return { x: ROOM_PAD + 70, y: rand(170, WORLD_H - 170) };
-      return { x: WORLD_W - ROOM_PAD - 70, y: rand(170, WORLD_H - 170) };
+      if (edge === "top") return { x: rand(180, this.worldW() - 180), y: ROOM_PAD + 70 };
+      if (edge === "bottom") return { x: rand(180, this.worldW() - 180), y: this.worldH() - ROOM_PAD - 70 };
+      if (edge === "left") return { x: ROOM_PAD + 70, y: rand(170, this.worldH() - 170) };
+      return { x: this.worldW() - ROOM_PAD - 70, y: rand(170, this.worldH() - 170) };
     }
 
     enemyRole(kind, ranged, bulky) {
@@ -14660,7 +14741,7 @@
         chargeDir: 0,
         attackAnim: 0,
         attackDir: 0,
-        facingDir: x < WORLD_W / 2 ? 1 : -1,
+        facingDir: x < this.worldW() / 2 ? 1 : -1,
         launch: 0,
         flash: 0,
         stun: 0,
@@ -14709,7 +14790,7 @@
       this.run.enemies.push({
         id: uid("boss"),
         kind: raid ? `Raid ${raidPower.name} - ${biome.boss}` : biome.boss,
-        x: WORLD_W / 2,
+        x: this.worldW() / 2,
         y: ROOM_PAD + 210,
         vx: 0,
         vy: 0,
@@ -14764,7 +14845,7 @@
         aiTimer: 0
       });
       this.camera.shake = 18;
-      this.addShockwave(WORLD_W / 2, ROOM_PAD + 210, raid ? 280 : 220, raidPower?.color || this.run.biome.accent);
+      this.addShockwave(this.worldW() / 2, ROOM_PAD + 210, raid ? 280 : 220, raidPower?.color || this.run.biome.accent);
       this.audio.boss("intro", this.run.enemies[this.run.enemies.length - 1]);
     }
 
@@ -14785,7 +14866,7 @@
       this.run.enemies.push({
         id: "player-boss",
         kind: `${slot?.name || "Boss"} - ${biome.boss}`,
-        x: actor.x || WORLD_W / 2,
+        x: actor.x || this.worldW() / 2,
         y: actor.y || ROOM_PAD + 220,
         vx: 0,
         vy: 0,
@@ -14848,8 +14929,8 @@
       }
       if (this.isLocalPlayerBoss()) this.applyLocalPlayerBossStats();
       this.camera.shake = Math.max(this.camera.shake, 20);
-      this.addShockwave(actor.x || WORLD_W / 2, actor.y || ROOM_PAD + 220, 260, biome.accent, 0, { owner: "enemy" });
-      this.addPlayerBossRevealEffect(actor.x || WORLD_W / 2, actor.y || ROOM_PAD + 220, this.run.playerBossName, biome.accent);
+      this.addShockwave(actor.x || this.worldW() / 2, actor.y || ROOM_PAD + 220, 260, biome.accent, 0, { owner: "enemy" });
+      this.addPlayerBossRevealEffect(actor.x || this.worldW() / 2, actor.y || ROOM_PAD + 220, this.run.playerBossName, biome.accent);
       this.audio.boss("intro", this.run.enemies[this.run.enemies.length - 1]);
       this.toast(`${slot?.name || "Một người chơi"} đã hóa thành boss`);
     }
@@ -14875,8 +14956,12 @@
       const room = this.run.currentRoom;
       room.started = true;
       room.cleared = false;
+      const p = this.run.player;
       for (const object of this.run.roomObjects || []) {
         if (object.type !== "openWorldNpc") continue;
+        const dx = object.x - p.x;
+        const dy = object.y - p.y;
+        if (dx * dx + dy * dy > 1700 * 1700 && !this.inView(object.x, object.y, 420)) continue;
         object.phase = Number(object.phase || 0) + dt * (object.patrolSpeed || 0.55);
         const r = Number(object.patrolRadius || 0);
         if (r > 0) {
@@ -14886,10 +14971,44 @@
       }
       room.respawnTimer = Math.max(0, Number(room.respawnTimer || 0) - dt);
       if (room.respawnTimer <= 0) {
-        room.respawnTimer = 4.5;
-        this.spawnBeginnerIslandMonsters(14);
+        room.respawnTimer = 1.2;
+        this.updateOpenWorldMonsterStreaming();
       }
       this.updateOpenWorldInteractionTarget();
+    }
+
+    rectNearView(x, y, w, h, pad = 0) {
+      const bounds = this.viewBounds(pad);
+      const left = x - w / 2;
+      const right = x + w / 2;
+      const top = y - h / 2;
+      const bottom = y + h / 2;
+      return !(right < bounds.left || left > bounds.right || bottom < bounds.top || top > bounds.bottom);
+    }
+
+    updateOpenWorldMonsterStreaming() {
+      if (!this.isOpenWorldRun()) return;
+      const p = this.run.player;
+      const regions = this.run.openWorldMonsterRegions || this.beginnerIslandMonsterRegions();
+      this.run.loadedOpenWorldRegions ||= {};
+      for (const region of regions) {
+        const dx = p.x - region.x;
+        const dy = p.y - region.y;
+        const distance = Math.hypot(dx, dy);
+        const activeRange = Math.max(region.w, region.h) * 0.62 + 1450;
+        const unloadRange = activeRange + 1750;
+        const visibleSoon = this.rectNearView(region.x, region.y, region.w, region.h, 1300);
+        const active = distance < activeRange || visibleSoon;
+        if (active) {
+          this.run.loadedOpenWorldRegions[region.id] = true;
+          this.spawnOpenWorldRegionMonsters(region, region.max);
+          continue;
+        }
+        if (this.run.loadedOpenWorldRegions[region.id] && distance > unloadRange && !this.rectNearView(region.x, region.y, region.w, region.h, 1900)) {
+          this.run.enemies = (this.run.enemies || []).filter((enemy) => !enemy.openWorldMob || enemy.openWorldRegion !== region.id);
+          delete this.run.loadedOpenWorldRegions[region.id];
+        }
+      }
     }
 
     applyOpenWorldEnemyLeashes(dt) {
@@ -14902,15 +15021,17 @@
         const dx = anchorX - enemy.x;
         const dy = anchorY - enemy.y;
         const d = Math.hypot(dx, dy) || 1;
-        if (d > 520) {
-          enemy.x = anchorX + (enemy.x - anchorX) / d * 420;
-          enemy.y = anchorY + (enemy.y - anchorY) / d * 420;
+        const leash = Number(enemy.leashRadius || 820);
+        if (d > leash + 520) {
+          enemy.x = anchorX + (enemy.x - anchorX) / d * leash;
+          enemy.y = anchorY + (enemy.y - anchorY) / d * leash;
           enemy.vx = 0;
           enemy.vy = 0;
-        } else if (d > 360) {
-          const pull = clamp((d - 360) / 180, 0, 1);
-          enemy.vx += (dx / d) * enemy.speed * 1.8 * pull * dt;
-          enemy.vy += (dy / d) * enemy.speed * 1.8 * pull * dt;
+          enemy.aggro = false;
+        } else if (d > leash && !enemy.aggro) {
+          const pull = clamp((d - leash) / 260, 0, 1);
+          enemy.vx += (dx / d) * enemy.speed * 1.25 * pull * dt;
+          enemy.vy += (dy / d) * enemy.speed * 1.25 * pull * dt;
         }
       }
     }
@@ -15195,8 +15316,8 @@
         coin.amount = Math.round((coin.amount || 1) * 1.22);
         this.run.pickups.push({
           id: uid("pickup"),
-          x: clamp(x, ROOM_PAD + 42, WORLD_W - ROOM_PAD - 42),
-          y: clamp(y, ROOM_PAD + 42, WORLD_H - ROOM_PAD - 42),
+          x: clamp(x, ROOM_PAD + 42, this.worldW() - ROOM_PAD - 42),
+          y: clamp(y, ROOM_PAD + 42, this.worldH() - ROOM_PAD - 42),
           vx: Math.cos(angle) * burst,
           vy: Math.sin(angle) * burst * 0.72,
           type: "reward",
@@ -15308,7 +15429,7 @@
         { x: 0, y: 82 }
       ];
       const offset = offsets[index % offsets.length];
-      return { x: WORLD_W / 2 + offset.x, y: WORLD_H / 2 + offset.y };
+      return { x: this.worldW() / 2 + offset.x, y: this.worldH() / 2 + offset.y };
     }
 
     leaderName(id = this.run?.leaderId) {
@@ -15338,8 +15459,8 @@
     revivePlayer(actor, options = {}) {
       if (!actor) return;
       const wasDead = Boolean(actor.dead);
-      if (Number.isFinite(options.x)) actor.x = clamp(options.x, ROOM_PAD + (actor.radius || 22), WORLD_W - ROOM_PAD - (actor.radius || 22));
-      if (Number.isFinite(options.y)) actor.y = clamp(options.y, ROOM_PAD + (actor.radius || 22), WORLD_H - ROOM_PAD - (actor.radius || 22));
+      if (Number.isFinite(options.x)) actor.x = clamp(options.x, ROOM_PAD + (actor.radius || 22), this.worldW() - ROOM_PAD - (actor.radius || 22));
+      if (Number.isFinite(options.y)) actor.y = clamp(options.y, ROOM_PAD + (actor.radius || 22), this.worldH() - ROOM_PAD - (actor.radius || 22));
       actor.dead = false;
       actor.spectating = false;
       actor.spectateId = "";
@@ -15454,8 +15575,8 @@
       this.camera.leadX = (this.camera.leadX || 0) + (leadTarget.x - (this.camera.leadX || 0)) * leadBlend;
       this.camera.leadY = (this.camera.leadY || 0) + (leadTarget.y - (this.camera.leadY || 0)) * leadBlend;
       const lead = { x: this.camera.leadX || 0, y: this.camera.leadY || 0 };
-      const targetX = clamp(player.x + lead.x - viewW / 2, 0, Math.max(0, WORLD_W - viewW));
-      const targetY = clamp(player.y + lead.y - viewH / 2, 0, Math.max(0, WORLD_H - viewH));
+      const targetX = clamp(player.x + lead.x - viewW / 2, 0, Math.max(0, this.worldW() - viewW));
+      const targetY = clamp(player.y + lead.y - viewH / 2, 0, Math.max(0, this.worldH() - viewH));
       const follow = this.isMobileDevice() ? 3.8 : 8;
       this.camera.x += (targetX - this.camera.x) * Math.min(1, dt * follow);
       this.camera.y += (targetY - this.camera.y) * Math.min(1, dt * follow);
@@ -15569,8 +15690,8 @@
 
       p.vx = mx * speed * movePower;
       p.vy = my * speed * movePower;
-      p.x = clamp(p.x + p.vx * dt, ROOM_PAD + p.radius, WORLD_W - ROOM_PAD - p.radius);
-      p.y = clamp(p.y + p.vy * dt, ROOM_PAD + p.radius, WORLD_H - ROOM_PAD - p.radius);
+      p.x = clamp(p.x + p.vx * dt, ROOM_PAD + p.radius, this.worldW() - ROOM_PAD - p.radius);
+      p.y = clamp(p.y + p.vy * dt, ROOM_PAD + p.radius, this.worldH() - ROOM_PAD - p.radius);
       this.applyCasterDomainContainment(p, this.lobby.id);
 
       if (this.run.power.id === "nature" && this.powerHealingAvailable() && Math.floor(this.menuTime * 2) % 7 === 0 && chance(dt * 0.5)) {
@@ -15800,7 +15921,7 @@
       });
     }
 
-    executePlayerBossAction(actorId, key = "basic", x = WORLD_W / 2, y = WORLD_H / 2, angle = 0, target = null) {
+    executePlayerBossAction(actorId, key = "basic", x = this.worldW() / 2, y = this.worldH() / 2, angle = 0, target = null) {
       if (!this.isMultiplayerHost() || !this.isPlayerBossId(actorId)) return;
       const boss = this.playerBossEnemy();
       if (!boss || boss.hp <= 0) return;
@@ -15810,8 +15931,8 @@
       boss.playerBossNextAction ||= {};
       if (now < (boss.playerBossNextAction[normalizedKey] || 0)) return;
       boss.playerBossNextAction[normalizedKey] = now + waitMs;
-      boss.x = clamp(Number(x) || boss.x, ROOM_PAD + boss.radius, WORLD_W - ROOM_PAD - boss.radius);
-      boss.y = clamp(Number(y) || boss.y, ROOM_PAD + boss.radius, WORLD_H - ROOM_PAD - boss.radius);
+      boss.x = clamp(Number(x) || boss.x, ROOM_PAD + boss.radius, this.worldW() - ROOM_PAD - boss.radius);
+      boss.y = clamp(Number(y) || boss.y, ROOM_PAD + boss.radius, this.worldH() - ROOM_PAD - boss.radius);
       boss.attackAnim = normalizedKey === "f" ? 0.68 : 0.46;
       boss.attackDir = angle;
       boss.facingDir = Math.cos(angle) >= 0 ? 1 : -1;
@@ -15869,8 +15990,8 @@
       const lunge = 50;
       const range = 104;
       const arc = Math.PI * 0.72;
-      p.x = clamp(p.x + Math.cos(angle) * lunge, ROOM_PAD + p.radius, WORLD_W - ROOM_PAD - p.radius);
-      p.y = clamp(p.y + Math.sin(angle) * lunge, ROOM_PAD + p.radius, WORLD_H - ROOM_PAD - p.radius);
+      p.x = clamp(p.x + Math.cos(angle) * lunge, ROOM_PAD + p.radius, this.worldW() - ROOM_PAD - p.radius);
+      p.y = clamp(p.y + Math.sin(angle) * lunge, ROOM_PAD + p.radius, this.worldH() - ROOM_PAD - p.radius);
       p.invuln = Math.max(p.invuln, 0.12);
       p.guardianParry = Math.max(p.guardianParry || 0, 0.38);
       this.addBasicAttackBurst(p.x + Math.cos(angle) * range * 0.5, p.y + Math.sin(angle) * range * 0.5, angle, "guardian", range);
@@ -16910,8 +17031,8 @@
     }
 
     setDesignedCasterPosition(caster, x, y, options = {}) {
-      const nx = clamp(x, ROOM_PAD + (caster.radius || 22), WORLD_W - ROOM_PAD - (caster.radius || 22));
-      const ny = clamp(y, ROOM_PAD + (caster.radius || 22), WORLD_H - ROOM_PAD - (caster.radius || 22));
+      const nx = clamp(x, ROOM_PAD + (caster.radius || 22), this.worldW() - ROOM_PAD - (caster.radius || 22));
+      const ny = clamp(y, ROOM_PAD + (caster.radius || 22), this.worldH() - ROOM_PAD - (caster.radius || 22));
       caster.x = nx;
       caster.y = ny;
       if (options.owner === "ally" && options.casterId) {
@@ -18670,8 +18791,8 @@
           const sx = x + Math.cos(angle) * 96;
           const sy = y + Math.sin(angle) * 96;
           if (!remote) {
-            caster.x = clamp(sx, ROOM_PAD + caster.radius, WORLD_W - ROOM_PAD - caster.radius);
-            caster.y = clamp(sy, ROOM_PAD + caster.radius, WORLD_H - ROOM_PAD - caster.radius);
+            caster.x = clamp(sx, ROOM_PAD + caster.radius, this.worldW() - ROOM_PAD - caster.radius);
+            caster.y = clamp(sy, ROOM_PAD + caster.radius, this.worldH() - ROOM_PAD - caster.radius);
             caster.invuln = Math.max(caster.invuln, 0.28);
           }
           this.addSkillShape(kind, "shadowBloom", sx, sy, angle, 150);
@@ -18805,8 +18926,8 @@
           for (const enemy of this.run.enemies) if (Math.hypot(enemy.x - x, enemy.y - y) < 145) enemy.stun = Math.max(enemy.stun || 0, enemy.boss ? 0.06 : 0.34);
         } else if (kind === "void") {
           if (!remote) {
-            caster.x = clamp(x + Math.cos(angle) * 128, ROOM_PAD + caster.radius, WORLD_W - ROOM_PAD - caster.radius);
-            caster.y = clamp(y + Math.sin(angle) * 128, ROOM_PAD + caster.radius, WORLD_H - ROOM_PAD - caster.radius);
+            caster.x = clamp(x + Math.cos(angle) * 128, ROOM_PAD + caster.radius, this.worldW() - ROOM_PAD - caster.radius);
+            caster.y = clamp(y + Math.sin(angle) * 128, ROOM_PAD + caster.radius, this.worldH() - ROOM_PAD - caster.radius);
             caster.invuln = Math.max(caster.invuln || 0, 0.35);
           }
           const endX = caster.x;
@@ -19275,6 +19396,10 @@
         return;
       }
       enemy.hp -= damage;
+      if (damage > 0 && enemy.openWorldMob) {
+        enemy.aggro = true;
+        enemy.patrolTimer = 0;
+      }
       enemy.flash = 0.12;
       enemy.stun = Math.max(enemy.stun, enemy.boss ? 0.04 : 0.12);
       const suppressKnockback = options.noKnockback || options.source === "domain" || this.enemyDomainBoundActive(enemy);
@@ -19648,8 +19773,8 @@
       this.maybeApplyBossDebuffFromSource(source);
       if (this.run.curse?.id === "lifesteal" && source) source.hp = Math.min(source.maxHp, source.hp + damage * 0.35);
       if (this.run.curse?.id === "teleport" && chance(0.24)) {
-        p.x = rand(ROOM_PAD + 120, WORLD_W - ROOM_PAD - 120);
-        p.y = rand(ROOM_PAD + 120, WORLD_H - ROOM_PAD - 120);
+        p.x = rand(ROOM_PAD + 120, this.worldW() - ROOM_PAD - 120);
+        p.y = rand(ROOM_PAD + 120, this.worldH() - ROOM_PAD - 120);
         this.addShockwave(p.x, p.y, 120, "#64a8ff", 24);
       }
       if (p.hp <= 0) {
@@ -19751,8 +19876,8 @@
       this.save.achievements.bossBreaker = true;
       this.persist();
       if (this.run.currentRoom) this.run.currentRoom.bossDefeated = true;
-      const x = enemy?.x ?? WORLD_W / 2;
-      const y = enemy?.y ?? WORLD_H / 2;
+      const x = enemy?.x ?? this.worldW() / 2;
+      const y = enemy?.y ?? this.worldH() / 2;
       if (this.isPlayerBossRun()) {
         this.addShockwave(x, y, 520, "#f2bf63", 88);
         this.finishPlayerBossRound("hunters");
@@ -19787,8 +19912,8 @@
       this.run.roomObjects = [];
       this.run.pickups = [];
       this.clearRoomHazards();
-      const x = enemy?.x ?? WORLD_W / 2;
-      const y = enemy?.y ?? WORLD_H / 2;
+      const x = enemy?.x ?? this.worldW() / 2;
+      const y = enemy?.y ?? this.worldH() / 2;
       this.addShockwave(x, y, 520, power.color || "#f2bf63", 88);
       for (let i = 0; i < this.particleCount(34, { important: true }); i++) {
         const a = rand(0, TAU);
@@ -19858,7 +19983,7 @@
       this.run.projectiles = [];
       this.run.slashes = [];
       this.run.delayedStrikes = [];
-      this.addShockwave(WORLD_W / 2, WORLD_H / 2, normalized === "boss" ? 360 : 440, normalized === "boss" ? "#ff4b8f" : "#f2bf63", 0, { owner: "enemy" });
+      this.addShockwave(this.worldW() / 2, this.worldH() / 2, normalized === "boss" ? 360 : 440, normalized === "boss" ? "#ff4b8f" : "#f2bf63", 0, { owner: "enemy" });
       if (this.isMultiplayerHost()) {
         const snapshot = this.networkSnapshot(true);
         if (snapshot) this.lobby.broadcastSnapshot(snapshot, snapshot);
@@ -20133,8 +20258,8 @@
         const burst = 260 + index * 18 + rand(0, 90);
         this.run.pickups.push({
           id: uid("pickup"),
-          x: clamp(x, ROOM_PAD + 42, WORLD_W - ROOM_PAD - 42),
-          y: clamp(y, ROOM_PAD + 42, WORLD_H - ROOM_PAD - 42),
+          x: clamp(x, ROOM_PAD + 42, this.worldW() - ROOM_PAD - 42),
+          y: clamp(y, ROOM_PAD + 42, this.worldH() - ROOM_PAD - 42),
           vx: Math.cos(angle) * burst,
           vy: Math.sin(angle) * burst * 0.78,
           type: "reward",
@@ -20377,7 +20502,7 @@
       if (!this.run?.nextRooms?.length) return false;
       const doors = this.run.nextRooms;
       const spacing = doors.length > 2 ? 170 : 210;
-      const baseX = WORLD_W / 2 - ((doors.length - 1) * spacing) / 2;
+      const baseX = this.worldW() / 2 - ((doors.length - 1) * spacing) / 2;
       const y = ROOM_PAD + 105;
       this.run.roomObjects = this.run.roomObjects.filter((object) => object.type !== "nextDoor");
       doors.forEach((room, index) => {
@@ -20393,7 +20518,7 @@
         });
       });
       if (this.run.currentRoom) this.run.currentRoom.nextOpened = true;
-      this.addShockwave(WORLD_W / 2, y, 220, this.run.biome.accent, 0);
+      this.addShockwave(this.worldW() / 2, y, 220, this.run.biome.accent, 0);
       this.toast("Cửa khu tiếp theo đã mọc lên ở phía trên bản đồ");
       return true;
     }
@@ -21247,8 +21372,8 @@
       }
       enemy.vx *= Math.pow(0.35, dt);
       enemy.vy *= Math.pow(0.35, dt);
-      enemy.x = clamp(enemy.x + enemy.vx * dt, ROOM_PAD + enemy.radius, WORLD_W - ROOM_PAD - enemy.radius);
-      enemy.y = clamp(enemy.y + enemy.vy * dt, ROOM_PAD + enemy.radius, WORLD_H - ROOM_PAD - enemy.radius);
+      enemy.x = clamp(enemy.x + enemy.vx * dt, ROOM_PAD + enemy.radius, this.worldW() - ROOM_PAD - enemy.radius);
+      enemy.y = clamp(enemy.y + enemy.vy * dt, ROOM_PAD + enemy.radius, this.worldH() - ROOM_PAD - enemy.radius);
       this.applyEnemyDomainContainment(enemy);
       if (player && !player.dead && !options.skipSeparation) this.keepEnemyOutOfPlayer(enemy, player);
       this.applyEnemyDomainContainment(enemy);
@@ -21384,10 +21509,48 @@
       const push = minDist - d;
       const nx = dx / d;
       const ny = dy / d;
-      enemy.x = clamp(enemy.x - nx * push, ROOM_PAD + enemy.radius, WORLD_W - ROOM_PAD - enemy.radius);
-      enemy.y = clamp(enemy.y - ny * push, ROOM_PAD + enemy.radius, WORLD_H - ROOM_PAD - enemy.radius);
+      enemy.x = clamp(enemy.x - nx * push, ROOM_PAD + enemy.radius, this.worldW() - ROOM_PAD - enemy.radius);
+      enemy.y = clamp(enemy.y - ny * push, ROOM_PAD + enemy.radius, this.worldH() - ROOM_PAD - enemy.radius);
       enemy.vx -= nx * 80;
       enemy.vy -= ny * 80;
+    }
+
+    updateOpenWorldMobAwareness(enemy, player, playerDistance, dt) {
+      if (!enemy?.openWorldMob || enemy.boss || enemy.playerBoss || enemy.trainingDummy) return false;
+      const anchorX = Number.isFinite(enemy.anchorX) ? enemy.anchorX : enemy.x;
+      const anchorY = Number.isFinite(enemy.anchorY) ? enemy.anchorY : enemy.y;
+      const anchorDx = anchorX - enemy.x;
+      const anchorDy = anchorY - enemy.y;
+      const anchorDistance = Math.hypot(anchorDx, anchorDy) || 1;
+      const detect = Number(enemy.detectRange || (enemy.ranged ? 620 : 460));
+      const leash = Number(enemy.leashRadius || 860);
+      if (playerDistance <= detect && anchorDistance < leash + 260) enemy.aggro = true;
+      if (enemy.aggro && (playerDistance > detect * 1.85 || anchorDistance > leash + 260)) {
+        enemy.aggro = false;
+        enemy.windupTime = 0;
+        enemy.chargeTime = 0;
+      }
+      if (enemy.aggro) return false;
+      enemy.attackCd = Math.max(0, (enemy.attackCd || 0) - dt * 0.45);
+      enemy.skillCd = Math.max(0, (enemy.skillCd || 0) - dt * 0.25);
+      enemy.patrolTimer = Math.max(0, Number(enemy.patrolTimer || 0) - dt);
+      if (enemy.patrolTimer <= 0 || !Number.isFinite(enemy.patrolTargetX) || !Number.isFinite(enemy.patrolTargetY)) {
+        enemy.patrolTimer = rand(1.1, 3.2);
+        enemy.patrolAngle = Number(enemy.patrolAngle || 0) + rand(-1.35, 1.35);
+        const radius = Number(enemy.patrolRadius || 160) * rand(0.25, 1);
+        enemy.patrolTargetX = anchorX + Math.cos(enemy.patrolAngle) * radius;
+        enemy.patrolTargetY = anchorY + Math.sin(enemy.patrolAngle) * radius;
+      }
+      const targetX = anchorDistance > leash * 0.68 ? anchorX : enemy.patrolTargetX;
+      const targetY = anchorDistance > leash * 0.68 ? anchorY : enemy.patrolTargetY;
+      const dx = targetX - enemy.x;
+      const dy = targetY - enemy.y;
+      const d = Math.hypot(dx, dy) || 1;
+      const patrolSpeed = enemy.speed * (anchorDistance > leash * 0.68 ? 0.58 : 0.28);
+      enemy.facingDir = dx >= 0 ? 1 : -1;
+      if (d > 20) this.steerEnemy(enemy, (dx / d) * patrolSpeed, (dy / d) * patrolSpeed, dt, 5);
+      else this.steerEnemy(enemy, 0, 0, dt, 4);
+      return true;
     }
 
     updateEnemyAi(enemy, dt) {
@@ -21401,6 +21564,7 @@
       const d = Math.sqrt(dx * dx + dy * dy);
       const a = Math.atan2(dy, dx);
       enemy.facingDir = p.x >= enemy.x ? 1 : -1;
+      if (this.updateOpenWorldMobAwareness(enemy, p, d, dt)) return;
       const monsterDesign = MONSTER_TYPES[enemy.kind || ""] || null;
       const slow = (enemy.chill > 0 ? 0.48 : 1) * (enemy.weighted > 0 ? 0.82 : 1);
       enemy.attackCd -= dt;
@@ -21742,8 +21906,8 @@
         const count = Math.min(enemy.elite ? 3 : 2, Math.max(0, 8 - currentMinions));
         for (let i = 0; i < count; i++) {
           const a = angle + (i - (count - 1) / 2) * 0.8;
-          const x = clamp(enemy.x + Math.cos(a) * 82, ROOM_PAD + 80, WORLD_W - ROOM_PAD - 80);
-          const y = clamp(enemy.y + Math.sin(a) * 82, ROOM_PAD + 80, WORLD_H - ROOM_PAD - 80);
+          const x = clamp(enemy.x + Math.cos(a) * 82, ROOM_PAD + 80, this.worldW() - ROOM_PAD - 80);
+          const y = clamp(enemy.y + Math.sin(a) * 82, ROOM_PAD + 80, this.worldH() - ROOM_PAD - 80);
           const minion = this.createEnemy(i % 2 ? "skeletonArcher" : "skeletonWarrior", x, y, false);
           minion.hp *= 0.66;
           minion.maxHp *= 0.66;
@@ -21910,8 +22074,8 @@
       if (pattern === "raidFireMeteors" || pattern === "raidFireHell") {
         const count = pattern === "raidFireHell" ? 8 + phase * 2 : 5 + phase;
         for (let i = 0; i < count; i++) {
-          const x = clamp((p?.x || WORLD_W / 2) + rand(-280, 280), ROOM_PAD + 80, WORLD_W - ROOM_PAD - 80);
-          const y = clamp((p?.y || WORLD_H / 2) + rand(-210, 210), ROOM_PAD + 80, WORLD_H - ROOM_PAD - 80);
+          const x = clamp((p?.x || this.worldW() / 2) + rand(-280, 280), ROOM_PAD + 80, this.worldW() - ROOM_PAD - 80);
+          const y = clamp((p?.y || this.worldH() / 2) + rand(-210, 210), ROOM_PAD + 80, this.worldH() - ROOM_PAD - 80);
           this.bossDanger(enemy, x, y, 92 + phase * 14, 0.62 + i * 0.045, 0.56, color);
         }
         return pattern === "raidFireHell" ? 2.15 : 1.9;
@@ -21934,8 +22098,8 @@
       if (pattern === "raidIcePrison" || pattern === "raidIceMirror") {
         const center = p || enemy;
         const size = 260 + phase * 26;
-        const x = clamp(center.x - size / 2, ROOM_PAD + 70, WORLD_W - ROOM_PAD - 70 - size);
-        const y = clamp(center.y - size / 2, ROOM_PAD + 70, WORLD_H - ROOM_PAD - 70 - size);
+        const x = clamp(center.x - size / 2, ROOM_PAD + 70, this.worldW() - ROOM_PAD - 70 - size);
+        const y = clamp(center.y - size / 2, ROOM_PAD + 70, this.worldH() - ROOM_PAD - 70 - size);
         this.bossLineDanger(enemy, x, y, 0, size, 26, 0.9, 0.44, color);
         this.bossLineDanger(enemy, x, y + size, 0, size, 26, 1.02, 0.44, color);
         this.bossLineDanger(enemy, x, y, Math.PI / 2, size, 26, 1.14, 0.44, accent);
@@ -21963,22 +22127,22 @@
       if (pattern === "raidLightningGrid" || pattern === "raidLightningScanner") {
         const lanes = pattern === "raidLightningScanner" ? 6 : 4 + phase;
         for (let i = 0; i < lanes; i++) {
-          const x = ROOM_PAD + 120 + i * ((WORLD_W - ROOM_PAD * 2 - 240) / Math.max(1, lanes - 1));
-          this.bossLineDanger(enemy, x, ROOM_PAD + 80, Math.PI / 2, WORLD_H - ROOM_PAD * 2 - 160, 18 + phase * 3, 0.62 + i * 0.07, 0.38, i % 2 ? color : accent);
+          const x = ROOM_PAD + 120 + i * ((this.worldW() - ROOM_PAD * 2 - 240) / Math.max(1, lanes - 1));
+          this.bossLineDanger(enemy, x, ROOM_PAD + 80, Math.PI / 2, this.worldH() - ROOM_PAD * 2 - 160, 18 + phase * 3, 0.62 + i * 0.07, 0.38, i % 2 ? color : accent);
         }
-        if (p) this.bossLineDanger(enemy, ROOM_PAD + 80, p.y, 0, WORLD_W - ROOM_PAD * 2 - 160, 26, 1.02, 0.5, accent);
+        if (p) this.bossLineDanger(enemy, ROOM_PAD + 80, p.y, 0, this.worldW() - ROOM_PAD * 2 - 160, 26, 1.02, 0.5, accent);
         return 1.92;
       }
       if (pattern === "raidLightningStorm") {
-        for (let i = 0; i < 5 + phase * 2; i++) this.bossDanger(enemy, rand(ROOM_PAD + 90, WORLD_W - ROOM_PAD - 90), rand(ROOM_PAD + 90, WORLD_H - ROOM_PAD - 90), 52 + phase * 6, 0.5 + i * 0.08, 0.44, i % 2 ? color : accent);
+        for (let i = 0; i < 5 + phase * 2; i++) this.bossDanger(enemy, rand(ROOM_PAD + 90, this.worldW() - ROOM_PAD - 90), rand(ROOM_PAD + 90, this.worldH() - ROOM_PAD - 90), 52 + phase * 6, 0.5 + i * 0.08, 0.44, i % 2 ? color : accent);
         return 1.88;
       }
 
       if (pattern === "raidShadowMarks" || pattern === "raidShadowRain" || pattern === "raidShadowSiphon") {
         const count = pattern === "raidShadowRain" ? 8 + phase * 2 : 5 + phase;
         for (let i = 0; i < count; i++) {
-          const x = clamp((p?.x || enemy.x) + rand(-240, 240), ROOM_PAD + 80, WORLD_W - ROOM_PAD - 80);
-          const y = clamp((p?.y || enemy.y) + rand(-180, 180), ROOM_PAD + 80, WORLD_H - ROOM_PAD - 80);
+          const x = clamp((p?.x || enemy.x) + rand(-240, 240), ROOM_PAD + 80, this.worldW() - ROOM_PAD - 80);
+          const y = clamp((p?.y || enemy.y) + rand(-180, 180), ROOM_PAD + 80, this.worldH() - ROOM_PAD - 80);
           this.bossDanger(enemy, x, y, 50 + phase * 8, 0.58 + i * 0.06, 0.42, color);
         }
         if (pattern === "raidShadowSiphon") enemy.hp = Math.min(enemy.maxHp, enemy.hp + enemy.maxHp * 0.012);
@@ -22006,8 +22170,8 @@
         for (let i = 0; i < count; i++) {
           const a = i * TAU / count + this.menuTime * 0.12;
           const center = pattern === "raidBloodBloom" ? enemy : (p || enemy);
-          const x = clamp(center.x + Math.cos(a) * rand(70, 250), ROOM_PAD + 80, WORLD_W - ROOM_PAD - 80);
-          const y = clamp(center.y + Math.sin(a) * rand(55, 200), ROOM_PAD + 80, WORLD_H - ROOM_PAD - 80);
+          const x = clamp(center.x + Math.cos(a) * rand(70, 250), ROOM_PAD + 80, this.worldW() - ROOM_PAD - 80);
+          const y = clamp(center.y + Math.sin(a) * rand(55, 200), ROOM_PAD + 80, this.worldH() - ROOM_PAD - 80);
           this.bossDanger(enemy, x, y, 58 + phase * 8, 0.58 + i * 0.045, 0.46, color);
         }
         return 1.95;
@@ -22040,8 +22204,8 @@
           const safe = randi(0, rows - 1);
           for (let row = 0; row < rows; row++) {
             if (row === safe) continue;
-            const y = ROOM_PAD + 120 + row * ((WORLD_H - ROOM_PAD * 2 - 240) / Math.max(1, rows - 1));
-            this.bossLineDanger(enemy, ROOM_PAD + 82, y, 0, WORLD_W - ROOM_PAD * 2 - 164, 24, 0.78 + row * 0.05, 0.42, row % 2 ? color : accent);
+            const y = ROOM_PAD + 120 + row * ((this.worldH() - ROOM_PAD * 2 - 240) / Math.max(1, rows - 1));
+            this.bossLineDanger(enemy, ROOM_PAD + 82, y, 0, this.worldW() - ROOM_PAD * 2 - 164, 24, 0.78 + row * 0.05, 0.42, row % 2 ? color : accent);
           }
         } else if (pattern === "raidGravityOrbit") {
           const count = 8 + phase * 3;
@@ -22050,7 +22214,7 @@
             this.bossProjectileAt(enemy, enemy.x + Math.cos(a) * 106, enemy.y + Math.sin(a) * 86, a + Math.PI / 2, 220 + phase * 20, 0.34, 8, 3.4, i % 2 ? color : accent, "raidGravity");
           }
         }
-        for (let i = 0; i < 4 + phase; i++) this.bossDanger(enemy, rand(ROOM_PAD + 90, WORLD_W - ROOM_PAD - 90), rand(ROOM_PAD + 90, WORLD_H - ROOM_PAD - 90), 76 + phase * 10, 0.68 + i * 0.07, 0.54, color);
+        for (let i = 0; i < 4 + phase; i++) this.bossDanger(enemy, rand(ROOM_PAD + 90, this.worldW() - ROOM_PAD - 90), rand(ROOM_PAD + 90, this.worldH() - ROOM_PAD - 90), 76 + phase * 10, 0.68 + i * 0.07, 0.54, color);
         return 2.0;
       }
 
@@ -22075,7 +22239,7 @@
         const count = pattern === "raidNatureDrain" ? 8 + phase : 5 + phase;
         for (let i = 0; i < count; i++) {
           const a = i * TAU / count;
-          this.bossDanger(enemy, clamp(center.x + Math.cos(a) * (90 + i * 14), ROOM_PAD + 80, WORLD_W - ROOM_PAD - 80), clamp(center.y + Math.sin(a) * (70 + i * 10), ROOM_PAD + 80, WORLD_H - ROOM_PAD - 80), 56 + phase * 8, 0.64 + i * 0.06, 0.44, color);
+          this.bossDanger(enemy, clamp(center.x + Math.cos(a) * (90 + i * 14), ROOM_PAD + 80, this.worldW() - ROOM_PAD - 80), clamp(center.y + Math.sin(a) * (70 + i * 10), ROOM_PAD + 80, this.worldH() - ROOM_PAD - 80), 56 + phase * 8, 0.64 + i * 0.06, 0.44, color);
         }
         if (pattern === "raidNatureDrain") enemy.hp = Math.min(enemy.maxHp, enemy.hp + enemy.maxHp * 0.01);
         return pattern === "raidNatureDrain" ? 2.05 : 1.78;
@@ -22086,15 +22250,15 @@
           const safe = randi(0, lanes - 1);
           for (let i = 0; i < lanes; i++) {
             if (i === safe) continue;
-            const y = ROOM_PAD + 130 + i * ((WORLD_H - ROOM_PAD * 2 - 260) / Math.max(1, lanes - 1));
-            this.bossLineDanger(enemy, ROOM_PAD + 70, y, 0, WORLD_W - ROOM_PAD * 2 - 140, 26 + phase * 3, 0.76 + i * 0.06, 0.44, i % 2 ? color : accent);
+            const y = ROOM_PAD + 130 + i * ((this.worldH() - ROOM_PAD * 2 - 260) / Math.max(1, lanes - 1));
+            this.bossLineDanger(enemy, ROOM_PAD + 70, y, 0, this.worldW() - ROOM_PAD * 2 - 140, 26 + phase * 3, 0.76 + i * 0.06, 0.44, i % 2 ? color : accent);
           }
         } else {
           const center = p || enemy;
           for (let i = 0; i < 8 + phase * 2; i++) {
             const a = i * TAU / (8 + phase * 2);
             const radius = i % 2 ? 128 : 78;
-            this.bossDanger(enemy, clamp(center.x + Math.cos(a) * radius, ROOM_PAD + 70, WORLD_W - ROOM_PAD - 70), clamp(center.y + Math.sin(a) * radius, ROOM_PAD + 70, WORLD_H - ROOM_PAD - 70), 42 + phase * 5, 0.7 + (i % 4) * 0.06, 0.38, i % 2 ? color : accent);
+            this.bossDanger(enemy, clamp(center.x + Math.cos(a) * radius, ROOM_PAD + 70, this.worldW() - ROOM_PAD - 70), clamp(center.y + Math.sin(a) * radius, ROOM_PAD + 70, this.worldH() - ROOM_PAD - 70), 42 + phase * 5, 0.7 + (i % 4) * 0.06, 0.38, i % 2 ? color : accent);
           }
         }
         return pattern === "raidNatureWall" ? 2.12 : 1.92;
@@ -22103,8 +22267,8 @@
       if (pattern === "raidVoidRifts" || pattern === "raidVoidGate") {
         const count = pattern === "raidVoidGate" ? 7 + phase : 5 + phase;
         for (let i = 0; i < count; i++) {
-          const x = clamp((p?.x || enemy.x) + rand(-260, 260), ROOM_PAD + 80, WORLD_W - ROOM_PAD - 80);
-          const y = clamp((p?.y || enemy.y) + rand(-200, 200), ROOM_PAD + 80, WORLD_H - ROOM_PAD - 80);
+          const x = clamp((p?.x || enemy.x) + rand(-260, 260), ROOM_PAD + 80, this.worldW() - ROOM_PAD - 80);
+          const y = clamp((p?.y || enemy.y) + rand(-200, 200), ROOM_PAD + 80, this.worldH() - ROOM_PAD - 80);
           this.bossDanger(enemy, x, y, 64 + phase * 9, 0.62 + i * 0.055, 0.5, i % 2 ? color : accent);
           this.bossProjectileAt(enemy, x, y, Math.atan2((p?.y || enemy.y) - y, (p?.x || enemy.x) - x), 230 + phase * 24, 0.3, 8, 3.1, accent, "raidVoid");
         }
@@ -22133,13 +22297,13 @@
           const safeCol = randi(0, cols - 1);
           for (let row = 0; row < rows; row++) {
             if (row === safeRow) continue;
-            const y = ROOM_PAD + 120 + row * ((WORLD_H - ROOM_PAD * 2 - 240) / Math.max(1, rows - 1));
-            this.bossLineDanger(enemy, ROOM_PAD + 82, y, 0, WORLD_W - ROOM_PAD * 2 - 164, 18, 0.76 + row * 0.04, 0.34, color);
+            const y = ROOM_PAD + 120 + row * ((this.worldH() - ROOM_PAD * 2 - 240) / Math.max(1, rows - 1));
+            this.bossLineDanger(enemy, ROOM_PAD + 82, y, 0, this.worldW() - ROOM_PAD * 2 - 164, 18, 0.76 + row * 0.04, 0.34, color);
           }
           for (let col = 0; col < cols; col++) {
             if (col === safeCol) continue;
-            const x = ROOM_PAD + 120 + col * ((WORLD_W - ROOM_PAD * 2 - 240) / Math.max(1, cols - 1));
-            this.bossLineDanger(enemy, x, ROOM_PAD + 90, Math.PI / 2, WORLD_H - ROOM_PAD * 2 - 180, 16, 1.02 + col * 0.03, 0.3, accent);
+            const x = ROOM_PAD + 120 + col * ((this.worldW() - ROOM_PAD * 2 - 240) / Math.max(1, cols - 1));
+            this.bossLineDanger(enemy, x, ROOM_PAD + 90, Math.PI / 2, this.worldH() - ROOM_PAD * 2 - 180, 16, 1.02 + col * 0.03, 0.3, accent);
           }
         }
         const center = p || enemy;
@@ -22360,11 +22524,11 @@
         if (i === safeA || i === safeB) continue;
         const ratio = i / Math.max(1, lanes - 1);
         if (vertical) {
-          const x = ROOM_PAD + 100 + ratio * (WORLD_W - ROOM_PAD * 2 - 200);
-          this.bossLineDanger(enemy, x, ROOM_PAD + 70, Math.PI / 2, WORLD_H - ROOM_PAD * 2 - 140, 18 + enemy.phase * 2, 0.95 + i * 0.03, 0.48, color);
+          const x = ROOM_PAD + 100 + ratio * (this.worldW() - ROOM_PAD * 2 - 200);
+          this.bossLineDanger(enemy, x, ROOM_PAD + 70, Math.PI / 2, this.worldH() - ROOM_PAD * 2 - 140, 18 + enemy.phase * 2, 0.95 + i * 0.03, 0.48, color);
         } else {
-          const y = ROOM_PAD + 105 + ratio * (WORLD_H - ROOM_PAD * 2 - 210);
-          this.bossLineDanger(enemy, ROOM_PAD + 70, y, 0, WORLD_W - ROOM_PAD * 2 - 140, 18 + enemy.phase * 2, 0.95 + i * 0.03, 0.48, color);
+          const y = ROOM_PAD + 105 + ratio * (this.worldH() - ROOM_PAD * 2 - 210);
+          this.bossLineDanger(enemy, ROOM_PAD + 70, y, 0, this.worldW() - ROOM_PAD * 2 - 140, 18 + enemy.phase * 2, 0.95 + i * 0.03, 0.48, color);
         }
       }
       if (target) this.bossDanger(enemy, target.x, target.y, 46 + enemy.phase * 5, 1.12, 0.42, "#ffd166");
@@ -22372,13 +22536,13 @@
 
     bossPincer(enemy, target) {
       const p = target || this.run.player;
-      const y = clamp(p.y, ROOM_PAD + 120, WORLD_H - ROOM_PAD - 120);
+      const y = clamp(p.y, ROOM_PAD + 120, this.worldH() - ROOM_PAD - 120);
       const color = "#ff7aa8";
-      this.bossLineDanger(enemy, ROOM_PAD + 50, y - 54, 0, WORLD_W - ROOM_PAD * 2 - 100, 30, 0.82, 0.58, color);
-      this.bossLineDanger(enemy, WORLD_W - ROOM_PAD - 50, y + 54, Math.PI, WORLD_W - ROOM_PAD * 2 - 100, 30, 0.94, 0.58, color);
+      this.bossLineDanger(enemy, ROOM_PAD + 50, y - 54, 0, this.worldW() - ROOM_PAD * 2 - 100, 30, 0.82, 0.58, color);
+      this.bossLineDanger(enemy, this.worldW() - ROOM_PAD - 50, y + 54, Math.PI, this.worldW() - ROOM_PAD * 2 - 100, 30, 0.94, 0.58, color);
       const speed = 275 + enemy.phase * 28;
       for (const side of [-1, 1]) {
-        const x = side < 0 ? ROOM_PAD - 30 : WORLD_W - ROOM_PAD + 30;
+        const x = side < 0 ? ROOM_PAD - 30 : this.worldW() - ROOM_PAD + 30;
         const angle = side < 0 ? 0 : Math.PI;
         for (let i = -1; i <= 1; i++) this.bossProjectileAt(enemy, x, y + i * 58, angle, speed, 0.42, 8, 4.2, color, "bossPincer");
       }
@@ -22389,8 +22553,8 @@
       const steps = 6 + enemy.phase;
       const color = "#ffd166";
       for (let i = 0; i < steps; i++) {
-        const x = fromLeft ? ROOM_PAD - 38 : WORLD_W - ROOM_PAD + 38;
-        const y = ROOM_PAD + 120 + i * ((WORLD_H - ROOM_PAD * 2 - 240) / Math.max(1, steps - 1));
+        const x = fromLeft ? ROOM_PAD - 38 : this.worldW() - ROOM_PAD + 38;
+        const y = ROOM_PAD + 120 + i * ((this.worldH() - ROOM_PAD * 2 - 240) / Math.max(1, steps - 1));
         const angle = fromLeft ? rand(-0.14, 0.28) : Math.PI + rand(-0.28, 0.14);
         this.bossProjectileAt(enemy, x, y, angle, 245 + i * 12 + enemy.phase * 22, 0.42, 9, 4.6, color, "bossStair");
       }
@@ -22405,8 +22569,8 @@
       for (let i = 0; i < count; i++) {
         if (Math.abs(i - gap) <= 1 || Math.abs(i - gap) >= count - 1) continue;
         const a = (i / count) * TAU + this.menuTime * 0.25;
-        const x = clamp(center.x + Math.cos(a) * radius, ROOM_PAD + 78, WORLD_W - ROOM_PAD - 78);
-        const y = clamp(center.y + Math.sin(a) * radius, ROOM_PAD + 78, WORLD_H - ROOM_PAD - 78);
+        const x = clamp(center.x + Math.cos(a) * radius, ROOM_PAD + 78, this.worldW() - ROOM_PAD - 78);
+        const y = clamp(center.y + Math.sin(a) * radius, ROOM_PAD + 78, this.worldH() - ROOM_PAD - 78);
         this.bossDanger(enemy, x, y, 44 + enemy.phase * 6, 0.78 + i * 0.025, 0.46, "#a169ff");
       }
       this.bossDanger(enemy, center.x, center.y, 38 + enemy.phase * 5, 1.02, 0.38, "#ff4b8f");
@@ -22438,8 +22602,8 @@
       const p = target || this.run.player;
       const points = [
         { x: enemy.x, y: enemy.y },
-        { x: clamp(enemy.x - 155, ROOM_PAD + 70, WORLD_W - ROOM_PAD - 70), y: clamp(enemy.y + 72, ROOM_PAD + 70, WORLD_H - ROOM_PAD - 70) },
-        { x: clamp(enemy.x + 155, ROOM_PAD + 70, WORLD_W - ROOM_PAD - 70), y: clamp(enemy.y + 72, ROOM_PAD + 70, WORLD_H - ROOM_PAD - 70) }
+        { x: clamp(enemy.x - 155, ROOM_PAD + 70, this.worldW() - ROOM_PAD - 70), y: clamp(enemy.y + 72, ROOM_PAD + 70, this.worldH() - ROOM_PAD - 70) },
+        { x: clamp(enemy.x + 155, ROOM_PAD + 70, this.worldW() - ROOM_PAD - 70), y: clamp(enemy.y + 72, ROOM_PAD + 70, this.worldH() - ROOM_PAD - 70) }
       ];
       points.forEach((point, index) => {
         const a = Math.atan2(p.y - point.y, p.x - point.x);
@@ -22462,8 +22626,8 @@
     bossSoulBox(enemy, target) {
       const center = target || this.run.player;
       const size = 250 + enemy.phase * 22;
-      const x = clamp(center.x - size / 2, ROOM_PAD + 65, WORLD_W - ROOM_PAD - 65 - size);
-      const y = clamp(center.y - size / 2, ROOM_PAD + 65, WORLD_H - ROOM_PAD - 65 - size);
+      const x = clamp(center.x - size / 2, ROOM_PAD + 65, this.worldW() - ROOM_PAD - 65 - size);
+      const y = clamp(center.y - size / 2, ROOM_PAD + 65, this.worldH() - ROOM_PAD - 65 - size);
       const color = "#b69dff";
       this.bossLineDanger(enemy, x, y, 0, size, 24, 0.88, 0.46, color);
       this.bossLineDanger(enemy, x, y + size, 0, size, 24, 1.0, 0.46, color);
@@ -22497,16 +22661,16 @@
       for (let i = 0; i < count; i++) {
         const t = i / Math.max(1, count - 1);
         const wave = Math.sin(t * Math.PI * 2 + this.menuTime * 0.7) * 80;
-        const x = horizontal ? ROOM_PAD + 110 + t * (WORLD_W - ROOM_PAD * 2 - 220) : center.x + wave;
-        const y = horizontal ? center.y + wave : ROOM_PAD + 110 + t * (WORLD_H - ROOM_PAD * 2 - 220);
-        this.bossDanger(enemy, clamp(x, ROOM_PAD + 70, WORLD_W - ROOM_PAD - 70), clamp(y, ROOM_PAD + 70, WORLD_H - ROOM_PAD - 70), 38 + enemy.phase * 5, 0.62 + i * 0.055, 0.38, color);
+        const x = horizontal ? ROOM_PAD + 110 + t * (this.worldW() - ROOM_PAD * 2 - 220) : center.x + wave;
+        const y = horizontal ? center.y + wave : ROOM_PAD + 110 + t * (this.worldH() - ROOM_PAD * 2 - 220);
+        this.bossDanger(enemy, clamp(x, ROOM_PAD + 70, this.worldW() - ROOM_PAD - 70), clamp(y, ROOM_PAD + 70, this.worldH() - ROOM_PAD - 70), 38 + enemy.phase * 5, 0.62 + i * 0.055, 0.38, color);
       }
     }
 
     bossMirrorShots(enemy, target) {
       const p = target || this.run.player;
       const color = "#8feaff";
-      const mirrorX = clamp(WORLD_W - enemy.x, ROOM_PAD + 70, WORLD_W - ROOM_PAD - 70);
+      const mirrorX = clamp(this.worldW() - enemy.x, ROOM_PAD + 70, this.worldW() - ROOM_PAD - 70);
       const origins = [{ x: enemy.x, y: enemy.y }, { x: mirrorX, y: enemy.y }];
       origins.forEach((origin, index) => {
         const a = Math.atan2(p.y - origin.y, p.x - origin.x);
@@ -22518,12 +22682,12 @@
       const p = target || this.run.player;
       const color = "#f4d26f";
       for (let i = -2; i <= 2; i++) {
-        const x = clamp(p.x + i * 78, ROOM_PAD + 70, WORLD_W - ROOM_PAD - 70);
-        this.bossLineDanger(enemy, x, ROOM_PAD + 72, Math.PI / 2, WORLD_H - ROOM_PAD * 2 - 144, 20, 0.72 + Math.abs(i) * 0.06, 0.45, color);
+        const x = clamp(p.x + i * 78, ROOM_PAD + 70, this.worldW() - ROOM_PAD - 70);
+        this.bossLineDanger(enemy, x, ROOM_PAD + 72, Math.PI / 2, this.worldH() - ROOM_PAD * 2 - 144, 20, 0.72 + Math.abs(i) * 0.06, 0.45, color);
       }
       for (let i = -1; i <= 1; i++) {
-        const y = clamp(p.y + i * 88, ROOM_PAD + 90, WORLD_H - ROOM_PAD - 90);
-        this.bossLineDanger(enemy, ROOM_PAD + 72, y, 0, WORLD_W - ROOM_PAD * 2 - 144, 18, 0.98 + Math.abs(i) * 0.08, 0.38, "#ff4b8f");
+        const y = clamp(p.y + i * 88, ROOM_PAD + 90, this.worldH() - ROOM_PAD - 90);
+        this.bossLineDanger(enemy, ROOM_PAD + 72, y, 0, this.worldW() - ROOM_PAD * 2 - 144, 18, 0.98 + Math.abs(i) * 0.08, 0.38, "#ff4b8f");
       }
     }
 
@@ -22531,9 +22695,9 @@
       const p = target || this.run.player;
       const corners = [
         { x: ROOM_PAD + 115, y: ROOM_PAD + 115 },
-        { x: WORLD_W - ROOM_PAD - 115, y: ROOM_PAD + 115 },
-        { x: ROOM_PAD + 115, y: WORLD_H - ROOM_PAD - 115 },
-        { x: WORLD_W - ROOM_PAD - 115, y: WORLD_H - ROOM_PAD - 115 }
+        { x: this.worldW() - ROOM_PAD - 115, y: ROOM_PAD + 115 },
+        { x: ROOM_PAD + 115, y: this.worldH() - ROOM_PAD - 115 },
+        { x: this.worldW() - ROOM_PAD - 115, y: this.worldH() - ROOM_PAD - 115 }
       ];
       corners.forEach((corner, index) => {
         this.bossDanger(enemy, corner.x, corner.y, 70 + enemy.phase * 9, 0.72 + index * 0.06, 0.46, "#ff8d3d");
@@ -22560,13 +22724,13 @@
       const safeCol = randi(0, cols - 1);
       for (let row = 0; row < rows; row++) {
         if (row === safeRow) continue;
-        const y = ROOM_PAD + 120 + row * ((WORLD_H - ROOM_PAD * 2 - 240) / Math.max(1, rows - 1));
-        this.bossLineDanger(enemy, ROOM_PAD + 82, y, 0, WORLD_W - ROOM_PAD * 2 - 164, 20, 0.75 + row * 0.04, 0.42, color);
+        const y = ROOM_PAD + 120 + row * ((this.worldH() - ROOM_PAD * 2 - 240) / Math.max(1, rows - 1));
+        this.bossLineDanger(enemy, ROOM_PAD + 82, y, 0, this.worldW() - ROOM_PAD * 2 - 164, 20, 0.75 + row * 0.04, 0.42, color);
       }
       for (let col = 0; col < cols; col++) {
         if (col === safeCol) continue;
-        const x = ROOM_PAD + 120 + col * ((WORLD_W - ROOM_PAD * 2 - 240) / Math.max(1, cols - 1));
-        this.bossLineDanger(enemy, x, ROOM_PAD + 90, Math.PI / 2, WORLD_H - ROOM_PAD * 2 - 180, 18, 1.04 + col * 0.03, 0.34, "#8ff7ff");
+        const x = ROOM_PAD + 120 + col * ((this.worldW() - ROOM_PAD * 2 - 240) / Math.max(1, cols - 1));
+        this.bossLineDanger(enemy, x, ROOM_PAD + 90, Math.PI / 2, this.worldH() - ROOM_PAD * 2 - 180, 18, 1.04 + col * 0.03, 0.34, "#8ff7ff");
       }
     }
 
@@ -22576,8 +22740,8 @@
       const color = "#8feaff";
       for (let i = 0; i < count; i++) {
         const a = (i / count) * TAU;
-        const x = clamp(p.x + Math.cos(a) * 95, ROOM_PAD + 70, WORLD_W - ROOM_PAD - 70);
-        const y = clamp(p.y + Math.sin(a) * 95, ROOM_PAD + 70, WORLD_H - ROOM_PAD - 70);
+        const x = clamp(p.x + Math.cos(a) * 95, ROOM_PAD + 70, this.worldW() - ROOM_PAD - 70);
+        const y = clamp(p.y + Math.sin(a) * 95, ROOM_PAD + 70, this.worldH() - ROOM_PAD - 70);
         this.bossProjectileAt(enemy, x, y, a, 230 + enemy.phase * 24, 0.34, 7, 3.1, color, "bossShard");
       }
       this.bossDanger(enemy, p.x, p.y, 54, 0.74, 0.36, color);
@@ -22590,8 +22754,8 @@
       const baseAngle = Math.atan2(p.y - enemy.y, p.x - enemy.x);
       for (let i = 0; i < steps; i++) {
         const distance = 58 + i * 54;
-        const x = clamp(p.x - Math.cos(baseAngle) * distance + Math.sin(i) * 22, ROOM_PAD + 70, WORLD_W - ROOM_PAD - 70);
-        const y = clamp(p.y - Math.sin(baseAngle) * distance + Math.cos(i) * 22, ROOM_PAD + 70, WORLD_H - ROOM_PAD - 70);
+        const x = clamp(p.x - Math.cos(baseAngle) * distance + Math.sin(i) * 22, ROOM_PAD + 70, this.worldW() - ROOM_PAD - 70);
+        const y = clamp(p.y - Math.sin(baseAngle) * distance + Math.cos(i) * 22, ROOM_PAD + 70, this.worldH() - ROOM_PAD - 70);
         this.bossDanger(enemy, x, y, 48 + enemy.phase * 5, 0.58 + i * 0.11, 0.42, color);
       }
     }
@@ -22613,8 +22777,8 @@
       if (target) {
         for (let i = 0; i < 3; i++) {
           const a = this.menuTime + i * TAU / 3;
-          const x = clamp(target.x + Math.cos(a) * (95 + i * 30), ROOM_PAD + 70, WORLD_W - ROOM_PAD - 70);
-          const y = clamp(target.y + Math.sin(a) * (95 + i * 30), ROOM_PAD + 70, WORLD_H - ROOM_PAD - 70);
+          const x = clamp(target.x + Math.cos(a) * (95 + i * 30), ROOM_PAD + 70, this.worldW() - ROOM_PAD - 70);
+          const y = clamp(target.y + Math.sin(a) * (95 + i * 30), ROOM_PAD + 70, this.worldH() - ROOM_PAD - 70);
           this.bossDanger(enemy, x, y, 56 + enemy.phase * 6, 0.76 + i * 0.1, 0.36, "#a169ff");
         }
       }
@@ -22627,8 +22791,8 @@
       for (let i = 0; i < petals; i++) {
         const a = (i / petals) * TAU;
         const radius = i % 2 ? 122 : 74;
-        const x = clamp(center.x + Math.cos(a) * radius, ROOM_PAD + 70, WORLD_W - ROOM_PAD - 70);
-        const y = clamp(center.y + Math.sin(a) * radius, ROOM_PAD + 70, WORLD_H - ROOM_PAD - 70);
+        const x = clamp(center.x + Math.cos(a) * radius, ROOM_PAD + 70, this.worldW() - ROOM_PAD - 70);
+        const y = clamp(center.y + Math.sin(a) * radius, ROOM_PAD + 70, this.worldH() - ROOM_PAD - 70);
         this.bossDanger(enemy, x, y, 42 + enemy.phase * 5, 0.7 + (i % 4) * 0.06, 0.38, color);
       }
     }
@@ -22646,8 +22810,8 @@
       this.bossStairShots(enemy, target);
       if (!target) return;
       for (let i = 0; i < 4 + enemy.phase; i++) {
-        const x = clamp(target.x + (i - 2) * 72, ROOM_PAD + 70, WORLD_W - ROOM_PAD - 70);
-        const y = clamp(target.y - 150 + i * 54, ROOM_PAD + 70, WORLD_H - ROOM_PAD - 70);
+        const x = clamp(target.x + (i - 2) * 72, ROOM_PAD + 70, this.worldW() - ROOM_PAD - 70);
+        const y = clamp(target.y - 150 + i * 54, ROOM_PAD + 70, this.worldH() - ROOM_PAD - 70);
         this.bossDanger(enemy, x, y, 50 + enemy.phase * 6, 0.65 + i * 0.07, 0.42, "#ff8d3d");
       }
     }
@@ -22656,10 +22820,10 @@
       const p = target || this.run.player;
       const color = "#8ff7ff";
       for (let i = -2; i <= 2; i++) {
-        const x = clamp(p.x + i * 92, ROOM_PAD + 80, WORLD_W - ROOM_PAD - 80);
-        this.bossLineDanger(enemy, x, ROOM_PAD + 70, Math.PI / 2, WORLD_H - ROOM_PAD * 2 - 140, 24, 0.68 + Math.abs(i) * 0.08, 0.42, i % 2 ? "#fd57ff" : color);
+        const x = clamp(p.x + i * 92, ROOM_PAD + 80, this.worldW() - ROOM_PAD - 80);
+        this.bossLineDanger(enemy, x, ROOM_PAD + 70, Math.PI / 2, this.worldH() - ROOM_PAD * 2 - 140, 24, 0.68 + Math.abs(i) * 0.08, 0.42, i % 2 ? "#fd57ff" : color);
       }
-      this.bossLineDanger(enemy, ROOM_PAD + 70, p.y, 0, WORLD_W - ROOM_PAD * 2 - 140, 30, 1.08, 0.5, "#fd57ff");
+      this.bossLineDanger(enemy, ROOM_PAD + 70, p.y, 0, this.worldW() - ROOM_PAD * 2 - 140, 30, 1.08, 0.5, "#fd57ff");
     }
 
     bossTempleJudgment(enemy, target) {
@@ -22678,8 +22842,8 @@
       const color = fromTop ? "#8ff7ff" : "#ff4b8f";
       for (let i = 0; i < count; i++) {
         const ratio = i / Math.max(1, count - 1);
-        const x = ROOM_PAD + 95 + ratio * (WORLD_W - ROOM_PAD * 2 - 190);
-        const y = fromTop ? ROOM_PAD - 35 : WORLD_H - ROOM_PAD + 35;
+        const x = ROOM_PAD + 95 + ratio * (this.worldW() - ROOM_PAD * 2 - 190);
+        const y = fromTop ? ROOM_PAD - 35 : this.worldH() - ROOM_PAD + 35;
         const angle = fromTop ? Math.PI / 2 + Math.sin(i * 0.9) * 0.28 : -Math.PI / 2 + Math.sin(i * 0.9) * 0.28;
         this.bossProjectileAt(enemy, x, y, angle, 230 + enemy.phase * 26, 0.38, 8, 4.6, color, "bossWave");
       }
@@ -22700,8 +22864,8 @@
       const count = 3 + enemy.phase;
       for (let i = 0; i < count; i++) {
         const spread = i === 0 ? 0 : 110 + i * 18;
-        const x = clamp(target.x + rand(-spread, spread), ROOM_PAD + 90, WORLD_W - ROOM_PAD - 90);
-        const y = clamp(target.y + rand(-spread, spread), ROOM_PAD + 90, WORLD_H - ROOM_PAD - 90);
+        const x = clamp(target.x + rand(-spread, spread), ROOM_PAD + 90, this.worldW() - ROOM_PAD - 90);
+        const y = clamp(target.y + rand(-spread, spread), ROOM_PAD + 90, this.worldH() - ROOM_PAD - 90);
         this.bossDanger(enemy, x, y, 92 + enemy.phase * 10, 0.72 + i * 0.06, 0.74, this.run.biome.accent);
       }
     }
@@ -22719,8 +22883,8 @@
       if (!target) return;
       for (let i = 0; i < 4; i++) {
         const a = (i / 4) * TAU + this.menuTime * 0.3;
-        const x = clamp(target.x + Math.cos(a) * (80 + i * 16), ROOM_PAD + 80, WORLD_W - ROOM_PAD - 80);
-        const y = clamp(target.y + Math.sin(a) * (80 + i * 16), ROOM_PAD + 80, WORLD_H - ROOM_PAD - 80);
+        const x = clamp(target.x + Math.cos(a) * (80 + i * 16), ROOM_PAD + 80, this.worldW() - ROOM_PAD - 80);
+        const y = clamp(target.y + Math.sin(a) * (80 + i * 16), ROOM_PAD + 80, this.worldH() - ROOM_PAD - 80);
         this.bossDanger(enemy, x, y, 72 + enemy.phase * 10, 0.66 + i * 0.08, 0.56, "#78d36f");
       }
     }
@@ -22738,16 +22902,16 @@
       if (!target) return;
       const count = 4 + enemy.phase;
       for (let i = 0; i < count; i++) {
-        const x = clamp(target.x + rand(-230, 230), ROOM_PAD + 80, WORLD_W - ROOM_PAD - 80);
-        const y = clamp(target.y + rand(-170, 170), ROOM_PAD + 80, WORLD_H - ROOM_PAD - 80);
+        const x = clamp(target.x + rand(-230, 230), ROOM_PAD + 80, this.worldW() - ROOM_PAD - 80);
+        const y = clamp(target.y + rand(-170, 170), ROOM_PAD + 80, this.worldH() - ROOM_PAD - 80);
         this.bossDanger(enemy, x, y, 86 + enemy.phase * 12, 0.62 + i * 0.07, 0.68, "#ff8d3d");
       }
     }
 
     bossNeonGrid(enemy, target) {
       if (!target) return;
-      this.bossLineDanger(enemy, ROOM_PAD + 80, target.y, 0, WORLD_W - ROOM_PAD * 2 - 160, 34 + enemy.phase * 5, 0.7, 0.62, "#fd57ff");
-      this.bossLineDanger(enemy, target.x, ROOM_PAD + 80, Math.PI / 2, WORLD_H - ROOM_PAD * 2 - 160, 34 + enemy.phase * 5, 0.82, 0.62, "#8ff7ff");
+      this.bossLineDanger(enemy, ROOM_PAD + 80, target.y, 0, this.worldW() - ROOM_PAD * 2 - 160, 34 + enemy.phase * 5, 0.7, 0.62, "#fd57ff");
+      this.bossLineDanger(enemy, target.x, ROOM_PAD + 80, Math.PI / 2, this.worldH() - ROOM_PAD * 2 - 160, 34 + enemy.phase * 5, 0.82, 0.62, "#8ff7ff");
       if (enemy.phase >= 3) this.bossLineDanger(enemy, enemy.x - 350, enemy.y - 350, Math.PI / 4, 990, 30, 0.92, 0.55, "#fd57ff");
     }
 
@@ -22756,8 +22920,8 @@
       const count = 5 + enemy.phase;
       for (let i = 0; i < count; i++) {
         const a = (i / count) * TAU;
-        const x = clamp(center.x + Math.cos(a) * 145, ROOM_PAD + 80, WORLD_W - ROOM_PAD - 80);
-        const y = clamp(center.y + Math.sin(a) * 145, ROOM_PAD + 80, WORLD_H - ROOM_PAD - 80);
+        const x = clamp(center.x + Math.cos(a) * 145, ROOM_PAD + 80, this.worldW() - ROOM_PAD - 80);
+        const y = clamp(center.y + Math.sin(a) * 145, ROOM_PAD + 80, this.worldH() - ROOM_PAD - 80);
         this.bossDanger(enemy, x, y, 64 + enemy.phase * 8, 0.58 + i * 0.04, 0.58, "#f4d26f");
       }
     }
@@ -22772,11 +22936,11 @@
         if (Math.abs(i - safeLane) <= (enemy.phase >= 3 ? 0 : 0)) continue;
         const ratio = lanes <= 1 ? 0.5 : i / (lanes - 1);
         if (horizontal) {
-          const y = ROOM_PAD + 130 + ratio * (WORLD_H - ROOM_PAD * 2 - 260);
-          this.bossLineDanger(enemy, ROOM_PAD + 60, y, 0, WORLD_W - ROOM_PAD * 2 - 120, 28 + enemy.phase * 4, time, 0.62, color);
+          const y = ROOM_PAD + 130 + ratio * (this.worldH() - ROOM_PAD * 2 - 260);
+          this.bossLineDanger(enemy, ROOM_PAD + 60, y, 0, this.worldW() - ROOM_PAD * 2 - 120, 28 + enemy.phase * 4, time, 0.62, color);
         } else {
-          const x = ROOM_PAD + 100 + ratio * (WORLD_W - ROOM_PAD * 2 - 200);
-          this.bossLineDanger(enemy, x, ROOM_PAD + 75, Math.PI / 2, WORLD_H - ROOM_PAD * 2 - 150, 28 + enemy.phase * 4, time, 0.62, color);
+          const x = ROOM_PAD + 100 + ratio * (this.worldW() - ROOM_PAD * 2 - 200);
+          this.bossLineDanger(enemy, x, ROOM_PAD + 75, Math.PI / 2, this.worldH() - ROOM_PAD * 2 - 150, 28 + enemy.phase * 4, time, 0.62, color);
         }
       }
       if (enemy.phase >= 2 && target) {
@@ -22794,8 +22958,8 @@
       const color = fromLeft ? "#ff8d3d" : "#8ff7ff";
       for (let i = 0; i < rows; i++) {
         if (Math.abs(i - gap) <= 0) continue;
-        const y = ROOM_PAD + 120 + (i / Math.max(1, rows - 1)) * (WORLD_H - ROOM_PAD * 2 - 240);
-        const x = fromLeft ? ROOM_PAD - 42 : WORLD_W - ROOM_PAD + 42;
+        const y = ROOM_PAD + 120 + (i / Math.max(1, rows - 1)) * (this.worldH() - ROOM_PAD * 2 - 240);
+        const x = fromLeft ? ROOM_PAD - 42 : this.worldW() - ROOM_PAD + 42;
         const vx = fromLeft ? speed : -speed;
         this.spawnProjectile({
           owner: "enemy",
@@ -22816,7 +22980,7 @@
         const columns = 4 + enemy.phase;
         for (let i = 0; i < columns; i++) {
           if (i === gap % columns) continue;
-          const x = ROOM_PAD + 150 + (i / Math.max(1, columns - 1)) * (WORLD_W - ROOM_PAD * 2 - 300);
+          const x = ROOM_PAD + 150 + (i / Math.max(1, columns - 1)) * (this.worldW() - ROOM_PAD * 2 - 300);
           this.spawnProjectile({
             owner: "enemy",
             x,
@@ -22839,8 +23003,8 @@
     bossSoulCage(enemy, target) {
       const center = target || this.run.player;
       const size = 210 + enemy.phase * 22;
-      const x = clamp(center.x - size / 2, ROOM_PAD + 70, WORLD_W - ROOM_PAD - 70 - size);
-      const y = clamp(center.y - size / 2, ROOM_PAD + 70, WORLD_H - ROOM_PAD - 70 - size);
+      const x = clamp(center.x - size / 2, ROOM_PAD + 70, this.worldW() - ROOM_PAD - 70 - size);
+      const y = clamp(center.y - size / 2, ROOM_PAD + 70, this.worldH() - ROOM_PAD - 70 - size);
       const color = "#a169ff";
       const time = 0.92;
       this.bossLineDanger(enemy, x, y, 0, size, 26, time, 0.55, color);
@@ -22871,8 +23035,8 @@
       const rows = 3;
       const cellW = 170;
       const cellH = 130;
-      const startX = clamp(center.x - (cols * cellW) / 2, ROOM_PAD + 70, WORLD_W - ROOM_PAD - 70 - cols * cellW);
-      const startY = clamp(center.y - (rows * cellH) / 2, ROOM_PAD + 70, WORLD_H - ROOM_PAD - 70 - rows * cellH);
+      const startX = clamp(center.x - (cols * cellW) / 2, ROOM_PAD + 70, this.worldW() - ROOM_PAD - 70 - cols * cellW);
+      const startY = clamp(center.y - (rows * cellH) / 2, ROOM_PAD + 70, this.worldH() - ROOM_PAD - 70 - rows * cellH);
       const parity = randi(0, 1);
       for (let y = 0; y < rows; y++) {
         for (let x = 0; x < cols; x++) {
@@ -22887,8 +23051,8 @@
       for (let i = 0; i < count; i++) {
         const angle = (i / count) * TAU + this.menuTime * 0.45;
         const distance = 150 + enemy.phase * 34;
-        const x = clamp(enemy.x + Math.cos(angle) * distance, ROOM_PAD + 95, WORLD_W - ROOM_PAD - 95);
-        const y = clamp(enemy.y + Math.sin(angle) * distance, ROOM_PAD + 95, WORLD_H - ROOM_PAD - 95);
+        const x = clamp(enemy.x + Math.cos(angle) * distance, ROOM_PAD + 95, this.worldW() - ROOM_PAD - 95);
+        const y = clamp(enemy.y + Math.sin(angle) * distance, ROOM_PAD + 95, this.worldH() - ROOM_PAD - 95);
         this.bossDanger(enemy, x, y, 54 + enemy.phase * 8, 0.62 + i * 0.035, 0.5, this.run.biome.accent);
       }
       this.addShockwave(enemy.x, enemy.y, 240, this.run.biome.accent, 0, { owner: "enemy" });
@@ -23251,9 +23415,9 @@
         }
         if (
           projectile.x < ROOM_PAD ||
-          projectile.x > WORLD_W - ROOM_PAD ||
+          projectile.x > this.worldW() - ROOM_PAD ||
           projectile.y < ROOM_PAD ||
-          projectile.y > WORLD_H - ROOM_PAD
+          projectile.y > this.worldH() - ROOM_PAD
         ) {
           projectile.life = 0;
         }
@@ -23779,8 +23943,8 @@
           if (!chest && Number(pickup.scatterTime || 0) > 0) {
             pickup.scatterTime = Math.max(0, Number(pickup.scatterTime || 0) - dt);
             pickup.vy = (pickup.vy || 0) + 230 * dt;
-            pickup.x = clamp(pickup.x + (pickup.vx || 0) * dt, ROOM_PAD + pickup.radius, WORLD_W - ROOM_PAD - pickup.radius);
-            pickup.y = clamp(pickup.y + (pickup.vy || 0) * dt, ROOM_PAD + pickup.radius, WORLD_H - ROOM_PAD - pickup.radius);
+            pickup.x = clamp(pickup.x + (pickup.vx || 0) * dt, ROOM_PAD + pickup.radius, this.worldW() - ROOM_PAD - pickup.radius);
+            pickup.y = clamp(pickup.y + (pickup.vy || 0) * dt, ROOM_PAD + pickup.radius, this.worldH() - ROOM_PAD - pickup.radius);
             pickup.vx *= Math.pow(0.2, dt);
             pickup.vy *= Math.pow(0.2, dt);
             if (pickup.scatterTime <= 0) {
@@ -23789,8 +23953,8 @@
             }
           } else if ((chest || pickup.noMagnet) && Number(pickup.settleTime || 0) > 0) {
             pickup.settleTime = Math.max(0, Number(pickup.settleTime || 0) - dt);
-            pickup.x = clamp(pickup.x + (pickup.vx || 0) * dt, ROOM_PAD + pickup.radius, WORLD_W - ROOM_PAD - pickup.radius);
-            pickup.y = clamp(pickup.y + (pickup.vy || 0) * dt, ROOM_PAD + pickup.radius, WORLD_H - ROOM_PAD - pickup.radius);
+            pickup.x = clamp(pickup.x + (pickup.vx || 0) * dt, ROOM_PAD + pickup.radius, this.worldW() - ROOM_PAD - pickup.radius);
+            pickup.y = clamp(pickup.y + (pickup.vy || 0) * dt, ROOM_PAD + pickup.radius, this.worldH() - ROOM_PAD - pickup.radius);
             pickup.vx *= Math.pow(0.035, dt);
             pickup.vy *= Math.pow(0.035, dt);
             if (pickup.settleTime <= 0) {
@@ -23803,8 +23967,8 @@
             pickup.vy = 0;
           } else {
             pickup.vy = (pickup.vy || 0) + 180 * dt;
-            pickup.x = clamp(pickup.x + (pickup.vx || 0) * dt, ROOM_PAD + pickup.radius, WORLD_W - ROOM_PAD - pickup.radius);
-            pickup.y = clamp(pickup.y + (pickup.vy || 0) * dt, ROOM_PAD + pickup.radius, WORLD_H - ROOM_PAD - pickup.radius);
+            pickup.x = clamp(pickup.x + (pickup.vx || 0) * dt, ROOM_PAD + pickup.radius, this.worldW() - ROOM_PAD - pickup.radius);
+            pickup.y = clamp(pickup.y + (pickup.vy || 0) * dt, ROOM_PAD + pickup.radius, this.worldH() - ROOM_PAD - pickup.radius);
             pickup.vx *= Math.pow(0.18, dt);
             pickup.vy *= Math.pow(0.18, dt);
           }
@@ -24391,8 +24555,8 @@
           effect.pulse -= dt;
           if (effect.pulse <= 0) {
             effect.pulse = 3.5;
-            const x = rand(220, WORLD_W - 220);
-            const y = rand(190, WORLD_H - 190);
+            const x = rand(220, this.worldW() - 220);
+            const y = rand(190, this.worldH() - 190);
             this.addEffect({ type: "pull", x, y, radius: 240, time: 1.2, color: "#b28dff" });
             this.addShockwave(x, y, 190, "#b28dff", 22);
           }
@@ -25469,8 +25633,8 @@
           enemies: [],
           player: {
             id: "export",
-            x: WORLD_W / 2,
-            y: WORLD_H / 2,
+            x: this.worldW() / 2,
+            y: this.worldH() / 2,
             radius: 18,
             hp: 100,
             maxHp: 100,
@@ -25780,22 +25944,23 @@
 
     getRoomBackgroundCanvas(lowDetail = false) {
       if (!this.run?.biome) return null;
+      if (this.isOpenWorldRun()) return null;
       const key = this.roomBackgroundKey(lowDetail);
       const cached = this.roomBackgroundCache.get(key);
       if (cached) return cached;
       const biome = this.run.biome;
-      const canvas = this.createRenderCanvas(WORLD_W, WORLD_H);
+      const canvas = this.createRenderCanvas(this.worldW(), this.worldH());
       const bg = canvas.getContext("2d");
       if (!bg) return null;
       bg.imageSmoothingEnabled = false;
       bg.fillStyle = "#05070b";
-      bg.fillRect(0, 0, WORLD_W, WORLD_H);
+      bg.fillRect(0, 0, this.worldW(), this.worldH());
       bg.fillStyle = biome.floor;
-      bg.fillRect(ROOM_PAD, ROOM_PAD, WORLD_W - ROOM_PAD * 2, WORLD_H - ROOM_PAD * 2);
+      bg.fillRect(ROOM_PAD, ROOM_PAD, this.worldW() - ROOM_PAD * 2, this.worldH() - ROOM_PAD * 2);
       if (!lowDetail) {
         const tile = 64;
-        for (let x = ROOM_PAD; x < WORLD_W - ROOM_PAD; x += tile) {
-          for (let y = ROOM_PAD; y < WORLD_H - ROOM_PAD; y += tile) {
+        for (let x = ROOM_PAD; x < this.worldW() - ROOM_PAD; x += tile) {
+          for (let y = ROOM_PAD; y < this.worldH() - ROOM_PAD; y += tile) {
             const n = Math.sin(x * 0.04 + y * 0.03 + this.run.seed * 10);
             bg.fillStyle = n > 0 ? "rgba(255,255,255,0.025)" : "rgba(0,0,0,0.08)";
             bg.fillRect(x, y, tile - 2, tile - 2);
@@ -25809,16 +25974,16 @@
         }
       }
       bg.fillStyle = biome.wall;
-      bg.fillRect(0, 0, WORLD_W, ROOM_PAD);
-      bg.fillRect(0, WORLD_H - ROOM_PAD, WORLD_W, ROOM_PAD);
-      bg.fillRect(0, 0, ROOM_PAD, WORLD_H);
-      bg.fillRect(WORLD_W - ROOM_PAD, 0, ROOM_PAD, WORLD_H);
+      bg.fillRect(0, 0, this.worldW(), ROOM_PAD);
+      bg.fillRect(0, this.worldH() - ROOM_PAD, this.worldW(), ROOM_PAD);
+      bg.fillRect(0, 0, ROOM_PAD, this.worldH());
+      bg.fillRect(this.worldW() - ROOM_PAD, 0, ROOM_PAD, this.worldH());
       if (!lowDetail) {
         bg.fillStyle = "rgba(0,0,0,0.28)";
-        bg.fillRect(ROOM_PAD, ROOM_PAD, WORLD_W - ROOM_PAD * 2, 18);
-        bg.fillRect(ROOM_PAD, WORLD_H - ROOM_PAD - 18, WORLD_W - ROOM_PAD * 2, 18);
-        bg.fillRect(ROOM_PAD, ROOM_PAD, 18, WORLD_H - ROOM_PAD * 2);
-        bg.fillRect(WORLD_W - ROOM_PAD - 18, ROOM_PAD, 18, WORLD_H - ROOM_PAD * 2);
+        bg.fillRect(ROOM_PAD, ROOM_PAD, this.worldW() - ROOM_PAD * 2, 18);
+        bg.fillRect(ROOM_PAD, this.worldH() - ROOM_PAD - 18, this.worldW() - ROOM_PAD * 2, 18);
+        bg.fillRect(ROOM_PAD, ROOM_PAD, 18, this.worldH() - ROOM_PAD * 2);
+        bg.fillRect(this.worldW() - ROOM_PAD - 18, ROOM_PAD, 18, this.worldH() - ROOM_PAD * 2);
       }
       this.roomBackgroundCache.set(key, canvas);
       this.trimCache(this.roomBackgroundCache, 5);
@@ -25826,20 +25991,21 @@
     }
 
     drawRoom(ctx, lowDetail = false) {
+      if (this.isOpenWorldRun()) return;
       const biome = this.run.biome;
       const bounds = this.viewBounds(120);
       const viewLeft = Math.max(0, bounds.left);
       const viewTop = Math.max(0, bounds.top);
-      const viewRight = Math.min(WORLD_W, bounds.right);
-      const viewBottom = Math.min(WORLD_H, bounds.bottom);
+      const viewRight = Math.min(this.worldW(), bounds.right);
+      const viewBottom = Math.min(this.worldH(), bounds.bottom);
       const viewW = Math.max(1, viewRight - viewLeft);
       const viewH = Math.max(1, viewBottom - viewTop);
       if (this.drawExportedRoomBackground(ctx, biome, viewLeft, viewTop, viewRight, viewBottom, lowDetail)) {
         if (lowDetail) return;
         ctx.fillStyle = biome.haze;
         for (let i = 0; i < 6; i++) {
-          const x = ROOM_PAD + ((i * 317 + this.menuTime * 18) % (WORLD_W - ROOM_PAD * 2));
-          const y = ROOM_PAD + ((i * 181 + Math.sin(this.menuTime + i) * 80) % (WORLD_H - ROOM_PAD * 2));
+          const x = ROOM_PAD + ((i * 317 + this.menuTime * 18) % (this.worldW() - ROOM_PAD * 2));
+          const y = ROOM_PAD + ((i * 181 + Math.sin(this.menuTime + i) * 80) % (this.worldH() - ROOM_PAD * 2));
           if (!this.inView(x + 90, y + 12, 220)) continue;
           ctx.fillRect(x, y, 180, 24);
         }
@@ -25858,9 +26024,9 @@
         for (let y = sy; y < viewBottom; y += grid) ctx.fillRect(viewLeft, y, viewW, 2);
         ctx.fillStyle = biome.wall;
         if (viewTop < ROOM_PAD) ctx.fillRect(viewLeft, viewTop, viewW, Math.min(ROOM_PAD, viewBottom) - viewTop);
-        if (viewBottom > WORLD_H - ROOM_PAD) ctx.fillRect(viewLeft, Math.max(viewTop, WORLD_H - ROOM_PAD), viewW, viewBottom - Math.max(viewTop, WORLD_H - ROOM_PAD));
+        if (viewBottom > this.worldH() - ROOM_PAD) ctx.fillRect(viewLeft, Math.max(viewTop, this.worldH() - ROOM_PAD), viewW, viewBottom - Math.max(viewTop, this.worldH() - ROOM_PAD));
         if (viewLeft < ROOM_PAD) ctx.fillRect(viewLeft, viewTop, Math.min(ROOM_PAD, viewRight) - viewLeft, viewH);
-        if (viewRight > WORLD_W - ROOM_PAD) ctx.fillRect(Math.max(viewLeft, WORLD_W - ROOM_PAD), viewTop, viewRight - Math.max(viewLeft, WORLD_W - ROOM_PAD), viewH);
+        if (viewRight > this.worldW() - ROOM_PAD) ctx.fillRect(Math.max(viewLeft, this.worldW() - ROOM_PAD), viewTop, viewRight - Math.max(viewLeft, this.worldW() - ROOM_PAD), viewH);
         return;
       }
       const background = this.getRoomBackgroundCanvas(lowDetail);
@@ -25875,15 +26041,15 @@
         ctx.fillStyle = biome.floor;
         const floorLeft = Math.max(ROOM_PAD, viewLeft);
         const floorTop = Math.max(ROOM_PAD, viewTop);
-        const floorRight = Math.min(WORLD_W - ROOM_PAD, viewRight);
-        const floorBottom = Math.min(WORLD_H - ROOM_PAD, viewBottom);
+        const floorRight = Math.min(this.worldW() - ROOM_PAD, viewRight);
+        const floorBottom = Math.min(this.worldH() - ROOM_PAD, viewBottom);
         if (floorRight > floorLeft && floorBottom > floorTop) ctx.fillRect(floorLeft, floorTop, floorRight - floorLeft, floorBottom - floorTop);
       }
       if (lowDetail) return;
       ctx.fillStyle = biome.haze;
       for (let i = 0; i < 8; i++) {
-        const x = ROOM_PAD + ((i * 317 + this.menuTime * 18) % (WORLD_W - ROOM_PAD * 2));
-        const y = ROOM_PAD + ((i * 181 + Math.sin(this.menuTime + i) * 80) % (WORLD_H - ROOM_PAD * 2));
+        const x = ROOM_PAD + ((i * 317 + this.menuTime * 18) % (this.worldW() - ROOM_PAD * 2));
+        const y = ROOM_PAD + ((i * 181 + Math.sin(this.menuTime + i) * 80) % (this.worldH() - ROOM_PAD * 2));
         if (!this.inView(x + 90, y + 12, 220)) continue;
         ctx.fillRect(x, y, 180, 24);
       }
@@ -26216,38 +26382,118 @@
 
     drawBeginnerIslandGround(ctx) {
       if (!this.isOpenWorldRun()) return;
-      const bounds = this.viewBounds(180);
+      const bounds = this.viewBounds(260);
       const visibleRect = (x, y, w, h) => !(x + w < bounds.left || x > bounds.right || y + h < bounds.top || y > bounds.bottom);
-      const hub = { x: 1600, y: 1250 };
-      const roads = [
-        [[hub.x, hub.y], [1600, 920], [1600, 430]],
-        [[hub.x, hub.y], [1120, 1120], [650, 680]],
-        [[hub.x, hub.y], [1580, 1000]],
-        [[hub.x, hub.y], [2060, 1040], [2570, 660]],
-        [[hub.x, hub.y], [1040, 1370], [620, 1565]],
-        [[hub.x, hub.y], [1380, 1640]],
-        [[hub.x, hub.y], [1970, 1410], [2240, 1580]],
-        [[hub.x, hub.y], [2230, 1230], [2825, 1160]],
-        [[2240, 1580], [2550, 1695], [2740, 1840]]
-      ];
+      const viewW = bounds.right - bounds.left;
+      const viewH = bounds.bottom - bounds.top;
       ctx.save();
+      ctx.fillStyle = "#0a1b24";
+      ctx.fillRect(bounds.left, bounds.top, viewW, viewH);
+      ctx.globalAlpha = 0.22;
+      ctx.strokeStyle = "#1e6670";
+      ctx.lineWidth = 3;
+      const waveStep = 380;
+      for (let y = Math.floor(bounds.top / waveStep) * waveStep; y < bounds.bottom + waveStep; y += waveStep) {
+        ctx.beginPath();
+        for (let x = bounds.left - 80; x <= bounds.right + 120; x += 80) {
+          const wy = y + Math.sin((x + this.menuTime * 26) * 0.008) * 10;
+          if (x <= bounds.left - 80) ctx.moveTo(x, wy);
+          else ctx.lineTo(x, wy);
+        }
+        ctx.stroke();
+      }
+      ctx.globalAlpha = 1;
+      for (const land of this.beginnerIslandLandmasses()) {
+        if (!visibleRect(land.x - land.rx - 260, land.y - land.ry - 260, land.rx * 2 + 520, land.ry * 2 + 520)) continue;
+        ctx.save();
+        ctx.translate(land.x, land.y);
+        ctx.shadowColor = "rgba(242,191,99,0.34)";
+        ctx.shadowBlur = this.glow(16);
+        ctx.fillStyle = "#796a49";
+        ctx.beginPath();
+        ctx.ellipse(0, 0, land.rx + 95, land.ry + 75, 0, 0, TAU);
+        ctx.fill();
+        ctx.fillStyle = land.color || "#24331f";
+        ctx.beginPath();
+        ctx.ellipse(0, 0, land.rx, land.ry, 0, 0, TAU);
+        ctx.fill();
+        ctx.globalAlpha = 0.2;
+        ctx.strokeStyle = "#f3ead7";
+        ctx.lineWidth = 8;
+        ctx.beginPath();
+        ctx.ellipse(0, 0, land.rx - 120, land.ry - 100, 0, 0, TAU);
+        ctx.stroke();
+        ctx.restore();
+      }
+      const hub = { x: 8500, y: 6100 };
+      const roads = [
+        [[hub.x, hub.y], [8000, 5150], [8500, 3000]],
+        [[hub.x, hub.y], [7200, 5700], [6100, 5200]],
+        [[hub.x, hub.y], [8500, 6450]],
+        [[hub.x, hub.y], [10300, 5750], [12300, 5000]],
+        [[hub.x, hub.y], [7200, 6900], [6050, 7550]],
+        [[hub.x, hub.y], [8050, 7700]],
+        [[hub.x, hub.y], [9950, 6900], [11000, 7650]],
+        [[11000, 7650], [12300, 8450], [12400, 9300]],
+        [[12300, 5000], [13600, 3900], [14600, 2600]],
+        [[6050, 7550], [4450, 7900], [2600, 8350]],
+        [[6100, 5200], [4550, 4050], [2700, 2600]],
+        [[12300, 5000], [13800, 6200], [15400, 7850]],
+        [[14000, 6500], [15100, 7040], [15400, 7850]]
+      ];
+      const bridges = [
+        [[8500, 4300], [8500, 3860]],
+        [[11150, 8500], [11680, 8900]],
+        [[13240, 4100], [13810, 3500]],
+        [[4630, 7800], [3760, 8120]],
+        [[4440, 4000], [3600, 3320]],
+        [[13760, 6160], [14520, 7020]]
+      ];
       ctx.lineCap = "round";
       ctx.lineJoin = "round";
       for (const road of roads) {
+        const minX = Math.min(...road.map((point) => point[0]));
+        const maxX = Math.max(...road.map((point) => point[0]));
+        const minY = Math.min(...road.map((point) => point[1]));
+        const maxY = Math.max(...road.map((point) => point[1]));
+        if (!visibleRect(minX - 180, minY - 180, maxX - minX + 360, maxY - minY + 360)) continue;
         ctx.beginPath();
         road.forEach(([x, y], index) => index ? ctx.lineTo(x, y) : ctx.moveTo(x, y));
         ctx.strokeStyle = "rgba(20, 15, 12, 0.5)";
-        ctx.lineWidth = 92;
+        ctx.lineWidth = 132;
         ctx.stroke();
         ctx.strokeStyle = "#786a5d";
-        ctx.lineWidth = 76;
+        ctx.lineWidth = 112;
         ctx.stroke();
         ctx.strokeStyle = "#a49683";
-        ctx.lineWidth = 54;
+        ctx.lineWidth = 82;
         ctx.stroke();
         ctx.strokeStyle = "rgba(255,255,255,0.08)";
-        ctx.lineWidth = 5;
-        ctx.setLineDash([18, 24]);
+        ctx.lineWidth = 8;
+        ctx.setLineDash([36, 34]);
+        ctx.stroke();
+        ctx.setLineDash([]);
+      }
+      for (const bridge of bridges) {
+        const minX = Math.min(...bridge.map((point) => point[0]));
+        const maxX = Math.max(...bridge.map((point) => point[0]));
+        const minY = Math.min(...bridge.map((point) => point[1]));
+        const maxY = Math.max(...bridge.map((point) => point[1]));
+        if (!visibleRect(minX - 180, minY - 180, maxX - minX + 360, maxY - minY + 360)) continue;
+        ctx.beginPath();
+        bridge.forEach(([x, y], index) => index ? ctx.lineTo(x, y) : ctx.moveTo(x, y));
+        ctx.strokeStyle = "rgba(0,0,0,0.45)";
+        ctx.lineWidth = 150;
+        ctx.stroke();
+        ctx.strokeStyle = "#6e4a2e";
+        ctx.lineWidth = 118;
+        ctx.stroke();
+        ctx.strokeStyle = "#b6844a";
+        ctx.lineWidth = 92;
+        ctx.stroke();
+        ctx.strokeStyle = "rgba(30,16,8,0.48)";
+        ctx.lineWidth = 10;
+        ctx.setLineDash([20, 28]);
         ctx.stroke();
         ctx.setLineDash([]);
       }
@@ -26302,22 +26548,22 @@
       ctx.translate(hub.x, hub.y);
       ctx.fillStyle = "rgba(15,25,35,0.76)";
       ctx.strokeStyle = "#ece8e1";
-      ctx.lineWidth = 4;
+      ctx.lineWidth = 8;
       ctx.beginPath();
-      ctx.ellipse(0, 0, 190, 102, 0, 0, TAU);
+      ctx.ellipse(0, 0, 430, 250, 0, 0, TAU);
       ctx.fill();
       ctx.stroke();
       ctx.strokeStyle = "#ff4655";
       ctx.globalAlpha = 0.38;
       ctx.beginPath();
-      ctx.ellipse(0, 0, 138, 72, 0, 0, TAU);
+      ctx.ellipse(0, 0, 315, 175, 0, 0, TAU);
       ctx.stroke();
       ctx.globalAlpha = 1;
-      ctx.font = this.readableFont(950, 16);
+      ctx.font = this.readableFont(950, 22);
       this.drawReadableText(ctx, "STARTER PLAZA", 0, -4, {
         fill: "#ece8e1",
         stroke: "rgba(3,5,10,0.95)",
-        strokeWidth: 3.6
+        strokeWidth: 4.6
       });
       ctx.restore();
       ctx.restore();
@@ -26447,6 +26693,159 @@
         ctx.fillRect(-56, -30, 112, 26);
         ctx.fillStyle = "rgba(255,255,255,0.28)";
         for (let i = -42; i <= 42; i += 28) ctx.fillRect(i, -30, 13, 26);
+      } else if (kind === "crate") {
+        ctx.fillStyle = "#5a3824";
+        ctx.fillRect(-28, -22, 56, 44);
+        ctx.strokeStyle = "#b6844a";
+        ctx.lineWidth = 4;
+        ctx.strokeRect(-28, -22, 56, 44);
+        ctx.beginPath();
+        ctx.moveTo(-24, -18);
+        ctx.lineTo(24, 18);
+        ctx.moveTo(24, -18);
+        ctx.lineTo(-24, 18);
+        ctx.stroke();
+      } else if (kind === "fountain") {
+        ctx.shadowColor = color;
+        ctx.shadowBlur = this.glow(14);
+        ctx.fillStyle = "#283645";
+        ctx.beginPath();
+        ctx.ellipse(0, 12, 58, 28, 0, 0, TAU);
+        ctx.fill();
+        ctx.strokeStyle = "#d9fbff";
+        ctx.lineWidth = 4;
+        ctx.stroke();
+        ctx.fillStyle = color;
+        ctx.globalAlpha = 0.55;
+        ctx.beginPath();
+        ctx.ellipse(0, 5, 38, 15, 0, 0, TAU);
+        ctx.fill();
+        ctx.globalAlpha = 1;
+        ctx.fillRect(-6, -50, 12, 58);
+        ctx.beginPath();
+        ctx.arc(0, -54, 13, 0, TAU);
+        ctx.fill();
+      } else if (kind === "rock") {
+        ctx.fillStyle = color;
+        ctx.beginPath();
+        ctx.moveTo(-34, 14);
+        ctx.lineTo(-20, -24);
+        ctx.lineTo(14, -32);
+        ctx.lineTo(38, -2);
+        ctx.lineTo(24, 28);
+        ctx.lineTo(-18, 30);
+        ctx.closePath();
+        ctx.fill();
+        ctx.strokeStyle = "rgba(255,255,255,0.24)";
+        ctx.lineWidth = 3;
+        ctx.stroke();
+      } else if (kind === "flower") {
+        ctx.fillStyle = "#2f8f54";
+        ctx.fillRect(-3, -2, 6, 22);
+        ctx.fillStyle = color;
+        for (let i = 0; i < 5; i++) {
+          const a = i * TAU / 5;
+          ctx.beginPath();
+          ctx.ellipse(Math.cos(a) * 8, Math.sin(a) * 8 - 6, 6, 9, a, 0, TAU);
+          ctx.fill();
+        }
+        ctx.fillStyle = "#fff1b8";
+        ctx.beginPath();
+        ctx.arc(0, -6, 4, 0, TAU);
+        ctx.fill();
+      } else if (kind === "tombstone") {
+        ctx.fillStyle = "#5f6670";
+        ctx.beginPath();
+        ctx.moveTo(-24, 30);
+        ctx.lineTo(-24, -18);
+        ctx.quadraticCurveTo(0, -52, 24, -18);
+        ctx.lineTo(24, 30);
+        ctx.closePath();
+        ctx.fill();
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 3;
+        ctx.stroke();
+        ctx.fillStyle = "rgba(15,25,35,0.7)";
+        ctx.fillRect(-10, -18, 20, 5);
+        ctx.fillRect(-3, -26, 6, 22);
+      } else if (kind === "tent") {
+        ctx.fillStyle = "#31241d";
+        ctx.beginPath();
+        ctx.ellipse(0, 28, 58, 14, 0, 0, TAU);
+        ctx.fill();
+        ctx.fillStyle = color;
+        ctx.beginPath();
+        ctx.moveTo(-54, 28);
+        ctx.lineTo(0, -58);
+        ctx.lineTo(54, 28);
+        ctx.closePath();
+        ctx.fill();
+        ctx.fillStyle = "rgba(15,25,35,0.62)";
+        ctx.beginPath();
+        ctx.moveTo(-14, 28);
+        ctx.lineTo(0, -16);
+        ctx.lineTo(18, 28);
+        ctx.closePath();
+        ctx.fill();
+      } else if (kind === "watchtower") {
+        ctx.fillStyle = "#5b3c24";
+        ctx.fillRect(-32, -54, 12, 96);
+        ctx.fillRect(20, -54, 12, 96);
+        ctx.fillStyle = color;
+        ctx.fillRect(-52, -88, 104, 42);
+        ctx.fillStyle = "#3a291f";
+        ctx.fillRect(-60, -98, 120, 12);
+        ctx.strokeStyle = "#d0a46b";
+        ctx.lineWidth = 4;
+        ctx.strokeRect(-52, -88, 104, 42);
+      } else if (kind === "cave") {
+        ctx.fillStyle = "rgba(0,0,0,0.38)";
+        ctx.beginPath();
+        ctx.ellipse(0, 28, 76, 22, 0, 0, TAU);
+        ctx.fill();
+        ctx.fillStyle = "#343b45";
+        ctx.beginPath();
+        ctx.moveTo(-74, 28);
+        ctx.quadraticCurveTo(-48, -64, 0, -72);
+        ctx.quadraticCurveTo(58, -62, 74, 28);
+        ctx.closePath();
+        ctx.fill();
+        ctx.fillStyle = "#070b12";
+        ctx.beginPath();
+        ctx.moveTo(-38, 28);
+        ctx.quadraticCurveTo(-28, -26, 0, -34);
+        ctx.quadraticCurveTo(32, -24, 38, 28);
+        ctx.closePath();
+        ctx.fill();
+      } else if (kind === "chest") {
+        ctx.shadowColor = color;
+        ctx.shadowBlur = this.glow(10);
+        ctx.fillStyle = "#6a3f24";
+        ctx.fillRect(-34, -12, 68, 38);
+        ctx.fillStyle = color;
+        ctx.fillRect(-38, -26, 76, 20);
+        ctx.fillStyle = "#fff1b8";
+        ctx.fillRect(-5, -8, 10, 14);
+        ctx.strokeStyle = "#2d1c12";
+        ctx.lineWidth = 4;
+        ctx.strokeRect(-34, -12, 68, 38);
+      } else if (kind === "resource") {
+        ctx.shadowColor = color;
+        ctx.shadowBlur = this.glow(14);
+        ctx.fillStyle = color;
+        for (let i = 0; i < 3; i++) {
+          ctx.save();
+          ctx.translate((i - 1) * 18, i % 2 ? -3 : 8);
+          ctx.beginPath();
+          ctx.moveTo(0, -34);
+          ctx.lineTo(15, -4);
+          ctx.lineTo(5, 30);
+          ctx.lineTo(-12, 22);
+          ctx.lineTo(-16, -6);
+          ctx.closePath();
+          ctx.fill();
+          ctx.restore();
+        }
       } else {
         ctx.fillStyle = color;
         ctx.fillRect(-16, -16, 32, 32);

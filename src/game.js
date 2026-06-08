@@ -2,14 +2,14 @@
   "use strict";
 
   const TAU = Math.PI * 2;
-  const WORLD_W = 1840;
-  const WORLD_H = 1160;
+  const WORLD_W = 3200;
+  const WORLD_H = 2200;
   const ROOM_PAD = 86;
   const SAVE_KEY = "soulrift-save-v1";
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
   const SIGNAL_REALTIME_RELAY_LIMIT = 2;
   const SIGNAL_REALTIME_TYPES = new Set(["state", "snapshot", "attack", "skill", "collect", "openChest", "dropItem", "damage", "chooseDoor"]);
-  const APP_VERSION = "20260609-openworld-island-307";
+  const APP_VERSION = "20260609-beginner-island-districts-308";
   const CHANGELOG_ENTRIES = [
     {
       version: APP_VERSION,
@@ -7469,7 +7469,13 @@
       this.canvas.addEventListener("mousedown", (event) => {
         this.audio.start();
         this.updateMouse(event);
-        if (event.button === 0) this.input.mouse.left = true;
+        if (event.button === 0) {
+          if (this.tryOpenWorldPointerInteraction()) {
+            this.input.mouse.left = false;
+            return;
+          }
+          this.input.mouse.left = true;
+        }
       });
       window.addEventListener("mouseup", (event) => {
         if (event.button === 0) this.input.mouse.left = false;
@@ -8701,9 +8707,9 @@
           event.preventDefault();
           event.stopPropagation();
           this.audio.start();
-          this.triggerTouchAction(button.dataset.touch);
+          const handled = this.triggerTouchAction(button.dataset.touch);
           stopRepeat();
-          if (button.dataset.touch === "attack") {
+          if (button.dataset.touch === "attack" && !handled) {
             repeatTimer = setTimeout(() => {
               repeatInterval = setInterval(() => this.triggerTouchAction("attack"), 145);
             }, 210);
@@ -8715,13 +8721,17 @@
     }
 
     triggerTouchAction(action) {
-      if (!this.run || this.mode !== "game") return;
-      if (this.pauseOverlay || this.run.player.dead) return;
-      if (action === "attack") this.attackBasic();
+      if (!this.run || this.mode !== "game") return false;
+      if (this.pauseOverlay || this.run.player.dead) return false;
+      if (action === "attack") {
+        if (this.tryOpenWorldInteraction("touch")) return true;
+        this.attackBasic();
+      }
       if (action === "dash") this.dash();
       if (["q", "e", "r", "f"].includes(action)) this.useSkill(action);
       if (action === "bag") this.showRunInventory();
       if (action === "settings") this.showPause();
+      return false;
     }
 
     triggerQuickAction(action) {
@@ -8831,6 +8841,54 @@
         this.input.touch.aimX = dx / len;
         this.input.touch.aimY = dy / len;
       }
+    }
+
+    openWorldInteractable(object) {
+      return Boolean(object && this.isOpenWorldRun() && !object.opened && !object.locked && object.interactive !== false
+        && ["awakeningStone", "openWorldBuilding", "monsterZone", "openWorldNpc"].includes(object.type));
+    }
+
+    openWorldNearInteractionObject() {
+      const id = this.run?.nearInteractionObjectId;
+      if (!id) return null;
+      return (this.run.roomObjects || []).find((object) => object.id === id && this.openWorldInteractable(object)) || null;
+    }
+
+    updateOpenWorldInteractionTarget() {
+      if (!this.isOpenWorldRun() || !this.run?.player) return;
+      const player = this.run.player;
+      let best = null;
+      let bestScore = Infinity;
+      for (const object of this.run.roomObjects || []) {
+        if (!this.openWorldInteractable(object)) continue;
+        const d = Math.hypot(player.x - object.x, player.y - object.y);
+        const reach = (player.radius || 22) + (object.radius || 48) * 0.66 + 44;
+        if (d > reach) continue;
+        const score = d - (object.type === "openWorldNpc" ? 34 : 0) - (object.type === "awakeningStone" ? 16 : 0);
+        if (score < bestScore) {
+          bestScore = score;
+          best = object;
+        }
+      }
+      this.run.nearInteractionObjectId = best?.id || "";
+    }
+
+    tryOpenWorldPointerInteraction() {
+      if (!this.run || this.mode !== "game" || this.pauseOverlay || this.run.player.dead || this.isMobileDevice()) return false;
+      const object = this.openWorldNearInteractionObject();
+      if (!object) return false;
+      const d = Math.hypot(this.input.mouse.worldX - object.x, this.input.mouse.worldY - object.y);
+      if (d > (object.radius || 48) + 58) return false;
+      return this.tryOpenWorldInteraction("click", object);
+    }
+
+    tryOpenWorldInteraction(source = "click", object = this.openWorldNearInteractionObject()) {
+      if (!this.openWorldInteractable(object) || this.pauseOverlay || this.run?.player?.dead) return false;
+      object.contactCooldown = Math.max(object.contactCooldown || 0, 0.55);
+      this.audio.ui(source === "touch" ? "click" : "notify");
+      this.handleRoomObjectContact(object, this.lobby.id, this.run.player);
+      this.input.mouse.left = false;
+      return true;
     }
 
     basicAimAngle(player) {
@@ -14247,14 +14305,28 @@
 
     beginnerIslandSystems() {
       return [
-        { id: "questHouse", label: "Quest House", icon: "Q", x: 360, y: 330, color: "#f2bf63", effect: "gold" },
-        { id: "partyHouse", label: "Party House", icon: "P", x: 635, y: 255, color: "#35d6c9", effect: "merchant" },
-        { id: "dungeonHouse", label: "Dungeon House", icon: "D", x: 1225, y: 255, color: "#a169ff", effect: "secret" },
-        { id: "shopHouse", label: "Shop House", icon: "$", x: 300, y: 705, color: "#ffbd5e", effect: "gold" },
-        { id: "storageHouse", label: "Storage House", icon: "S", x: 1500, y: 705, color: "#83e8ff", effect: "snow" },
-        { id: "trainingArea", label: "Training Area", icon: "T", x: 620, y: 895, color: "#82ffd3", effect: "leaf" },
-        { id: "trialTower", label: "Trial Tower", icon: "100", x: 1510, y: 330, color: "#ff4655", effect: "boss" },
-        { id: "monsterZone", label: "Beginner Monster Zone", icon: "M", x: 1285, y: 900, color: "#70e083", effect: "leaf", radius: 78 }
+        { id: "questHouse", label: "Adventurer Guild", icon: "Q", x: 650, y: 620, color: "#f2bf63", effect: "gold", kind: "guildHall", radius: 104 },
+        { id: "partyHouse", label: "Party Plaza", icon: "P", x: 1580, y: 945, color: "#35d6c9", effect: "merchant", kind: "meetingHall", radius: 94 },
+        { id: "dungeonHouse", label: "Dungeon Gate Complex", icon: "D", x: 2570, y: 610, color: "#a169ff", effect: "secret", kind: "dungeonGate", radius: 116 },
+        { id: "shopHouse", label: "Market District", icon: "$", x: 620, y: 1510, color: "#ffbd5e", effect: "gold", kind: "marketStall", radius: 92 },
+        { id: "storageHouse", label: "Storage Vault", icon: "S", x: 1380, y: 1625, color: "#83e8ff", effect: "snow", kind: "vault", radius: 84 },
+        { id: "trainingArea", label: "Training District", icon: "T", x: 2240, y: 1545, color: "#82ffd3", effect: "leaf", kind: "trainingYard", radius: 96 },
+        { id: "trialTower", label: "Trial Tower", icon: "100", x: 2825, y: 1160, color: "#ff4655", effect: "boss", kind: "trialTower", radius: 108 },
+        { id: "monsterZone", label: "Beginner Monster Field", icon: "M", x: 2740, y: 1840, color: "#70e083", effect: "leaf", kind: "monsterField", radius: 126 }
+      ];
+    }
+
+    beginnerIslandDistricts() {
+      return [
+        { id: "awakening", label: "Awakening District", x: 1600, y: 410, w: 760, h: 500, color: "#d9fbff", shape: "circle" },
+        { id: "quest", label: "Quest District", x: 650, y: 680, w: 860, h: 560, color: "#f2bf63" },
+        { id: "party", label: "Party District", x: 1580, y: 1000, w: 780, h: 520, color: "#35d6c9" },
+        { id: "dungeon", label: "Dungeon District", x: 2570, y: 660, w: 820, h: 570, color: "#a169ff" },
+        { id: "market", label: "Market District", x: 620, y: 1565, w: 820, h: 520, color: "#ffbd5e" },
+        { id: "storage", label: "Storage District", x: 1380, y: 1640, w: 520, h: 360, color: "#83e8ff" },
+        { id: "training", label: "Training District", x: 2240, y: 1580, w: 760, h: 500, color: "#82ffd3" },
+        { id: "trial", label: "Trial District", x: 2825, y: 1160, w: 560, h: 500, color: "#ff4655" },
+        { id: "monster", label: "Beginner Monster Field", x: 2740, y: 1840, w: 660, h: 420, color: "#70e083" }
       ];
     }
 
@@ -14265,18 +14337,20 @@
       this.run.currentRoom.cleared = false;
       this.run.currentRoom.respawnTimer = 0;
       this.run.currentRoom.label = "Beginner Island";
-      this.run.player.x = WORLD_W / 2;
-      this.run.player.y = WORLD_H / 2 + 130;
+      this.run.player.x = 1600;
+      this.run.player.y = 1250;
       this.run.player.invuln = Math.max(this.run.player.invuln || 0, 1.2);
       this.addRoomObject("awakeningStone", {
-        x: WORLD_W / 2,
-        y: WORLD_H / 2 - 170,
-        radius: 74,
+        x: 1600,
+        y: 395,
+        radius: 128,
         color: "#d9fbff",
-        label: "Ancient Awakening Stone",
+        label: "Giant Awakening Stone",
         icon: "A",
         effect: "secret"
       });
+      this.spawnBeginnerIslandScenery();
+      this.spawnBeginnerIslandNpcs();
       for (const system of this.beginnerIslandSystems()) {
         this.addRoomObject(system.id === "monsterZone" ? "monsterZone" : "openWorldBuilding", {
           systemId: system.id,
@@ -14286,25 +14360,26 @@
           color: system.color,
           label: system.label,
           icon: system.icon,
-          effect: system.effect
+          effect: system.effect,
+          kind: system.kind
         });
       }
-      this.spawnBeginnerIslandMonsters(10);
-      this.addShockwave(WORLD_W / 2, WORLD_H / 2 - 170, 190, "#d9fbff", 0);
-      this.toast("Beginner Island: kham pha, thuc tinh power va farm quai quanh dao");
+      this.spawnBeginnerIslandMonsters(14);
+      this.addShockwave(1600, 395, 260, "#d9fbff", 0);
+      this.toast("Beginner Island: di chuyen giua cac district, gap NPC va thuc tinh power");
     }
 
     spawnBeginnerIslandMonsters(targetCount = 10) {
       if (!this.run) return;
       const current = (this.run.enemies || []).filter((enemy) => enemy.openWorldMob && enemy.hp > 0).length;
       const need = Math.max(0, targetCount - current);
-      const center = { x: 1320, y: 860 };
-      const kinds = ["slime", "fireSlime", "iceSlime", "goblinScout", "skeletonArcher"];
+      const center = { x: 2740, y: 1840 };
+      const kinds = ["slime", "fireSlime", "iceSlime", "goblinScout", "skeletonArcher", "goblinBomber", "mushroomMonster"];
       for (let i = 0; i < need; i++) {
         const angle = ((current + i) / Math.max(1, targetCount)) * TAU + rand(-0.22, 0.22);
-        const ring = rand(70, 245);
-        const x = clamp(center.x + Math.cos(angle) * ring, ROOM_PAD + 90, WORLD_W - ROOM_PAD - 90);
-        const y = clamp(center.y + Math.sin(angle) * ring, ROOM_PAD + 90, WORLD_H - ROOM_PAD - 90);
+        const ring = rand(90, 330);
+        const x = clamp(center.x + Math.cos(angle) * ring, 2380, WORLD_W - ROOM_PAD - 140);
+        const y = clamp(center.y + Math.sin(angle) * ring, 1620, WORLD_H - ROOM_PAD - 120);
         const enemy = this.createEnemy(kinds[(current + i) % kinds.length], x, y, false);
         enemy.openWorldMob = true;
         enemy.anchorX = x;
@@ -14320,6 +14395,101 @@
         enemy.skillCd = Math.max(enemy.skillCd, 2.2);
         this.run.enemies.push(enemy);
       }
+    }
+
+    addOpenWorldScenery(kind, x, y, data = {}) {
+      return this.addRoomObject("openWorldScenery", {
+        kind,
+        x,
+        y,
+        radius: data.radius || 28,
+        color: data.color || "#70e083",
+        label: data.label || "",
+        effect: data.effect || "",
+        interactive: false,
+        grow: 1,
+        ...data
+      });
+    }
+
+    addOpenWorldNpc(systemId, name, x, y, data = {}) {
+      return this.addRoomObject("openWorldNpc", {
+        systemId,
+        npcName: name,
+        label: name,
+        x,
+        y,
+        radius: data.radius || 30,
+        color: data.color || "#f2bf63",
+        role: data.role || "npc",
+        icon: data.icon || "!",
+        anchorX: x,
+        anchorY: y,
+        patrolRadius: data.patrolRadius || 32,
+        patrolSpeed: data.patrolSpeed || 0.55,
+        phase: data.phase ?? rand(0, TAU),
+        ...data
+      });
+    }
+
+    spawnBeginnerIslandScenery() {
+      const add = (kind, x, y, data = {}) => this.addOpenWorldScenery(kind, x, y, data);
+      for (let x = 210; x <= 3020; x += 250) {
+        add("tree", x, 180 + Math.sin(x * 0.01) * 38, { radius: 38, color: "#6edc79" });
+        add("tree", x + 70, 2035 + Math.cos(x * 0.009) * 42, { radius: 40, color: "#5fcb6b" });
+      }
+      for (let y = 330; y <= 1880; y += 250) {
+        add("tree", 180 + Math.cos(y * 0.008) * 32, y, { radius: 38, color: "#5fcb6b" });
+        add("tree", 3030 + Math.sin(y * 0.007) * 34, y + 40, { radius: 38, color: "#6edc79" });
+      }
+      [
+        [1160, 360], [1310, 555], [1895, 560], [2035, 360],
+        [1245, 275], [1960, 275], [650, 430], [460, 720],
+        [830, 760], [370, 955], [2525, 385], [2790, 420],
+        [2360, 840], [2840, 845], [430, 1350], [790, 1360],
+        [410, 1705], [815, 1735], [2075, 1340], [2430, 1345],
+        [2030, 1735], [2460, 1755], [2560, 1695], [2980, 1710],
+        [2460, 2020], [2985, 2025]
+      ].forEach(([x, y], index) => add(index % 3 === 0 ? "banner" : index % 3 === 1 ? "lamp" : "crate", x, y, {
+        color: index % 3 === 0 ? "#ff4655" : index % 3 === 1 ? "#f2bf63" : "#b6844a",
+        radius: 24
+      }));
+      [
+        [1270, 405], [1395, 280], [1805, 280], [1930, 405],
+        [1290, 500], [1910, 500]
+      ].forEach(([x, y]) => add("pillar", x, y, { color: "#d9fbff", radius: 34 }));
+      [
+        [1390, 465], [1810, 465], [1500, 265], [1700, 265]
+      ].forEach(([x, y]) => add("crystal", x, y, { color: "#83e8ff", radius: 30 }));
+      [
+        [520, 790], [720, 795], [1530, 1115], [1685, 1110],
+        [505, 1605], [730, 1600], [2150, 1685], [2325, 1680]
+      ].forEach(([x, y]) => add("bench", x, y, { color: "#c79a5b", radius: 24 }));
+      [
+        [2450, 730], [2695, 730], [2470, 510], [2670, 510]
+      ].forEach(([x, y]) => add("statue", x, y, { color: "#a169ff", radius: 42 }));
+      [
+        [1500, 1080], [1660, 1085], [1580, 1140]
+      ].forEach(([x, y]) => add("campfire", x, y, { color: "#ffbd5e", radius: 34 }));
+      [
+        [2110, 1510], [2195, 1510], [2280, 1510], [2365, 1510],
+        [2125, 1615], [2210, 1615], [2295, 1615], [2380, 1615]
+      ].forEach(([x, y]) => add("target", x, y, { color: "#ff4655", radius: 28 }));
+      [
+        [530, 1445], [700, 1450], [485, 1540], [780, 1545]
+      ].forEach(([x, y], index) => add("stall", x, y, { color: index % 2 ? "#35d6c9" : "#ffbd5e", radius: 42 }));
+    }
+
+    spawnBeginnerIslandNpcs() {
+      this.addOpenWorldNpc("questHouse", "Guild Master", 650, 795, { color: "#f2bf63", role: "quest", icon: "Q", patrolRadius: 45, phase: 0.2 });
+      this.addOpenWorldNpc("questHouse", "Quest Clerk", 770, 720, { color: "#ffd36a", role: "quest", icon: "!", patrolRadius: 22, phase: 1.1 });
+      this.addOpenWorldNpc("partyHouse", "Party Scout", 1500, 1070, { color: "#35d6c9", role: "party", icon: "P", patrolRadius: 54, phase: 2.2 });
+      this.addOpenWorldNpc("dungeonHouse", "Gate Warden", 2570, 800, { color: "#a169ff", role: "dungeon", icon: "D", patrolRadius: 36, phase: 3.2 });
+      this.addOpenWorldNpc("shopHouse", "Market Trader", 610, 1645, { color: "#ffbd5e", role: "market", icon: "$", patrolRadius: 42, phase: 4.0 });
+      this.addOpenWorldNpc("storageHouse", "Vault Keeper", 1380, 1735, { color: "#83e8ff", role: "storage", icon: "S", patrolRadius: 24, phase: 4.7 });
+      this.addOpenWorldNpc("trainingArea", "Training Coach", 2240, 1695, { color: "#82ffd3", role: "training", icon: "T", patrolRadius: 48, phase: 5.4 });
+      this.addOpenWorldNpc("awakeningStone", "Awakening Sage", 1600, 610, { color: "#d9fbff", role: "awakening", icon: "A", patrolRadius: 36, phase: 0.8 });
+      this.addOpenWorldNpc("monsterZone", "Island Guard", 2440, 1790, { color: "#70e083", role: "monster", icon: "M", patrolRadius: 65, phase: 2.8 });
     }
 
     addRoomObject(type, data = {}) {
@@ -14705,11 +14875,21 @@
       const room = this.run.currentRoom;
       room.started = true;
       room.cleared = false;
+      for (const object of this.run.roomObjects || []) {
+        if (object.type !== "openWorldNpc") continue;
+        object.phase = Number(object.phase || 0) + dt * (object.patrolSpeed || 0.55);
+        const r = Number(object.patrolRadius || 0);
+        if (r > 0) {
+          object.x = (object.anchorX || object.x) + Math.cos(object.phase) * r * 0.72;
+          object.y = (object.anchorY || object.y) + Math.sin(object.phase * 0.82) * r * 0.42;
+        }
+      }
       room.respawnTimer = Math.max(0, Number(room.respawnTimer || 0) - dt);
       if (room.respawnTimer <= 0) {
         room.respawnTimer = 4.5;
-        this.spawnBeginnerIslandMonsters(10);
+        this.spawnBeginnerIslandMonsters(14);
       }
+      this.updateOpenWorldInteractionTarget();
     }
 
     applyOpenWorldEnemyLeashes(dt) {
@@ -14748,6 +14928,7 @@
       this.applyEmergencyVisualBudget();
       this.updateStatusEffects(dt);
       this.applyTrainingRules();
+      this.updateOpenWorldInteractionTarget();
       this.updateHud();
       this.updateRunLeader();
       this.updateNetwork(dt);
@@ -23258,6 +23439,8 @@
           if (object.openTimer <= 0) this.completeRoomObjectOpening(object);
           continue;
         }
+        if (object.interactive === false) continue;
+        if (this.openWorldInteractable(object)) continue;
         if (object.opened || object.locked || object.contactCooldown > 0) continue;
         const contact = this.roomObjectContactActor(object);
         if (!contact) continue;
@@ -23422,11 +23605,50 @@
       }
     }
 
+    handleBeginnerIslandNpc(object) {
+      const role = object.role || "npc";
+      const name = object.npcName || object.label || "NPC";
+      if (role === "quest") {
+        this.showIslandPanel(name, "NPC giao nhiem vu tan thu cua Adventurer District.", [
+          { title: "Nhiem vu 1", text: "Den Awakening District va dung 1 Bua Thuc Tinh tai Giant Awakening Stone.", icon: "1", color: "#f2bf63", action: "island-quest-toast" },
+          { title: "Nhiem vu 2", text: "Den Beginner Monster Field ha quai de nhan EXP, vang va vat lieu dau game.", icon: "2", color: "#70e083", action: "island-quest-toast" },
+          { title: "Nhiem vu 3", text: "Sau khi co power, vao Dungeon Gate Complex de thu dungeon Normal.", icon: "3", color: "#a169ff", action: "resume" }
+        ]);
+        return;
+      }
+      if (role === "awakening") {
+        this.showIslandPanel(name, "Khu thuc tinh dung de mo power dau tien va sau nay nang cap thuc tinh.", [
+          { title: "Giant Awakening Stone", text: "Dung Bua Thuc Tinh de roll power. Click vao vien da lon o trung tam de kich hoat.", icon: "A", color: "#d9fbff", action: "resume" }
+        ]);
+        return;
+      }
+      const route = {
+        party: ["Party District", "Lap doi, moi ban va chuan bi dungeon chung.", "partyHouse"],
+        dungeon: ["Gate Warden", "Chon cong dungeon de vao thu thach Normal hoac Hard.", "dungeonHouse"],
+        market: ["Market Trader", "Mua ban phu tro trong tran o khu Market.", "shopHouse"],
+        storage: ["Vault Keeper", "Xem tai nguyen dai han va vat lieu thuc tinh.", "storageHouse"],
+        training: ["Training Coach", "Vao phong huan luyen de test combo voi dummy.", "trainingArea"],
+        monster: ["Island Guard", "Bai quai phia dong nam danh cho tan thu farm EXP va vat lieu.", "monsterZone"]
+      }[role];
+      if (route) {
+        this.showIslandPanel(name || route[0], route[1], [
+          { title: route[0], text: "Mo diem tuong tac cua district nay.", icon: object.icon || "!", color: object.color || "#f2bf63", action: "resume" }
+        ]);
+        return;
+      }
+      this.toast(`${name}: hay kham pha cac district tren Beginner Island`);
+    }
+
     handleRoomObjectContact(object, actorId = this.lobby.id, actor = this.run?.player) {
       if (!object || object.opened) return;
       if (object.type === "awakeningStone") {
         object.contactCooldown = 1.2;
         this.activateAwakeningStone(object);
+        return;
+      }
+      if (object.type === "openWorldNpc") {
+        object.contactCooldown = 1.0;
+        this.handleBeginnerIslandNpc(object);
         return;
       }
       if (object.type === "openWorldBuilding" || object.type === "monsterZone") {
@@ -24903,6 +25125,13 @@
         ["f", skills[4]],
         ["dash", ["LƯỚT", "Lướt", this.run.player.dashCd, 0.7]]
       ]);
+      const interactObject = this.openWorldNearInteractionObject();
+      if (interactObject) {
+        const name = interactObject.type === "openWorldNpc"
+          ? (interactObject.npcName || "NPC")
+          : (interactObject.label || "Tuong tac");
+        map.set("attack", ["TUONG TAC", String(name).slice(0, 18), 0, 1]);
+      }
       for (const button of this.touchButtons) {
         const data = map.get(button.dataset.touch);
         if (!data) continue;
@@ -24911,6 +25140,7 @@
         const text = ready ? label : `${label} ${Math.ceil(cd)}`;
         if (button.textContent !== text) button.textContent = text;
         button.classList.toggle("cooling", !ready);
+        button.classList.toggle("interact", button.dataset.touch === "attack" && Boolean(interactObject));
         button.style.setProperty("--cool", `${clamp((cd / (max || 1)) * 100, 0, 100)}%`);
       }
     }
@@ -24918,7 +25148,7 @@
     compactObjectiveText() {
       const enemies = this.run?.enemies.length || 0;
       if (this.isTutorialRun()) return this.tutorialObjectiveText(true);
-      if (this.isOpenWorldRun()) return `${enemies} quai dao`;
+      if (this.isOpenWorldRun()) return this.openWorldNearInteractionObject() ? "Tuong tac" : `${enemies} quai dao`;
       if (this.isTrainingRun()) return `${enemies} dummy`;
       if (enemies > 0) return `${enemies} quái`;
       const pending = this.run?.pendingDoor;
@@ -24933,7 +25163,11 @@
       const room = this.run?.currentRoom;
       const enemies = this.run?.enemies.length || 0;
       if (this.isTutorialRun()) return this.tutorialObjectiveText(false);
-      if (this.isOpenWorldRun()) return `Beginner Island - cham nha de mo he thong, bai quai con ${enemies}`;
+      if (this.isOpenWorldRun()) {
+        const object = this.openWorldNearInteractionObject();
+        if (object) return this.isMobileDevice() ? "Bam nut TUONG TAC de noi chuyen / kich hoat" : "Click vao vat/NPC dang sang de tuong tac";
+        return `Beginner Island - di chuyen giua cac district, bai quai con ${enemies}`;
+      }
       if (this.isTrainingRun()) return `Test chiêu với ${enemies} dummy - ESC để thoát`;
       if (enemies > 0) return `Hạ ${enemies} quái`;
       const activeObject = this.run?.roomObjects?.find((object) => !object.opened && object.type !== "nextDoor");
@@ -25008,6 +25242,7 @@
       ctx.scale(scale, scale);
       ctx.translate(-camX, -camY);
       this.drawRoom(ctx, false);
+      this.drawBeginnerIslandGround(ctx);
       if (!emergency && !fastVisual) this.drawTrails(ctx);
       this.drawHazards(ctx);
       this.drawPickups(ctx);
@@ -25979,17 +26214,330 @@
       }
     }
 
+    drawBeginnerIslandGround(ctx) {
+      if (!this.isOpenWorldRun()) return;
+      const bounds = this.viewBounds(180);
+      const visibleRect = (x, y, w, h) => !(x + w < bounds.left || x > bounds.right || y + h < bounds.top || y > bounds.bottom);
+      const hub = { x: 1600, y: 1250 };
+      const roads = [
+        [[hub.x, hub.y], [1600, 920], [1600, 430]],
+        [[hub.x, hub.y], [1120, 1120], [650, 680]],
+        [[hub.x, hub.y], [1580, 1000]],
+        [[hub.x, hub.y], [2060, 1040], [2570, 660]],
+        [[hub.x, hub.y], [1040, 1370], [620, 1565]],
+        [[hub.x, hub.y], [1380, 1640]],
+        [[hub.x, hub.y], [1970, 1410], [2240, 1580]],
+        [[hub.x, hub.y], [2230, 1230], [2825, 1160]],
+        [[2240, 1580], [2550, 1695], [2740, 1840]]
+      ];
+      ctx.save();
+      ctx.lineCap = "round";
+      ctx.lineJoin = "round";
+      for (const road of roads) {
+        ctx.beginPath();
+        road.forEach(([x, y], index) => index ? ctx.lineTo(x, y) : ctx.moveTo(x, y));
+        ctx.strokeStyle = "rgba(20, 15, 12, 0.5)";
+        ctx.lineWidth = 92;
+        ctx.stroke();
+        ctx.strokeStyle = "#786a5d";
+        ctx.lineWidth = 76;
+        ctx.stroke();
+        ctx.strokeStyle = "#a49683";
+        ctx.lineWidth = 54;
+        ctx.stroke();
+        ctx.strokeStyle = "rgba(255,255,255,0.08)";
+        ctx.lineWidth = 5;
+        ctx.setLineDash([18, 24]);
+        ctx.stroke();
+        ctx.setLineDash([]);
+      }
+      for (const district of this.beginnerIslandDistricts()) {
+        const x = district.x - district.w / 2;
+        const y = district.y - district.h / 2;
+        if (!visibleRect(x - 90, y - 90, district.w + 180, district.h + 180)) continue;
+        ctx.save();
+        ctx.shadowColor = district.color;
+        ctx.shadowBlur = this.glow(10);
+        ctx.fillStyle = "rgba(7,10,14,0.34)";
+        ctx.strokeStyle = "rgba(255,255,255,0.14)";
+        ctx.lineWidth = 4;
+        if (district.shape === "circle") {
+          ctx.beginPath();
+          ctx.ellipse(district.x, district.y, district.w / 2, district.h / 2, 0, 0, TAU);
+          ctx.fill();
+          ctx.stroke();
+          ctx.strokeStyle = district.color;
+          ctx.globalAlpha = 0.34;
+          for (let i = 0; i < 3; i++) {
+            ctx.beginPath();
+            ctx.ellipse(district.x, district.y, district.w / 2 - 46 - i * 58, district.h / 2 - 34 - i * 48, 0, 0, TAU);
+            ctx.stroke();
+          }
+        } else {
+          roundPixel(ctx, x, y, district.w, district.h, 18);
+          ctx.fillStyle = "rgba(18,26,32,0.68)";
+          ctx.fill();
+          ctx.stroke();
+          ctx.globalAlpha = 0.22;
+          ctx.fillStyle = district.color;
+          ctx.fillRect(x + 20, y + 20, district.w - 40, 9);
+          ctx.fillRect(x + 20, y + district.h - 29, district.w - 40, 9);
+          ctx.globalAlpha = 0.72;
+          ctx.strokeStyle = district.id === "dungeon" || district.id === "trial" ? "#687080" : "#5b3c24";
+          ctx.lineWidth = district.id === "dungeon" || district.id === "trial" ? 12 : 8;
+          ctx.setLineDash(district.id === "dungeon" || district.id === "trial" ? [42, 18] : [24, 18]);
+          ctx.strokeRect(x + 18, y + 18, district.w - 36, district.h - 36);
+          ctx.setLineDash([]);
+        }
+        ctx.globalAlpha = 1;
+        ctx.font = this.readableFont(900, 15);
+        this.drawReadableText(ctx, district.label, district.x, y + 34, {
+          fill: "#f3ead7",
+          stroke: "rgba(3,5,10,0.92)",
+          strokeWidth: 3.8
+        });
+        ctx.restore();
+      }
+      ctx.save();
+      ctx.translate(hub.x, hub.y);
+      ctx.fillStyle = "rgba(15,25,35,0.76)";
+      ctx.strokeStyle = "#ece8e1";
+      ctx.lineWidth = 4;
+      ctx.beginPath();
+      ctx.ellipse(0, 0, 190, 102, 0, 0, TAU);
+      ctx.fill();
+      ctx.stroke();
+      ctx.strokeStyle = "#ff4655";
+      ctx.globalAlpha = 0.38;
+      ctx.beginPath();
+      ctx.ellipse(0, 0, 138, 72, 0, 0, TAU);
+      ctx.stroke();
+      ctx.globalAlpha = 1;
+      ctx.font = this.readableFont(950, 16);
+      this.drawReadableText(ctx, "STARTER PLAZA", 0, -4, {
+        fill: "#ece8e1",
+        stroke: "rgba(3,5,10,0.95)",
+        strokeWidth: 3.6
+      });
+      ctx.restore();
+      ctx.restore();
+    }
+
+    drawOpenWorldScenery(ctx, object) {
+      const grow = clamp(object.grow || 1, 0, 1);
+      ctx.save();
+      ctx.translate(object.x, object.y);
+      ctx.scale(grow, grow);
+      const color = object.color || "#70e083";
+      const kind = object.kind || "prop";
+      if (kind === "tree") {
+        ctx.fillStyle = "#5b3c24";
+        ctx.fillRect(-7, 4, 14, 34);
+        ctx.fillStyle = color;
+        ctx.beginPath();
+        ctx.ellipse(0, -18, 34, 29, 0, 0, TAU);
+        ctx.fill();
+        ctx.fillStyle = "#2f8f54";
+        ctx.globalAlpha = 0.72;
+        ctx.beginPath();
+        ctx.ellipse(-14, -25, 22, 18, -0.4, 0, TAU);
+        ctx.ellipse(16, -23, 20, 17, 0.4, 0, TAU);
+        ctx.fill();
+      } else if (kind === "banner") {
+        ctx.fillStyle = "#4c3424";
+        ctx.fillRect(-4, -42, 8, 84);
+        ctx.fillStyle = color;
+        ctx.beginPath();
+        ctx.moveTo(4, -40);
+        ctx.lineTo(50, -32);
+        ctx.lineTo(34, -8);
+        ctx.lineTo(4, -14);
+        ctx.closePath();
+        ctx.fill();
+      } else if (kind === "lamp") {
+        ctx.fillStyle = "#2b3141";
+        ctx.fillRect(-5, -34, 10, 68);
+        ctx.fillStyle = "#f2bf63";
+        ctx.shadowColor = "#f2bf63";
+        ctx.shadowBlur = this.glow(16);
+        ctx.beginPath();
+        ctx.arc(0, -38, 12, 0, TAU);
+        ctx.fill();
+      } else if (kind === "pillar") {
+        ctx.fillStyle = "#657080";
+        ctx.fillRect(-16, -62, 32, 105);
+        ctx.fillStyle = color;
+        ctx.globalAlpha = 0.4;
+        ctx.fillRect(-11, -54, 22, 90);
+        ctx.globalAlpha = 1;
+        ctx.strokeStyle = "#dfe8f0";
+        ctx.lineWidth = 3;
+        ctx.strokeRect(-18, -66, 36, 112);
+      } else if (kind === "crystal") {
+        ctx.shadowColor = color;
+        ctx.shadowBlur = this.glow(18);
+        ctx.fillStyle = color;
+        ctx.beginPath();
+        ctx.moveTo(0, -44);
+        ctx.lineTo(24, -7);
+        ctx.lineTo(11, 38);
+        ctx.lineTo(-18, 30);
+        ctx.lineTo(-26, -8);
+        ctx.closePath();
+        ctx.fill();
+        ctx.strokeStyle = "#ffffff";
+        ctx.globalAlpha = 0.5;
+        ctx.stroke();
+      } else if (kind === "bench") {
+        ctx.fillStyle = "#3a291f";
+        ctx.fillRect(-38, 6, 76, 12);
+        ctx.fillStyle = color;
+        ctx.fillRect(-42, -10, 84, 14);
+        ctx.fillRect(-34, 20, 8, 22);
+        ctx.fillRect(26, 20, 8, 22);
+      } else if (kind === "statue") {
+        ctx.fillStyle = "#5b6272";
+        ctx.fillRect(-28, 30, 56, 15);
+        ctx.beginPath();
+        ctx.moveTo(0, -58);
+        ctx.lineTo(30, 14);
+        ctx.lineTo(0, 34);
+        ctx.lineTo(-30, 14);
+        ctx.closePath();
+        ctx.fill();
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 3;
+        ctx.stroke();
+      } else if (kind === "campfire") {
+        ctx.fillStyle = "#4b2f20";
+        ctx.fillRect(-32, 20, 64, 10);
+        ctx.fillStyle = "#ff6b3a";
+        ctx.shadowColor = "#ff6b3a";
+        ctx.shadowBlur = this.glow(18);
+        ctx.beginPath();
+        ctx.moveTo(0, -38);
+        ctx.quadraticCurveTo(28, -4, 4, 22);
+        ctx.quadraticCurveTo(-24, -2, 0, -38);
+        ctx.fill();
+        ctx.fillStyle = "#f2bf63";
+        ctx.beginPath();
+        ctx.moveTo(4, -22);
+        ctx.quadraticCurveTo(16, -2, 0, 16);
+        ctx.quadraticCurveTo(-11, -2, 4, -22);
+        ctx.fill();
+      } else if (kind === "target") {
+        ctx.fillStyle = "#382a22";
+        ctx.fillRect(-5, -4, 10, 52);
+        ctx.fillStyle = "#ece8e1";
+        ctx.beginPath();
+        ctx.arc(0, -18, 29, 0, TAU);
+        ctx.fill();
+        ctx.fillStyle = color;
+        ctx.beginPath();
+        ctx.arc(0, -18, 20, 0, TAU);
+        ctx.fill();
+        ctx.fillStyle = "#ece8e1";
+        ctx.beginPath();
+        ctx.arc(0, -18, 9, 0, TAU);
+        ctx.fill();
+      } else if (kind === "stall") {
+        ctx.fillStyle = "#403025";
+        ctx.fillRect(-48, -8, 96, 54);
+        ctx.fillStyle = color;
+        ctx.fillRect(-56, -30, 112, 26);
+        ctx.fillStyle = "rgba(255,255,255,0.28)";
+        for (let i = -42; i <= 42; i += 28) ctx.fillRect(i, -30, 13, 26);
+      } else {
+        ctx.fillStyle = color;
+        ctx.fillRect(-16, -16, 32, 32);
+      }
+      ctx.restore();
+    }
+
+    drawOpenWorldNpc(ctx, object) {
+      const grow = clamp(object.grow || 0, 0, 1);
+      const bob = Math.sin((object.phase || this.menuTime) * 3.2) * 2;
+      const color = object.color || "#f2bf63";
+      ctx.save();
+      ctx.translate(object.x, object.y + bob + (1 - grow) * 22);
+      ctx.scale(grow, grow);
+      ctx.fillStyle = "rgba(0,0,0,0.32)";
+      ctx.beginPath();
+      ctx.ellipse(0, 24, 26, 8, 0, 0, TAU);
+      ctx.fill();
+      ctx.fillStyle = color;
+      roundPixel(ctx, -15, -16, 30, 34, 7);
+      ctx.fill();
+      ctx.fillStyle = "#f4caa1";
+      ctx.beginPath();
+      ctx.arc(0, -30, 18, 0, TAU);
+      ctx.fill();
+      ctx.fillStyle = "#101521";
+      ctx.fillRect(-7, -34, 4, 4);
+      ctx.fillRect(5, -34, 4, 4);
+      ctx.fillStyle = "#2b1a12";
+      ctx.fillRect(-16, -48, 32, 12);
+      ctx.fillStyle = object.role === "quest" ? "#f2bf63" : "#ffffff";
+      ctx.font = this.readableFont(950, 17);
+      this.drawReadableText(ctx, object.icon || "!", 0, -64, {
+        fill: object.role === "quest" ? "#f2bf63" : "#ffffff",
+        stroke: "rgba(3,5,10,0.95)",
+        strokeWidth: 3.4
+      });
+      ctx.font = this.readableFont(850, 11);
+      this.drawReadableText(ctx, String(object.npcName || object.label || "NPC").slice(0, 16), 0, 52, {
+        fill: "#fff4d6",
+        stroke: "rgba(3,5,10,0.94)",
+        strokeWidth: 3
+      });
+      ctx.restore();
+    }
+
+    drawOpenWorldInteractionPrompt(ctx, object) {
+      if (!this.openWorldInteractable(object) || this.isMobileDevice()) return;
+      if (this.run?.nearInteractionObjectId !== object.id) return;
+      const y = object.y - (object.radius || 48) - 42 + Math.sin(this.menuTime * 5) * 3;
+      ctx.save();
+      ctx.translate(object.x, y);
+      ctx.shadowColor = "#ffffff";
+      ctx.shadowBlur = this.glow(12);
+      ctx.fillStyle = "rgba(15,25,35,0.92)";
+      ctx.strokeStyle = "#ece8e1";
+      ctx.lineWidth = 3;
+      roundPixel(ctx, -28, -20, 56, 40, 12);
+      ctx.fill();
+      ctx.stroke();
+      ctx.fillStyle = "#ece8e1";
+      ctx.beginPath();
+      ctx.arc(-7, -2, 10, 0, TAU);
+      ctx.fill();
+      ctx.fillStyle = "#0f1923";
+      ctx.fillRect(-11, -10, 8, 8);
+      ctx.strokeStyle = "#ece8e1";
+      ctx.lineWidth = 4;
+      ctx.beginPath();
+      ctx.moveTo(6, -6);
+      ctx.lineTo(18, 6);
+      ctx.lineTo(8, 8);
+      ctx.lineTo(12, 18);
+      ctx.stroke();
+      ctx.restore();
+    }
+
     drawRoomObjects(ctx) {
       const objects = this.run.roomObjects || [];
       for (const object of objects) {
         if (!this.inView(object.x, object.y, (object.radius || 50) + 180)) continue;
+        if (object.type === "openWorldScenery") this.drawOpenWorldScenery(ctx, object);
         if (object.type === "awakeningStone") this.drawAwakeningStone(ctx, object);
+        if (object.type === "openWorldNpc") this.drawOpenWorldNpc(ctx, object);
         if (object.type === "openWorldBuilding" || object.type === "monsterZone") this.drawBeginnerIslandObject(ctx, object);
         if (object.type === "nextDoor" || object.type === "bossGate" || object.type === "bossExit") this.drawDoorObject(ctx, object);
         if (object.type === "treasureChest") this.drawTreasureChest(ctx, object);
         if (object.type === "merchantStall") this.drawMerchantStall(ctx, object);
         if (object.type === "curseBook") this.drawCurseBook(ctx, object);
         if (object.type === "secretAltar") this.drawSecretAltar(ctx, object);
+        this.drawOpenWorldInteractionPrompt(ctx, object);
       }
     }
 
@@ -25997,24 +26545,24 @@
       const grow = clamp(object.grow || 0, 0, 1);
       const color = object.color || "#d9fbff";
       const y = object.y + (1 - grow) * 34 + Math.sin(this.menuTime * 1.7) * 3;
-      this.drawObjectAmbient(ctx, { ...object, y, effect: "secret" }, 92);
+      this.drawObjectAmbient(ctx, { ...object, y, effect: "secret" }, 150);
       ctx.save();
       ctx.translate(object.x, y);
       ctx.scale(grow, grow);
       ctx.shadowColor = color;
-      ctx.shadowBlur = this.glow(24);
+      ctx.shadowBlur = this.glow(30);
       ctx.fillStyle = "rgba(0,0,0,0.34)";
       ctx.beginPath();
-      ctx.ellipse(0, 62, 76, 15, 0, 0, TAU);
+      ctx.ellipse(0, 94, 142, 24, 0, 0, TAU);
       ctx.fill();
       ctx.fillStyle = "#121a26";
       ctx.strokeStyle = color;
-      ctx.lineWidth = 5;
+      ctx.lineWidth = 7;
       ctx.beginPath();
-      ctx.moveTo(-42, 46);
-      ctx.lineTo(-30, -40);
-      ctx.quadraticCurveTo(0, -78, 30, -40);
-      ctx.lineTo(42, 46);
+      ctx.moveTo(-68, 74);
+      ctx.lineTo(-46, -68);
+      ctx.quadraticCurveTo(0, -126, 46, -68);
+      ctx.lineTo(68, 74);
       ctx.closePath();
       ctx.fill();
       ctx.stroke();
@@ -26022,10 +26570,10 @@
       ctx.globalAlpha = 0.35 + Math.sin(this.menuTime * 3) * 0.08;
       ctx.fillStyle = color;
       ctx.beginPath();
-      ctx.moveTo(0, -45);
-      ctx.lineTo(24, -5);
-      ctx.lineTo(0, 34);
-      ctx.lineTo(-24, -5);
+      ctx.moveTo(0, -82);
+      ctx.lineTo(38, -12);
+      ctx.lineTo(0, 56);
+      ctx.lineTo(-38, -12);
       ctx.closePath();
       ctx.fill();
       ctx.strokeStyle = "#ffffff";
@@ -26033,19 +26581,19 @@
       for (let i = 0; i < 4; i++) {
         const a = this.menuTime * 0.7 + i * TAU / 4;
         ctx.beginPath();
-        ctx.arc(0, -5, 42 + i * 5, a, a + 0.48);
+        ctx.arc(0, -8, 64 + i * 9, a, a + 0.48);
         ctx.stroke();
       }
       ctx.globalCompositeOperation = "source-over";
       ctx.globalAlpha = 1;
-      ctx.font = this.readableFont(950, 17);
-      this.drawReadableText(ctx, object.icon || "A", 0, 2, {
+      ctx.font = this.readableFont(950, 24);
+      this.drawReadableText(ctx, object.icon || "A", 0, 4, {
         fill: "#ffffff",
         stroke: "rgba(3,5,10,0.96)",
         strokeWidth: 3.6
       });
       ctx.font = this.readableFont(900, 12);
-      this.drawReadableText(ctx, "AWAKEN", 0, 76, {
+      this.drawReadableText(ctx, "AWAKEN", 0, 116, {
         fill: "#fff4d6",
         stroke: "rgba(3,5,10,0.96)",
         strokeWidth: 3.4
@@ -26057,7 +26605,7 @@
       const grow = clamp(object.grow || 0, 0, 1);
       const color = object.color || "#70e083";
       const y = object.y + (1 - grow) * 30;
-      this.drawObjectAmbient(ctx, { ...object, y }, object.type === "monsterZone" ? 82 : 74);
+      this.drawObjectAmbient(ctx, { ...object, y }, object.type === "monsterZone" ? 110 : 92);
       ctx.save();
       ctx.translate(object.x, y);
       ctx.scale(grow, grow);
@@ -26065,36 +26613,151 @@
       ctx.shadowBlur = this.glow(14);
       ctx.fillStyle = "rgba(0,0,0,0.3)";
       ctx.beginPath();
-      ctx.ellipse(0, 50, object.type === "monsterZone" ? 70 : 66, 12, 0, 0, TAU);
+      ctx.ellipse(0, 58, object.type === "monsterZone" ? 108 : 92, 16, 0, 0, TAU);
       ctx.fill();
-      if (object.type === "monsterZone") {
-        ctx.fillStyle = "#182112";
-        ctx.strokeStyle = color;
-        ctx.lineWidth = 4;
-        roundPixel(ctx, -54, -34, 108, 70, 7);
-        ctx.strokeRect(-54, -34, 108, 70);
-        ctx.fillStyle = color;
-        ctx.fillRect(-44, -23, 88, 8);
-        ctx.fillRect(-5, 32, 10, 36);
-      } else {
+      const drawVolumeBase = (w, h, roofH) => {
         ctx.fillStyle = "#17202c";
         ctx.strokeStyle = color;
         ctx.lineWidth = 4;
-        roundPixel(ctx, -58, -8, 116, 55, 5);
-        ctx.strokeRect(-58, -8, 116, 55);
+        roundPixel(ctx, -w / 2, -h / 2 + 10, w, h, 7);
+        ctx.fill();
+        ctx.stroke();
+        ctx.fillStyle = "rgba(255,255,255,0.10)";
+        ctx.fillRect(-w / 2 + 10, -h / 2 + 18, w - 20, 8);
         ctx.fillStyle = color;
         ctx.beginPath();
-        ctx.moveTo(-68, -8);
-        ctx.lineTo(0, -62);
-        ctx.lineTo(68, -8);
+        ctx.moveTo(-w / 2 - 18, -h / 2 + 12);
+        ctx.lineTo(0, -h / 2 - roofH);
+        ctx.lineTo(w / 2 + 18, -h / 2 + 12);
+        ctx.lineTo(w / 2 - 8, -h / 2 + 28);
+        ctx.lineTo(0, -h / 2 - roofH + 18);
+        ctx.lineTo(-w / 2 + 8, -h / 2 + 28);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+      };
+      const kind = object.kind || "";
+      if (kind === "guildHall") {
+        drawVolumeBase(190, 105, 70);
+        ctx.fillStyle = "#0f1923";
+        ctx.fillRect(-22, 8, 44, 58);
+        ctx.fillStyle = "#f2bf63";
+        ctx.fillRect(-78, -8, 28, 32);
+        ctx.fillRect(50, -8, 28, 32);
+        ctx.fillStyle = "#ff4655";
+        ctx.fillRect(-105, -60, 16, 72);
+        ctx.fillRect(89, -60, 16, 72);
+      } else if (kind === "meetingHall") {
+        drawVolumeBase(170, 92, 52);
+        ctx.fillStyle = "#0f1923";
+        roundPixel(ctx, -54, 2, 108, 34, 8);
+        ctx.fill();
+        ctx.fillStyle = "#35d6c9";
+        ctx.fillRect(-76, -2, 34, 28);
+        ctx.fillRect(42, -2, 34, 28);
+      } else if (kind === "dungeonGate") {
+        ctx.fillStyle = "#202838";
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 5;
+        ctx.fillRect(-110, -38, 38, 112);
+        ctx.fillRect(72, -38, 38, 112);
+        ctx.fillRect(-82, -78, 164, 42);
+        ctx.strokeRect(-110, -38, 38, 112);
+        ctx.strokeRect(72, -38, 38, 112);
+        ctx.strokeRect(-82, -78, 164, 42);
+        ctx.globalCompositeOperation = "lighter";
+        ctx.globalAlpha = 0.55 + Math.sin(this.menuTime * 3) * 0.08;
+        ctx.fillStyle = color;
+        ctx.beginPath();
+        ctx.ellipse(0, 8, 58, 88, 0, 0, TAU);
+        ctx.fill();
+        ctx.globalCompositeOperation = "source-over";
+        ctx.globalAlpha = 1;
+      } else if (kind === "marketStall") {
+        ctx.fillStyle = "#403025";
+        roundPixel(ctx, -88, -20, 176, 92, 8);
+        ctx.fill();
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 4;
+        ctx.stroke();
+        ctx.fillStyle = color;
+        ctx.fillRect(-104, -52, 208, 38);
+        ctx.fillStyle = "rgba(255,255,255,0.28)";
+        for (let x = -84; x <= 78; x += 36) ctx.fillRect(x, -52, 17, 38);
+        ctx.fillStyle = "#0f1923";
+        ctx.fillRect(-28, 18, 56, 54);
+      } else if (kind === "vault") {
+        ctx.fillStyle = "#17202c";
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 5;
+        ctx.beginPath();
+        ctx.moveTo(-80, 66);
+        ctx.lineTo(-80, -8);
+        ctx.quadraticCurveTo(0, -92, 80, -8);
+        ctx.lineTo(80, 66);
         ctx.closePath();
         ctx.fill();
         ctx.stroke();
         ctx.fillStyle = "#0f1923";
-        ctx.fillRect(-18, 11, 36, 36);
-        ctx.fillStyle = "rgba(255,255,255,0.16)";
-        ctx.fillRect(-46, 4, 22, 18);
-        ctx.fillRect(24, 4, 22, 18);
+        ctx.beginPath();
+        ctx.arc(0, 20, 36, 0, TAU);
+        ctx.fill();
+        ctx.stroke();
+      } else if (kind === "trainingYard") {
+        ctx.fillStyle = "#1a241b";
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 4;
+        roundPixel(ctx, -95, -42, 190, 98, 8);
+        ctx.fill();
+        ctx.stroke();
+        ctx.fillStyle = "#c79a5b";
+        ctx.fillRect(-78, -22, 156, 12);
+        ctx.fillRect(-60, 8, 120, 10);
+        ctx.fillStyle = "#ece8e1";
+        ctx.beginPath();
+        ctx.arc(0, 22, 22, 0, TAU);
+        ctx.fill();
+        ctx.fillStyle = "#ff4655";
+        ctx.beginPath();
+        ctx.arc(0, 22, 11, 0, TAU);
+        ctx.fill();
+      } else if (kind === "trialTower") {
+        ctx.fillStyle = "#1c202a";
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 5;
+        ctx.fillRect(-54, -126, 108, 196);
+        ctx.strokeRect(-54, -126, 108, 196);
+        ctx.fillStyle = color;
+        ctx.beginPath();
+        ctx.moveTo(-70, -126);
+        ctx.lineTo(0, -190);
+        ctx.lineTo(70, -126);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+        ctx.fillStyle = "#0f1923";
+        for (let y2 = -95; y2 <= 20; y2 += 38) ctx.fillRect(-22, y2, 44, 18);
+      } else if (object.type === "monsterZone" || kind === "monsterField") {
+        ctx.fillStyle = "#182112";
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 5;
+        roundPixel(ctx, -92, -48, 184, 94, 9);
+        ctx.fill();
+        ctx.stroke();
+        ctx.fillStyle = "#3b2416";
+        ctx.fillRect(-82, -36, 164, 12);
+        ctx.fillRect(-62, -8, 124, 10);
+        ctx.fillRect(-70, 38, 14, 54);
+        ctx.fillRect(56, 38, 14, 54);
+        ctx.fillStyle = color;
+        ctx.beginPath();
+        ctx.arc(-42, -18, 12, 0, TAU);
+        ctx.arc(42, -18, 12, 0, TAU);
+        ctx.fill();
+      } else {
+        drawVolumeBase(150, 86, 46);
+        ctx.fillStyle = "#0f1923";
+        ctx.fillRect(-18, 11, 36, 48);
       }
       ctx.font = this.readableFont(950, object.icon === "100" ? 15 : 22);
       this.drawReadableText(ctx, object.icon || "?", 0, object.type === "monsterZone" ? 2 : -10, {
@@ -26103,7 +26766,7 @@
         strokeWidth: 3.8
       });
       ctx.font = this.readableFont(900, 12);
-      this.drawReadableText(ctx, String(object.label || "").slice(0, 22), 0, 70, {
+      this.drawReadableText(ctx, String(object.label || "").slice(0, 26), 0, 88, {
         fill: "#fff4d6",
         stroke: "rgba(3,5,10,0.96)",
         strokeWidth: 3.4

@@ -9,7 +9,7 @@
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
   const SIGNAL_REALTIME_RELAY_LIMIT = 2;
   const SIGNAL_REALTIME_TYPES = new Set(["state", "snapshot", "attack", "skill", "collect", "openChest", "dropItem", "damage", "chooseDoor"]);
-  const APP_VERSION = "20260607-subtle-front-vfx-306";
+  const APP_VERSION = "20260609-openworld-island-307";
   const CHANGELOG_ENTRIES = [
     {
       version: APP_VERSION,
@@ -851,6 +851,7 @@
   };
 
   const MATERIAL_LABELS = {
+    awakeningTalisman: "Bua Thuc Tinh",
     emberGlass: "Kính Than Hồng",
     frostCore: "Lõi Băng",
     stormThread: "Chỉ Bão",
@@ -1142,6 +1143,7 @@
         ])
       ),
       materials: {
+        awakeningTalisman: 1,
         emberGlass: 0,
         frostCore: 0,
         stormThread: 0,
@@ -9202,7 +9204,6 @@
       `;
       return `
         <nav class="aaa-main-nav" aria-label="Menu phu">
-          ${navItem("character", "NH&#194;N V&#7852;T", "agent")}
           ${navItem("friends", "B&#7840;N B&#200;", "friends")}
           ${navItem("settings", "C&#192;I &#272;&#7862;T", "settings")}
         </nav>
@@ -9317,17 +9318,16 @@
           ${this.mainMenuAccountHtml(profile)}
           <aside class="aaa-menu-left">
             <div class="aaa-brand">
-              <span>ONLINE RIFT ARENA</span>
+              <span>OPEN WORLD ANIME RPG</span>
               <h1>SOULRIFT</h1>
-              <p>V&#432;&#7907;t &#7843;i, raid boss, th&#7913;c t&#7881;nh power v&#224; chi&#7871;n &#273;&#7845;u c&#249;ng &#273;&#7897;i.</p>
+              <p>B&#7855;t &#273;&#7847;u t&#7841;i Beginner Island, th&#7913;c t&#7881;nh power, nh&#7853;n quest, train, farm qu&#225;i v&#224; m&#7903; dungeon.</p>
             </div>
             <button class="aaa-play-cta" data-action="play">
               <span class="aaa-play-icon" aria-hidden="true"></span>
               <span>CH&#416;I</span>
-              <small>V&#224;o s&#7843;nh &#273;&#7897;i v&#224; ch&#7885;n ch&#7871; &#273;&#7897;</small>
+              <small>V&#224;o th&#7859;ng Beginner Island</small>
             </button>
             ${this.mainMenuNavHtml()}
-            ${this.mainMenuEventsHtml(profile)}
           </aside>
           ${this.mainMenuHeroHtml(profile)}
         </section>
@@ -9528,7 +9528,7 @@
     }
 
     closeChangelogAndPlay() {
-      this.showPlayMenu();
+      this.startOpenWorldRun();
     }
 
     handleAction(action, target) {
@@ -9566,8 +9566,38 @@
         return;
       }
       if (action === "play") {
-        if (this.mode === "play" && this.screen?.querySelector(".valorant-lobby")) this.refreshValorantLobby();
-        else this.showPlayMenu();
+        this.startOpenWorldRun();
+        return;
+      }
+      if (action === "start-island-dungeon") {
+        const power = this.openWorldStartPower();
+        this.startRun(power, "forest", { difficulty: target.dataset.difficulty || "normal" });
+        return;
+      }
+      if (action === "start-island-boss-trial") {
+        const power = this.openWorldStartPower();
+        this.startRun(power, "forest", { difficulty: "hard", miniGame: "bossRush" });
+        return;
+      }
+      if (action === "island-quest-toast") {
+        this.toast("Main Story: thuc tinh power tai vien da co roi ha quai o bai beginner");
+        this.resumeGame();
+        return;
+      }
+      if (action === "island-party-toast") {
+        this.toast("Party House: party se chia EXP, dungeon entry va boss reward");
+        this.resumeGame();
+        return;
+      }
+      if (action === "island-hell-toast") {
+        this.toast("Hell Dungeon se mo khi Trial Tower on dinh hon");
+        this.resumeGame();
+        return;
+      }
+      if (action === "island-trial-toast") {
+        this.toast("Trial Tower 100 tang dang dung nen tren Boss Trial");
+        this.resumeGame();
+        return;
       }
       if (action === "back-to-squad") {
         this.showPlayMenu();
@@ -11927,9 +11957,34 @@
       `);
     }
 
+    openWorldStartPower() {
+      const owned = Array.isArray(this.save.account?.ownedPowers) ? this.save.account.ownedPowers : [];
+      const selected = this.save.account?.selectedPower || "";
+      if (selected && owned.includes(selected)) return powerById(selected);
+      if (owned[0]) return powerById(owned[0]);
+      return powerById("fire");
+    }
+
+    startOpenWorldRun() {
+      if (!this.hasAccount()) {
+        this.showAccountGate();
+        return;
+      }
+      const power = this.openWorldStartPower();
+      const owned = Array.isArray(this.save.account.ownedPowers) ? this.save.account.ownedPowers : [];
+      this.startRun(power, "forest", {
+        difficulty: "easy",
+        openWorld: true
+      });
+      if (!owned.includes(power.id)) {
+        this.toast("Hay den Da Thuc Tinh de mo khoa power that su");
+      }
+    }
+
     startSelectedRun(forcedBiomeId = "", options = {}) {
       const powerId = this.save.account.selectedPower;
-      if (!powerId || !this.save.account.ownedPowers.includes(powerId)) {
+      const owned = Array.isArray(this.save.account.ownedPowers) ? this.save.account.ownedPowers : [];
+      if (!powerId || !owned.includes(powerId)) {
         this.toast("Hãy quay và chọn một sức mạnh trước");
         this.showPowers();
         return;
@@ -11944,11 +11999,15 @@
         freeEnergy: getChecked("trainingFreeEnergy", true),
         noCooldown: getChecked("trainingNoCooldown", true)
       };
-      this.startSelectedRun("", {
+      const options = {
         training: true,
         trainingOptions: this.trainingOptions,
         difficulty: "normal"
-      });
+      };
+      const selected = this.save.account.selectedPower;
+      const owned = Array.isArray(this.save.account.ownedPowers) ? this.save.account.ownedPowers : [];
+      if (selected && owned.includes(selected)) this.startSelectedRun("", options);
+      else this.startRun(this.openWorldStartPower(), "", options);
     }
 
     startTutorialRun() {
@@ -12904,6 +12963,7 @@
         roomsCleared: 0,
         lastTreasureAt: -99,
         miniGame: options.miniGame || "",
+        openWorld: Boolean(options.openWorld),
         raidPowerId: options.raidPowerId || "",
         awakeningRaidRewardClaimed: false,
         playerBossId: options.bossPlayerId || "",
@@ -12973,7 +13033,9 @@
       this.hud.classList.remove("hidden");
       this.touchLayer.classList.toggle("hidden", !this.isMobileDevice());
       const raidPower = options.miniGame === "awakeningRaid" ? powerById(options.raidPowerId || power.id) : power;
-      this.startRoom(training
+      this.startRoom(options.openWorld
+        ? { type: "openWorld", label: "Beginner Island", icon: "BI", color: "#70e083" }
+        : training
         ? { type: "training", label: tutorial ? "Hướng Dẫn" : "Phòng Huấn Luyện", icon: tutorial ? "HD" : "T", color: tutorial ? "#f2bf63" : "#82ffd3" }
         : options.miniGame === "bossRush" || options.miniGame === "playerBoss" || options.miniGame === "awakeningRaid"
           ? { type: "boss", label: options.miniGame === "playerBoss" ? "Hóa Trùm" : options.miniGame === "awakeningRaid" ? `Raid ${raidPower.name}` : "Đại Chiến Boss", icon: options.miniGame === "awakeningRaid" ? "A" : "B", color: raidPower.color || startBiome.accent }
@@ -13004,6 +13066,10 @@
 
     isTrainingRun() {
       return Boolean(this.run?.training || this.run?.currentRoom?.type === "training");
+    }
+
+    isOpenWorldRun() {
+      return Boolean(this.run?.openWorld || this.run?.currentRoom?.type === "openWorld");
     }
 
     isTutorialRun() {
@@ -13875,7 +13941,7 @@
         type,
         cleared: false,
         started: false,
-        intro: type === "training" ? 0.75 : type === "boss" ? (this.isBossRushRun() ? 1.65 : 3.0) : 1.25,
+        intro: type === "openWorld" ? 0.75 : type === "training" ? 0.75 : type === "boss" ? (this.isBossRushRun() ? 1.65 : 3.0) : 1.25,
         timer: 0,
         secretRiddle: type === "secret" ? (room.secretRiddle || this.rollSecretRiddle().id) : "",
         secretSolved: false,
@@ -13908,11 +13974,12 @@
       this.run.player.invuln = 1;
       this.run.player.pendingBasicAttack = null;
       if (type === "healing") this.revivePartyForHealing();
-      if (type !== "training") this.spawnHazards();
+      if (!["training", "openWorld"].includes(type)) this.spawnHazards();
       if (type === "treasure") this.spawnTreasureChest();
       else if (type === "merchant") this.spawnMerchantStall();
       else if (type === "curse") this.spawnCurseBook();
       else if (type === "secret") this.spawnSecretAltar();
+      else if (type === "openWorld") this.spawnBeginnerIsland();
       else if (type === "training") this.spawnTrainingDummies();
       else if (type === "boss") {
         this.run.currentRoom.started = true;
@@ -14176,6 +14243,83 @@
       if (this.trainingRule("freeEnergy")) this.run.player.energy = this.run.player.maxEnergy;
       this.addShockwave(WORLD_W / 2, WORLD_H / 2, 180, this.isTutorialRun() ? "#f2bf63" : "#82ffd3", 0);
       this.toast(this.isTutorialRun() ? "Hướng dẫn: hãy thử di chuyển trước" : "Phòng huấn luyện: 5 dummy đã sẵn sàng");
+    }
+
+    beginnerIslandSystems() {
+      return [
+        { id: "questHouse", label: "Quest House", icon: "Q", x: 360, y: 330, color: "#f2bf63", effect: "gold" },
+        { id: "partyHouse", label: "Party House", icon: "P", x: 635, y: 255, color: "#35d6c9", effect: "merchant" },
+        { id: "dungeonHouse", label: "Dungeon House", icon: "D", x: 1225, y: 255, color: "#a169ff", effect: "secret" },
+        { id: "shopHouse", label: "Shop House", icon: "$", x: 300, y: 705, color: "#ffbd5e", effect: "gold" },
+        { id: "storageHouse", label: "Storage House", icon: "S", x: 1500, y: 705, color: "#83e8ff", effect: "snow" },
+        { id: "trainingArea", label: "Training Area", icon: "T", x: 620, y: 895, color: "#82ffd3", effect: "leaf" },
+        { id: "trialTower", label: "Trial Tower", icon: "100", x: 1510, y: 330, color: "#ff4655", effect: "boss" },
+        { id: "monsterZone", label: "Beginner Monster Zone", icon: "M", x: 1285, y: 900, color: "#70e083", effect: "leaf", radius: 78 }
+      ];
+    }
+
+    spawnBeginnerIsland() {
+      if (!this.run) return;
+      this.run.openWorld = true;
+      this.run.currentRoom.started = true;
+      this.run.currentRoom.cleared = false;
+      this.run.currentRoom.respawnTimer = 0;
+      this.run.currentRoom.label = "Beginner Island";
+      this.run.player.x = WORLD_W / 2;
+      this.run.player.y = WORLD_H / 2 + 130;
+      this.run.player.invuln = Math.max(this.run.player.invuln || 0, 1.2);
+      this.addRoomObject("awakeningStone", {
+        x: WORLD_W / 2,
+        y: WORLD_H / 2 - 170,
+        radius: 74,
+        color: "#d9fbff",
+        label: "Ancient Awakening Stone",
+        icon: "A",
+        effect: "secret"
+      });
+      for (const system of this.beginnerIslandSystems()) {
+        this.addRoomObject(system.id === "monsterZone" ? "monsterZone" : "openWorldBuilding", {
+          systemId: system.id,
+          x: system.x,
+          y: system.y,
+          radius: system.radius || 66,
+          color: system.color,
+          label: system.label,
+          icon: system.icon,
+          effect: system.effect
+        });
+      }
+      this.spawnBeginnerIslandMonsters(10);
+      this.addShockwave(WORLD_W / 2, WORLD_H / 2 - 170, 190, "#d9fbff", 0);
+      this.toast("Beginner Island: kham pha, thuc tinh power va farm quai quanh dao");
+    }
+
+    spawnBeginnerIslandMonsters(targetCount = 10) {
+      if (!this.run) return;
+      const current = (this.run.enemies || []).filter((enemy) => enemy.openWorldMob && enemy.hp > 0).length;
+      const need = Math.max(0, targetCount - current);
+      const center = { x: 1320, y: 860 };
+      const kinds = ["slime", "fireSlime", "iceSlime", "goblinScout", "skeletonArcher"];
+      for (let i = 0; i < need; i++) {
+        const angle = ((current + i) / Math.max(1, targetCount)) * TAU + rand(-0.22, 0.22);
+        const ring = rand(70, 245);
+        const x = clamp(center.x + Math.cos(angle) * ring, ROOM_PAD + 90, WORLD_W - ROOM_PAD - 90);
+        const y = clamp(center.y + Math.sin(angle) * ring, ROOM_PAD + 90, WORLD_H - ROOM_PAD - 90);
+        const enemy = this.createEnemy(kinds[(current + i) % kinds.length], x, y, false);
+        enemy.openWorldMob = true;
+        enemy.anchorX = x;
+        enemy.anchorY = y;
+        enemy.spawnZoneX = center.x;
+        enemy.spawnZoneY = center.y;
+        enemy.radius = Math.max(18, enemy.radius - 2);
+        enemy.maxHp *= 0.58;
+        enemy.hp = enemy.maxHp;
+        enemy.damage *= 0.42;
+        enemy.speed *= 0.82;
+        enemy.attackCd = Math.max(enemy.attackCd, 0.8);
+        enemy.skillCd = Math.max(enemy.skillCd, 2.2);
+        this.run.enemies.push(enemy);
+      }
     }
 
     addRoomObject(type, data = {}) {
@@ -14556,6 +14700,41 @@
       }
     }
 
+    updateOpenWorld(dt) {
+      if (!this.isOpenWorldRun()) return;
+      const room = this.run.currentRoom;
+      room.started = true;
+      room.cleared = false;
+      room.respawnTimer = Math.max(0, Number(room.respawnTimer || 0) - dt);
+      if (room.respawnTimer <= 0) {
+        room.respawnTimer = 4.5;
+        this.spawnBeginnerIslandMonsters(10);
+      }
+    }
+
+    applyOpenWorldEnemyLeashes(dt) {
+      if (!this.isOpenWorldRun()) return;
+      for (const enemy of this.run.enemies || []) {
+        if (!enemy?.openWorldMob) continue;
+        const anchorX = Number.isFinite(enemy.anchorX) ? enemy.anchorX : enemy.spawnZoneX;
+        const anchorY = Number.isFinite(enemy.anchorY) ? enemy.anchorY : enemy.spawnZoneY;
+        if (!Number.isFinite(anchorX) || !Number.isFinite(anchorY)) continue;
+        const dx = anchorX - enemy.x;
+        const dy = anchorY - enemy.y;
+        const d = Math.hypot(dx, dy) || 1;
+        if (d > 520) {
+          enemy.x = anchorX + (enemy.x - anchorX) / d * 420;
+          enemy.y = anchorY + (enemy.y - anchorY) / d * 420;
+          enemy.vx = 0;
+          enemy.vy = 0;
+        } else if (d > 360) {
+          const pull = clamp((d - 360) / 180, 0, 1);
+          enemy.vx += (dx / d) * enemy.speed * 1.8 * pull * dt;
+          enemy.vy += (dy / d) * enemy.speed * 1.8 * pull * dt;
+        }
+      }
+    }
+
     update(dt) {
       if (!this.run) return;
       const player = this.run.player;
@@ -14579,6 +14758,7 @@
         this.run.currentRoom.intro -= dt;
         return;
       }
+      this.updateOpenWorld(worldDt);
       this.updatePlayer(worldDt);
       this.updateDrones(worldDt);
       this.updateHazards(worldDt);
@@ -14588,6 +14768,7 @@
       if (!this.isMultiplayerClient()) {
         this.updateEnemies(worldDt);
         this.resetEnemySpatialGrid();
+        this.applyOpenWorldEnemyLeashes(worldDt);
       }
       this.updateProjectiles(worldDt);
       this.updateSlashes(worldDt);
@@ -14607,6 +14788,7 @@
     ensureRoomClearState(dt) {
       const room = this.run?.currentRoom;
       if (this.isTrainingRun()) return;
+      if (this.isOpenWorldRun()) return;
       if (!room || room.cleared || room.intro > 0 || this.run.enemies.length > 0) return;
       if (this.roomNeedsObjectInteraction(room)) return;
       if (!Number.isFinite(this.run.roomClearTimer) || this.run.roomClearTimer <= 0) this.run.roomClearTimer = 0.35;
@@ -19333,9 +19515,47 @@
         this.onBossDefeated(enemy);
         return;
       }
+      if (enemy.openWorldMob || this.isOpenWorldRun()) {
+        this.rewardBeginnerIslandMonster(enemy);
+        return;
+      }
       if (this.run.enemies.length === 0 && !this.run.currentRoom?.cleared) {
         this.spawnRoomReward(enemy.x, enemy.y);
         this.run.roomClearTimer = 0.35;
+      }
+    }
+
+    rewardBeginnerIslandMonster(enemy) {
+      if (!this.run || !enemy) return;
+      this.save.materials ||= defaultProfile(this.save.account.username).materials;
+      const xp = Math.max(4, Math.round((enemy.elite ? 14 : 8) + (enemy.maxHp || 40) * 0.035));
+      const beforeLevel = Math.max(1, Number(this.save.progression?.level || 1));
+      this.awardXp(xp, { silent: true });
+      const afterLevel = Math.max(1, Number(this.save.progression?.level || 1));
+      const gold = randInt(1, enemy.elite ? 5 : 3);
+      this.save.materials.gold = Math.max(0, Math.floor(Number(this.save.materials.gold || 0)) + gold);
+      const materialByKind = {
+        fireSlime: "emberGlass",
+        iceSlime: "frostCore",
+        skeletonArcher: "stormThread",
+        goblinScout: "bloodAmber",
+        slime: "emberGlass"
+      };
+      const mat = materialByKind[enemy.kind] || pick(["emberGlass", "frostCore", "stormThread", "bloodAmber"]);
+      const materialDrop = chance(enemy.elite ? 0.42 : 0.24);
+      if (materialDrop) this.save.materials[mat] = Math.max(0, Math.floor(Number(this.save.materials[mat] || 0)) + 1);
+      this.run.openWorldKills = Math.max(0, Math.floor(Number(this.run.openWorldKills || 0))) + 1;
+      this.persist();
+      if (afterLevel > beforeLevel) {
+        this.audio.reward("level", afterLevel - beforeLevel);
+        this.toast(`Len cap ${afterLevel}! +${afterLevel - beforeLevel} diem nang`);
+      } else if (materialDrop || this.run.openWorldKills % 4 === 0) {
+        this.audio.coin(gold);
+        this.toast(`+${xp} KN, +${gold} vang${materialDrop ? `, ${materialLabel(mat)} x1` : ""}`);
+      }
+      for (let i = 0; i < this.particleCount(6); i++) {
+        const a = rand(0, TAU);
+        this.addParticle(enemy.x + rand(-8, 8), enemy.y + rand(-8, 8), i % 2 ? "#ffd84d" : "#70e083", rand(4, 10), rand(0.16, 0.36), "spark", a, rand(34, 95));
       }
     }
 
@@ -19469,6 +19689,7 @@
       const room = this.run.currentRoom;
       if (!room) return;
       if (this.isTrainingRun()) return;
+      if (this.isOpenWorldRun()) return;
       if (room.cleared) {
         this.clearRoomHazards();
         return;
@@ -19503,7 +19724,7 @@
     }
 
     roomDropsReward(room) {
-      return room && !["healing", "merchant", "training"].includes(room.type);
+      return room && !["healing", "merchant", "training", "openWorld"].includes(room.type);
     }
 
     xpToNextLevel(level = this.save.progression?.level || 1) {
@@ -23024,6 +23245,7 @@
       if (this.pauseOverlay) return;
       for (const object of this.run.roomObjects) {
         object.grow = clamp((object.grow || 0) + dt * 1.9, 0, 1);
+        object.contactCooldown = Math.max(0, Number(object.contactCooldown || 0) - dt);
         if (object.opening) {
           const openDuration = object.type === "treasureChest" ? 0.85 : 0.55;
           object.openTimer = Math.max(0, Number(object.openTimer ?? openDuration) - dt);
@@ -23036,7 +23258,7 @@
           if (object.openTimer <= 0) this.completeRoomObjectOpening(object);
           continue;
         }
-        if (object.opened || object.locked) continue;
+        if (object.opened || object.locked || object.contactCooldown > 0) continue;
         const contact = this.roomObjectContactActor(object);
         if (!contact) continue;
         this.handleRoomObjectContact(object, contact.id, contact.actor);
@@ -23060,8 +23282,158 @@
       return null;
     }
 
+    rollAwakeningPower() {
+      const rarityWeight = {
+        common: 42,
+        rare: 30,
+        epic: 16,
+        legendary: 8,
+        mythic: 3,
+        divine: 1
+      };
+      const previous = this.save.account?.selectedPower || "";
+      const pool = POWERS.map((power) => ({
+        ...power,
+        weight: Math.max(1, rarityWeight[power.rarity] || 12) * (power.id === previous ? 0.42 : 1)
+      }));
+      return weighted(pool);
+    }
+
+    activateAwakeningStone(object) {
+      if (!this.run || !object) return;
+      this.save.materials ||= defaultProfile(this.save.account.username).materials;
+      const talismans = Math.floor(Number(this.save.materials.awakeningTalisman || 0));
+      if (talismans < 1) {
+        this.toast("Can 1 Bua Thuc Tinh de kich hoat da co");
+        this.addShockwave(object.x, object.y, 110, "#9aa1aa", 0);
+        return;
+      }
+      const power = this.rollAwakeningPower();
+      this.save.materials.awakeningTalisman = Math.max(0, talismans - 1);
+      this.save.account.ownedPowers = [power.id];
+      this.save.account.selectedPower = power.id;
+      for (const savedPower of Object.values(this.save.powers || {})) savedPower.unlocked = false;
+      const meta = this.save.powers[power.id] ||= { level: 1, awakened: false, useAwakened: false, awakenFails: 0, mastery: 0, rarity: power.rarity, unlocked: true };
+      meta.unlocked = true;
+      meta.rarity = power.rarity;
+      this.run.power = power;
+      this.run.powerMeta = meta;
+      this.run.player.powerAwakened = this.powerAwakeningActive(power.id);
+      object.color = power.color;
+      object.effect = "secret";
+      object.label = `${power.name} Awakening`;
+      this.preloadPowerSkillExportFrames(power.id, true);
+      this.persist();
+      this.addShockwave(object.x, object.y, 230, power.color, 0);
+      this.camera.shake = Math.max(this.camera.shake, 12);
+      for (let i = 0; i < this.particleCount(38, { important: true }); i++) {
+        const a = rand(0, TAU);
+        this.addParticle(object.x + Math.cos(a) * rand(18, 76), object.y + Math.sin(a) * rand(18, 76), i % 2 ? power.color : power.accent, rand(8, 24), rand(0.35, 0.9), i % 3 === 0 ? "ring" : "spark", a, rand(60, 220));
+      }
+      this.audio.skill(power.id, "r", this.powerAwakeningActive(power.id));
+      this.toast(`Da thuc tinh: ${power.name}`);
+      if (this.isMultiplayerRun()) this.lobby.sendState(this.networkPlayerState(this.lobby.id, this.run.player));
+    }
+
+    showIslandPanel(titleText, subtitleText, cards = []) {
+      const cardHtml = cards.map((card) => `
+        <button class="choice-card" data-action="${card.action || "resume"}" ${card.dataset || ""} style="border-color:${card.color || "#70e083"}">
+          <div class="card-icon" style="color:${card.color || "#70e083"}">${card.icon || ">"}</div>
+          <h3>${escapeHtml(card.title || "")}</h3>
+          <p>${escapeHtml(card.text || "")}</p>
+        </button>
+      `).join("");
+      this.pauseOverlay = true;
+      this.mode = "game";
+      this.setScreen(`
+        <section class="wide-panel">
+          <div class="panel-header">
+            <div>
+              <h2 class="panel-title">${escapeHtml(titleText)}</h2>
+              <p class="panel-subtitle">${escapeHtml(subtitleText)}</p>
+            </div>
+            <button class="btn" data-action="resume">DONG</button>
+          </div>
+          <div class="grid">${cardHtml}</div>
+        </section>
+      `);
+    }
+
+    handleBeginnerIslandObject(object) {
+      const id = object.systemId || object.type;
+      if (id === "monsterZone") {
+        this.toast("Beginner Monster Zone: quai se hoi sinh tu nhien de farm EXP va vat lieu");
+        return;
+      }
+      if (id === "questHouse") {
+        this.showIslandPanel("Quest House", "Bang nhiem vu cua hoi mao hiem tren Beginner Island.", [
+          { title: "Main Story", text: "Kham pha dao, thuc tinh power va mo khoa Dungeon House.", icon: "MS", color: "#f2bf63", action: "island-quest-toast" },
+          { title: "Daily / Weekly", text: "Quest lap lai se duoc gan vao bang hoi tren dao.", icon: "Q", color: "#70e083", action: "island-quest-toast" }
+        ]);
+        return;
+      }
+      if (id === "partyHouse") {
+        this.showIslandPanel("Party House", "Lap doi, moi ban be va chuan bi dungeon chung.", [
+          { title: "Friends", text: "Mo danh sach ban be va loi moi.", icon: "FR", color: "#35d6c9", action: "friends" },
+          { title: "Party Tools", text: "He thong party dung chung EXP, vao dungeon va nhan boss reward.", icon: "PT", color: "#82ffd3", action: "island-party-toast" }
+        ]);
+        return;
+      }
+      if (id === "dungeonHouse") {
+        this.showIslandPanel("Dungeon House", "Cong dungeon thu thach. Chon do kho de vao ngay.", [
+          { title: "Normal Dungeon", text: "Can bang de farm vat lieu co ban.", icon: "N", color: "#c9d0db", action: "start-island-dungeon", dataset: `data-difficulty="normal"` },
+          { title: "Hard Dungeon", text: "Quai trau hon va thuong tot hon.", icon: "H", color: "#ffbd5e", action: "start-island-dungeon", dataset: `data-difficulty="hard"` },
+          { title: "Hell Preview", text: "Che do Hell se mo rong trong Trial Tower.", icon: "!", color: "#ff4655", action: "island-hell-toast" }
+        ]);
+        return;
+      }
+      if (id === "shopHouse") {
+        this.run.merchantOffers = this.rollMerchantOffers();
+        this.showMerchantShop();
+        return;
+      }
+      if (id === "storageHouse") {
+        const mat = this.save.materials || {};
+        const storageCards = ["awakeningTalisman", "gold", "bossCore", "divineSpark"]
+          .map((key) => ({
+            title: materialLabel(key),
+            text: `Dang co ${Math.floor(Number(mat[key] || 0))}`,
+            icon: key === "gold" ? "$" : key === "awakeningTalisman" ? "BT" : "NL",
+            color: key === "gold" ? "#f2bf63" : key === "awakeningTalisman" ? "#d9fbff" : "#83e8ff",
+            action: "resume"
+          }));
+        this.showIslandPanel("Storage House", "Kho dai han cua nhan vat.", [
+          ...storageCards,
+          { title: "Power Storage", text: "Power hien tai duoc quan ly qua Awakening Stone va Raid A.", icon: "PW", color: "#a169ff", action: "resume" }
+        ]);
+        return;
+      }
+      if (id === "trainingArea") {
+        this.showIslandPanel("Training Area", "Khu test combo va skill voi dummy.", [
+          { title: "Training Room", text: "Vao phong huan luyen voi 5 dummy.", icon: "T", color: "#82ffd3", action: "start-training" }
+        ]);
+        return;
+      }
+      if (id === "trialTower") {
+        this.showIslandPanel("Trial Tower", "Thu thach tang cao, boss floor va leaderboard.", [
+          { title: "Boss Trial", text: "Ban thu: vao thang tran boss-only.", icon: "B", color: "#ff4655", action: "start-island-boss-trial" },
+          { title: "100 Floors", text: "He thong 100 tang se dung progression cua the gioi mo.", icon: "100", color: "#f2bf63", action: "island-trial-toast" }
+        ]);
+      }
+    }
+
     handleRoomObjectContact(object, actorId = this.lobby.id, actor = this.run?.player) {
       if (!object || object.opened) return;
+      if (object.type === "awakeningStone") {
+        object.contactCooldown = 1.2;
+        this.activateAwakeningStone(object);
+        return;
+      }
+      if (object.type === "openWorldBuilding" || object.type === "monsterZone") {
+        object.contactCooldown = 1.0;
+        this.handleBeginnerIslandObject(object);
+        return;
+      }
       if (object.type === "nextDoor") {
         if (this.isMultiplayerRun()) {
           if (!this.isDoorLeader()) {
@@ -24449,9 +24821,11 @@
       const hpLabel = `${Math.ceil(p.hp)} / ${Math.ceil(p.maxHp)}`;
       const energyLabel = `${Math.ceil(p.energy)} / ${Math.ceil(p.maxEnergy)}`;
       const mobileHud = mobileHudDevice;
-      const roomLabel = mobileHud
-        ? `T${this.run.stage + 1}.${this.run.roomNumber} - ${this.run.currentRoom?.label || ""}`
-        : `${this.run.biome.name} - ${this.run.currentRoom?.label || ""}`;
+      const roomLabel = this.isOpenWorldRun()
+        ? (mobileHud ? "Beginner Island" : "Beginner Island - Open World")
+        : mobileHud
+          ? `T${this.run.stage + 1}.${this.run.roomNumber} - ${this.run.currentRoom?.label || ""}`
+          : `${this.run.biome.name} - ${this.run.currentRoom?.label || ""}`;
       const objectiveLabel = mobileHud ? this.compactObjectiveText() : this.roomObjectiveText();
       if (hpBar.style.width !== hpWidth) hpBar.style.width = hpWidth;
       if (energyBar.style.width !== energyWidth) energyBar.style.width = energyWidth;
@@ -24544,6 +24918,7 @@
     compactObjectiveText() {
       const enemies = this.run?.enemies.length || 0;
       if (this.isTutorialRun()) return this.tutorialObjectiveText(true);
+      if (this.isOpenWorldRun()) return `${enemies} quai dao`;
       if (this.isTrainingRun()) return `${enemies} dummy`;
       if (enemies > 0) return `${enemies} quái`;
       const pending = this.run?.pendingDoor;
@@ -24558,6 +24933,7 @@
       const room = this.run?.currentRoom;
       const enemies = this.run?.enemies.length || 0;
       if (this.isTutorialRun()) return this.tutorialObjectiveText(false);
+      if (this.isOpenWorldRun()) return `Beginner Island - cham nha de mo he thong, bai quai con ${enemies}`;
       if (this.isTrainingRun()) return `Test chiêu với ${enemies} dummy - ESC để thoát`;
       if (enemies > 0) return `Hạ ${enemies} quái`;
       const activeObject = this.run?.roomObjects?.find((object) => !object.opened && object.type !== "nextDoor");
@@ -25607,12 +25983,132 @@
       const objects = this.run.roomObjects || [];
       for (const object of objects) {
         if (!this.inView(object.x, object.y, (object.radius || 50) + 180)) continue;
+        if (object.type === "awakeningStone") this.drawAwakeningStone(ctx, object);
+        if (object.type === "openWorldBuilding" || object.type === "monsterZone") this.drawBeginnerIslandObject(ctx, object);
         if (object.type === "nextDoor" || object.type === "bossGate" || object.type === "bossExit") this.drawDoorObject(ctx, object);
         if (object.type === "treasureChest") this.drawTreasureChest(ctx, object);
         if (object.type === "merchantStall") this.drawMerchantStall(ctx, object);
         if (object.type === "curseBook") this.drawCurseBook(ctx, object);
         if (object.type === "secretAltar") this.drawSecretAltar(ctx, object);
       }
+    }
+
+    drawAwakeningStone(ctx, object) {
+      const grow = clamp(object.grow || 0, 0, 1);
+      const color = object.color || "#d9fbff";
+      const y = object.y + (1 - grow) * 34 + Math.sin(this.menuTime * 1.7) * 3;
+      this.drawObjectAmbient(ctx, { ...object, y, effect: "secret" }, 92);
+      ctx.save();
+      ctx.translate(object.x, y);
+      ctx.scale(grow, grow);
+      ctx.shadowColor = color;
+      ctx.shadowBlur = this.glow(24);
+      ctx.fillStyle = "rgba(0,0,0,0.34)";
+      ctx.beginPath();
+      ctx.ellipse(0, 62, 76, 15, 0, 0, TAU);
+      ctx.fill();
+      ctx.fillStyle = "#121a26";
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 5;
+      ctx.beginPath();
+      ctx.moveTo(-42, 46);
+      ctx.lineTo(-30, -40);
+      ctx.quadraticCurveTo(0, -78, 30, -40);
+      ctx.lineTo(42, 46);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+      ctx.globalCompositeOperation = "lighter";
+      ctx.globalAlpha = 0.35 + Math.sin(this.menuTime * 3) * 0.08;
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      ctx.moveTo(0, -45);
+      ctx.lineTo(24, -5);
+      ctx.lineTo(0, 34);
+      ctx.lineTo(-24, -5);
+      ctx.closePath();
+      ctx.fill();
+      ctx.strokeStyle = "#ffffff";
+      ctx.lineWidth = 2;
+      for (let i = 0; i < 4; i++) {
+        const a = this.menuTime * 0.7 + i * TAU / 4;
+        ctx.beginPath();
+        ctx.arc(0, -5, 42 + i * 5, a, a + 0.48);
+        ctx.stroke();
+      }
+      ctx.globalCompositeOperation = "source-over";
+      ctx.globalAlpha = 1;
+      ctx.font = this.readableFont(950, 17);
+      this.drawReadableText(ctx, object.icon || "A", 0, 2, {
+        fill: "#ffffff",
+        stroke: "rgba(3,5,10,0.96)",
+        strokeWidth: 3.6
+      });
+      ctx.font = this.readableFont(900, 12);
+      this.drawReadableText(ctx, "AWAKEN", 0, 76, {
+        fill: "#fff4d6",
+        stroke: "rgba(3,5,10,0.96)",
+        strokeWidth: 3.4
+      });
+      ctx.restore();
+    }
+
+    drawBeginnerIslandObject(ctx, object) {
+      const grow = clamp(object.grow || 0, 0, 1);
+      const color = object.color || "#70e083";
+      const y = object.y + (1 - grow) * 30;
+      this.drawObjectAmbient(ctx, { ...object, y }, object.type === "monsterZone" ? 82 : 74);
+      ctx.save();
+      ctx.translate(object.x, y);
+      ctx.scale(grow, grow);
+      ctx.shadowColor = color;
+      ctx.shadowBlur = this.glow(14);
+      ctx.fillStyle = "rgba(0,0,0,0.3)";
+      ctx.beginPath();
+      ctx.ellipse(0, 50, object.type === "monsterZone" ? 70 : 66, 12, 0, 0, TAU);
+      ctx.fill();
+      if (object.type === "monsterZone") {
+        ctx.fillStyle = "#182112";
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 4;
+        roundPixel(ctx, -54, -34, 108, 70, 7);
+        ctx.strokeRect(-54, -34, 108, 70);
+        ctx.fillStyle = color;
+        ctx.fillRect(-44, -23, 88, 8);
+        ctx.fillRect(-5, 32, 10, 36);
+      } else {
+        ctx.fillStyle = "#17202c";
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 4;
+        roundPixel(ctx, -58, -8, 116, 55, 5);
+        ctx.strokeRect(-58, -8, 116, 55);
+        ctx.fillStyle = color;
+        ctx.beginPath();
+        ctx.moveTo(-68, -8);
+        ctx.lineTo(0, -62);
+        ctx.lineTo(68, -8);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+        ctx.fillStyle = "#0f1923";
+        ctx.fillRect(-18, 11, 36, 36);
+        ctx.fillStyle = "rgba(255,255,255,0.16)";
+        ctx.fillRect(-46, 4, 22, 18);
+        ctx.fillRect(24, 4, 22, 18);
+      }
+      ctx.font = this.readableFont(950, object.icon === "100" ? 15 : 22);
+      this.drawReadableText(ctx, object.icon || "?", 0, object.type === "monsterZone" ? 2 : -10, {
+        fill: "#ffffff",
+        stroke: "rgba(3,5,10,0.96)",
+        strokeWidth: 3.8
+      });
+      ctx.font = this.readableFont(900, 12);
+      this.drawReadableText(ctx, String(object.label || "").slice(0, 22), 0, 70, {
+        fill: "#fff4d6",
+        stroke: "rgba(3,5,10,0.96)",
+        strokeWidth: 3.4
+      });
+      ctx.restore();
     }
 
     drawObjectAmbient(ctx, object, radius) {

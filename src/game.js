@@ -11,7 +11,7 @@
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
   const SIGNAL_REALTIME_RELAY_LIMIT = 2;
   const SIGNAL_REALTIME_TYPES = new Set(["state", "snapshot", "attack", "skill", "collect", "openChest", "dropItem", "damage", "chooseDoor"]);
-  const APP_VERSION = "20260609-rpg-openworld-aggro-309";
+  const APP_VERSION = "20260609-minecraft-visuals-310";
   const CHANGELOG_ENTRIES = [
     {
       version: APP_VERSION,
@@ -26380,6 +26380,77 @@
       }
     }
 
+    minecraftLandPalette(landId = "town") {
+      const palettes = {
+        town: { top: "#4f8f3f", alt: "#5da149", edge: "#d6bd72", side: "#8b6b3e", detail: "#2f6f35" },
+        sacred: { top: "#3f7578", alt: "#4b8588", edge: "#b8d8d1", side: "#57736d", detail: "#9be7e8" },
+        west: { top: "#59605a", alt: "#646b64", edge: "#9f9875", side: "#6e6246", detail: "#383d3b" },
+        north: { top: "#3d6f7e", alt: "#4b8490", edge: "#b8d6d9", side: "#526d78", detail: "#83e8ff" },
+        forest: { top: "#3c7e3e", alt: "#459247", edge: "#c5b36e", side: "#75643a", detail: "#245b2e" },
+        meadow: { top: "#5a9d43", alt: "#69af4d", edge: "#d7c06f", side: "#867044", detail: "#3f7f34" },
+        camp: { top: "#80633a", alt: "#8d7145", edge: "#c8a25d", side: "#624729", detail: "#4e331f" }
+      };
+      return palettes[landId] || palettes.town;
+    }
+
+    drawMinecraftTile(ctx, x, y, size, top, side, edge = "rgba(12,18,12,0.28)", height = 14) {
+      const ix = Math.round(x);
+      const iy = Math.round(y);
+      const s = Math.round(size);
+      ctx.fillStyle = side;
+      ctx.fillRect(ix, iy + s - height, s, height);
+      ctx.fillStyle = top;
+      ctx.fillRect(ix, iy, s, s - Math.max(2, Math.floor(height * 0.35)));
+      ctx.fillStyle = "rgba(255,255,255,0.08)";
+      ctx.fillRect(ix + 8, iy + 8, Math.max(8, s - 28), 5);
+      ctx.fillStyle = "rgba(0,0,0,0.12)";
+      ctx.fillRect(ix + s - 9, iy + 7, 5, s - height - 13);
+      ctx.strokeStyle = edge;
+      ctx.lineWidth = 2;
+      ctx.strokeRect(ix + 1, iy + 1, s - 2, s - 2);
+    }
+
+    drawMinecraftPath(ctx, points, widths, visibleRect, colors) {
+      const minX = Math.min(...points.map((point) => point[0]));
+      const maxX = Math.max(...points.map((point) => point[0]));
+      const minY = Math.min(...points.map((point) => point[1]));
+      const maxY = Math.max(...points.map((point) => point[1]));
+      if (!visibleRect(minX - widths.base, minY - widths.base, maxX - minX + widths.base * 2, maxY - minY + widths.base * 2)) return;
+      ctx.save();
+      ctx.lineCap = "butt";
+      ctx.lineJoin = "miter";
+      const stroke = (style, width) => {
+        ctx.beginPath();
+        points.forEach(([x, y], index) => index ? ctx.lineTo(x, y) : ctx.moveTo(x, y));
+        ctx.strokeStyle = style;
+        ctx.lineWidth = width;
+        ctx.stroke();
+      };
+      stroke(colors.shadow, widths.base);
+      stroke(colors.side, widths.side);
+      stroke(colors.top, widths.top);
+      ctx.globalAlpha = 0.28;
+      stroke(colors.grid, Math.max(4, widths.top * 0.08));
+      ctx.globalAlpha = 1;
+      for (let s = 0; s < points.length - 1; s++) {
+        const [x1, y1] = points[s];
+        const [x2, y2] = points[s + 1];
+        const dx = x2 - x1;
+        const dy = y2 - y1;
+        const length = Math.hypot(dx, dy) || 1;
+        const steps = Math.max(1, Math.floor(length / 170));
+        for (let i = 0; i <= steps; i++) {
+          const t = i / steps;
+          const x = x1 + dx * t;
+          const y = y1 + dy * t;
+          if (!visibleRect(x - 80, y - 80, 160, 160)) continue;
+          ctx.fillStyle = i % 2 ? colors.chipA : colors.chipB;
+          ctx.fillRect(Math.round(x - 26), Math.round(y - 18), 52, 36);
+        }
+      }
+      ctx.restore();
+    }
+
     drawBeginnerIslandGround(ctx) {
       if (!this.isOpenWorldRun()) return;
       const bounds = this.viewBounds(260);
@@ -26387,43 +26458,50 @@
       const viewW = bounds.right - bounds.left;
       const viewH = bounds.bottom - bounds.top;
       ctx.save();
-      ctx.fillStyle = "#0a1b24";
+      ctx.imageSmoothingEnabled = false;
+      ctx.fillStyle = "#1d5870";
       ctx.fillRect(bounds.left, bounds.top, viewW, viewH);
-      ctx.globalAlpha = 0.22;
-      ctx.strokeStyle = "#1e6670";
-      ctx.lineWidth = 3;
-      const waveStep = 380;
-      for (let y = Math.floor(bounds.top / waveStep) * waveStep; y < bounds.bottom + waveStep; y += waveStep) {
-        ctx.beginPath();
-        for (let x = bounds.left - 80; x <= bounds.right + 120; x += 80) {
-          const wy = y + Math.sin((x + this.menuTime * 26) * 0.008) * 10;
-          if (x <= bounds.left - 80) ctx.moveTo(x, wy);
-          else ctx.lineTo(x, wy);
+      const waterTile = 160;
+      const waterX = Math.floor(bounds.left / waterTile) * waterTile;
+      const waterY = Math.floor(bounds.top / waterTile) * waterTile;
+      for (let x = waterX; x < bounds.right + waterTile; x += waterTile) {
+        for (let y = waterY; y < bounds.bottom + waterTile; y += waterTile) {
+          const pulse = Math.sin((x * 0.013 + y * 0.017 + this.menuTime * 0.9));
+          ctx.fillStyle = pulse > 0.25 ? "#256b84" : "#1f617a";
+          ctx.fillRect(x, y, waterTile - 2, waterTile - 2);
+          ctx.fillStyle = "rgba(196,238,255,0.12)";
+          ctx.fillRect(x + 18, y + 28, 54, 8);
+          ctx.fillRect(x + 96, y + 92, 38, 7);
         }
-        ctx.stroke();
       }
-      ctx.globalAlpha = 1;
+      const landTile = 128;
       for (const land of this.beginnerIslandLandmasses()) {
         if (!visibleRect(land.x - land.rx - 260, land.y - land.ry - 260, land.rx * 2 + 520, land.ry * 2 + 520)) continue;
-        ctx.save();
-        ctx.translate(land.x, land.y);
-        ctx.shadowColor = "rgba(242,191,99,0.34)";
-        ctx.shadowBlur = this.glow(16);
-        ctx.fillStyle = "#796a49";
-        ctx.beginPath();
-        ctx.ellipse(0, 0, land.rx + 95, land.ry + 75, 0, 0, TAU);
-        ctx.fill();
-        ctx.fillStyle = land.color || "#24331f";
-        ctx.beginPath();
-        ctx.ellipse(0, 0, land.rx, land.ry, 0, 0, TAU);
-        ctx.fill();
-        ctx.globalAlpha = 0.2;
-        ctx.strokeStyle = "#f3ead7";
-        ctx.lineWidth = 8;
-        ctx.beginPath();
-        ctx.ellipse(0, 0, land.rx - 120, land.ry - 100, 0, 0, TAU);
-        ctx.stroke();
-        ctx.restore();
+        const palette = this.minecraftLandPalette(land.id);
+        const startX = Math.floor(Math.max(bounds.left - landTile, land.x - land.rx - landTile) / landTile) * landTile;
+        const endX = Math.ceil(Math.min(bounds.right + landTile, land.x + land.rx + landTile) / landTile) * landTile;
+        const startY = Math.floor(Math.max(bounds.top - landTile, land.y - land.ry - landTile) / landTile) * landTile;
+        const endY = Math.ceil(Math.min(bounds.bottom + landTile, land.y + land.ry + landTile) / landTile) * landTile;
+        for (let x = startX; x <= endX; x += landTile) {
+          for (let y = startY; y <= endY; y += landTile) {
+            const cx = x + landTile / 2;
+            const cy = y + landTile / 2;
+            const nx = (cx - land.x) / land.rx;
+            const ny = (cy - land.y) / land.ry;
+            const d = nx * nx + ny * ny;
+            if (d > 1.03) continue;
+            const edge = d > 0.82;
+            const noise = Math.sin((x + land.id.length * 97) * 0.021 + y * 0.015);
+            const top = edge ? palette.edge : noise > 0.28 ? palette.alt : palette.top;
+            const side = edge ? palette.side : palette.detail;
+            this.drawMinecraftTile(ctx, x, y, landTile, top, side, "rgba(0,0,0,0.22)", edge ? 18 : 12);
+            if (!edge && noise > 0.72) {
+              ctx.fillStyle = "rgba(255,255,255,0.09)";
+              ctx.fillRect(x + 18, y + 72, 18, 18);
+              ctx.fillRect(x + 84, y + 24, 14, 14);
+            }
+          }
+        }
       }
       const hub = { x: 8500, y: 6100 };
       const roads = [
@@ -26449,91 +26527,55 @@
         [[4440, 4000], [3600, 3320]],
         [[13760, 6160], [14520, 7020]]
       ];
-      ctx.lineCap = "round";
-      ctx.lineJoin = "round";
       for (const road of roads) {
-        const minX = Math.min(...road.map((point) => point[0]));
-        const maxX = Math.max(...road.map((point) => point[0]));
-        const minY = Math.min(...road.map((point) => point[1]));
-        const maxY = Math.max(...road.map((point) => point[1]));
-        if (!visibleRect(minX - 180, minY - 180, maxX - minX + 360, maxY - minY + 360)) continue;
-        ctx.beginPath();
-        road.forEach(([x, y], index) => index ? ctx.lineTo(x, y) : ctx.moveTo(x, y));
-        ctx.strokeStyle = "rgba(20, 15, 12, 0.5)";
-        ctx.lineWidth = 132;
-        ctx.stroke();
-        ctx.strokeStyle = "#786a5d";
-        ctx.lineWidth = 112;
-        ctx.stroke();
-        ctx.strokeStyle = "#a49683";
-        ctx.lineWidth = 82;
-        ctx.stroke();
-        ctx.strokeStyle = "rgba(255,255,255,0.08)";
-        ctx.lineWidth = 8;
-        ctx.setLineDash([36, 34]);
-        ctx.stroke();
-        ctx.setLineDash([]);
+        this.drawMinecraftPath(ctx, road, { base: 138, side: 114, top: 82 }, visibleRect, {
+          shadow: "rgba(47,35,24,0.55)",
+          side: "#6b5b4f",
+          top: "#9e9586",
+          grid: "#d6d0c0",
+          chipA: "rgba(238,232,210,0.22)",
+          chipB: "rgba(50,44,38,0.18)"
+        });
       }
       for (const bridge of bridges) {
-        const minX = Math.min(...bridge.map((point) => point[0]));
-        const maxX = Math.max(...bridge.map((point) => point[0]));
-        const minY = Math.min(...bridge.map((point) => point[1]));
-        const maxY = Math.max(...bridge.map((point) => point[1]));
-        if (!visibleRect(minX - 180, minY - 180, maxX - minX + 360, maxY - minY + 360)) continue;
-        ctx.beginPath();
-        bridge.forEach(([x, y], index) => index ? ctx.lineTo(x, y) : ctx.moveTo(x, y));
-        ctx.strokeStyle = "rgba(0,0,0,0.45)";
-        ctx.lineWidth = 150;
-        ctx.stroke();
-        ctx.strokeStyle = "#6e4a2e";
-        ctx.lineWidth = 118;
-        ctx.stroke();
-        ctx.strokeStyle = "#b6844a";
-        ctx.lineWidth = 92;
-        ctx.stroke();
-        ctx.strokeStyle = "rgba(30,16,8,0.48)";
-        ctx.lineWidth = 10;
-        ctx.setLineDash([20, 28]);
-        ctx.stroke();
-        ctx.setLineDash([]);
+        this.drawMinecraftPath(ctx, bridge, { base: 160, side: 126, top: 92 }, visibleRect, {
+          shadow: "rgba(0,0,0,0.48)",
+          side: "#5a341e",
+          top: "#a56d37",
+          grid: "#3b2416",
+          chipA: "rgba(255,218,140,0.18)",
+          chipB: "rgba(35,18,8,0.28)"
+        });
       }
       for (const district of this.beginnerIslandDistricts()) {
         const x = district.x - district.w / 2;
         const y = district.y - district.h / 2;
         if (!visibleRect(x - 90, y - 90, district.w + 180, district.h + 180)) continue;
         ctx.save();
-        ctx.shadowColor = district.color;
-        ctx.shadowBlur = this.glow(10);
-        ctx.fillStyle = "rgba(7,10,14,0.34)";
-        ctx.strokeStyle = "rgba(255,255,255,0.14)";
-        ctx.lineWidth = 4;
+        const districtPalette = this.minecraftLandPalette(district.id === "graveyard" ? "west" : district.id === "crystalCave" ? "north" : district.id === "wolf" ? "forest" : district.id === "slime" ? "meadow" : district.id === "goblin" ? "camp" : "town");
+        ctx.shadowBlur = 0;
+        ctx.fillStyle = "rgba(12,18,14,0.42)";
+        ctx.strokeStyle = "rgba(20,28,20,0.7)";
+        ctx.lineWidth = 8;
         if (district.shape === "circle") {
-          ctx.beginPath();
-          ctx.ellipse(district.x, district.y, district.w / 2, district.h / 2, 0, 0, TAU);
-          ctx.fill();
-          ctx.stroke();
+          ctx.fillStyle = "rgba(30,55,58,0.72)";
+          ctx.fillRect(x, y, district.w, district.h);
+          ctx.strokeRect(x, y, district.w, district.h);
           ctx.strokeStyle = district.color;
-          ctx.globalAlpha = 0.34;
-          for (let i = 0; i < 3; i++) {
-            ctx.beginPath();
-            ctx.ellipse(district.x, district.y, district.w / 2 - 46 - i * 58, district.h / 2 - 34 - i * 48, 0, 0, TAU);
-            ctx.stroke();
-          }
+          ctx.lineWidth = 10;
+          ctx.strokeRect(x + 95, y + 95, district.w - 190, district.h - 190);
+          ctx.strokeRect(x + 230, y + 210, district.w - 460, district.h - 420);
         } else {
-          roundPixel(ctx, x, y, district.w, district.h, 18);
-          ctx.fillStyle = "rgba(18,26,32,0.68)";
-          ctx.fill();
-          ctx.stroke();
-          ctx.globalAlpha = 0.22;
+          ctx.fillStyle = districtPalette.top;
+          ctx.fillRect(x, y, district.w, district.h);
+          ctx.fillStyle = "rgba(255,255,255,0.08)";
+          for (let gx = x + 60; gx < x + district.w - 40; gx += 180) ctx.fillRect(gx, y + 36, 70, 12);
+          ctx.strokeRect(x, y, district.w, district.h);
           ctx.fillStyle = district.color;
-          ctx.fillRect(x + 20, y + 20, district.w - 40, 9);
-          ctx.fillRect(x + 20, y + district.h - 29, district.w - 40, 9);
-          ctx.globalAlpha = 0.72;
-          ctx.strokeStyle = district.id === "dungeon" || district.id === "trial" ? "#687080" : "#5b3c24";
-          ctx.lineWidth = district.id === "dungeon" || district.id === "trial" ? 12 : 8;
-          ctx.setLineDash(district.id === "dungeon" || district.id === "trial" ? [42, 18] : [24, 18]);
-          ctx.strokeRect(x + 18, y + 18, district.w - 36, district.h - 36);
-          ctx.setLineDash([]);
+          ctx.fillRect(x, y, district.w, 18);
+          ctx.fillRect(x, y + district.h - 18, district.w, 18);
+          ctx.fillRect(x, y, 18, district.h);
+          ctx.fillRect(x + district.w - 18, y, 18, district.h);
         }
         ctx.globalAlpha = 1;
         ctx.font = this.readableFont(900, 15);
@@ -26546,18 +26588,16 @@
       }
       ctx.save();
       ctx.translate(hub.x, hub.y);
-      ctx.fillStyle = "rgba(15,25,35,0.76)";
+      ctx.fillStyle = "#877866";
+      ctx.fillRect(-430, -250, 860, 500);
+      ctx.fillStyle = "#a79b8a";
+      ctx.fillRect(-380, -200, 760, 400);
       ctx.strokeStyle = "#ece8e1";
       ctx.lineWidth = 8;
-      ctx.beginPath();
-      ctx.ellipse(0, 0, 430, 250, 0, 0, TAU);
-      ctx.fill();
-      ctx.stroke();
+      ctx.strokeRect(-430, -250, 860, 500);
       ctx.strokeStyle = "#ff4655";
-      ctx.globalAlpha = 0.38;
-      ctx.beginPath();
-      ctx.ellipse(0, 0, 315, 175, 0, 0, TAU);
-      ctx.stroke();
+      ctx.lineWidth = 6;
+      ctx.strokeRect(-315, -175, 630, 350);
       ctx.globalAlpha = 1;
       ctx.font = this.readableFont(950, 22);
       this.drawReadableText(ctx, "STARTER PLAZA", 0, -4, {
@@ -26576,306 +26616,153 @@
       ctx.scale(grow, grow);
       const color = object.color || "#70e083";
       const kind = object.kind || "prop";
+      const block = (x, y, w, h, fill, alpha = 1) => {
+        const previous = ctx.globalAlpha;
+        ctx.globalAlpha = previous * alpha;
+        ctx.fillStyle = fill;
+        ctx.fillRect(Math.round(x), Math.round(y), Math.round(w), Math.round(h));
+        ctx.globalAlpha = previous;
+      };
+      const cube = (x, y, w, h, top, side = "#5b3c24", edge = "rgba(0,0,0,0.28)") => {
+        block(x, y + h * 0.72, w, h * 0.28, side);
+        block(x, y, w, h * 0.78, top);
+        block(x + 5, y + 5, Math.max(5, w - 18), 5, "rgba(255,255,255,0.12)");
+        ctx.strokeStyle = edge;
+        ctx.lineWidth = 2;
+        ctx.strokeRect(Math.round(x), Math.round(y), Math.round(w), Math.round(h));
+      };
+      block(-26, 24, 52, 12, "rgba(0,0,0,0.24)");
       if (kind === "tree") {
-        ctx.fillStyle = "#5b3c24";
-        ctx.fillRect(-7, 4, 14, 34);
-        ctx.fillStyle = color;
-        ctx.beginPath();
-        ctx.ellipse(0, -18, 34, 29, 0, 0, TAU);
-        ctx.fill();
-        ctx.fillStyle = "#2f8f54";
-        ctx.globalAlpha = 0.72;
-        ctx.beginPath();
-        ctx.ellipse(-14, -25, 22, 18, -0.4, 0, TAU);
-        ctx.ellipse(16, -23, 20, 17, 0.4, 0, TAU);
-        ctx.fill();
+        cube(-10, -2, 20, 44, "#795030", "#4f2e1b");
+        cube(-42, -58, 84, 40, color, "#2f6f35");
+        cube(-30, -84, 60, 34, "#6cc15e", "#3e8d3f");
+        cube(-54, -34, 34, 34, "#4fa44d", "#2f7435");
+        cube(20, -34, 34, 34, "#4fa44d", "#2f7435");
       } else if (kind === "banner") {
-        ctx.fillStyle = "#4c3424";
-        ctx.fillRect(-4, -42, 8, 84);
-        ctx.fillStyle = color;
-        ctx.beginPath();
-        ctx.moveTo(4, -40);
-        ctx.lineTo(50, -32);
-        ctx.lineTo(34, -8);
-        ctx.lineTo(4, -14);
-        ctx.closePath();
-        ctx.fill();
+        cube(-5, -50, 10, 92, "#5f3c22", "#3c2415");
+        cube(5, -46, 48, 30, color, "#8b2632");
+        block(37, -16, 16, 16, color);
       } else if (kind === "lamp") {
-        ctx.fillStyle = "#2b3141";
-        ctx.fillRect(-5, -34, 10, 68);
-        ctx.fillStyle = "#f2bf63";
-        ctx.shadowColor = "#f2bf63";
-        ctx.shadowBlur = this.glow(16);
-        ctx.beginPath();
-        ctx.arc(0, -38, 12, 0, TAU);
-        ctx.fill();
+        cube(-6, -36, 12, 72, "#2b3141", "#161b24");
+        cube(-16, -58, 32, 24, "#f2bf63", "#a66f28", "rgba(255,244,190,0.55)");
+        block(-10, -52, 20, 6, "#fff1b8", 0.55);
       } else if (kind === "pillar") {
-        ctx.fillStyle = "#657080";
-        ctx.fillRect(-16, -62, 32, 105);
-        ctx.fillStyle = color;
-        ctx.globalAlpha = 0.4;
-        ctx.fillRect(-11, -54, 22, 90);
-        ctx.globalAlpha = 1;
-        ctx.strokeStyle = "#dfe8f0";
-        ctx.lineWidth = 3;
-        ctx.strokeRect(-18, -66, 36, 112);
+        cube(-26, 32, 52, 16, "#7b8490", "#4c5662");
+        cube(-18, -64, 36, 100, "#8c96a4", "#596574");
+        block(-12, -56, 24, 82, color, 0.22);
       } else if (kind === "crystal") {
         ctx.shadowColor = color;
-        ctx.shadowBlur = this.glow(18);
-        ctx.fillStyle = color;
-        ctx.beginPath();
-        ctx.moveTo(0, -44);
-        ctx.lineTo(24, -7);
-        ctx.lineTo(11, 38);
-        ctx.lineTo(-18, 30);
-        ctx.lineTo(-26, -8);
-        ctx.closePath();
-        ctx.fill();
-        ctx.strokeStyle = "#ffffff";
-        ctx.globalAlpha = 0.5;
-        ctx.stroke();
+        ctx.shadowBlur = this.glow(8);
+        cube(-12, -48, 24, 82, color, "#3d8e9e", "rgba(255,255,255,0.48)");
+        block(-5, -58, 10, 12, "#e9ffff", 0.72);
+        block(9, -20, 10, 38, "#ffffff", 0.18);
       } else if (kind === "bench") {
-        ctx.fillStyle = "#3a291f";
-        ctx.fillRect(-38, 6, 76, 12);
-        ctx.fillStyle = color;
-        ctx.fillRect(-42, -10, 84, 14);
-        ctx.fillRect(-34, 20, 8, 22);
-        ctx.fillRect(26, 20, 8, 22);
+        cube(-46, -12, 92, 16, color, "#5b3c24");
+        cube(-42, 7, 84, 14, "#7a4a2a", "#4d2c18");
+        block(-36, 18, 10, 26, "#3a291f");
+        block(26, 18, 10, 26, "#3a291f");
       } else if (kind === "statue") {
-        ctx.fillStyle = "#5b6272";
-        ctx.fillRect(-28, 30, 56, 15);
-        ctx.beginPath();
-        ctx.moveTo(0, -58);
-        ctx.lineTo(30, 14);
-        ctx.lineTo(0, 34);
-        ctx.lineTo(-30, 14);
-        ctx.closePath();
-        ctx.fill();
-        ctx.strokeStyle = color;
-        ctx.lineWidth = 3;
-        ctx.stroke();
+        cube(-34, 26, 68, 20, "#606a76", "#3f4650");
+        cube(-22, -26, 44, 56, "#707b88", "#4a5260");
+        cube(-13, -58, 26, 34, color, "#596574");
       } else if (kind === "campfire") {
-        ctx.fillStyle = "#4b2f20";
-        ctx.fillRect(-32, 20, 64, 10);
-        ctx.fillStyle = "#ff6b3a";
-        ctx.shadowColor = "#ff6b3a";
-        ctx.shadowBlur = this.glow(18);
-        ctx.beginPath();
-        ctx.moveTo(0, -38);
-        ctx.quadraticCurveTo(28, -4, 4, 22);
-        ctx.quadraticCurveTo(-24, -2, 0, -38);
-        ctx.fill();
-        ctx.fillStyle = "#f2bf63";
-        ctx.beginPath();
-        ctx.moveTo(4, -22);
-        ctx.quadraticCurveTo(16, -2, 0, 16);
-        ctx.quadraticCurveTo(-11, -2, 4, -22);
-        ctx.fill();
+        cube(-36, 18, 72, 12, "#5b351f", "#3c2114");
+        cube(-18, -20, 36, 44, "#ff6b3a", "#ad2e21", "rgba(255,220,120,0.45)");
+        block(-8, -34, 16, 18, "#ffd166");
+        block(4, -8, 12, 20, "#ffd166", 0.72);
       } else if (kind === "target") {
-        ctx.fillStyle = "#382a22";
-        ctx.fillRect(-5, -4, 10, 52);
-        ctx.fillStyle = "#ece8e1";
-        ctx.beginPath();
-        ctx.arc(0, -18, 29, 0, TAU);
-        ctx.fill();
-        ctx.fillStyle = color;
-        ctx.beginPath();
-        ctx.arc(0, -18, 20, 0, TAU);
-        ctx.fill();
-        ctx.fillStyle = "#ece8e1";
-        ctx.beginPath();
-        ctx.arc(0, -18, 9, 0, TAU);
-        ctx.fill();
+        cube(-6, -4, 12, 52, "#382a22", "#211713");
+        cube(-32, -48, 64, 56, "#ece8e1", "#aaa290");
+        block(-22, -38, 44, 36, color);
+        block(-10, -28, 20, 18, "#ece8e1");
       } else if (kind === "stall") {
-        ctx.fillStyle = "#403025";
-        ctx.fillRect(-48, -8, 96, 54);
-        ctx.fillStyle = color;
-        ctx.fillRect(-56, -30, 112, 26);
-        ctx.fillStyle = "rgba(255,255,255,0.28)";
-        for (let i = -42; i <= 42; i += 28) ctx.fillRect(i, -30, 13, 26);
+        cube(-52, -8, 104, 56, "#5a3824", "#332012");
+        cube(-62, -38, 124, 28, color, "#8f4c24");
+        for (let i = -46; i <= 42; i += 30) block(i, -36, 14, 24, "rgba(255,255,255,0.26)");
       } else if (kind === "crate") {
-        ctx.fillStyle = "#5a3824";
-        ctx.fillRect(-28, -22, 56, 44);
-        ctx.strokeStyle = "#b6844a";
-        ctx.lineWidth = 4;
-        ctx.strokeRect(-28, -22, 56, 44);
-        ctx.beginPath();
-        ctx.moveTo(-24, -18);
-        ctx.lineTo(24, 18);
-        ctx.moveTo(24, -18);
-        ctx.lineTo(-24, 18);
-        ctx.stroke();
+        cube(-30, -24, 60, 52, "#7a4a2a", "#4d2c18", "#b6844a");
+        block(-25, -18, 50, 6, "#b6844a", 0.55);
+        block(-3, -24, 6, 52, "#b6844a", 0.45);
       } else if (kind === "fountain") {
-        ctx.shadowColor = color;
-        ctx.shadowBlur = this.glow(14);
-        ctx.fillStyle = "#283645";
-        ctx.beginPath();
-        ctx.ellipse(0, 12, 58, 28, 0, 0, TAU);
-        ctx.fill();
-        ctx.strokeStyle = "#d9fbff";
-        ctx.lineWidth = 4;
-        ctx.stroke();
-        ctx.fillStyle = color;
-        ctx.globalAlpha = 0.55;
-        ctx.beginPath();
-        ctx.ellipse(0, 5, 38, 15, 0, 0, TAU);
-        ctx.fill();
-        ctx.globalAlpha = 1;
-        ctx.fillRect(-6, -50, 12, 58);
-        ctx.beginPath();
-        ctx.arc(0, -54, 13, 0, TAU);
-        ctx.fill();
+        cube(-62, -8, 124, 42, "#34475a", "#1e2b39");
+        cube(-38, -20, 76, 24, color, "#2c8798", "rgba(217,251,255,0.52)");
+        cube(-8, -58, 16, 54, color, "#2c8798");
+        block(-18, -70, 36, 16, "#d9fbff", 0.7);
       } else if (kind === "rock") {
-        ctx.fillStyle = color;
-        ctx.beginPath();
-        ctx.moveTo(-34, 14);
-        ctx.lineTo(-20, -24);
-        ctx.lineTo(14, -32);
-        ctx.lineTo(38, -2);
-        ctx.lineTo(24, 28);
-        ctx.lineTo(-18, 30);
-        ctx.closePath();
-        ctx.fill();
-        ctx.strokeStyle = "rgba(255,255,255,0.24)";
-        ctx.lineWidth = 3;
-        ctx.stroke();
+        cube(-36, -18, 72, 46, color, "#46505a");
+        cube(-18, -36, 36, 24, "#84909b", "#56616d");
+        block(8, -7, 18, 10, "rgba(255,255,255,0.16)");
       } else if (kind === "flower") {
-        ctx.fillStyle = "#2f8f54";
-        ctx.fillRect(-3, -2, 6, 22);
-        ctx.fillStyle = color;
-        for (let i = 0; i < 5; i++) {
-          const a = i * TAU / 5;
-          ctx.beginPath();
-          ctx.ellipse(Math.cos(a) * 8, Math.sin(a) * 8 - 6, 6, 9, a, 0, TAU);
-          ctx.fill();
-        }
-        ctx.fillStyle = "#fff1b8";
-        ctx.beginPath();
-        ctx.arc(0, -6, 4, 0, TAU);
-        ctx.fill();
+        block(-3, -2, 6, 22, "#2f8f54");
+        block(-12, -17, 24, 8, color);
+        block(-5, -26, 10, 26, color);
+        block(-4, -16, 8, 8, "#fff1b8");
       } else if (kind === "tombstone") {
-        ctx.fillStyle = "#5f6670";
-        ctx.beginPath();
-        ctx.moveTo(-24, 30);
-        ctx.lineTo(-24, -18);
-        ctx.quadraticCurveTo(0, -52, 24, -18);
-        ctx.lineTo(24, 30);
-        ctx.closePath();
-        ctx.fill();
-        ctx.strokeStyle = color;
-        ctx.lineWidth = 3;
-        ctx.stroke();
-        ctx.fillStyle = "rgba(15,25,35,0.7)";
-        ctx.fillRect(-10, -18, 20, 5);
-        ctx.fillRect(-3, -26, 6, 22);
+        cube(-28, -30, 56, 62, "#6a727c", "#414953", color);
+        block(-12, -18, 24, 6, "#1f2731", 0.72);
+        block(-3, -26, 6, 24, "#1f2731", 0.72);
       } else if (kind === "tent") {
-        ctx.fillStyle = "#31241d";
-        ctx.beginPath();
-        ctx.ellipse(0, 28, 58, 14, 0, 0, TAU);
-        ctx.fill();
-        ctx.fillStyle = color;
-        ctx.beginPath();
-        ctx.moveTo(-54, 28);
-        ctx.lineTo(0, -58);
-        ctx.lineTo(54, 28);
-        ctx.closePath();
-        ctx.fill();
-        ctx.fillStyle = "rgba(15,25,35,0.62)";
-        ctx.beginPath();
-        ctx.moveTo(-14, 28);
-        ctx.lineTo(0, -16);
-        ctx.lineTo(18, 28);
-        ctx.closePath();
-        ctx.fill();
+        cube(-58, 10, 116, 30, "#4a3322", "#2d1e15");
+        cube(-46, -36, 92, 48, color, "#6b3c25");
+        block(-15, -14, 30, 54, "rgba(15,25,35,0.62)");
+        block(-58, 1, 116, 12, "rgba(255,255,255,0.12)");
       } else if (kind === "watchtower") {
-        ctx.fillStyle = "#5b3c24";
-        ctx.fillRect(-32, -54, 12, 96);
-        ctx.fillRect(20, -54, 12, 96);
-        ctx.fillStyle = color;
-        ctx.fillRect(-52, -88, 104, 42);
-        ctx.fillStyle = "#3a291f";
-        ctx.fillRect(-60, -98, 120, 12);
-        ctx.strokeStyle = "#d0a46b";
-        ctx.lineWidth = 4;
-        ctx.strokeRect(-52, -88, 104, 42);
+        cube(-36, -54, 14, 100, "#6b4427", "#3f2617");
+        cube(22, -54, 14, 100, "#6b4427", "#3f2617");
+        cube(-56, -92, 112, 48, color, "#6b3c25");
+        block(-66, -104, 132, 14, "#3a291f");
+        block(-44, -76, 88, 8, "#d0a46b", 0.35);
       } else if (kind === "cave") {
-        ctx.fillStyle = "rgba(0,0,0,0.38)";
-        ctx.beginPath();
-        ctx.ellipse(0, 28, 76, 22, 0, 0, TAU);
-        ctx.fill();
-        ctx.fillStyle = "#343b45";
-        ctx.beginPath();
-        ctx.moveTo(-74, 28);
-        ctx.quadraticCurveTo(-48, -64, 0, -72);
-        ctx.quadraticCurveTo(58, -62, 74, 28);
-        ctx.closePath();
-        ctx.fill();
-        ctx.fillStyle = "#070b12";
-        ctx.beginPath();
-        ctx.moveTo(-38, 28);
-        ctx.quadraticCurveTo(-28, -26, 0, -34);
-        ctx.quadraticCurveTo(32, -24, 38, 28);
-        ctx.closePath();
-        ctx.fill();
+        cube(-78, -40, 156, 70, "#39424c", "#252c34");
+        cube(-58, -70, 116, 34, "#4b5662", "#303943");
+        block(-42, -22, 84, 56, "#070b12");
+        block(-28, -10, 56, 18, "#121a26", 0.58);
       } else if (kind === "chest") {
-        ctx.shadowColor = color;
-        ctx.shadowBlur = this.glow(10);
-        ctx.fillStyle = "#6a3f24";
-        ctx.fillRect(-34, -12, 68, 38);
-        ctx.fillStyle = color;
-        ctx.fillRect(-38, -26, 76, 20);
-        ctx.fillStyle = "#fff1b8";
-        ctx.fillRect(-5, -8, 10, 14);
-        ctx.strokeStyle = "#2d1c12";
-        ctx.lineWidth = 4;
-        ctx.strokeRect(-34, -12, 68, 38);
+        cube(-38, -24, 76, 52, "#6a3f24", "#3a2112", "#2d1c12");
+        cube(-42, -36, 84, 18, color, "#9d6b2f", "#2d1c12");
+        block(-6, -10, 12, 18, "#fff1b8");
       } else if (kind === "resource") {
         ctx.shadowColor = color;
-        ctx.shadowBlur = this.glow(14);
-        ctx.fillStyle = color;
+        ctx.shadowBlur = this.glow(6);
         for (let i = 0; i < 3; i++) {
-          ctx.save();
-          ctx.translate((i - 1) * 18, i % 2 ? -3 : 8);
-          ctx.beginPath();
-          ctx.moveTo(0, -34);
-          ctx.lineTo(15, -4);
-          ctx.lineTo(5, 30);
-          ctx.lineTo(-12, 22);
-          ctx.lineTo(-16, -6);
-          ctx.closePath();
-          ctx.fill();
-          ctx.restore();
+          const x = (i - 1) * 22;
+          cube(x - 8, i % 2 ? -34 : -22, 16, 60, color, "#3d8e9e", "rgba(255,255,255,0.38)");
         }
       } else {
-        ctx.fillStyle = color;
-        ctx.fillRect(-16, -16, 32, 32);
+        cube(-18, -18, 36, 36, color, "#3a3f30");
       }
       ctx.restore();
     }
 
     drawOpenWorldNpc(ctx, object) {
       const grow = clamp(object.grow || 0, 0, 1);
-      const bob = Math.sin((object.phase || this.menuTime) * 3.2) * 2;
+      const bob = Math.round(Math.sin((object.phase || this.menuTime) * 3.2) * 1.5);
       const color = object.color || "#f2bf63";
       ctx.save();
       ctx.translate(object.x, object.y + bob + (1 - grow) * 22);
       ctx.scale(grow, grow);
-      ctx.fillStyle = "rgba(0,0,0,0.32)";
-      ctx.beginPath();
-      ctx.ellipse(0, 24, 26, 8, 0, 0, TAU);
-      ctx.fill();
-      ctx.fillStyle = color;
-      roundPixel(ctx, -15, -16, 30, 34, 7);
-      ctx.fill();
+      ctx.imageSmoothingEnabled = false;
+      ctx.fillStyle = "rgba(0,0,0,0.28)";
+      ctx.fillRect(-24, 21, 48, 10);
+      ctx.fillStyle = "#101521";
+      ctx.fillRect(-17, -18, 34, 38);
       ctx.fillStyle = "#f4caa1";
-      ctx.beginPath();
-      ctx.arc(0, -30, 18, 0, TAU);
-      ctx.fill();
+      ctx.fillRect(-15, -43, 30, 28);
+      ctx.fillStyle = color;
+      ctx.fillRect(-14, -16, 28, 32);
+      ctx.fillStyle = "rgba(255,255,255,0.14)";
+      ctx.fillRect(-10, -12, 20, 5);
       ctx.fillStyle = "#101521";
       ctx.fillRect(-7, -34, 4, 4);
       ctx.fillRect(5, -34, 4, 4);
       ctx.fillStyle = "#2b1a12";
-      ctx.fillRect(-16, -48, 32, 12);
+      ctx.fillRect(-17, -50, 34, 10);
+      ctx.fillStyle = "#0b0f16";
+      ctx.fillRect(-12, 14, 9, 16);
+      ctx.fillRect(3, 14, 9, 16);
+      ctx.fillStyle = "#f4caa1";
+      ctx.fillRect(-23, -8, 8, 20);
+      ctx.fillRect(15, -8, 8, 20);
       ctx.fillStyle = object.role === "quest" ? "#f2bf63" : "#ffffff";
       ctx.font = this.readableFont(950, 17);
       this.drawReadableText(ctx, object.icon || "!", 0, -64, {
@@ -26943,45 +26830,36 @@
     drawAwakeningStone(ctx, object) {
       const grow = clamp(object.grow || 0, 0, 1);
       const color = object.color || "#d9fbff";
-      const y = object.y + (1 - grow) * 34 + Math.sin(this.menuTime * 1.7) * 3;
+      const y = object.y + (1 - grow) * 34 + Math.round(Math.sin(this.menuTime * 1.7) * 2);
       this.drawObjectAmbient(ctx, { ...object, y, effect: "secret" }, 150);
       ctx.save();
       ctx.translate(object.x, y);
       ctx.scale(grow, grow);
       ctx.shadowColor = color;
-      ctx.shadowBlur = this.glow(30);
+      ctx.shadowBlur = this.glow(12);
       ctx.fillStyle = "rgba(0,0,0,0.34)";
-      ctx.beginPath();
-      ctx.ellipse(0, 94, 142, 24, 0, 0, TAU);
-      ctx.fill();
+      ctx.fillRect(-132, 78, 264, 34);
       ctx.fillStyle = "#121a26";
       ctx.strokeStyle = color;
       ctx.lineWidth = 7;
-      ctx.beginPath();
-      ctx.moveTo(-68, 74);
-      ctx.lineTo(-46, -68);
-      ctx.quadraticCurveTo(0, -126, 46, -68);
-      ctx.lineTo(68, 74);
-      ctx.closePath();
-      ctx.fill();
-      ctx.stroke();
+      ctx.fillRect(-68, -96, 136, 174);
+      ctx.strokeRect(-68, -96, 136, 174);
+      ctx.fillStyle = "#1f2b3a";
+      ctx.fillRect(-48, -76, 96, 134);
+      ctx.fillStyle = "rgba(255,255,255,0.12)";
+      ctx.fillRect(-34, -60, 68, 10);
       ctx.globalCompositeOperation = "lighter";
       ctx.globalAlpha = 0.35 + Math.sin(this.menuTime * 3) * 0.08;
       ctx.fillStyle = color;
-      ctx.beginPath();
-      ctx.moveTo(0, -82);
-      ctx.lineTo(38, -12);
-      ctx.lineTo(0, 56);
-      ctx.lineTo(-38, -12);
-      ctx.closePath();
-      ctx.fill();
+      ctx.fillRect(-30, -44, 60, 82);
+      ctx.fillStyle = "#ffffff";
+      ctx.globalAlpha = 0.28;
+      ctx.fillRect(-10, -34, 20, 62);
       ctx.strokeStyle = "#ffffff";
       ctx.lineWidth = 2;
       for (let i = 0; i < 4; i++) {
-        const a = this.menuTime * 0.7 + i * TAU / 4;
-        ctx.beginPath();
-        ctx.arc(0, -8, 64 + i * 9, a, a + 0.48);
-        ctx.stroke();
+        const offset = i * 20 - 30;
+        ctx.strokeRect(offset - 5, -18 - i * 4, 10, 46 + i * 8);
       }
       ctx.globalCompositeOperation = "source-over";
       ctx.globalAlpha = 1;
@@ -27004,36 +26882,34 @@
       const grow = clamp(object.grow || 0, 0, 1);
       const color = object.color || "#70e083";
       const y = object.y + (1 - grow) * 30;
-      this.drawObjectAmbient(ctx, { ...object, y }, object.type === "monsterZone" ? 110 : 92);
+      if (["dungeonGate", "trialTower"].includes(object.kind || "") || object.type === "monsterZone") {
+        this.drawObjectAmbient(ctx, { ...object, y }, object.type === "monsterZone" ? 110 : 92);
+      }
       ctx.save();
       ctx.translate(object.x, y);
       ctx.scale(grow, grow);
-      ctx.shadowColor = color;
-      ctx.shadowBlur = this.glow(14);
+      ctx.imageSmoothingEnabled = false;
+      ctx.shadowBlur = 0;
       ctx.fillStyle = "rgba(0,0,0,0.3)";
-      ctx.beginPath();
-      ctx.ellipse(0, 58, object.type === "monsterZone" ? 108 : 92, 16, 0, 0, TAU);
-      ctx.fill();
+      ctx.fillRect(object.type === "monsterZone" ? -108 : -92, 50, object.type === "monsterZone" ? 216 : 184, 24);
       const drawVolumeBase = (w, h, roofH) => {
+        ctx.fillStyle = "#101722";
+        ctx.fillRect(-w / 2 + 10, -h / 2 + 22, w, h);
         ctx.fillStyle = "#17202c";
         ctx.strokeStyle = color;
         ctx.lineWidth = 4;
-        roundPixel(ctx, -w / 2, -h / 2 + 10, w, h, 7);
-        ctx.fill();
-        ctx.stroke();
+        ctx.fillRect(-w / 2, -h / 2 + 10, w, h);
+        ctx.strokeRect(-w / 2, -h / 2 + 10, w, h);
         ctx.fillStyle = "rgba(255,255,255,0.10)";
         ctx.fillRect(-w / 2 + 10, -h / 2 + 18, w - 20, 8);
         ctx.fillStyle = color;
-        ctx.beginPath();
-        ctx.moveTo(-w / 2 - 18, -h / 2 + 12);
-        ctx.lineTo(0, -h / 2 - roofH);
-        ctx.lineTo(w / 2 + 18, -h / 2 + 12);
-        ctx.lineTo(w / 2 - 8, -h / 2 + 28);
-        ctx.lineTo(0, -h / 2 - roofH + 18);
-        ctx.lineTo(-w / 2 + 8, -h / 2 + 28);
-        ctx.closePath();
-        ctx.fill();
-        ctx.stroke();
+        const roofY = -h / 2 - roofH;
+        ctx.fillRect(-w / 2 - 18, -h / 2 - 4, w + 36, 34);
+        ctx.fillRect(-w / 2 + 8, roofY + 28, w - 16, 34);
+        ctx.fillRect(-w / 2 + 34, roofY, w - 68, 34);
+        ctx.strokeRect(-w / 2 - 18, -h / 2 - 4, w + 36, 34);
+        ctx.strokeRect(-w / 2 + 8, roofY + 28, w - 16, 34);
+        ctx.strokeRect(-w / 2 + 34, roofY, w - 68, 34);
       };
       const kind = object.kind || "";
       if (kind === "guildHall") {
@@ -27049,8 +26925,7 @@
       } else if (kind === "meetingHall") {
         drawVolumeBase(170, 92, 52);
         ctx.fillStyle = "#0f1923";
-        roundPixel(ctx, -54, 2, 108, 34, 8);
-        ctx.fill();
+        ctx.fillRect(-54, 2, 108, 34);
         ctx.fillStyle = "#35d6c9";
         ctx.fillRect(-76, -2, 34, 28);
         ctx.fillRect(42, -2, 34, 28);
@@ -27065,20 +26940,19 @@
         ctx.strokeRect(72, -38, 38, 112);
         ctx.strokeRect(-82, -78, 164, 42);
         ctx.globalCompositeOperation = "lighter";
-        ctx.globalAlpha = 0.55 + Math.sin(this.menuTime * 3) * 0.08;
+        ctx.globalAlpha = 0.45 + Math.sin(this.menuTime * 3) * 0.06;
         ctx.fillStyle = color;
-        ctx.beginPath();
-        ctx.ellipse(0, 8, 58, 88, 0, 0, TAU);
-        ctx.fill();
+        ctx.fillRect(-48, -30, 96, 108);
+        ctx.fillStyle = "rgba(255,255,255,0.35)";
+        ctx.fillRect(-28, -12, 56, 70);
         ctx.globalCompositeOperation = "source-over";
         ctx.globalAlpha = 1;
       } else if (kind === "marketStall") {
         ctx.fillStyle = "#403025";
-        roundPixel(ctx, -88, -20, 176, 92, 8);
-        ctx.fill();
+        ctx.fillRect(-88, -20, 176, 92);
         ctx.strokeStyle = color;
         ctx.lineWidth = 4;
-        ctx.stroke();
+        ctx.strokeRect(-88, -20, 176, 92);
         ctx.fillStyle = color;
         ctx.fillRect(-104, -52, 208, 38);
         ctx.fillStyle = "rgba(255,255,255,0.28)";
@@ -27089,37 +26963,28 @@
         ctx.fillStyle = "#17202c";
         ctx.strokeStyle = color;
         ctx.lineWidth = 5;
-        ctx.beginPath();
-        ctx.moveTo(-80, 66);
-        ctx.lineTo(-80, -8);
-        ctx.quadraticCurveTo(0, -92, 80, -8);
-        ctx.lineTo(80, 66);
-        ctx.closePath();
-        ctx.fill();
-        ctx.stroke();
+        ctx.fillRect(-84, -62, 168, 128);
+        ctx.strokeRect(-84, -62, 168, 128);
+        ctx.fillStyle = "rgba(255,255,255,0.09)";
+        ctx.fillRect(-66, -44, 132, 12);
         ctx.fillStyle = "#0f1923";
-        ctx.beginPath();
-        ctx.arc(0, 20, 36, 0, TAU);
-        ctx.fill();
-        ctx.stroke();
+        ctx.fillRect(-38, -2, 76, 68);
+        ctx.strokeRect(-38, -2, 76, 68);
+        ctx.fillStyle = color;
+        ctx.fillRect(-7, 24, 14, 14);
       } else if (kind === "trainingYard") {
         ctx.fillStyle = "#1a241b";
         ctx.strokeStyle = color;
         ctx.lineWidth = 4;
-        roundPixel(ctx, -95, -42, 190, 98, 8);
-        ctx.fill();
-        ctx.stroke();
+        ctx.fillRect(-95, -42, 190, 98);
+        ctx.strokeRect(-95, -42, 190, 98);
         ctx.fillStyle = "#c79a5b";
         ctx.fillRect(-78, -22, 156, 12);
         ctx.fillRect(-60, 8, 120, 10);
         ctx.fillStyle = "#ece8e1";
-        ctx.beginPath();
-        ctx.arc(0, 22, 22, 0, TAU);
-        ctx.fill();
+        ctx.fillRect(-22, 0, 44, 44);
         ctx.fillStyle = "#ff4655";
-        ctx.beginPath();
-        ctx.arc(0, 22, 11, 0, TAU);
-        ctx.fill();
+        ctx.fillRect(-11, 11, 22, 22);
       } else if (kind === "trialTower") {
         ctx.fillStyle = "#1c202a";
         ctx.strokeStyle = color;
@@ -27140,19 +27005,16 @@
         ctx.fillStyle = "#182112";
         ctx.strokeStyle = color;
         ctx.lineWidth = 5;
-        roundPixel(ctx, -92, -48, 184, 94, 9);
-        ctx.fill();
-        ctx.stroke();
+        ctx.fillRect(-92, -48, 184, 94);
+        ctx.strokeRect(-92, -48, 184, 94);
         ctx.fillStyle = "#3b2416";
         ctx.fillRect(-82, -36, 164, 12);
         ctx.fillRect(-62, -8, 124, 10);
         ctx.fillRect(-70, 38, 14, 54);
         ctx.fillRect(56, 38, 14, 54);
         ctx.fillStyle = color;
-        ctx.beginPath();
-        ctx.arc(-42, -18, 12, 0, TAU);
-        ctx.arc(42, -18, 12, 0, TAU);
-        ctx.fill();
+        ctx.fillRect(-54, -30, 24, 24);
+        ctx.fillRect(30, -30, 24, 24);
       } else {
         drawVolumeBase(150, 86, 46);
         ctx.fillStyle = "#0f1923";

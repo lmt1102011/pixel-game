@@ -11,7 +11,7 @@
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
   const SIGNAL_REALTIME_RELAY_LIMIT = 2;
   const SIGNAL_REALTIME_TYPES = new Set(["state", "snapshot", "attack", "skill", "collect", "openChest", "dropItem", "damage", "chooseDoor"]);
-  const APP_VERSION = "20260609-minecraft-visuals-310";
+  const APP_VERSION = "20260609-minecraft-smooth-room-311";
   const CHANGELOG_ENTRIES = [
     {
       version: APP_VERSION,
@@ -25930,10 +25930,114 @@
       };
     }
 
+    minecraftRoomPalette(biome = this.run?.biome || {}) {
+      const id = biome.id || "forest";
+      const palettes = {
+        forest: { floor: "#4f8f3f", alt: "#5da149", side: "#2f6f35", wall: "#6b5130", wallTop: "#8a6a3d", accent: "#78d36f", chip: "#d7c36a" },
+        frozen: { floor: "#4e8ea6", alt: "#66aeca", side: "#2f657b", wall: "#6d8390", wallTop: "#9ec8d8", accent: "#8feaff", chip: "#ffffff" },
+        lava: { floor: "#70402c", alt: "#8a4e33", side: "#3b2018", wall: "#5a3022", wallTop: "#a55a35", accent: "#ff944d", chip: "#ffd166" },
+        neon: { floor: "#40355f", alt: "#514174", side: "#241c38", wall: "#2f2946", wallTop: "#6950a0", accent: "#fd57ff", chip: "#70f6ff" },
+        ruins: { floor: "#5d625b", alt: "#71766d", side: "#3b403b", wall: "#4f5656", wallTop: "#8b938e", accent: "#f2bf63", chip: "#d8d0bb" },
+        desert: { floor: "#a98b4e", alt: "#c09e5a", side: "#735832", wall: "#7b5c34", wallTop: "#d1a85b", accent: "#f4d26f", chip: "#fff1b8" }
+      };
+      const fallback = {
+        floor: biome.floor || "#4f8f3f",
+        alt: biome.accent || "#5da149",
+        side: "#2f3f35",
+        wall: biome.wall || "#6b5130",
+        wallTop: biome.accent || "#8a6a3d",
+        accent: biome.accent || "#78d36f",
+        chip: "#ece8e1"
+      };
+      return palettes[id] || fallback;
+    }
+
+    minecraftRoomPattern(ctx, palette, lowDetail = false, kind = "floor") {
+      if (!ctx?.createPattern) return null;
+      this.minecraftRoomPatternCache ||= new Map();
+      const tile = lowDetail ? 176 : 128;
+      const key = `${kind}|${lowDetail ? "low" : "full"}|${palette.floor}|${palette.alt}|${palette.wallTop}|${palette.wall}|${palette.accent}`;
+      if (this.minecraftRoomPatternCache.has(key)) return this.minecraftRoomPatternCache.get(key);
+      const size = tile * 2;
+      const canvas = this.createRenderCanvas(size, size);
+      const tileCtx = canvas.getContext("2d");
+      if (!tileCtx) return null;
+      tileCtx.imageSmoothingEnabled = false;
+      if (kind === "wall") {
+        for (let x = 0; x < size; x += tile) {
+          for (let y = 0; y < size; y += tile) {
+            const n = Math.sin(x * 0.031 + y * 0.027);
+            this.drawMinecraftTile(tileCtx, x, y, tile, n > 0 ? palette.wallTop : palette.wall, palette.wall, "rgba(0,0,0,0.26)", lowDetail ? 12 : 15);
+          }
+        }
+      } else {
+        for (let x = 0; x < size; x += tile) {
+          for (let y = 0; y < size; y += tile) {
+            const n = Math.sin(x * 0.025 + y * 0.019 + (this.run?.seed || 0) * 13);
+            this.drawMinecraftTile(tileCtx, x, y, tile, n > 0.18 ? palette.alt : palette.floor, palette.side, "rgba(0,0,0,0.18)", lowDetail ? 10 : 13);
+            if (!lowDetail && n > 0.5) {
+              tileCtx.fillStyle = palette.chip;
+              tileCtx.globalAlpha = 0.18;
+              tileCtx.fillRect(x + 28, y + 28, 20, 20);
+              tileCtx.fillRect(x + 82, y + 76, 14, 14);
+              tileCtx.globalAlpha = 1;
+            } else if (!lowDetail && n < -0.55) {
+              tileCtx.fillStyle = palette.accent;
+              tileCtx.globalAlpha = 0.13;
+              tileCtx.fillRect(x + 42, y + 46, 28, 14);
+              tileCtx.globalAlpha = 1;
+            }
+          }
+        }
+      }
+      const pattern = ctx.createPattern(canvas, "repeat");
+      if (!pattern) return null;
+      this.minecraftRoomPatternCache.set(key, pattern);
+      this.trimCache(this.minecraftRoomPatternCache, 18);
+      return pattern;
+    }
+
+    drawMinecraftRoomBackground(ctx, biome, viewLeft, viewTop, viewRight, viewBottom, lowDetail = false) {
+      const palette = this.minecraftRoomPalette(biome);
+      const viewW = Math.max(1, viewRight - viewLeft);
+      const viewH = Math.max(1, viewBottom - viewTop);
+      const floorPattern = this.minecraftRoomPattern(ctx, palette, lowDetail, "floor");
+      const wallPattern = this.minecraftRoomPattern(ctx, palette, lowDetail, "wall");
+      ctx.fillStyle = "#10151c";
+      ctx.fillRect(viewLeft, viewTop, viewW, viewH);
+      const floorLeft = Math.max(ROOM_PAD, viewLeft);
+      const floorTop = Math.max(ROOM_PAD, viewTop);
+      const floorRight = Math.min(this.worldW() - ROOM_PAD, viewRight);
+      const floorBottom = Math.min(this.worldH() - ROOM_PAD, viewBottom);
+      if (floorRight > floorLeft && floorBottom > floorTop) {
+        ctx.fillStyle = floorPattern || palette.floor;
+        ctx.fillRect(floorLeft, floorTop, floorRight - floorLeft, floorBottom - floorTop);
+      }
+      ctx.fillStyle = wallPattern || palette.wall;
+      if (viewTop < ROOM_PAD) ctx.fillRect(viewLeft, viewTop, viewW, Math.min(ROOM_PAD, viewBottom) - viewTop);
+      if (viewBottom > this.worldH() - ROOM_PAD) ctx.fillRect(viewLeft, Math.max(viewTop, this.worldH() - ROOM_PAD), viewW, viewBottom - Math.max(viewTop, this.worldH() - ROOM_PAD));
+      if (viewLeft < ROOM_PAD) ctx.fillRect(viewLeft, viewTop, Math.min(ROOM_PAD, viewRight) - viewLeft, viewH);
+      if (viewRight > this.worldW() - ROOM_PAD) ctx.fillRect(Math.max(viewLeft, this.worldW() - ROOM_PAD), viewTop, viewRight - Math.max(viewLeft, this.worldW() - ROOM_PAD), viewH);
+      if (!lowDetail) {
+        ctx.fillStyle = "rgba(0,0,0,0.28)";
+        ctx.fillRect(Math.max(ROOM_PAD, viewLeft), ROOM_PAD, Math.max(0, Math.min(this.worldW() - ROOM_PAD, viewRight) - Math.max(ROOM_PAD, viewLeft)), 18);
+        ctx.fillRect(Math.max(ROOM_PAD, viewLeft), this.worldH() - ROOM_PAD - 18, Math.max(0, Math.min(this.worldW() - ROOM_PAD, viewRight) - Math.max(ROOM_PAD, viewLeft)), 18);
+        ctx.fillRect(ROOM_PAD, Math.max(ROOM_PAD, viewTop), 18, Math.max(0, Math.min(this.worldH() - ROOM_PAD, viewBottom) - Math.max(ROOM_PAD, viewTop)));
+        ctx.fillRect(this.worldW() - ROOM_PAD - 18, Math.max(ROOM_PAD, viewTop), 18, Math.max(0, Math.min(this.worldH() - ROOM_PAD, viewBottom) - Math.max(ROOM_PAD, viewTop)));
+        ctx.fillStyle = palette.accent;
+        ctx.globalAlpha = 0.14;
+        ctx.fillRect(Math.max(ROOM_PAD + 24, viewLeft), ROOM_PAD + 24, Math.max(0, Math.min(this.worldW() - ROOM_PAD - 24, viewRight) - Math.max(ROOM_PAD + 24, viewLeft)), 8);
+        ctx.fillRect(Math.max(ROOM_PAD + 24, viewLeft), this.worldH() - ROOM_PAD - 32, Math.max(0, Math.min(this.worldW() - ROOM_PAD - 24, viewRight) - Math.max(ROOM_PAD + 24, viewLeft)), 8);
+        ctx.globalAlpha = 1;
+      }
+      return true;
+    }
+
     roomBackgroundKey(lowDetail = false) {
       const biome = this.run?.biome || {};
       return [
         lowDetail ? "low" : "full",
+        "minecraft",
         biome.id || "",
         biome.floor || "",
         biome.wall || "",
@@ -25949,41 +26053,67 @@
       const cached = this.roomBackgroundCache.get(key);
       if (cached) return cached;
       const biome = this.run.biome;
+      const palette = this.minecraftRoomPalette(biome);
       const canvas = this.createRenderCanvas(this.worldW(), this.worldH());
       const bg = canvas.getContext("2d");
       if (!bg) return null;
       bg.imageSmoothingEnabled = false;
-      bg.fillStyle = "#05070b";
+      bg.fillStyle = "#10151c";
       bg.fillRect(0, 0, this.worldW(), this.worldH());
-      bg.fillStyle = biome.floor;
-      bg.fillRect(ROOM_PAD, ROOM_PAD, this.worldW() - ROOM_PAD * 2, this.worldH() - ROOM_PAD * 2);
-      if (!lowDetail) {
-        const tile = 64;
-        for (let x = ROOM_PAD; x < this.worldW() - ROOM_PAD; x += tile) {
-          for (let y = ROOM_PAD; y < this.worldH() - ROOM_PAD; y += tile) {
-            const n = Math.sin(x * 0.04 + y * 0.03 + this.run.seed * 10);
-            bg.fillStyle = n > 0 ? "rgba(255,255,255,0.025)" : "rgba(0,0,0,0.08)";
-            bg.fillRect(x, y, tile - 2, tile - 2);
-            if ((x + y) % 192 === 0) {
-              bg.fillStyle = biome.accent;
-              bg.globalAlpha = 0.1;
-              bg.fillRect(x + 18, y + 18, 8, 8);
-              bg.globalAlpha = 1;
-            }
+      const floorLeft = ROOM_PAD;
+      const floorTop = ROOM_PAD;
+      const floorRight = this.worldW() - ROOM_PAD;
+      const floorBottom = this.worldH() - ROOM_PAD;
+      const tile = lowDetail ? 176 : 128;
+      bg.save();
+      bg.beginPath();
+      bg.rect(floorLeft, floorTop, floorRight - floorLeft, floorBottom - floorTop);
+      bg.clip();
+      for (let x = floorLeft; x < floorRight; x += tile) {
+        for (let y = floorTop; y < floorBottom; y += tile) {
+          const n = Math.sin(x * 0.025 + y * 0.019 + this.run.seed * 13);
+          const top = n > 0.18 ? palette.alt : palette.floor;
+          this.drawMinecraftTile(bg, x, y, tile, top, palette.side, "rgba(0,0,0,0.18)", lowDetail ? 10 : 13);
+          if (!lowDetail && n > 0.72) {
+            bg.fillStyle = palette.chip;
+            bg.globalAlpha = 0.22;
+            bg.fillRect(x + 24, y + 24, 18, 18);
+            bg.fillRect(x + 62, y + 58, 14, 14);
+            bg.globalAlpha = 1;
+          } else if (!lowDetail && n < -0.76) {
+            bg.fillStyle = palette.accent;
+            bg.globalAlpha = 0.15;
+            bg.fillRect(x + 36, y + 38, 22, 12);
+            bg.globalAlpha = 1;
           }
         }
       }
-      bg.fillStyle = biome.wall;
+      bg.restore();
+      bg.fillStyle = palette.wall;
       bg.fillRect(0, 0, this.worldW(), ROOM_PAD);
       bg.fillRect(0, this.worldH() - ROOM_PAD, this.worldW(), ROOM_PAD);
       bg.fillRect(0, 0, ROOM_PAD, this.worldH());
       bg.fillRect(this.worldW() - ROOM_PAD, 0, ROOM_PAD, this.worldH());
+      const wallTile = 128;
+      for (let x = 0; x < this.worldW(); x += wallTile) {
+        this.drawMinecraftTile(bg, x, 0, wallTile, palette.wallTop, palette.wall, "rgba(0,0,0,0.28)", 16);
+        this.drawMinecraftTile(bg, x, this.worldH() - ROOM_PAD, wallTile, palette.wallTop, palette.wall, "rgba(0,0,0,0.28)", 16);
+      }
+      for (let y = 0; y < this.worldH(); y += wallTile) {
+        this.drawMinecraftTile(bg, 0, y, wallTile, palette.wallTop, palette.wall, "rgba(0,0,0,0.28)", 16);
+        this.drawMinecraftTile(bg, this.worldW() - ROOM_PAD, y, wallTile, palette.wallTop, palette.wall, "rgba(0,0,0,0.28)", 16);
+      }
       if (!lowDetail) {
         bg.fillStyle = "rgba(0,0,0,0.28)";
         bg.fillRect(ROOM_PAD, ROOM_PAD, this.worldW() - ROOM_PAD * 2, 18);
         bg.fillRect(ROOM_PAD, this.worldH() - ROOM_PAD - 18, this.worldW() - ROOM_PAD * 2, 18);
         bg.fillRect(ROOM_PAD, ROOM_PAD, 18, this.worldH() - ROOM_PAD * 2);
         bg.fillRect(this.worldW() - ROOM_PAD - 18, ROOM_PAD, 18, this.worldH() - ROOM_PAD * 2);
+        bg.fillStyle = palette.accent;
+        bg.globalAlpha = 0.16;
+        bg.fillRect(ROOM_PAD + 24, ROOM_PAD + 24, this.worldW() - ROOM_PAD * 2 - 48, 8);
+        bg.fillRect(ROOM_PAD + 24, this.worldH() - ROOM_PAD - 32, this.worldW() - ROOM_PAD * 2 - 48, 8);
+        bg.globalAlpha = 1;
       }
       this.roomBackgroundCache.set(key, canvas);
       this.trimCache(this.roomBackgroundCache, 5);
@@ -26000,7 +26130,8 @@
       const viewBottom = Math.min(this.worldH(), bounds.bottom);
       const viewW = Math.max(1, viewRight - viewLeft);
       const viewH = Math.max(1, viewBottom - viewTop);
-      if (this.drawExportedRoomBackground(ctx, biome, viewLeft, viewTop, viewRight, viewBottom, lowDetail)) {
+      const useExportedBackground = false;
+      if (useExportedBackground && this.drawExportedRoomBackground(ctx, biome, viewLeft, viewTop, viewRight, viewBottom, lowDetail)) {
         if (lowDetail) return;
         ctx.fillStyle = biome.haze;
         for (let i = 0; i < 6; i++) {
@@ -26029,13 +26160,7 @@
         if (viewRight > this.worldW() - ROOM_PAD) ctx.fillRect(Math.max(viewLeft, this.worldW() - ROOM_PAD), viewTop, viewRight - Math.max(viewLeft, this.worldW() - ROOM_PAD), viewH);
         return;
       }
-      const background = this.getRoomBackgroundCanvas(lowDetail);
-      if (background) {
-        const smoothing = ctx.imageSmoothingEnabled;
-        ctx.imageSmoothingEnabled = false;
-        ctx.drawImage(background, viewLeft, viewTop, viewW, viewH, viewLeft, viewTop, viewW, viewH);
-        ctx.imageSmoothingEnabled = smoothing;
-      } else {
+      if (!this.drawMinecraftRoomBackground(ctx, biome, viewLeft, viewTop, viewRight, viewBottom, lowDetail)) {
         ctx.fillStyle = "#05070b";
         ctx.fillRect(viewLeft, viewTop, viewW, viewH);
         ctx.fillStyle = biome.floor;

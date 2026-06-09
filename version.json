@@ -1,4 +1,16 @@
 {
   "version": "20260609-minecraft-smooth-room-311",
-  "required": true
+  "graphics": {
+    "renderStyle": "voxel-lowpoly",
+    "chunkSize": 16,
+    "greedyMeshing": true,
+    "paletteSize": 32,
+    "paletteFile": "assets/exported-atlas/palette.json",
+    "lightLevels": 16,
+    "vertexAO": true,
+    "textureRes": 32,
+    "textureFiltering": "nearest",
+    "lod": [16, 32, 64]
+  },
+  "notes": "Used by service-worker and in-game loader to pick texture/mesh strategies."
 }

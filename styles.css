@@ -17,6 +17,12 @@
   --orange: #ff8d3d;
   --shadow: rgba(0, 0, 0, 0.48);
   font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+
+  /* Palette & voxel rendering hints */
+  --voxel-palette-size: 32;
+  --voxel-base-tint: #d8b46a;
+  --voxel-shadow-tint: rgba(0,0,0,0.28);
+  --voxel-ao-strength: 0.28;
 }
 
 * {
@@ -55,10 +61,17 @@ button {
   inset: 0;
   width: var(--app-width);
   height: var(--app-height);
-  image-rendering: auto;
+  /* For low-res voxel/texture look: nearest / pixelated filtering */
+  image-rendering: pixelated;
+  image-rendering: -moz-crisp-edges;
+  image-rendering: crisp-edges;
   background: #080a10;
   touch-action: none;
+  /* Hint: keep canvas CSS size in CSS, internal drawing resolution should match `textureRes` from version.json */
 }
+
+/* Hint for authors: when using texture atlas, ensure UVs map to integer texel centers
+   and use nearest sampling in WebGL / 2D context (ctx.imageSmoothingEnabled = false). */
 
 body.pwa-standalone,
 body.pwa-fullscreen-mode {

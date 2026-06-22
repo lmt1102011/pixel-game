@@ -1,20 +1,20 @@
-const SOULRIFT_CACHE = "soulrift-pwa-20260607-subtle-front-vfx-306";
+const SOULRIFT_CACHE = "soulrift-pwa-20260621-pixel-vfx-308";
 const SOULRIFT_ASSETS = [
   "./",
   "./index.html",
-  "./styles.css?v=20260607-subtle-front-vfx-306",
-  "./src/pwa.js?v=20260607-subtle-front-vfx-306",
-  "./src/game.js?v=20260607-subtle-front-vfx-306",
-  "./manifest.webmanifest?v=20260607-subtle-front-vfx-306",
+  "./styles.css?v=20260621-pixel-vfx-308",
+  "./src/pwa.js?v=20260621-pixel-vfx-308",
+  "./src/game.js?v=20260621-pixel-vfx-308",
+  "./manifest.webmanifest?v=20260621-pixel-vfx-308",
   "./version.json",
   "./assets/icons/app-icon-20260605-logo-xl-149.svg",
   "./assets/icons/app-icon-20260605-logo-xl-149-192.png",
   "./assets/icons/app-icon-20260605-logo-xl-149-512.png",
   "./assets/icons/app-icon-20260605-logo-xl-149-maskable-512.png",
   "./assets/icons/apple-touch-icon-20260605-logo-xl-149.png",
-  "./assets/exported/asset-manifest.json?v=20260607-subtle-front-vfx-306",
-  "./assets/exported-atlas/atlas-manifest.json?v=20260607-subtle-front-vfx-306",
-  "./assets/sprites/monsters/shadow-goblin.png?v=20260607-subtle-front-vfx-306"
+  "./assets/exported/asset-manifest.json?v=20260621-pixel-vfx-308",
+  "./assets/exported-atlas/atlas-manifest.json?v=20260621-pixel-vfx-308",
+  "./assets/sprites/monsters/shadow-goblin.png?v=20260621-pixel-vfx-308"
 ];
 
 self.addEventListener("install", (event) => {

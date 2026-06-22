@@ -9,7 +9,7 @@
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
   const SIGNAL_REALTIME_RELAY_LIMIT = 2;
   const SIGNAL_REALTIME_TYPES = new Set(["state", "snapshot", "attack", "skill", "collect", "openChest", "dropItem", "damage", "chooseDoor"]);
-  const APP_VERSION = "20260607-subtle-front-vfx-306";
+  const APP_VERSION = "20260621-pixel-vfx-308";
   const CHANGELOG_ENTRIES = [
     {
       version: APP_VERSION,
@@ -346,16 +346,16 @@
   };
 
   const POWER_DESIGN_PALETTES = {
-    fire: { color: "#ff4500", accent: "#ffd700", dark: "#8b0000", awakened: "#00ffff", awakenedAccent: "#0047ab" },
-    ice: { color: "#a0e6ff", accent: "#ffffff", dark: "#002060", awakened: "#0a0a0a", awakenedAccent: "#4a0e4e" },
-    lightning: { color: "#ffff00", accent: "#ffffff", dark: "#8a2be2", awakened: "#8a2be2", awakenedAccent: "#ffffff" },
+    fire: { color: "#d85a2a", accent: "#e6b85a", dark: "#6d1e16", awakened: "#69cfd0", awakenedAccent: "#285f8f" },
+    ice: { color: "#9fd7e5", accent: "#e8f5f7", dark: "#173451", awakened: "#151820", awakenedAccent: "#5f4c78" },
+    lightning: { color: "#e8d26a", accent: "#f4f2cf", dark: "#5f4c8a", awakened: "#7a62b8", awakenedAccent: "#e9e4ff" },
     shadow: { color: "#5b35d5", accent: "#d7c4ff", dark: "#05030d", awakened: "#111111", awakenedAccent: "#b9a5ff" },
-    blood: { color: "#b00028", accent: "#ffc0c8", dark: "#3a0010", awakened: "#ff1744", awakenedAccent: "#111111" },
-    gravity: { color: "#b28dff", accent: "#59ffd4", dark: "#211430", awakened: "#101018", awakenedAccent: "#c8a6ff" },
-    crystal: { color: "#76ffd8", accent: "#ffc4f5", dark: "#1d4f59", awakened: "#ffecfb", awakenedAccent: "#6affff" },
-    nature: { color: "#75e66e", accent: "#ffe082", dark: "#1f4f22", awakened: "#c6ff52", awakenedAccent: "#75e66e" },
-    void: { color: "#020411", accent: "#f2f6ff", dark: "#000000", awakened: "#00ff00", awakenedAccent: "#000000" },
-    time: { color: "#b38f00", accent: "#f5f5dc", dark: "#008080", awakened: "#ffff33", awakenedAccent: "#00ff66" }
+    blood: { color: "#9e2437", accent: "#e8a8af", dark: "#351018", awakened: "#d34d63", awakenedAccent: "#1a1215" },
+    gravity: { color: "#9b83d6", accent: "#76cbb6", dark: "#211b31", awakened: "#14151e", awakenedAccent: "#b9a2df" },
+    crystal: { color: "#78d6c4", accent: "#e5b9d9", dark: "#1f4a54", awakened: "#e9dde8", awakenedAccent: "#9bdfe0" },
+    nature: { color: "#71b866", accent: "#d6bd70", dark: "#203f20", awakened: "#a6c95b", awakenedAccent: "#76aa61" },
+    void: { color: "#10121f", accent: "#d9dde8", dark: "#030407", awakened: "#5aa66a", awakenedAccent: "#0c100d" },
+    time: { color: "#b59a41", accent: "#e2ddbd", dark: "#1f5d5d", awakened: "#d9c85a", awakenedAccent: "#6fbf77" }
   };
 
   const DESIGNED_CAST_SECONDS = {
@@ -461,10 +461,10 @@
     {
       id: "forest",
       name: "Rừng Mục Rữa",
-      floor: "#182119",
-      wall: "#36462e",
-      accent: "#78d36f",
-      haze: "rgba(45, 110, 66, 0.18)",
+      floor: "#1e2c1d",
+      wall: "#2f3d2a",
+      accent: "#7fb66a",
+      haze: "rgba(78, 117, 63, 0.13)",
       music: [110, 146.83, 164.81, 196],
       hazards: ["thorn"],
       enemies: ["slime", "goblinScout", "mushroomMonster", "spiderMonster", "skeletonArcher", "skeletonWarrior", "zombie"],
@@ -473,10 +473,10 @@
     {
       id: "frozen",
       name: "Tàn Tích Băng Giá",
-      floor: "#17222f",
-      wall: "#445e72",
-      accent: "#8feaff",
-      haze: "rgba(80, 180, 230, 0.15)",
+      floor: "#1d2c38",
+      wall: "#3f5663",
+      accent: "#a8d8e6",
+      haze: "rgba(112, 174, 194, 0.13)",
       music: [82.41, 123.47, 164.81, 220],
       hazards: ["ice"],
       enemies: ["iceSlime", "iceGolem", "skeletonArcher", "skeletonWarrior", "zombie", "necromancer", "crystalBeast"],
@@ -485,10 +485,10 @@
     {
       id: "lava",
       name: "Đáy Dung Nham",
-      floor: "#2d1714",
-      wall: "#693124",
-      accent: "#ff944d",
-      haze: "rgba(210, 70, 25, 0.15)",
+      floor: "#2a1714",
+      wall: "#5b2b22",
+      accent: "#e27a3e",
+      haze: "rgba(185, 76, 38, 0.13)",
       music: [98, 130.81, 185, 246.94],
       hazards: ["lava"],
       enemies: ["fireSlime", "fireDemon", "goblinBomber", "batDemon", "stoneGolem", "darkKnight"],
@@ -497,10 +497,10 @@
     {
       id: "neon",
       name: "Vực Neon",
-      floor: "#11162b",
-      wall: "#29376a",
-      accent: "#fd57ff",
-      haze: "rgba(80, 80, 220, 0.16)",
+      floor: "#171a2d",
+      wall: "#2b3053",
+      accent: "#b467d6",
+      haze: "rgba(91, 89, 176, 0.13)",
       music: [123.47, 155.56, 207.65, 311.13],
       hazards: ["voltage"],
       enemies: ["shadowSpirit", "crystalBeast", "batDemon", "goblinScout", "necromancer", "darkKnight"],
@@ -509,16 +509,109 @@
     {
       id: "temple",
       name: "Đền Cổ",
-      floor: "#262318",
-      wall: "#675b3e",
-      accent: "#f4d26f",
-      haze: "rgba(210, 180, 85, 0.14)",
+      floor: "#2b2619",
+      wall: "#5b5238",
+      accent: "#d0b262",
+      haze: "rgba(183, 151, 70, 0.12)",
       music: [73.42, 110, 146.83, 196],
       hazards: ["blade"],
       enemies: ["skeletonWarrior", "skeletonArcher", "necromancer", "darkKnight", "stoneGolem", "shadowSpirit"],
       boss: "Astrax, Thần Tượng Cuối"
     }
   ];
+
+  const BIOME_PIXEL_STYLES = {
+    forest: {
+      void: "#071008",
+      floorBase: "#1e2c1d",
+      floorAlt: "#243722",
+      floorDark: "#162116",
+      floorLight: "#38543a",
+      wallBase: "#2f3d2a",
+      wallAlt: "#394b32",
+      wallDark: "#1b261b",
+      wallLight: "#516848",
+      accent: "#7fb66a",
+      detailA: "#6f9f5e",
+      detailB: "#8b7651",
+      crack: "#0b120c",
+      edgeShadow: "rgba(4, 7, 4, 0.46)",
+      edgeLight: "rgba(146, 181, 111, 0.2)",
+      tile: 64
+    },
+    frozen: {
+      void: "#071018",
+      floorBase: "#1d2c38",
+      floorAlt: "#253847",
+      floorDark: "#14222d",
+      floorLight: "#3f5e6e",
+      wallBase: "#3f5663",
+      wallAlt: "#4c6673",
+      wallDark: "#22333f",
+      wallLight: "#68808b",
+      accent: "#a8d8e6",
+      detailA: "#cdeef5",
+      detailB: "#7895a3",
+      crack: "#0c1a24",
+      edgeShadow: "rgba(5, 12, 18, 0.44)",
+      edgeLight: "rgba(194, 230, 238, 0.22)",
+      tile: 64
+    },
+    lava: {
+      void: "#100807",
+      floorBase: "#2a1714",
+      floorAlt: "#33201b",
+      floorDark: "#1b0e0c",
+      floorLight: "#4a2a20",
+      wallBase: "#5b2b22",
+      wallAlt: "#6a3629",
+      wallDark: "#2c1511",
+      wallLight: "#824334",
+      accent: "#e27a3e",
+      detailA: "#ff9f4b",
+      detailB: "#7e3c29",
+      crack: "#0e0504",
+      edgeShadow: "rgba(8, 3, 2, 0.5)",
+      edgeLight: "rgba(226, 122, 62, 0.2)",
+      tile: 64
+    },
+    neon: {
+      void: "#090a15",
+      floorBase: "#171a2d",
+      floorAlt: "#1e2240",
+      floorDark: "#101322",
+      floorLight: "#30365f",
+      wallBase: "#2b3053",
+      wallAlt: "#353b62",
+      wallDark: "#171a31",
+      wallLight: "#4a5181",
+      accent: "#b467d6",
+      detailA: "#67c8d7",
+      detailB: "#d889b8",
+      crack: "#090b16",
+      edgeShadow: "rgba(5, 6, 13, 0.5)",
+      edgeLight: "rgba(142, 126, 218, 0.2)",
+      tile: 64
+    },
+    temple: {
+      void: "#0f0d08",
+      floorBase: "#2b2619",
+      floorAlt: "#342d1d",
+      floorDark: "#1f1a11",
+      floorLight: "#4a422c",
+      wallBase: "#5b5238",
+      wallAlt: "#675d40",
+      wallDark: "#302918",
+      wallLight: "#7a704d",
+      accent: "#d0b262",
+      detailA: "#b69752",
+      detailB: "#756644",
+      crack: "#130f08",
+      edgeShadow: "rgba(7, 5, 2, 0.46)",
+      edgeLight: "rgba(208, 178, 98, 0.2)",
+      tile: 64
+    }
+  };
 
   const ROOM_TYPES = [
     { id: "normal", label: "Phòng Thường", icon: "X", weight: 35, color: "#c9d0db" },
@@ -6250,11 +6343,12 @@
       const tilePath = `assets/exported/backgrounds/${biome?.id || "forest"}/floor_tile.png`;
       const tile = this.exportedImage(tilePath);
       if (!tile) return false;
+      const style = this.biomePixelStyle(biome);
       const viewW = Math.max(1, viewRight - viewLeft);
       const viewH = Math.max(1, viewBottom - viewTop);
       const pattern = this.exportedPatternFor(ctx, tilePath, tile);
       if (!pattern) return false;
-      ctx.fillStyle = "#05070b";
+      ctx.fillStyle = style.void || "#05070b";
       ctx.fillRect(viewLeft, viewTop, viewW, viewH);
       const floorLeft = Math.max(ROOM_PAD, viewLeft);
       const floorTop = Math.max(ROOM_PAD, viewTop);
@@ -6264,18 +6358,8 @@
         ctx.fillStyle = pattern;
         ctx.fillRect(floorLeft, floorTop, floorRight - floorLeft, floorBottom - floorTop);
       }
-      ctx.fillStyle = biome?.wall || "#121823";
-      if (viewTop < ROOM_PAD) ctx.fillRect(viewLeft, viewTop, viewW, Math.min(ROOM_PAD, viewBottom) - viewTop);
-      if (viewBottom > WORLD_H - ROOM_PAD) ctx.fillRect(viewLeft, Math.max(viewTop, WORLD_H - ROOM_PAD), viewW, viewBottom - Math.max(viewTop, WORLD_H - ROOM_PAD));
-      if (viewLeft < ROOM_PAD) ctx.fillRect(viewLeft, viewTop, Math.min(ROOM_PAD, viewRight) - viewLeft, viewH);
-      if (viewRight > WORLD_W - ROOM_PAD) ctx.fillRect(Math.max(viewLeft, WORLD_W - ROOM_PAD), viewTop, viewRight - Math.max(viewLeft, WORLD_W - ROOM_PAD), viewH);
-      if (!lowDetail) {
-        ctx.fillStyle = "rgba(0,0,0,0.22)";
-        ctx.fillRect(Math.max(ROOM_PAD, viewLeft), ROOM_PAD, Math.max(0, Math.min(WORLD_W - ROOM_PAD, viewRight) - Math.max(ROOM_PAD, viewLeft)), 18);
-        ctx.fillRect(Math.max(ROOM_PAD, viewLeft), WORLD_H - ROOM_PAD - 18, Math.max(0, Math.min(WORLD_W - ROOM_PAD, viewRight) - Math.max(ROOM_PAD, viewLeft)), 18);
-        ctx.fillRect(ROOM_PAD, Math.max(ROOM_PAD, viewTop), 18, Math.max(0, Math.min(WORLD_H - ROOM_PAD, viewBottom) - Math.max(ROOM_PAD, viewTop)));
-        ctx.fillRect(WORLD_W - ROOM_PAD - 18, Math.max(ROOM_PAD, viewTop), 18, Math.max(0, Math.min(WORLD_H - ROOM_PAD, viewBottom) - Math.max(ROOM_PAD, viewTop)));
-      }
+      this.drawBiomeWalls(ctx, biome, viewLeft, viewTop, viewRight, viewBottom, lowDetail);
+      this.drawRoomInnerPixelTrim(ctx, biome, viewLeft, viewTop, viewRight, viewBottom, lowDetail);
       return true;
     }
 
@@ -8090,16 +8174,8 @@
     }
 
     fastVisualMode() {
-      if (!this.run || this.mode !== "game") return false;
-      const quality = this.effectQuality();
-      const load = this.graphicsLoadStress();
-      return this.performancePanic()
-        || (this.perf?.updateSpikeHold || 0) > 0.05
-        || (this.perf?.renderSpikeHold || 0) > 0.05
-        || (this.perf?.loopSpikeHold || 0) > 0.05
-        || this.renderPressure() > (this.isMobileDevice() ? 0.12 : 0.18)
-        || this.performancePressure() > (this.isMobileDevice() ? 0.18 : 0.26)
-        || (this.graphicsActiveCombat() && (load > (this.isMobileDevice() ? 0.9 : 1.15) || quality < 0.66));
+      // Pixel-style: always use fast visual mode for crisp, lightweight rendering
+      return this.run && this.mode === "game";
     }
 
     ultraPerformanceMode() {
@@ -8355,14 +8431,8 @@
     }
 
     glow(value) {
-      if (this.performancePanic()) return 0;
-      const quality = this.effectQuality();
-      const weakBias = this.devicePerformanceBias();
-      const stress = this.visualStress();
-      const renderStress = this.renderPressure();
-      if (quality < 0.5 || (weakBias > 0.55 && this.performanceEmergency())) return 0;
-      if ((stress > 0.54 || renderStress > 0.32) && value < 18) return 0;
-      return value * clamp(quality * (this.isMobileDevice() ? 0.2 : 0.38) * (1 - weakBias * 0.38) * (1 - stress * 0.56) * (1 - renderStress * 0.62), 0, 0.46);
+      // Pixel-style: no neon glow – always return 0 for crisp pixel aesthetics & performance
+      return 0;
     }
 
     readableTextBoost() {
@@ -17211,52 +17281,52 @@
       const palette = this.powerDesignPalette(kind, false);
       const map = {
         fire: {
-          color: "#ff6600", accent: "#ffdd44", dark: "#cc2200",
+          color: "#d85a2a", accent: "#e6b85a", dark: "#6d1e16",
           hit: "ember", cast: "flameCore", status: "ember", zone: "fireTrail",
           drag: 0.18, gravity: 18
         },
         ice: {
-          color: "#a0e6ff", accent: "#ffffff", dark: "#245c84",
+          color: "#9fd7e5", accent: "#e8f5f7", dark: "#173451",
           hit: "iceShard", cast: "frostHex", status: "frostHex", zone: "iceShard",
           drag: 0.12, gravity: 0
         },
         lightning: {
-          color: "#ffff55", accent: "#ffffff", dark: "#8a2be2",
+          color: "#e8d26a", accent: "#f4f2cf", dark: "#5f4c8a",
           hit: "sparkLine", cast: "sparkLine", status: "sparkLine", zone: "sparkLine",
           drag: 0.08, gravity: 0
         },
         shadow: {
-          color: "#5b35d5", accent: "#d7c4ff", dark: "#05030d",
+          color: "#4d3396", accent: "#bca8e8", dark: "#0a0712",
           hit: "shadowPixel", cast: "shadowSlash", status: "shadowPixel", zone: "shadowPixel",
           drag: 0.24, gravity: 0
         },
         blood: {
-          color: "#b00028", accent: "#ffc0c8", dark: "#3a0010",
+          color: "#9e2437", accent: "#e8a8af", dark: "#351018",
           hit: "bloodDrop", cast: "bloodRibbon", status: "bloodDrop", zone: "bloodPool",
           drag: 0.2, gravity: 90
         },
         gravity: {
-          color: "#b28dff", accent: "#59ffd4", dark: "#050510",
+          color: "#9b83d6", accent: "#76cbb6", dark: "#211b31",
           hit: "gravityPixel", cast: "gravityRing", status: "gravityPixel", zone: "gravityRing",
           drag: 0.16, gravity: 0
         },
         crystal: {
-          color: "#76ffd8", accent: "#ffc4f5", dark: "#1d4f59",
+          color: "#78d6c4", accent: "#e5b9d9", dark: "#1f4a54",
           hit: "crystalFacet", cast: "crystalFacet", status: "crystalFacet", zone: "crystalFacet",
           drag: 0.1, gravity: 22
         },
         nature: {
-          color: "#75e66e", accent: "#ffe082", dark: "#1f4f22",
+          color: "#71b866", accent: "#d6bd70", dark: "#203f20",
           hit: "thornChip", cast: "leafShard", status: "leafShard", zone: "vineSegment",
           drag: 0.28, gravity: 12
         },
         void: {
-          color: "#020411", accent: "#f2f6ff", dark: "#000000",
+          color: "#10121f", accent: "#d9dde8", dark: "#030407",
           hit: "voidFragment", cast: "glitchPixel", status: "voidFragment", zone: "voidFragment",
           drag: 0.2, gravity: 0
         },
         time: {
-          color: "#b38f00", accent: "#f5f5dc", dark: "#008080",
+          color: "#b59a41", accent: "#e2ddbd", dark: "#1f5d5d",
           hit: "timeTick", cast: "timeRing", status: "timeTick", zone: "timeRing",
           drag: 0.18, gravity: 0
         }
@@ -17318,7 +17388,8 @@
       if (!this.run) return;
       const quality = this.effectQuality();
       const mobileScale = this.isMobileDevice() ? 0.68 : 1;
-      const amount = this.particleCount(count * mobileScale * clamp(quality + 0.14, 0.38, 1), {
+      const pixelScale = this.pixelVfxActive() ? 0.68 : 1;
+      const amount = this.particleCount(count * mobileScale * pixelScale * clamp(quality + 0.14, 0.38, 1), {
         min: options.min ?? (options.important ? 3 : 1),
         important: Boolean(options.important)
       });
@@ -25071,8 +25142,17 @@
           this.roomBackgroundCache.clear();
           const bg = this.getRoomBackgroundCanvas(false);
           if (bg) {
-            addFrame(`backgrounds/${safeSlug(biome.id)}/floor_tile.png`, 256, 256, (ctx) => {
-              ctx.drawImage(bg, ROOM_PAD + 96, ROOM_PAD + 96, 256, 256, 0, 0, 256, 256);
+            addFrame(`backgrounds/${safeSlug(biome.id)}/floor_tile.png`, 256, 256, (ctx, width, height) => {
+              const style = this.biomePixelStyle(biome);
+              ctx.fillStyle = style.floorBase;
+              ctx.fillRect(0, 0, width, height);
+              const tile = style.tile || 64;
+              const salt = Math.round((this.run?.seed || 0) * 4096) + String(biome.id || "").length * 97;
+              for (let x = 0; x < width; x += tile) {
+                for (let y = 0; y < height; y += tile) {
+                  this.drawBiomeFloorTile(ctx, biome.id || "forest", style, x, y, tile, salt);
+                }
+              }
             }, { category: "background", biome: biome.id, asset: "floorTile" });
             addFrame(`backgrounds/${safeSlug(biome.id)}/room_crop.png`, 512, 320, (ctx) => {
               ctx.drawImage(bg, ROOM_PAD, ROOM_PAD, 512, 320, 0, 0, 512, 320);
@@ -25155,6 +25235,163 @@
       };
     }
 
+    biomePixelStyle(biome = {}) {
+      const base = BIOME_PIXEL_STYLES[biome?.id] || BIOME_PIXEL_STYLES.forest;
+      return {
+        ...base,
+        floorBase: biome?.floor || base.floorBase,
+        wallBase: biome?.wall || base.wallBase,
+        accent: biome?.accent || base.accent
+      };
+    }
+
+    tileHash(ix, iy, salt = 0) {
+      let h = Math.imul(ix | 0, 374761393) ^ Math.imul(iy | 0, 668265263) ^ Math.imul(Math.round(salt) | 0, 224682251);
+      h = Math.imul(h ^ (h >>> 13), 1274126177);
+      return ((h ^ (h >>> 16)) >>> 0) / 4294967295;
+    }
+
+    drawBiomeFloorTile(ctx, biomeId, style, x, y, tile, salt) {
+      const ix = Math.floor(x / tile);
+      const iy = Math.floor(y / tile);
+      const n = this.tileHash(ix, iy, salt);
+      const color = n > 0.72 ? style.floorDark : n < 0.28 ? style.floorAlt : style.floorBase;
+      this.spriteBlock(ctx, x, y, tile, tile, color);
+      this.spriteBlock(ctx, x, y, tile, 2, style.floorLight, 0.16);
+      this.spriteBlock(ctx, x, y, 2, tile, style.floorLight, 0.1);
+      this.spriteBlock(ctx, x, y + tile - 2, tile, 2, style.crack, 0.22);
+      this.spriteBlock(ctx, x + tile - 2, y, 2, tile, style.crack, 0.18);
+
+      const a = this.tileHash(ix, iy, salt + 17);
+      const b = this.tileHash(ix, iy, salt + 31);
+      if (biomeId === "forest") {
+        if (a > 0.42) {
+          this.spriteBlock(ctx, x + 10 + Math.floor(b * 18), y + 12, 12, 8, style.detailA, 0.5);
+          this.spriteBlock(ctx, x + 42, y + 38 + Math.floor(a * 8), 8, 6, style.detailA, 0.42);
+        }
+        if (b > 0.68) this.spriteBlock(ctx, x + 26, y + 30, 10, 7, style.detailB, 0.45);
+      } else if (biomeId === "frozen") {
+        this.spriteBlock(ctx, x + 12, y + 14 + Math.floor(a * 8), 32, 2, style.detailA, 0.24);
+        if (b > 0.48) {
+          this.spriteBlock(ctx, x + 18, y + 34, 22, 2, style.crack, 0.34);
+          this.spriteBlock(ctx, x + 38, y + 36, 2, 12, style.crack, 0.3);
+        }
+      } else if (biomeId === "lava") {
+        if (a > 0.36) {
+          this.spriteBlock(ctx, x + 8, y + 26, 44, 3, style.crack, 0.44);
+          this.spriteBlock(ctx, x + 24, y + 27, 16, 2, style.detailA, 0.58);
+        }
+        if (b > 0.72) this.spriteBlock(ctx, x + 48, y + 12, 7, 7, style.accent, 0.34);
+      } else if (biomeId === "neon") {
+        this.spriteBlock(ctx, x + 12, y + 16, 28, 2, style.detailA, 0.35);
+        this.spriteBlock(ctx, x + 38, y + 16, 2, 20, style.detailA, 0.3);
+        if (a > 0.62) this.spriteBlock(ctx, x + 18, y + 42, 30, 2, style.detailB, 0.32);
+      } else if (biomeId === "temple") {
+        this.spriteBlock(ctx, x + 8, y + 8, tile - 16, 2, style.detailB, 0.34);
+        this.spriteBlock(ctx, x + 8, y + tile - 10, tile - 16, 2, style.crack, 0.32);
+        if (a > 0.55) {
+          this.spriteBlock(ctx, x + 26, y + 24, 12, 4, style.detailA, 0.42);
+          this.spriteBlock(ctx, x + 30, y + 28, 4, 12, style.detailA, 0.34);
+        }
+      }
+    }
+
+    drawBiomeFloorRegion(ctx, biome, left, top, right, bottom, lowDetail = false) {
+      const style = this.biomePixelStyle(biome);
+      const floorLeft = Math.max(ROOM_PAD, left);
+      const floorTop = Math.max(ROOM_PAD, top);
+      const floorRight = Math.min(WORLD_W - ROOM_PAD, right);
+      const floorBottom = Math.min(WORLD_H - ROOM_PAD, bottom);
+      if (floorRight <= floorLeft || floorBottom <= floorTop) return;
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(floorLeft, floorTop, floorRight - floorLeft, floorBottom - floorTop);
+      ctx.clip();
+      ctx.fillStyle = style.floorBase;
+      ctx.fillRect(floorLeft, floorTop, floorRight - floorLeft, floorBottom - floorTop);
+      if (!lowDetail) {
+        const tile = style.tile || 64;
+        const salt = Math.round((this.run?.seed || 0) * 4096) + String(biome?.id || "").length * 97;
+        const sx = Math.floor(floorLeft / tile) * tile;
+        const sy = Math.floor(floorTop / tile) * tile;
+        for (let x = sx; x < floorRight; x += tile) {
+          for (let y = sy; y < floorBottom; y += tile) {
+            this.drawBiomeFloorTile(ctx, biome?.id || "forest", style, x, y, tile, salt);
+          }
+        }
+      }
+      ctx.restore();
+    }
+
+    drawBiomeWallRect(ctx, biome, style, left, top, right, bottom, lowDetail = false) {
+      const w = right - left;
+      const h = bottom - top;
+      if (w <= 0 || h <= 0) return;
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(left, top, w, h);
+      ctx.clip();
+      ctx.fillStyle = style.wallBase;
+      ctx.fillRect(left, top, w, h);
+      if (!lowDetail) {
+        const block = 48;
+        const salt = Math.round((this.run?.seed || 0) * 4096) + 331;
+        const sx = Math.floor(left / block) * block;
+        const sy = Math.floor(top / block) * block;
+        for (let x = sx; x < right; x += block) {
+          for (let y = sy; y < bottom; y += block) {
+            const n = this.tileHash(Math.floor(x / block), Math.floor(y / block), salt);
+            const color = n > 0.7 ? style.wallDark : n < 0.3 ? style.wallAlt : style.wallBase;
+            this.spriteBlock(ctx, x, y, block - 2, block - 2, color);
+            this.spriteBlock(ctx, x, y, block - 2, 2, style.wallLight, 0.16);
+            this.spriteBlock(ctx, x + block - 3, y, 2, block - 2, style.crack, 0.18);
+            if (n > 0.78) this.spriteBlock(ctx, x + 14, y + 18, 18, 3, style.accent, 0.24);
+          }
+        }
+      }
+      ctx.restore();
+    }
+
+    drawBiomeWalls(ctx, biome, viewLeft, viewTop, viewRight, viewBottom, lowDetail = false) {
+      const style = this.biomePixelStyle(biome);
+      this.drawBiomeWallRect(ctx, biome, style, viewLeft, viewTop, viewRight, Math.min(ROOM_PAD, viewBottom), lowDetail);
+      this.drawBiomeWallRect(ctx, biome, style, viewLeft, Math.max(viewTop, WORLD_H - ROOM_PAD), viewRight, viewBottom, lowDetail);
+      this.drawBiomeWallRect(ctx, biome, style, viewLeft, viewTop, Math.min(ROOM_PAD, viewRight), viewBottom, lowDetail);
+      this.drawBiomeWallRect(ctx, biome, style, Math.max(viewLeft, WORLD_W - ROOM_PAD), viewTop, viewRight, viewBottom, lowDetail);
+    }
+
+    drawRoomInnerPixelTrim(ctx, biome, viewLeft, viewTop, viewRight, viewBottom, lowDetail = false) {
+      if (lowDetail) return;
+      const style = this.biomePixelStyle(biome);
+      const floorLeft = Math.max(ROOM_PAD, viewLeft);
+      const floorRight = Math.min(WORLD_W - ROOM_PAD, viewRight);
+      const floorTop = Math.max(ROOM_PAD, viewTop);
+      const floorBottom = Math.min(WORLD_H - ROOM_PAD, viewBottom);
+      const fill = (x, y, w, h, color, alpha = 1) => {
+        if (w > 0 && h > 0) this.spriteBlock(ctx, x, y, w, h, color, alpha);
+      };
+      if (floorRight > floorLeft) {
+        if (viewTop <= ROOM_PAD + 24 && viewBottom >= ROOM_PAD) {
+          fill(floorLeft, ROOM_PAD, floorRight - floorLeft, 18, style.edgeShadow);
+          fill(floorLeft, ROOM_PAD, floorRight - floorLeft, 3, style.edgeLight);
+        }
+        if (viewBottom >= WORLD_H - ROOM_PAD - 24 && viewTop <= WORLD_H - ROOM_PAD) {
+          fill(floorLeft, WORLD_H - ROOM_PAD - 18, floorRight - floorLeft, 18, style.edgeShadow);
+          fill(floorLeft, WORLD_H - ROOM_PAD - 3, floorRight - floorLeft, 3, style.crack, 0.3);
+        }
+      }
+      if (floorBottom > floorTop) {
+        if (viewLeft <= ROOM_PAD + 24 && viewRight >= ROOM_PAD) {
+          fill(ROOM_PAD, floorTop, 18, floorBottom - floorTop, style.edgeShadow);
+          fill(ROOM_PAD, floorTop, 3, floorBottom - floorTop, style.edgeLight);
+        }
+        if (viewRight >= WORLD_W - ROOM_PAD - 24 && viewLeft <= WORLD_W - ROOM_PAD) {
+          fill(WORLD_W - ROOM_PAD - 18, floorTop, 18, floorBottom - floorTop, style.edgeShadow);
+          fill(WORLD_W - ROOM_PAD - 3, floorTop, 3, floorBottom - floorTop, style.crack, 0.3);
+        }
+      }
+    }
+
     roomBackgroundKey(lowDetail = false) {
       const biome = this.run?.biome || {};
       return [
@@ -25176,39 +25413,13 @@
       const canvas = this.createRenderCanvas(WORLD_W, WORLD_H);
       const bg = canvas.getContext("2d");
       if (!bg) return null;
+      const style = this.biomePixelStyle(biome);
       bg.imageSmoothingEnabled = false;
-      bg.fillStyle = "#05070b";
+      bg.fillStyle = style.void || "#05070b";
       bg.fillRect(0, 0, WORLD_W, WORLD_H);
-      bg.fillStyle = biome.floor;
-      bg.fillRect(ROOM_PAD, ROOM_PAD, WORLD_W - ROOM_PAD * 2, WORLD_H - ROOM_PAD * 2);
-      if (!lowDetail) {
-        const tile = 64;
-        for (let x = ROOM_PAD; x < WORLD_W - ROOM_PAD; x += tile) {
-          for (let y = ROOM_PAD; y < WORLD_H - ROOM_PAD; y += tile) {
-            const n = Math.sin(x * 0.04 + y * 0.03 + this.run.seed * 10);
-            bg.fillStyle = n > 0 ? "rgba(255,255,255,0.025)" : "rgba(0,0,0,0.08)";
-            bg.fillRect(x, y, tile - 2, tile - 2);
-            if ((x + y) % 192 === 0) {
-              bg.fillStyle = biome.accent;
-              bg.globalAlpha = 0.1;
-              bg.fillRect(x + 18, y + 18, 8, 8);
-              bg.globalAlpha = 1;
-            }
-          }
-        }
-      }
-      bg.fillStyle = biome.wall;
-      bg.fillRect(0, 0, WORLD_W, ROOM_PAD);
-      bg.fillRect(0, WORLD_H - ROOM_PAD, WORLD_W, ROOM_PAD);
-      bg.fillRect(0, 0, ROOM_PAD, WORLD_H);
-      bg.fillRect(WORLD_W - ROOM_PAD, 0, ROOM_PAD, WORLD_H);
-      if (!lowDetail) {
-        bg.fillStyle = "rgba(0,0,0,0.28)";
-        bg.fillRect(ROOM_PAD, ROOM_PAD, WORLD_W - ROOM_PAD * 2, 18);
-        bg.fillRect(ROOM_PAD, WORLD_H - ROOM_PAD - 18, WORLD_W - ROOM_PAD * 2, 18);
-        bg.fillRect(ROOM_PAD, ROOM_PAD, 18, WORLD_H - ROOM_PAD * 2);
-        bg.fillRect(WORLD_W - ROOM_PAD - 18, ROOM_PAD, 18, WORLD_H - ROOM_PAD * 2);
-      }
+      this.drawBiomeFloorRegion(bg, biome, 0, 0, WORLD_W, WORLD_H, lowDetail);
+      this.drawBiomeWalls(bg, biome, 0, 0, WORLD_W, WORLD_H, lowDetail);
+      this.drawRoomInnerPixelTrim(bg, biome, 0, 0, WORLD_W, WORLD_H, lowDetail);
       this.roomBackgroundCache.set(key, canvas);
       this.trimCache(this.roomBackgroundCache, 5);
       return canvas;
@@ -25216,6 +25427,7 @@
 
     drawRoom(ctx, lowDetail = false) {
       const biome = this.run.biome;
+      const style = this.biomePixelStyle(biome);
       const bounds = this.viewBounds(120);
       const viewLeft = Math.max(0, bounds.left);
       const viewTop = Math.max(0, bounds.top);
@@ -25235,17 +25447,17 @@
         return;
       }
       if (lowDetail && this.ultraPerformanceMode()) {
-        ctx.fillStyle = "#05070b";
+        ctx.fillStyle = style.void || "#05070b";
         ctx.fillRect(viewLeft, viewTop, viewW, viewH);
-        ctx.fillStyle = biome.floor;
+        ctx.fillStyle = style.floorBase;
         ctx.fillRect(viewLeft, viewTop, viewW, viewH);
-        ctx.fillStyle = "rgba(255,255,255,0.025)";
+        ctx.fillStyle = style.edgeLight || "rgba(255,255,255,0.025)";
         const grid = 128;
         const sx = Math.floor(viewLeft / grid) * grid;
         const sy = Math.floor(viewTop / grid) * grid;
         for (let x = sx; x < viewRight; x += grid) ctx.fillRect(x, viewTop, 2, viewH);
         for (let y = sy; y < viewBottom; y += grid) ctx.fillRect(viewLeft, y, viewW, 2);
-        ctx.fillStyle = biome.wall;
+        ctx.fillStyle = style.wallBase;
         if (viewTop < ROOM_PAD) ctx.fillRect(viewLeft, viewTop, viewW, Math.min(ROOM_PAD, viewBottom) - viewTop);
         if (viewBottom > WORLD_H - ROOM_PAD) ctx.fillRect(viewLeft, Math.max(viewTop, WORLD_H - ROOM_PAD), viewW, viewBottom - Math.max(viewTop, WORLD_H - ROOM_PAD));
         if (viewLeft < ROOM_PAD) ctx.fillRect(viewLeft, viewTop, Math.min(ROOM_PAD, viewRight) - viewLeft, viewH);
@@ -25502,7 +25714,7 @@
             }
             if (gold && opening > 0) {
               ctx.save();
-              ctx.globalCompositeOperation = "lighter";
+              ctx.globalCompositeOperation = "source-over";
               ctx.globalAlpha = 0.16 + opening * 0.28;
               ctx.fillStyle = "#fff0ad";
               ctx.beginPath();
@@ -25620,7 +25832,7 @@
       const color = object.color || this.run.biome.accent;
       const count = this.effectQuality() < 0.65 ? 7 : 12;
       ctx.save();
-      ctx.globalCompositeOperation = "lighter";
+      ctx.globalCompositeOperation = "source-over";
       for (let i = 0; i < count; i++) {
         const t = this.menuTime * (effect === "snow" ? 0.7 : 1.35) + i * 0.73;
         const angle = (i / count) * TAU + t * 0.32;
@@ -25799,7 +26011,7 @@
         strokeWidth: 3.6
       });
       if (!object.opened) {
-        ctx.globalCompositeOperation = "lighter";
+        ctx.globalCompositeOperation = "source-over";
         ctx.strokeStyle = color;
         ctx.lineWidth = 2;
         ctx.beginPath();
@@ -25839,7 +26051,7 @@
 
       if (opening > 0) {
         ctx.save();
-        ctx.globalCompositeOperation = "lighter";
+        ctx.globalCompositeOperation = "source-over";
         ctx.globalAlpha = 0.14 + opening * 0.38;
         ctx.fillStyle = "#fff0b8";
         ctx.beginPath();
@@ -26045,7 +26257,7 @@
       ctx.fillStyle = projectile.color;
       if (projectile.kind === "fireball") {
         const r = projectile.radius;
-        ctx.globalCompositeOperation = "lighter";
+        ctx.globalCompositeOperation = "source-over";
         ctx.globalAlpha = 0.5;
         ctx.fillStyle = "#ff3b1f";
         ctx.beginPath();
@@ -26132,7 +26344,7 @@
         ctx.stroke();
       } else if (projectile.kind === "shadow") {
         const r = projectile.radius;
-        ctx.globalCompositeOperation = "lighter";
+        ctx.globalCompositeOperation = "source-over";
         ctx.globalAlpha = 0.72;
         ctx.strokeStyle = "#05030d";
         ctx.lineWidth = Math.max(7, r * 0.8);
@@ -26326,7 +26538,7 @@
       const count = lowDetail ? 2 : (kind === "lightning" ? 4 : 3);
       const drift = kind === "lightning" ? 4.3 : kind === "fire" ? 3.1 : kind === "time" ? 2.0 : 2.5;
       ctx.save();
-      ctx.globalCompositeOperation = lowDetail ? "source-over" : "lighter";
+      ctx.globalCompositeOperation = "source-over";
       ctx.shadowBlur = 0;
       ctx.lineCap = "round";
       ctx.lineJoin = "round";
@@ -26366,7 +26578,7 @@
           ctx.strokeStyle = accent;
           ctx.lineWidth = lowDetail ? 1.8 : 2.2;
           ctx.shadowColor = color;
-          ctx.shadowBlur = lowDetail ? 0 : 4;
+          ctx.shadowBlur = 0;
           ctx.beginPath();
           ctx.moveTo(x - side * 14, y - 7);
           ctx.lineTo(x - side * 4, y - 1);
@@ -27347,7 +27559,7 @@
       }
       if (shadowWeaponActive) {
         ctx.save();
-        ctx.globalCompositeOperation = "lighter";
+        ctx.globalCompositeOperation = "source-over";
         ctx.lineCap = "round";
         ctx.lineJoin = "round";
         const ribbon = (sx, sy, cx, cy, ex, ey, width = 5, alphaValue = 0.42) => {
@@ -27359,7 +27571,7 @@
           ctx.moveTo(sx, sy);
           ctx.quadraticCurveTo(cx, cy, ex, ey);
           ctx.stroke();
-          ctx.globalCompositeOperation = "lighter";
+          ctx.globalCompositeOperation = "source-over";
           ctx.globalAlpha = alphaValue * 0.92;
           ctx.strokeStyle = "#8f72ff";
           ctx.lineWidth = Math.max(1.5, width * 0.42);
@@ -27378,7 +27590,7 @@
           ctx.beginPath();
           ctx.ellipse(0, 0, r * 0.72, r * 0.34, 0, 0, TAU);
           ctx.fill();
-          ctx.globalCompositeOperation = "lighter";
+          ctx.globalCompositeOperation = "source-over";
           ctx.globalAlpha = 0.34;
           ctx.strokeStyle = "#c7b6ff";
           ctx.lineWidth = 1.4;
@@ -27451,7 +27663,7 @@
       } else {
         const castPalette = this.powerDesignPalette(castKind, awakenedPowerActive);
         ctx.save();
-        ctx.globalCompositeOperation = "lighter";
+        ctx.globalCompositeOperation = "source-over";
         ctx.globalAlpha = anim === "ultimate" ? 0.7 : 0.55;
         ctx.strokeStyle = castPalette.accent;
         ctx.fillStyle = castPalette.color;
@@ -27629,7 +27841,7 @@
       if (enemy.flash > 0 && !useFlashFilter) {
         const alpha = clamp(enemy.flash * 1.6, 0.12, 0.38);
         const previousComposite = ctx.globalCompositeOperation;
-        ctx.globalCompositeOperation = "lighter";
+        ctx.globalCompositeOperation = "source-over";
         this.spriteBlock(ctx, -25, -37 + pulse + attackKick, 50, 50, "#ffffff", alpha);
         ctx.globalCompositeOperation = previousComposite;
       }
@@ -27717,7 +27929,7 @@
       if (enemy.flash > 0 && !useFlashFilter) {
         const alpha = clamp(enemy.flash * 1.45, 0.1, 0.34);
         const previousComposite = ctx.globalCompositeOperation;
-        ctx.globalCompositeOperation = "lighter";
+        ctx.globalCompositeOperation = "source-over";
         this.spriteBlock(ctx, -96 / exportScale, -112 / exportScale, 192 / exportScale, 192 / exportScale, "#ffffff", alpha);
         ctx.globalCompositeOperation = previousComposite;
       }
@@ -29083,6 +29295,7 @@
     }
 
     drawPowerStageVfx(ctx, effect) {
+      if (this.drawPixelPowerStageVfx(ctx, effect)) return;
       const maxTime = Math.max(0.001, Number(effect.maxTime || effect.time || 0.3));
       const progress = clamp(1 - Number(effect.time || 0) / maxTime, 0, 1);
       const fade = clamp(Math.sin(progress * Math.PI), 0, 1);
@@ -29277,9 +29490,9 @@
       };
 
       ctx.save();
-      ctx.globalCompositeOperation = lowDetail ? "source-over" : "lighter";
+      ctx.globalCompositeOperation = "source-over";
       ctx.shadowColor = color;
-      ctx.shadowBlur = lowDetail ? 0 : this.glow(stage === "impact" ? 10 : 5);
+      ctx.shadowBlur = 0;
       if (stage === "anticipation") {
         ctx.translate(x, y);
         const r = radius * (0.36 + progress * 0.08);
@@ -29329,7 +29542,7 @@
         ctx.beginPath();
         ctx.ellipse(0, 0, r * 0.68, r * 0.2, 0, 0, TAU);
         ctx.fill();
-        ctx.globalCompositeOperation = lowDetail ? "source-over" : "lighter";
+        ctx.globalCompositeOperation = "source-over";
         ring(0, 0, r * 0.7, 1.2, 0.22, accent);
         const marks = lowDetail ? 4 : 7;
         for (let i = 0; i < marks; i++) {
@@ -29375,7 +29588,7 @@
         ctx.fillStyle = effect.color;
         ctx.shadowColor = effect.color;
         ctx.shadowBlur = this.glow(18);
-        if (foreground) ctx.globalCompositeOperation = "lighter";
+        if (foreground) ctx.globalCompositeOperation = "source-over";
         if (effect.type === "powerBolt") {
           const maxTime = Math.max(0.01, effect.maxTime || effect.time || 0.12);
           const progress = clamp(1 - effect.time / maxTime, 0, 1);
@@ -29477,7 +29690,7 @@
           const maxTime = Math.max(0.1, effect.maxTime || 2.4);
           const progress = clamp(1 - effect.time / maxTime, 0, 1);
           const ring = 60 + progress * 210;
-          ctx.globalCompositeOperation = "lighter";
+          ctx.globalCompositeOperation = "source-over";
           ctx.globalAlpha = (1 - progress) * 0.72;
           ctx.lineWidth = 6;
           ctx.strokeStyle = effect.color || "#ff4b8f";
@@ -29525,7 +29738,7 @@
           ctx.moveTo(sx, sy);
           ctx.quadraticCurveTo(midX, midY, px, py);
           ctx.stroke();
-          ctx.globalCompositeOperation = "lighter";
+          ctx.globalCompositeOperation = "source-over";
           ctx.globalAlpha = fade * 0.58;
           ctx.strokeStyle = effect.color || "#7b5cff";
           ctx.lineWidth = 2.4;
@@ -29551,7 +29764,7 @@
           ctx.bezierCurveTo(size * 0.24, -size * 0.56, -size * 0.76, -size * 0.34, -size * 0.46, 0);
           ctx.bezierCurveTo(-size * 0.76, size * 0.34, size * 0.24, size * 0.56, size * 0.9, 0);
           ctx.fill();
-          ctx.globalCompositeOperation = "lighter";
+          ctx.globalCompositeOperation = "source-over";
           ctx.globalAlpha = fade * 0.68;
           ctx.strokeStyle = effect.edge || "#d7c4ff";
           ctx.lineWidth = 1.7;
@@ -29590,7 +29803,7 @@
           const fade = clamp(effect.time / 0.7, 0, 1);
           ctx.translate(effect.x, effect.y);
           ctx.rotate(effect.angle || 0);
-          ctx.globalCompositeOperation = "lighter";
+          ctx.globalCompositeOperation = "source-over";
           ctx.globalAlpha = 0.28 * fade;
           ctx.fillStyle = effect.color || "#ff4500";
           ctx.fillRect(-len * 0.5, -width * 0.5, len, width);
@@ -30058,7 +30271,7 @@
       ctx.restore();
       ctx.save();
       ctx.translate(effect.x, effect.y);
-      ctx.globalCompositeOperation = "lighter";
+      ctx.globalCompositeOperation = "source-over";
       ctx.globalAlpha = (0.46 + growProgress * 0.34) * Math.max(0.2, shrinkProgress);
       ctx.fillStyle = power.color;
       ctx.strokeStyle = power.accent;
@@ -30074,7 +30287,7 @@
       ctx.save();
       ctx.translate(effect.x, effect.y);
       ctx.rotate(spin);
-      ctx.globalCompositeOperation = "lighter";
+      ctx.globalCompositeOperation = "source-over";
       ctx.globalAlpha = (0.55 + growProgress * 0.25) * Math.max(0.25, shrinkProgress);
       for (let i = 0; i < count; i++) {
         const a = (i / count) * TAU;
@@ -30317,6 +30530,349 @@
       ctx.restore();
     }
 
+    pixelVfxActive() {
+      return true;
+    }
+
+    pixelVfxPalette(kind, effect = {}) {
+      const spec = this.powerVfxSpec(kind || "fire");
+      return {
+        color: effect.color || spec.color || "#d85a2a",
+        accent: effect.accent || spec.accent || "#e6b85a",
+        dark: effect.dark || spec.dark || "#10121f"
+      };
+    }
+
+    pixelVfxBlock(ctx, x, y, w, h, color, alpha = 1) {
+      if (!Number.isFinite(x) || !Number.isFinite(y) || !Number.isFinite(w) || !Number.isFinite(h) || alpha <= 0) return;
+      const rw = Math.max(1, Math.round(Math.abs(w)));
+      const rh = Math.max(1, Math.round(Math.abs(h)));
+      this.spriteBlock(ctx, x, y, rw, rh, color, clamp(alpha, 0, 1));
+    }
+
+    drawPixelVfxSteppedLine(ctx, x1, y1, x2, y2, color, alpha = 1, block = 5) {
+      const dx = x2 - x1;
+      const dy = y2 - y1;
+      const dist = Math.hypot(dx, dy);
+      if (!Number.isFinite(dist) || dist <= 0.1) return;
+      const step = Math.max(3, block * 1.15);
+      const count = Math.max(1, Math.ceil(dist / step));
+      const horizontal = Math.abs(dx) >= Math.abs(dy);
+      const bw = Math.max(2, Math.round(block * (horizontal ? 1.55 : 0.86)));
+      const bh = Math.max(2, Math.round(block * (horizontal ? 0.86 : 1.55)));
+      for (let i = 0; i <= count; i++) {
+        const t = i / count;
+        const x = x1 + dx * t;
+        const y = y1 + dy * t;
+        this.pixelVfxBlock(ctx, x - bw * 0.5, y - bh * 0.5, bw, bh, color, alpha);
+      }
+    }
+
+    drawPixelVfxJagged(ctx, length, amp, steps, color, alpha = 1, block = 5, seed = 0) {
+      const total = Math.max(8, Number(length) || 8);
+      const count = Math.max(2, Math.round(steps || 6));
+      let x = 0;
+      let y = 0;
+      for (let i = 1; i <= count; i++) {
+        const t = i / count;
+        const nextX = total * t;
+        const side = i % 2 ? 1 : -1;
+        const wobble = Math.sin(seed + i * 1.93 + t * 4.1) * amp * 0.22;
+        const nextY = side * amp * (0.62 + (i % 3) * 0.12) * (1 - t * 0.12) + wobble;
+        this.drawPixelVfxSteppedLine(ctx, x, y, nextX, nextY, color, alpha, block);
+        x = nextX;
+        y = nextY;
+      }
+    }
+
+    drawPixelVfxDiamond(ctx, x, y, width, height, color, alpha = 1, accent = "") {
+      const totalW = Math.max(4, Number(width) || 12);
+      const totalH = Math.max(4, Number(height) || totalW);
+      const rows = Math.max(2, Math.round(totalH / 10));
+      const rowH = Math.max(2, Math.round(totalH / (rows * 2 + 1)));
+      for (let row = -rows; row <= rows; row++) {
+        const t = 1 - Math.abs(row) / (rows + 0.55);
+        const rowW = Math.max(2, Math.round(totalW * t));
+        const colorForRow = accent && Math.abs(row) === rows ? accent : color;
+        this.pixelVfxBlock(ctx, x - rowW * 0.5, y + row * rowH - rowH * 0.5, rowW, rowH, colorForRow, alpha);
+      }
+      if (accent) this.pixelVfxBlock(ctx, x - Math.max(1, totalW * 0.08), y - totalH * 0.28, Math.max(2, totalW * 0.16), totalH * 0.56, accent, alpha * 0.62);
+    }
+
+    drawPixelVfxRing(ctx, radius, color, accent, alpha = 1, ticks = 12, block = 5, spin = 0) {
+      const count = Math.max(6, Math.round(ticks || 10));
+      const r = Math.max(6, Number(radius) || 24);
+      const s = Math.max(3, Math.round(block));
+      for (let i = 0; i < count; i++) {
+        const a = spin + i * TAU / count;
+        const c = i % 3 === 0 ? accent : color;
+        const scale = i % 3 === 0 ? 1.25 : 1;
+        this.pixelVfxBlock(ctx, Math.cos(a) * r - s * scale * 0.5, Math.sin(a) * r - s * scale * 0.5, s * scale, s * scale, c, alpha * (i % 2 ? 0.72 : 1));
+      }
+    }
+
+    drawPixelPowerMark(ctx, kind, size, color, accent, dark, alpha = 1) {
+      const s = Math.max(8, Number(size) || 18);
+      const b = (x, y, w, h, fill, a = alpha) => this.pixelVfxBlock(ctx, x, y, w, h, fill, a);
+      const diamond = (scale, fill = color, edge = accent, a = alpha) => this.drawPixelVfxDiamond(ctx, 0, 0, s * scale, s * scale * 1.08, fill, a, edge);
+      ctx.save();
+      ctx.globalCompositeOperation = "source-over";
+      ctx.shadowBlur = 0;
+      if (kind === "fire") {
+        b(-s * 0.16, -s * 0.72, s * 0.32, s * 0.36, accent, alpha);
+        b(-s * 0.36, -s * 0.34, s * 0.72, s * 0.46, color, alpha);
+        b(-s * 0.24, s * 0.04, s * 0.48, s * 0.46, color, alpha * 0.9);
+        b(-s * 0.1, -s * 0.28, s * 0.2, s * 0.52, accent, alpha * 0.72);
+      } else if (kind === "ice") {
+        b(-s * 0.08, -s * 0.72, s * 0.16, s * 1.44, accent, alpha);
+        b(-s * 0.72, -s * 0.08, s * 1.44, s * 0.16, accent, alpha);
+        b(-s * 0.5, -s * 0.5, s * 0.2, s * 0.2, color, alpha * 0.8);
+        b(s * 0.3, -s * 0.5, s * 0.2, s * 0.2, color, alpha * 0.8);
+        b(-s * 0.5, s * 0.3, s * 0.2, s * 0.2, color, alpha * 0.8);
+        b(s * 0.3, s * 0.3, s * 0.2, s * 0.2, color, alpha * 0.8);
+      } else if (kind === "lightning") {
+        ctx.save();
+        ctx.translate(-s * 0.52, -s * 0.32);
+        this.drawPixelVfxJagged(ctx, s * 1.15, s * 0.22, 4, accent, alpha, Math.max(3, s * 0.14));
+        ctx.restore();
+        b(-s * 0.02, -s * 0.06, s * 0.34, s * 0.2, color, alpha * 0.9);
+      } else if (kind === "shadow") {
+        b(-s * 0.48, -s * 0.48, s * 0.96, s * 0.96, dark, alpha * 0.86);
+        b(-s * 0.28, -s * 0.28, s * 0.56, s * 0.56, color, alpha * 0.48);
+        b(s * 0.22, -s * 0.5, s * 0.22, s * 0.22, accent, alpha * 0.76);
+      } else if (kind === "blood") {
+        b(-s * 0.16, -s * 0.7, s * 0.32, s * 0.32, accent, alpha * 0.82);
+        b(-s * 0.34, -s * 0.38, s * 0.68, s * 0.54, color, alpha);
+        b(-s * 0.24, s * 0.12, s * 0.48, s * 0.36, dark, alpha * 0.78);
+      } else if (kind === "gravity") {
+        b(-s * 0.34, -s * 0.34, s * 0.68, s * 0.68, dark, alpha * 0.9);
+        ctx.globalAlpha = alpha;
+        ctx.strokeStyle = accent;
+        ctx.lineWidth = Math.max(2, s * 0.1);
+        ctx.strokeRect(-s * 0.58, -s * 0.58, s * 1.16, s * 1.16);
+        ctx.strokeRect(-s * 0.82, -s * 0.82, s * 1.64, s * 1.64);
+      } else if (kind === "crystal") {
+        diamond(1.15, color, accent, alpha);
+        b(-s * 0.08, -s * 0.58, s * 0.16, s * 1.16, accent, alpha * 0.58);
+      } else if (kind === "nature") {
+        b(-s * 0.08, -s * 0.54, s * 0.16, s * 1.08, dark, alpha * 0.72);
+        this.drawPixelVfxDiamond(ctx, -s * 0.22, -s * 0.1, s * 0.62, s * 0.38, color, alpha, accent);
+        this.drawPixelVfxDiamond(ctx, s * 0.22, s * 0.12, s * 0.58, s * 0.34, color, alpha * 0.9, accent);
+      } else if (kind === "void") {
+        b(-s * 0.56, -s * 0.28, s * 1.12, s * 0.56, dark, alpha * 0.94);
+        b(-s * 0.34, -s * 0.48, s * 0.68, s * 0.96, dark, alpha * 0.76);
+        b(-s * 0.42, -s * 0.06, s * 0.22, s * 0.12, accent, alpha * 0.78);
+        b(s * 0.2, s * 0.18, s * 0.28, s * 0.12, accent, alpha * 0.62);
+      } else if (kind === "time") {
+        this.drawPixelVfxRing(ctx, s * 0.62, color, accent, alpha, 12, Math.max(3, s * 0.13));
+        b(-s * 0.05, -s * 0.08, s * 0.1, s * 0.46, accent, alpha);
+        b(-s * 0.04, -s * 0.04, s * 0.44, s * 0.08, accent, alpha);
+      } else {
+        diamond(1, color, accent, alpha);
+      }
+      ctx.restore();
+    }
+
+    drawPixelSkillShape(ctx, effect, progress, fade, radius, length, kind, accent, variant = "") {
+      if (!this.pixelVfxActive() || !kind) return false;
+      const palette = this.pixelVfxPalette(kind, effect);
+      const color = palette.color;
+      const edge = accent || palette.accent;
+      const dark = palette.dark;
+      const key = this.skillExportKey(effect) || (/(domain|ultimate)/i.test(variant) ? "f" : String(effect.key || effect.skillKey || "q").toLowerCase());
+      const signature = (POWER_SKILL_SIGNATURES[kind] || {})[key] || {};
+      const r = Math.max(28, Number(radius || signature.radius || 120));
+      const len = Math.max(24, Number(length || signature.length || r));
+      const width = Math.max(16, Number(effect.width || signature.width || r * 0.34));
+      const line = signature.anchor === "line" || len > r * 1.18;
+      const seed = Number(effect.seed || 0);
+      const block = Math.max(4, Math.round((this.isMobileDevice() || this.effectQuality() < 0.72) ? 6 : 5));
+      const awakened = Boolean(effect.awakened || String(variant).startsWith("awakened-") || String(variant).startsWith("design-awakened-"));
+      const alpha = Math.min(0.92, Math.max(0, fade) * (awakened ? 0.98 : 0.88));
+      const pulse = 0.86 + Math.sin(progress * Math.PI) * 0.18;
+
+      ctx.save();
+      ctx.translate(Math.round(effect.x || 0), Math.round(effect.y || 0));
+      ctx.rotate(effect.angle || 0);
+      ctx.globalCompositeOperation = "source-over";
+      ctx.shadowBlur = 0;
+      ctx.lineCap = "butt";
+      ctx.lineJoin = "miter";
+
+      if (line) {
+        const visibleLen = Math.max(32, len * (0.76 + progress * 0.12));
+        const bodyW = Math.max(12, width * (key === "f" ? 0.82 : 0.66));
+        this.pixelVfxBlock(ctx, 8, -bodyW * 0.22, visibleLen * 0.78, bodyW * 0.44, dark, alpha * (kind === "shadow" || kind === "void" ? 0.48 : 0.16));
+        if (kind === "fire") {
+          const chunks = key === "r" || key === "f" ? 9 : 7;
+          for (let i = 0; i < chunks; i++) {
+            const t = i / Math.max(1, chunks - 1);
+            const x = 18 + visibleLen * t * 0.88;
+            const h = bodyW * (0.38 + (i % 3) * 0.12) * (1 - t * 0.18);
+            const y = Math.sin(seed + i * 1.7 + progress * 5) * bodyW * 0.16;
+            this.pixelVfxBlock(ctx, x - h * 0.15, y - h * 0.5, h * 1.25, h, i % 3 === 0 ? edge : color, alpha * (0.72 + t * 0.18));
+          }
+          this.drawPixelVfxJagged(ctx, visibleLen * 0.78, bodyW * 0.12, 5, edge, alpha * 0.76, block, seed);
+        } else if (kind === "lightning") {
+          this.drawPixelVfxJagged(ctx, visibleLen, bodyW * 0.42, key === "r" || key === "f" ? 9 : 7, edge, alpha, block, seed + progress * 2);
+          this.drawPixelVfxJagged(ctx, visibleLen * 0.82, bodyW * 0.22, 5, color, alpha * 0.72, Math.max(3, block - 1), seed + 4);
+        } else if (kind === "ice" || kind === "crystal") {
+          this.pixelVfxBlock(ctx, 0, -block * 0.5, visibleLen * 0.88, block, edge, alpha * 0.86);
+          const shards = key === "r" || key === "f" ? 6 : 4;
+          for (let i = 1; i <= shards; i++) {
+            const t = i / (shards + 1);
+            const side = i % 2 ? 1 : -1;
+            this.drawPixelVfxDiamond(ctx, visibleLen * t, side * bodyW * 0.26, bodyW * 0.34, bodyW * 0.54, i % 2 ? color : edge, alpha * 0.78, edge);
+          }
+        } else if (kind === "shadow" || kind === "void") {
+          this.drawPixelVfxJagged(ctx, visibleLen * 0.92, bodyW * 0.26, 6, dark, alpha * 0.9, block + 2, seed);
+          this.drawPixelVfxJagged(ctx, visibleLen * 0.82, bodyW * 0.14, 5, edge, alpha * 0.72, Math.max(3, block - 1), seed + 2);
+          for (let i = 0; i < 5; i++) this.pixelVfxBlock(ctx, visibleLen * (0.18 + i * 0.14), (i % 2 ? -1 : 1) * bodyW * 0.34, block * 1.2, block * 1.2, color, alpha * 0.38);
+        } else if (kind === "blood") {
+          const slashes = key === "r" || key === "f" ? 5 : 3;
+          for (let i = 0; i < slashes; i++) {
+            const y = (i - (slashes - 1) / 2) * bodyW * 0.2;
+            this.drawPixelVfxSteppedLine(ctx, 0, y, visibleLen * (0.76 + i * 0.03), y + Math.sin(i + seed) * bodyW * 0.12, i % 2 ? edge : color, alpha * 0.82, block + (i % 2));
+          }
+        } else if (kind === "gravity") {
+          this.pixelVfxBlock(ctx, 4, -bodyW * 0.35, visibleLen * 0.82, bodyW * 0.7, dark, alpha * 0.36);
+          for (let i = 0; i < 4; i++) {
+            const t = (i + 1) / 5;
+            const s = bodyW * (0.2 + i * 0.04);
+            ctx.save();
+            ctx.translate(visibleLen * t, Math.sin(seed + i) * bodyW * 0.12);
+            ctx.rotate((i % 2 ? 1 : -1) * 0.22);
+            ctx.globalAlpha = alpha * 0.8;
+            ctx.strokeStyle = i % 2 ? edge : color;
+            ctx.lineWidth = Math.max(2, block * 0.45);
+            ctx.strokeRect(-s, -s, s * 2, s * 2);
+            ctx.restore();
+          }
+        } else if (kind === "nature") {
+          this.drawPixelVfxJagged(ctx, visibleLen * 0.9, bodyW * 0.18, 6, dark, alpha * 0.74, block, seed);
+          for (let i = 1; i <= 6; i++) {
+            const t = i / 7;
+            const side = i % 2 ? 1 : -1;
+            this.drawPixelVfxDiamond(ctx, visibleLen * t, side * bodyW * 0.28, bodyW * 0.36, bodyW * 0.2, color, alpha * 0.78, edge);
+          }
+        } else if (kind === "time") {
+          this.pixelVfxBlock(ctx, 0, -block * 0.5, visibleLen * 0.82, block, edge, alpha * 0.76);
+          for (let i = 0; i < 7; i++) {
+            const x = visibleLen * (0.12 + i * 0.1);
+            this.pixelVfxBlock(ctx, x, (i % 2 ? -1 : 1) * bodyW * 0.22, block, block, i % 2 ? color : edge, alpha * 0.68);
+          }
+          ctx.save();
+          ctx.translate(visibleLen * 0.88, 0);
+          this.drawPixelPowerMark(ctx, kind, bodyW * 0.82, color, edge, dark, alpha);
+          ctx.restore();
+        } else {
+          this.drawPixelVfxJagged(ctx, visibleLen * 0.86, bodyW * 0.2, 5, edge, alpha * 0.82, block, seed);
+        }
+        this.drawPixelVfxDiamond(ctx, visibleLen * 0.9, 0, bodyW * 0.62, bodyW * 0.62, edge, alpha * 0.82, color);
+        ctx.restore();
+        return true;
+      }
+
+      const ringR = r * (key === "f" || /domain|ultimate/i.test(variant) ? 0.72 : key === "r" ? 0.62 : 0.48) * pulse;
+      const ticks = key === "f" ? 18 : key === "r" ? 14 : 10;
+      this.drawPixelVfxRing(ctx, ringR, color, edge, alpha * 0.8, ticks, block + (key === "f" ? 1 : 0), seed + progress * (kind === "time" ? -0.6 : 0.6));
+      if (key === "f" || /domain|ultimate/i.test(variant)) this.drawPixelVfxRing(ctx, ringR * 0.62, edge, color, alpha * 0.44, 10, block, -seed - progress * 0.4);
+
+      if (kind === "lightning") {
+        const rays = key === "r" || key === "f" ? 8 : 6;
+        for (let i = 0; i < rays; i++) {
+          ctx.save();
+          ctx.rotate(i * TAU / rays + seed * 0.1);
+          this.drawPixelVfxJagged(ctx, ringR * 0.72, ringR * 0.08, 4, i % 2 ? color : edge, alpha * 0.7, block, seed + i);
+          ctx.restore();
+        }
+      } else if (kind === "fire" || kind === "blood") {
+        const chunks = kind === "fire" ? 9 : 7;
+        for (let i = 0; i < chunks; i++) {
+          const a = i * TAU / chunks + seed * 0.04;
+          const dist = ringR * (0.42 + (i % 3) * 0.08);
+          const s = block * (1.4 + (i % 2) * 0.55);
+          this.pixelVfxBlock(ctx, Math.cos(a) * dist - s * 0.5, Math.sin(a) * dist - s * 0.5, s, s, i % 3 ? color : edge, alpha * 0.64);
+        }
+      } else if (kind === "shadow" || kind === "void") {
+        this.pixelVfxBlock(ctx, -ringR * 0.38, -ringR * 0.18, ringR * 0.76, ringR * 0.36, dark, alpha * 0.34);
+        for (let i = 0; i < 8; i++) {
+          const a = i * TAU / 8 + progress * 0.5;
+          this.pixelVfxBlock(ctx, Math.cos(a) * ringR * 0.46 - block * 0.5, Math.sin(a) * ringR * 0.28 - block * 0.5, block, block, i % 2 ? edge : color, alpha * 0.48);
+        }
+      } else if (kind === "ice" || kind === "crystal" || kind === "nature") {
+        const shards = kind === "nature" ? 7 : 8;
+        for (let i = 0; i < shards; i++) {
+          const a = i * TAU / shards;
+          ctx.save();
+          ctx.translate(Math.cos(a) * ringR * 0.58, Math.sin(a) * ringR * 0.58);
+          ctx.rotate(a);
+          this.drawPixelVfxDiamond(ctx, 0, 0, block * (kind === "nature" ? 2.2 : 2.8), block * (kind === "nature" ? 1.3 : 3.4), i % 2 ? color : edge, alpha * 0.64, edge);
+          ctx.restore();
+        }
+      } else if (kind === "gravity") {
+        for (let i = 0; i < 3; i++) {
+          const s = ringR * (0.42 + i * 0.18);
+          ctx.save();
+          ctx.rotate(i * 0.33 + progress * 0.35);
+          ctx.globalAlpha = alpha * (0.34 + i * 0.1);
+          ctx.strokeStyle = i % 2 ? edge : color;
+          ctx.lineWidth = Math.max(2, block * 0.48);
+          ctx.strokeRect(-s * 0.5, -s * 0.5, s, s);
+          ctx.restore();
+        }
+      } else if (kind === "time") {
+        this.drawPixelVfxRing(ctx, ringR * 0.72, edge, color, alpha * 0.56, 12, block, progress * -0.7);
+      }
+
+      this.drawPixelPowerMark(ctx, kind, Math.max(20, r * (key === "f" ? 0.2 : 0.16)), color, edge, dark, alpha);
+      ctx.restore();
+      return true;
+    }
+
+    drawPixelPowerStageVfx(ctx, effect) {
+      if (!this.pixelVfxActive() || !effect) return false;
+      const maxTime = Math.max(0.001, Number(effect.maxTime || effect.time || 0.3));
+      const progress = clamp(1 - Number(effect.time || 0) / maxTime, 0, 1);
+      const fade = clamp(Math.sin(progress * Math.PI), 0, 1);
+      const stage = effect.stage || "cast";
+      const kind = effect.kind || "fire";
+      const palette = this.pixelVfxPalette(kind, effect);
+      const x = Number(effect.x || 0);
+      const y = Number(effect.y || 0);
+      const tx = Number.isFinite(effect.tx) ? effect.tx : x + Math.cos(effect.angle || 0) * Number(effect.length || effect.radius || 80);
+      const ty = Number.isFinite(effect.ty) ? effect.ty : y + Math.sin(effect.angle || 0) * Number(effect.length || effect.radius || 80);
+      const dx = tx - x;
+      const dy = ty - y;
+      const len = Math.max(1, Math.hypot(dx, dy));
+      const angle = Number.isFinite(effect.angle) ? effect.angle : Math.atan2(dy, dx);
+      const radius = Math.max(24, Number(effect.radius || 72));
+      const width = Math.max(16, Number(effect.width || 34));
+      const key = effect.key || "q";
+      if (stage === "travel") {
+        return this.drawPixelSkillShape(ctx, { ...effect, x, y, angle, radius: Math.max(34, width * 1.9), length: len, width, color: palette.color, accent: palette.accent, dark: palette.dark, key }, progress, fade, Math.max(34, width * 1.9), len, kind, palette.accent, `stage-${stage}`);
+      }
+      if (stage === "aftermath") {
+        ctx.save();
+        ctx.translate(Math.round(x), Math.round(y));
+        ctx.globalCompositeOperation = "source-over";
+        ctx.shadowBlur = 0;
+        const block = Math.max(5, this.isMobileDevice() ? 7 : 6);
+        const alpha = fade * 0.42;
+        this.pixelVfxBlock(ctx, -radius * 0.34, -radius * 0.09, radius * 0.68, radius * 0.18, kind === "shadow" || kind === "void" ? palette.dark : palette.color, alpha * 0.5);
+        this.drawPixelVfxRing(ctx, radius * 0.52, palette.color, palette.accent, alpha, 8, block, Number(effect.seed || 0));
+        for (let i = 0; i < 6; i++) {
+          const a = i * TAU / 6 + Number(effect.seed || 0);
+          this.pixelVfxBlock(ctx, Math.cos(a) * radius * 0.32 - block * 0.5, Math.sin(a) * radius * 0.16 - block * 0.5, block, block, i % 2 ? palette.accent : palette.color, alpha * 0.74);
+        }
+        ctx.restore();
+        return true;
+      }
+      const stageRadius = stage === "impact" ? radius * 0.9 : stage === "anticipation" ? radius * 0.58 : radius * 0.66;
+      const stageFade = fade * (stage === "anticipation" ? 0.62 : stage === "cast" ? 0.78 : 1);
+      return this.drawPixelSkillShape(ctx, { ...effect, x, y, angle, radius: stageRadius, length: stageRadius * 0.96, width, color: palette.color, accent: palette.accent, dark: palette.dark, key }, progress, stageFade, stageRadius, stageRadius * 0.96, kind, palette.accent, `stage-${stage}`);
+    }
+
     drawFastSkillShape(ctx, effect, progress, alpha, radius, length, kind, accent) {
       const r = Math.max(24, radius || 120);
       const len = Math.max(r, length || r);
@@ -30424,6 +30980,7 @@
       const quality = this.effectQuality();
       const lowDetail = this.isMobileDevice() || quality < 0.74;
       if (quality < 0.52 && effect.variant !== "ultimate" && progress > 0.62) return;
+      if (this.drawPixelSkillShape(ctx, effect, progress, fade, r, length, kind, accent, variant)) return;
       if (this.drawExportedSkillShape(ctx, effect, progress, fade, r)) return;
       ctx.translate(effect.x, effect.y);
       ctx.rotate(effect.angle || 0);
@@ -30434,7 +30991,7 @@
       ctx.strokeStyle = accent;
       ctx.fillStyle = effect.color;
       ctx.shadowColor = effect.color;
-      ctx.shadowBlur = lowDetail ? 0 : this.glow(10);
+      ctx.shadowBlur = 0;
       if (this.fastVisualMode() && effect.variant !== "ultimate" && !effect.awakened && !variant.startsWith("awakened-")) {
         this.drawFastSkillShape(ctx, effect, progress, alpha, r, length, kind, accent);
         return;
@@ -30524,7 +31081,7 @@
         ctx.lineCap = "round";
         ctx.lineJoin = "round";
         if (!lowDetail) {
-          ctx.globalCompositeOperation = "screen";
+          ctx.globalCompositeOperation = "source-over";
           ctx.globalAlpha = alpha * 0.38;
           ctx.strokeStyle = color;
           ctx.lineWidth = 13 * widthScale;
@@ -30545,7 +31102,7 @@
         if (!points.length) return;
         ctx.save();
         ctx.shadowBlur = 0;
-        ctx.globalCompositeOperation = lowDetail ? "source-over" : "screen";
+        ctx.globalCompositeOperation = "source-over";
         ctx.globalAlpha = alpha * fillAlpha;
         ctx.fillStyle = effect.color;
         ctx.beginPath();
@@ -30651,7 +31208,7 @@
         ctx.fillStyle = effect.color;
       };
       const drawDomainSeal = () => {
-        ctx.globalCompositeOperation = "lighter";
+        ctx.globalCompositeOperation = "source-over";
         ctx.globalAlpha = alpha * (effect.awakened ? 0.78 : 0.62);
         ctx.lineWidth = effect.awakened ? 4 : 3;
         ctx.strokeStyle = accent;
@@ -30847,12 +31404,6 @@
             if (glow <= 0.02 && designKey !== "f") return;
             const coreRadius = radius * (0.42 + glow * 0.24);
             ctx.save();
-            ctx.globalCompositeOperation = lowDetail ? "source-over" : "screen";
-            ctx.globalAlpha = alpha * (0.12 + glow * 0.24);
-            ctx.fillStyle = options.darkFill || (designKind === "void" || designKind === "shadow" ? "#000000" : effect.color);
-            ctx.beginPath();
-            ctx.arc(0, 0, radius * (0.9 + glow * 0.28), 0, TAU);
-            ctx.fill();
             ctx.globalCompositeOperation = "source-over";
             ctx.globalAlpha = alpha * (0.5 + glow * 0.32);
             ctx.strokeStyle = accent;
@@ -30860,20 +31411,7 @@
             ctx.beginPath();
             ctx.arc(0, 0, coreRadius, 0, TAU);
             ctx.stroke();
-            ctx.globalAlpha = alpha * (0.36 + glow * 0.42);
-            ctx.lineWidth = Math.max(1.2, radius * 0.022);
-            ctx.strokeStyle = options.rayColor || accent;
-            for (let i = 0; i < rays; i++) {
-              const a = (i / rays) * TAU + (effect.seed || 0) * 0.12 + progress * (designKind === "time" ? -0.7 : 0.7);
-              const inner = radius * (0.34 + (i % 2) * 0.08);
-              const outer = radius * (0.72 + glow * 0.2 + (i % 3) * 0.035);
-              ctx.beginPath();
-              ctx.moveTo(Math.cos(a) * inner, Math.sin(a) * inner);
-              ctx.lineTo(Math.cos(a) * outer, Math.sin(a) * outer);
-              ctx.stroke();
-            }
             if (!lowDetail) {
-              ctx.globalCompositeOperation = "lighter";
               ctx.globalAlpha = alpha * (0.42 + glow * 0.34);
               drawPowerSigilCenter(Math.max(10, radius * (0.12 + glow * 0.035)));
             }
@@ -30885,8 +31423,9 @@
             ctx.globalAlpha = alpha * 0.68;
             ctx.strokeStyle = color;
             ctx.lineWidth = 1.6;
-            for (let i = 0; i < count; i++) {
-              const t = (i + 1) / (count + 1);
+            const shineCount = Math.min(count, lowDetail ? 2 : 3);
+            for (let i = 0; i < shineCount; i++) {
+              const t = (i + 1) / (shineCount + 1);
               const wobble = Math.sin((effect.seed || 0) + i * 1.7 + progress * 8) * width * 0.08;
               ctx.beginPath();
               ctx.moveTo(len * t - width * 0.2, -width * 0.34 + wobble);
@@ -32015,7 +32554,7 @@
       if (kind === "fire") {
         ctx.lineWidth = 3 + progress * 4;
         if (variant === "fireFang") {
-          ctx.globalCompositeOperation = "lighter";
+          ctx.globalCompositeOperation = "source-over";
           ctx.lineWidth = 3;
           ctx.globalAlpha = alpha * 0.9;
           ctx.fillStyle = effect.color;
@@ -32210,7 +32749,7 @@
       } else if (kind === "lightning") {
         ctx.lineWidth = 5;
         if (variant === "lightningFork") {
-          ctx.globalCompositeOperation = "lighter";
+          ctx.globalCompositeOperation = "source-over";
           ctx.strokeStyle = accent;
           ctx.lineWidth = 6;
           jaggedLine(length, 24, lowDetail ? 6 : 9);
@@ -32307,7 +32846,7 @@
           ctx.arc(0, 0, r * 0.46, 0.4, Math.PI * 1.75);
           ctx.stroke();
         } else if (variant === "shadowTwinCleave") {
-          ctx.globalCompositeOperation = "lighter";
+          ctx.globalCompositeOperation = "source-over";
           for (let side = -1; side <= 1; side += 2) {
             ctx.save();
             ctx.translate(0, side * 34);
@@ -32339,7 +32878,7 @@
           ctx.bezierCurveTo(r * 0.06, -r * 0.28 + spread + sway, r * 0.4, r * 0.2 - spread * 0.2, r * 0.66, spread * 0.18);
           ctx.stroke();
         }
-        ctx.globalCompositeOperation = "lighter";
+        ctx.globalCompositeOperation = "source-over";
         ctx.globalAlpha = alpha * 0.34;
         ctx.strokeStyle = "#d7c4ff";
         ctx.lineWidth = 1.5;
@@ -32361,7 +32900,7 @@
             ctx.beginPath();
             ctx.ellipse(r * 0.28, side * 42, 16, 30, 0.4 * side, 0, TAU);
             ctx.fill();
-            ctx.globalCompositeOperation = "lighter";
+            ctx.globalCompositeOperation = "source-over";
           }
         }
         }
@@ -32789,7 +33328,7 @@
       }
 
       if (variant.startsWith("awakened-") || effect.awakened) {
-        ctx.globalCompositeOperation = "lighter";
+        ctx.globalCompositeOperation = "source-over";
         ctx.globalAlpha = alpha * (lowDetail ? 0.38 : 0.56);
         ctx.strokeStyle = accent;
         ctx.lineWidth = lowDetail ? 2 : 3;
@@ -32826,129 +33365,55 @@
       const alpha = clamp(effect.time / effect.maxTime, 0, 1);
       const r = effect.radius * (1.05 - alpha * 0.25);
       const subtle = Boolean(effect.subtle);
-      ctx.globalAlpha = Math.min(subtle ? 0.46 : 0.8, alpha * (subtle ? 0.82 : 1));
-      ctx.strokeStyle = effect.color;
-      ctx.fillStyle = effect.accent || effect.color;
-      ctx.lineWidth = subtle ? 2 : 3 + alpha * 3;
-      ctx.shadowColor = effect.color;
-      ctx.shadowBlur = subtle ? this.glow(7) : this.glow(20);
-      ctx.translate(effect.x, effect.y);
-      ctx.rotate((effect.angle || 0) + (1 - alpha) * (effect.kind === "time" ? -0.45 : 0.45));
-      ctx.beginPath();
-      ctx.arc(0, 0, r * (subtle ? 0.34 : 0.18), 0, TAU);
-      ctx.stroke();
+      const kind = effect.kind || "fire";
+      const palette = this.pixelVfxPalette(kind, effect);
+      const color = palette.color;
+      const accent = palette.accent;
+      const dark = palette.dark;
+      const block = Math.max(5, this.isMobileDevice() ? 8 : 7);
+      const glyphAlpha = Math.min(subtle ? 0.46 : 0.82, alpha * (subtle ? 0.78 : 0.92));
+
+      ctx.translate(Math.round(effect.x), Math.round(effect.y));
+      ctx.rotate((effect.angle || 0) + (1 - alpha) * (kind === "time" ? -0.45 : 0.45));
+      ctx.globalCompositeOperation = "source-over";
+      ctx.shadowBlur = 0;
+
       if (subtle) {
-        ctx.globalAlpha = Math.min(0.34, alpha * 0.6);
-        ctx.beginPath();
-        ctx.arc(0, 0, r * 0.58, 0, TAU);
-        ctx.stroke();
-        ctx.strokeStyle = effect.accent || effect.color;
-        ctx.globalAlpha = Math.min(0.42, alpha * 0.7);
-        for (let i = 0; i < 6; i++) {
-          const a = (i / 6) * TAU;
-          ctx.beginPath();
-          ctx.moveTo(Math.cos(a) * r * 0.68, Math.sin(a) * r * 0.68);
-          ctx.lineTo(Math.cos(a) * r * 0.82, Math.sin(a) * r * 0.82);
-          ctx.stroke();
+        this.drawPixelVfxRing(ctx, r * 0.52, color, accent, glyphAlpha * 0.56, 8, block, alpha * 0.3);
+        for (let i = 0; i < 4; i++) {
+          const a = i * TAU / 4;
+          this.pixelVfxBlock(ctx, Math.cos(a) * r * 0.72 - block * 0.5, Math.sin(a) * r * 0.72 - block * 0.5, block, block, accent, glyphAlpha * 0.42);
         }
-        ctx.globalAlpha = Math.min(0.32, alpha * 0.55);
-        ctx.fillStyle = effect.accent || effect.color;
-        ctx.beginPath();
-        ctx.arc(0, 0, Math.max(4, r * 0.06), 0, TAU);
-        ctx.fill();
+        this.pixelVfxBlock(ctx, -block * 0.5, -block * 0.5, block, block, accent, glyphAlpha * 0.6);
         return;
       }
-      if (effect.kind === "fire") {
-        for (let i = -2; i <= 2; i++) {
-          ctx.beginPath();
-          ctx.moveTo(i * 18, -r * 0.12);
-          ctx.lineTo(i * 28 + 14, -r * 0.55);
-          ctx.lineTo(i * 36 + 4, r * 0.28);
-          ctx.closePath();
-          ctx.stroke();
-        }
-      } else if (effect.kind === "ice") {
-        for (let i = 0; i < 8; i++) {
-          const a = (i / 8) * TAU;
-          ctx.beginPath();
-          ctx.moveTo(Math.cos(a) * r * 0.18, Math.sin(a) * r * 0.18);
-          ctx.lineTo(Math.cos(a) * r * 0.65, Math.sin(a) * r * 0.65);
-          ctx.stroke();
-          ctx.strokeRect(Math.cos(a) * r * 0.45 - 5, Math.sin(a) * r * 0.45 - 5, 10, 10);
-        }
-      } else if (effect.kind === "lightning") {
-        ctx.beginPath();
-        ctx.moveTo(-r * 0.55, -r * 0.1);
-        ctx.lineTo(-r * 0.15, -r * 0.32);
-        ctx.lineTo(-r * 0.28, r * 0.04);
-        ctx.lineTo(r * 0.34, -r * 0.12);
-        ctx.lineTo(r * 0.02, r * 0.42);
-        ctx.stroke();
-      } else if (effect.kind === "shadow") {
-        for (let i = 0; i < 3; i++) {
-          ctx.strokeRect(-r * 0.5 + i * 18, -r * 0.32 + i * 10, r * 0.8, r * 0.36);
-        }
-      } else if (effect.kind === "blood") {
-        for (let i = 0; i < 7; i++) {
-          const a = (i / 7) * TAU;
-          ctx.beginPath();
-          ctx.arc(Math.cos(a) * r * 0.35, Math.sin(a) * r * 0.25, 8 + i % 2 * 4, 0, TAU);
-          ctx.fill();
-        }
-      } else if (effect.kind === "gravity") {
-        for (let i = 1; i <= 3; i++) {
-          ctx.strokeRect(-r * i * 0.13, -r * i * 0.13, r * i * 0.26, r * i * 0.26);
-          ctx.beginPath();
-          ctx.arc(0, 0, r * i * 0.17, 0, TAU);
-          ctx.stroke();
-        }
-      } else if (effect.kind === "crystal") {
-        for (let i = 0; i < 6; i++) {
-          const a = (i / 6) * TAU;
-          ctx.save();
-          ctx.translate(Math.cos(a) * r * 0.36, Math.sin(a) * r * 0.36);
-          ctx.rotate(a + Math.PI / 4);
-          ctx.strokeRect(-8, -18, 16, 36);
-          ctx.restore();
-        }
-      } else if (effect.kind === "nature") {
-        for (let i = 0; i < 5; i++) {
-          const a = (i / 5) * TAU;
-          ctx.beginPath();
-          ctx.ellipse(Math.cos(a) * r * 0.34, Math.sin(a) * r * 0.25, 11, 24, a, 0, TAU);
-          ctx.stroke();
-        }
-      } else if (effect.kind === "void") {
-        ctx.beginPath();
-        ctx.arc(0, 0, r * 0.45, 0, TAU);
-        ctx.stroke();
-        ctx.rotate(-this.menuTime * 2);
-        ctx.strokeRect(-r * 0.32, -r * 0.32, r * 0.64, r * 0.64);
-      } else if (effect.kind === "time") {
-        ctx.beginPath();
-        ctx.arc(0, 0, r * 0.42, 0, TAU);
-        ctx.stroke();
-        ctx.beginPath();
-        ctx.moveTo(0, 0);
-        ctx.lineTo(Math.cos(this.menuTime * 3) * r * 0.36, Math.sin(this.menuTime * 3) * r * 0.36);
-        ctx.moveTo(0, 0);
-        ctx.lineTo(Math.cos(-this.menuTime * 5) * r * 0.24, Math.sin(-this.menuTime * 5) * r * 0.24);
-        ctx.stroke();
+
+      // Outer pixel ring
+      this.drawPixelVfxRing(ctx, r * 0.58, color, accent, glyphAlpha * 0.72, 14, block, alpha * 0.4);
+
+      // Inner power mark (pixel art icon per element)
+      this.drawPixelPowerMark(ctx, kind, Math.max(22, r * 0.28), color, accent, dark, glyphAlpha);
+
+      // Corner accent blocks for extra "punch"
+      const cornerDist = r * 0.42;
+      for (let i = 0; i < 4; i++) {
+        const a = i * TAU / 4 + Math.PI / 4;
+        const bx = Math.cos(a) * cornerDist - block * 0.5;
+        const by = Math.sin(a) * cornerDist - block * 0.5;
+        this.pixelVfxBlock(ctx, bx, by, block * 1.3, block * 1.3, i % 2 ? accent : color, glyphAlpha * 0.58);
       }
-      ctx.globalAlpha = Math.min(0.6, alpha);
-      ctx.fillStyle = effect.accent || effect.color;
-      ctx.beginPath();
-      ctx.arc(0, 0, Math.max(4, r * 0.08), 0, TAU);
-      ctx.fill();
+
+      // Center dot
+      this.pixelVfxBlock(ctx, -block * 0.5, -block * 0.5, block, block, accent, glyphAlpha * 0.8);
     }
 
     drawParticles(ctx) {
       const stress = this.visualStress();
       const simple = stress > 0.68 || this.effectQuality() < 0.46;
-      const drawLimit = simple ? Math.max(4, Math.round(this.particleLimit() * 0.62)) : Math.min(this.run.particles.length, this.particleLimit());
+      const drawLimit = simple ? Math.max(4, Math.round(this.particleLimit() * 0.52)) : Math.min(this.run.particles.length, Math.round(this.particleLimit() * 0.82));
       const startIndex = Math.max(0, this.run.particles.length - drawLimit);
       ctx.save();
-      ctx.globalCompositeOperation = simple ? "source-over" : "lighter";
+      ctx.globalCompositeOperation = "source-over";
       for (let index = startIndex; index < this.run.particles.length; index++) {
         const particle = this.run.particles[index];
         if (!this.inView(particle.x, particle.y, particle.size + 80)) continue;
@@ -32992,7 +33457,7 @@
             ctx.beginPath();
             ctx.ellipse(0, 0, size * 0.82, size * 0.34, 0, 0, TAU);
             ctx.fill();
-            ctx.globalCompositeOperation = "lighter";
+            ctx.globalCompositeOperation = "source-over";
             ctx.globalAlpha = alpha * 0.34;
             ctx.strokeStyle = particle.color === "#05030d" ? "#7b5cff" : particle.color;
             ctx.lineWidth = Math.max(1, size * 0.12);

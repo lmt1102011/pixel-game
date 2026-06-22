@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Soulrift VFX Autostart</title>
+  <style>
+    html, body, iframe {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      border: 0;
+      overflow: hidden;
+      background: #05070b;
+    }
+  </style>
+</head>
+<body>
+  <iframe id="game" src="/index.html?autostart-vfx=20260621-pixel-vfx-308"></iframe>
+  <script>
+    const frame = document.getElementById("game");
+    const powers = ["fire", "ice", "lightning", "shadow", "blood", "gravity", "crystal", "nature", "void", "time"];
+    const keys = ["q", "e", "r", "f"];
+
+    const waitForGame = () => new Promise((resolve, reject) => {
+      const started = Date.now();
+      const timer = setInterval(() => {
+        const game = frame.contentWindow && frame.contentWindow.soulrift;
+        if (game && game.bootReady) {
+          clearInterval(timer);
+          resolve(game);
+        } else if (Date.now() - started > 15000) {
+          clearInterval(timer);
+          reject(new Error("Soulrift did not boot"));
+        }
+      }, 80);
+    });
+
+    function setupSave(game) {
+      const powerId = "fire";
+      game.save.auth ||= { currentUser: "", accounts: {} };
+      game.save.auth.currentUser = "vfx-autostart";
+      game.save.auth.accounts ||= {};
+      game.save.account.created = true;
+      game.save.account.username = "VFX Autostart";
+      game.save.account.createdAt ||= new Date().toISOString();
+      game.save.account.ownedPowers = powers.slice();
+      game.save.account.selectedPower = powerId;
+      game.save.account.selectedCharacter = "mage";
+      game.save.settings.graphicsMode = "auto";
+      game.save.settings.graphicsLevel = 5;
+      game.save.settings.particles = 1.2;
+      game.save.settings.music = false;
+      game.save.settings.sfx = false;
+      for (const id of powers) {
+        if (game.save.powers && game.save.powers[id]) {
+          game.save.powers[id].unlocked = true;
+          game.save.powers[id].level = Math.max(3, game.save.powers[id].level || 1);
+        }
+      }
+      game.queueCloudAccountSave = () => {};
+      game.saveCloudAccountNow = async () => {};
+      game.updateAccountCloudCheck = () => {};
+      game.applyGraphicsSettings();
+    }
+
+    function centerRun(game) {
+      const player = game.run && game.run.player;
+      if (!player) return { x: 920, y: 580 };
+      player.x = 920;
+      player.y = 580;
+      player.hp = player.maxHp;
+      if (game.run.currentRoom) {
+        game.run.currentRoom.intro = 0;
+        game.run.currentRoom.cleared = false;
+      }
+      game.camera.x = player.x - game.worldViewWidth() / 2;
+      game.camera.y = player.y - game.worldViewHeight() / 2;
+      return { x: player.x, y: player.y };
+    }
+
+    function emitVfx(game) {
+      if (!game.run) return;
+      const center = centerRun(game);
+      const now = performance.now() * 0.001;
+      for (let i = 0; i < powers.length; i++) {
+        const kind = powers[i];
+        const spec = game.powerVfxSpec(kind);
+        const angle = (i / powers.length) * Math.PI * 2 + now * 0.04;
+        const ring = i % 2 === 0;
+        const key = keys[i % keys.length];
+        const x = center.x + Math.cos(angle) * (ring ? 82 : 30);
+        const y = center.y + Math.sin(angle) * (ring ? 58 : 22);
+        const targetX = center.x + Math.cos(angle) * 265;
+        const targetY = center.y + Math.sin(angle) * 195;
+        game.addEffect({
+          type: "skillShape",
+          kind,
+          key,
+          skillKey: key,
+          variant: key === "f" ? "ultimate" : `design-${kind}-${key}`,
+          x,
+          y,
+          targetX,
+          targetY,
+          angle,
+          radius: key === "f" ? 190 : ring ? 122 : 72,
+          length: ring ? 118 : 285,
+          width: key === "r" ? 72 : 52,
+          time: 1.05,
+          maxTime: 1.05,
+          color: spec.color,
+          accent: spec.accent,
+          dark: spec.dark,
+          seed: i * 1.337 + now
+        });
+        if (i % 2 === 0) {
+          game.addPowerStageVfx(kind, "travel", key, center.x, center.y, angle, { x: targetX, y: targetY }, { color: spec.color, accent: spec.accent, awakened: key === "f" });
+          game.addPowerStageVfx(kind, "impact", key, targetX, targetY, angle, { x: targetX, y: targetY }, { color: spec.color, accent: spec.accent, awakened: key === "f" });
+        }
+      }
+      game.run.effects = game.run.effects.slice(-90);
+      game.run.particles = game.run.particles.slice(-90);
+    }
+
+    waitForGame().then((game) => {
+      setupSave(game);
+      game.startSelectedRun("forest", {
+        training: true,
+        trainingOptions: { damage: true, freeEnergy: true, noCooldown: true },
+        difficulty: "normal"
+      });
+      centerRun(game);
+      emitVfx(game);
+      setInterval(() => emitVfx(game), 520);
+    }).catch((error) => {
+      document.body.textContent = error.message || String(error);
+      document.body.style.color = "#fff";
+      document.body.style.font = "20px sans-serif";
+    });
+  </script>
+</body>
+</html>

@@ -9777,7 +9777,7 @@
         this.handleFriendProfileAction(target.dataset.friendAction, target.dataset.friend);
         return;
       }
-      if (action === "add-friend") this.addFriendFromInput();
+      if (action === "add-friend") this.addFriendFromInput(target.dataset.friend);
       if (action === "accept-friend") this.acceptFriendRequest(target.dataset.friend);
       if (action === "decline-friend") this.declineFriendRequest(target.dataset.friend);
       if (action === "remove-friend") this.removeFriend(target.dataset.friend);
@@ -9893,7 +9893,11 @@
         if (this.friendSearchDebounceTimer) window.clearTimeout(this.friendSearchDebounceTimer);
         this.friendSearchDebounceTimer = window.setTimeout(() => {
           this.friendSearchDebounceTimer = null;
-          this.showFriends();
+          if (this.mode === "friends" && document.activeElement?.id === target.id) {
+            this.refreshFriendsSearchResults();
+          } else {
+            this.showFriends();
+          }
         }, 180);
         return;
       }
@@ -11428,7 +11432,7 @@
       const quests = 32 + (seed % 29);
       const achievementPoints = 980 + (seed % 600);
       const onlineStatus = String(entry?.onlineStatus || options.onlineStatus || onlineStatuses[seed % onlineStatuses.length]);
-      const displayName = String(entry?.displayName || options.displayName || this.friendDisplayName(username, seed));
+      const displayName = String(entry?.displayName || options.displayName || username);
       return {
         key,
         username,
@@ -11497,7 +11501,7 @@
             <b>${escapeHtml(friend.displayName)}</b>
             <span>${escapeHtml(friend.username)} • ${escapeHtml(friend.id)}</span>
           </div>
-          <button class="friends-mini-btn" data-action="select-friend" data-friend="${escapeHtml(friend.key)}">Xem</button>
+          <button class="friends-mini-btn primary" data-action="add-friend" data-friend="${escapeHtml(friend.username)}" type="button">THÊM BẠN</button>
         </div>
       `).join("");
       return rows;
@@ -11931,7 +11935,6 @@
               </div>
               <div class="friends-inline-add">
                 ${this.friendsSearchBarHtml()}
-                <button class="friends-search-add primary" data-action="add-friend" type="button">TH&#202;M B&#7840;N</button>
               </div>
               <div class="friends-search-results">${this.friendSearchResultsHtml()}</div>
             </div>
@@ -11946,8 +11949,8 @@
       `);
     }
 
-    async addFriendFromInput() {
-      const rawName = (document.getElementById("friendSearchInput")?.value || document.getElementById("friendNameInput")?.value || "").trim().slice(0, 18);
+    async addFriendFromInput(explicitName = "") {
+      const rawName = String(explicitName || document.getElementById("friendSearchInput")?.value || document.getElementById("friendNameInput")?.value || "").trim().slice(0, 18);
       const targetKey = accountKey(rawName);
       const myKey = this.save.auth?.currentUser || "";
       const local = this.currentAccountRecord();

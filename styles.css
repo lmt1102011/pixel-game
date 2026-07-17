@@ -5282,6 +5282,24 @@ body.pwa-landing-active .screen {
   transform: rotate(38deg);
 }
 
+.character-preview-image-wrapper {
+  position: relative;
+  min-height: 300px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background: rgba(0, 0, 0, 0.12);
+  border-radius: 16px;
+}
+
+.character-preview-image {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  image-rendering: pixelated;
+}
+
 .preview-name {
   position: absolute;
   left: 14px;

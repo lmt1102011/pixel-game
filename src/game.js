@@ -12615,30 +12615,26 @@
       const selected = this.save.account.selectedPower ? powerById(this.save.account.selectedPower) : powerById("fire");
       const character = characterById(this.save.account.selectedCharacter);
       const heroColor = normalizeHeroColor(custom.color, character.color);
+      const previewImage = this.characterPreviewImage(character.id, selected.id);
       return `
         <div class="character-preview char-${character.id}" style="--hero:${heroColor}; --power:${selected.color}; --char:${character.color}">
-          <div class="preview-trail preview-${custom.trail}"></div>
-          <div class="preview-hero">
-            <span class="preview-cloak preview-${custom.accessory}"></span>
-            <span class="preview-leg left"></span>
-            <span class="preview-leg right"></span>
-            <span class="preview-body"></span>
-            <span class="preview-armor"></span>
-            <span class="preview-helmet"></span>
-            <span class="preview-face"></span>
-            <span class="preview-eye left preview-${custom.eyes}"></span>
-            <span class="preview-eye right preview-${custom.eyes}"></span>
-            <span class="preview-mouth preview-${custom.mouth}"></span>
-            <span class="preview-accessory preview-${custom.accessory}"></span>
-            <span class="preview-weapon"></span>
-            <span class="preview-hand main"></span>
-            <span class="preview-hand off"></span>
+          <div class="character-preview-image-wrapper">
+            ${previewImage}
           </div>
           <div class="preview-name">
             <b>${character.name}</b>
             <span>${character.attackName} - ${selected.name}</span>
           </div>
         </div>
+      `;
+    }
+
+    characterPreviewImage(characterId, powerId) {
+      const character = characterById(characterId);
+      const altText = `${character.name} preview`;
+      const imagePath = `assets/exported/characters/${characterId}/idle_00.png`;
+      return `
+        <img class="character-preview-image" src="${imagePath}" alt="${altText}" loading="lazy" />
       `;
     }
 

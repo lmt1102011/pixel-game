@@ -11494,22 +11494,57 @@
       if (!matches.length) {
         return `<div class="friends-search-empty">Ch&#432;a c&#243; b&#7841;n b&#232; n&#224;o kh&#7899;p. N&#7871;u bi&#7871;t &#273;&#250;ng t&#234;n t&#224;i kho&#7843;n, b&#7845;m TH&#202;M B&#7840;N.</div>`;
       }
-      const rows = matches.map((friend) => `
+      const local = this.currentAccountRecord();
+      const rows = matches.map((friend) => {
+        const isFriend = Boolean(local?.friends && local.friends[friend.key]);
+        const actionButton = isFriend
+          ? `<button class="friends-mini-btn" disabled type="button">ĐÃ LÀ BẠN</button>`
+          : `<button class="friends-mini-btn primary" data-action="add-friend" data-friend="${escapeHtml(friend.username)}" type="button">THÊM BẠN</button>`;
+        return `
         <div class="friends-search-result" style="--rank:#ff4655">
           <div class="friends-avatar">${escapeHtml(friend.avatar)}</div>
           <div>
             <b>${escapeHtml(friend.displayName)}</b>
             <span>${escapeHtml(friend.username)} • ${escapeHtml(friend.id)}</span>
           </div>
-          <button class="friends-mini-btn primary" data-action="add-friend" data-friend="${escapeHtml(friend.username)}" type="button">THÊM BẠN</button>
+          ${actionButton}
         </div>
-      `).join("");
+      `;
+      }).join("");
       return rows;
     }
 
-    refreshFriendsSearchResults() {
+    async refreshFriendsSearchResults() {
       const mount = this.screen?.querySelector(".friends-search-results");
-      if (mount) mount.innerHTML = this.friendSearchResultsHtml();
+      if (!mount) return;
+      const query = String(this.friendSearchQuery || "").trim();
+      mount.innerHTML = this.friendSearchResultsHtml();
+      // If the query looks like a username/key, try a remote lookup and prepend a remote result if found
+      if (query) {
+        try {
+          const key = accountKey(query);
+          const local = this.currentAccountRecord();
+          const remote = await this.cloudAccounts.getAccount(key);
+          if (remote && !local?.friends?.[key]) {
+            const displayName = escapeHtml(String(remote.username || key));
+            const username = escapeHtml(String(remote.username || key));
+            const id = escapeHtml(key);
+            const remoteRow = `
+              <div class="friends-search-result remote" style="--rank:#6bdcff">
+                <div class="friends-avatar">${escapeHtml((remote.username || "").slice(0,1).toUpperCase() || "U")}</div>
+                <div>
+                  <b>${displayName}</b>
+                  <span>${username} • ${id}</span>
+                </div>
+                <button class="friends-mini-btn primary" data-action="add-friend" data-friend="${username}" type="button">THÊM BẠN</button>
+              </div>
+            `;
+            mount.innerHTML = remoteRow + mount.innerHTML;
+          }
+        } catch {
+          // ignore remote lookup failures
+        }
+      }
     }
 
     friendsTabListHtml(activeTab = this.friendViewTab || "friends") {

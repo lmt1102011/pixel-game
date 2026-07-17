@@ -11935,6 +11935,8 @@
         return;
       }
       this.mode = "friends";
+      // Clear transient search when opening friends to avoid empty filtered lists
+      this.friendSearchQuery = "";
       this.roomFinderOpen = false;
       if (!["name", "recent"].includes(this.friendSort || "name")) this.friendSort = "name";
       const allFriends = this.friendProfiles();

@@ -1,6 +1,6 @@
 const fs = require("fs");
+const http = require("http");
 const path = require("path");
-const { pathToFileURL } = require("url");
 
 const { chromium } = require("playwright-core");
 
@@ -13,7 +13,7 @@ function usage() {
     "Usage: node tools/export-assets.js [options]",
     "",
     "Options:",
-    "  --category <name>       monster, character, skill, door, chest, background, trap",
+    "  --category <name>       monster, character, skill, door, chest, background, trap, object",
     "  --kind <id>             Monster id, e.g. skeletonArcher",
     "  --character <id>        Character id, e.g. swordsman",
     "  --power <id>            Power id, e.g. fire",
@@ -76,6 +76,43 @@ function chromeExecutable() {
   return found;
 }
 
+function createLocalServer(rootDir) {
+  const mimeTypes = {
+    html: "text/html; charset=utf-8",
+    js: "application/javascript; charset=utf-8",
+    css: "text/css; charset=utf-8",
+    png: "image/png",
+    json: "application/json; charset=utf-8",
+    svg: "image/svg+xml; charset=utf-8",
+    txt: "text/plain; charset=utf-8"
+  };
+  return http.createServer((req, res) => {
+    try {
+      const url = new URL(req.url || "/", "http://127.0.0.1");
+      const relativePath = decodeURIComponent(url.pathname.replace(/^\//, ""));
+      const safePath = path.normalize(relativePath).replace(/^([a-zA-Z]:)?[\\/]+/, "");
+      const absolutePath = path.join(rootDir, safePath);
+      if (!absolutePath.startsWith(rootDir)) {
+        res.writeHead(403, { "Content-Type": "text/plain; charset=utf-8" });
+        res.end("Forbidden");
+        return;
+      }
+      const filePath = fs.existsSync(absolutePath) && fs.statSync(absolutePath).isFile() ? absolutePath : null;
+      if (!filePath) {
+        res.writeHead(404, { "Content-Type": "text/plain; charset=utf-8" });
+        res.end("Not found");
+        return;
+      }
+      const ext = path.extname(filePath).slice(1).toLowerCase();
+      res.writeHead(200, { "Content-Type": mimeTypes[ext] || "application/octet-stream" });
+      fs.createReadStream(filePath).pipe(res);
+    } catch (error) {
+      res.writeHead(500, { "Content-Type": "text/plain; charset=utf-8" });
+      res.end("Server error");
+    }
+  });
+}
+
 function decodeDataUrl(dataUrl) {
   const match = /^data:image\/png;base64,(.+)$/i.exec(String(dataUrl || ""));
   if (!match) throw new Error("Invalid PNG data URL");
@@ -103,24 +140,43 @@ async function main() {
   if (!options.keep) fs.rmSync(outDir, { recursive: true, force: true });
   fs.mkdirSync(outDir, { recursive: true });
 
-  const browser = await chromium.launch({
-    executablePath: chromeExecutable(),
-    headless: true
+  const server = createLocalServer(repoRoot);
+  await new Promise((resolve, reject) => {
+    server.listen(0, "127.0.0.1", (error) => {
+      if (error) reject(error);
+      else resolve();
+    });
   });
-  const page = await browser.newPage({
-    viewport: { width: 1280, height: 720 },
-    deviceScaleFactor: 1
-  });
+  const address = server.address();
+  const baseUrl = `http://127.0.0.1:${typeof address === "object" ? address.port : address}/`;
+  const exporterUrl = new URL(path.relative(repoRoot, exporterPage).replace(/\\/g, "/"), baseUrl).href;
 
-  page.on("console", (message) => {
-    const type = message.type();
-    if (type === "error" || type === "warning") console.log(`[browser:${type}] ${message.text()}`);
-  });
+  let browser = null;
+  let page = null;
+  let result = null;
 
-  await page.goto(pathToFileURL(exporterPage).href, { waitUntil: "load" });
-  await page.waitForFunction(() => window.SoulriftAssetExporter && window.SoulriftAssetExporter.exportAll);
-  const result = await page.evaluate((exportOptions) => window.SoulriftAssetExporter.exportAll(exportOptions), options);
-  await browser.close();
+  try {
+    browser = await chromium.launch({
+      executablePath: chromeExecutable(),
+      headless: true
+    });
+    page = await browser.newPage({
+      viewport: { width: 1280, height: 720 },
+      deviceScaleFactor: 1
+    });
+
+    page.on("console", (message) => {
+      const type = message.type();
+      if (type === "error" || type === "warning") console.log(`[browser:${type}] ${message.text()}`);
+    });
+
+    await page.goto(exporterUrl, { waitUntil: "load" });
+    await page.waitForFunction(() => window.SoulriftAssetExporter && window.SoulriftAssetExporter.exportAll);
+    result = await page.evaluate((exportOptions) => window.SoulriftAssetExporter.exportAll(exportOptions), options);
+  } finally {
+    if (browser) await browser.close();
+    if (server) server.close();
+  }
 
   const manifest = {
     version: result.version,

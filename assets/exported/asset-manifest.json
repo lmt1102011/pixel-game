@@ -1,6 +1,6 @@
 {
   "version": "20260718-pixel-vfx-309",
-  "generatedAt": "2026-06-21T15:08:53Z",
+  "generatedAt": "2026-07-18T04:32:04.599Z",
   "files": [
     {
       "path": "monsters/skeletonArcher/idle_00.png",
@@ -8822,6 +8822,156 @@
         "key": "f",
         "awakened": true,
         "frame": 3
+      }
+    },
+    {
+      "path": "objects/merchantStall/grow_00.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "object",
+        "roomType": "merchantStall",
+        "frame": 0
+      }
+    },
+    {
+      "path": "objects/merchantStall/grow_01.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "object",
+        "roomType": "merchantStall",
+        "frame": 1
+      }
+    },
+    {
+      "path": "objects/merchantStall/grow_02.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "object",
+        "roomType": "merchantStall",
+        "frame": 2
+      }
+    },
+    {
+      "path": "objects/merchantStall/grow_03.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "object",
+        "roomType": "merchantStall",
+        "frame": 3
+      }
+    },
+    {
+      "path": "objects/merchantStall/grow_04.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "object",
+        "roomType": "merchantStall",
+        "frame": 4
+      }
+    },
+    {
+      "path": "objects/curseBook/grow_00.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "object",
+        "roomType": "curseBook",
+        "frame": 0
+      }
+    },
+    {
+      "path": "objects/curseBook/grow_01.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "object",
+        "roomType": "curseBook",
+        "frame": 1
+      }
+    },
+    {
+      "path": "objects/curseBook/grow_02.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "object",
+        "roomType": "curseBook",
+        "frame": 2
+      }
+    },
+    {
+      "path": "objects/curseBook/grow_03.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "object",
+        "roomType": "curseBook",
+        "frame": 3
+      }
+    },
+    {
+      "path": "objects/curseBook/grow_04.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "object",
+        "roomType": "curseBook",
+        "frame": 4
+      }
+    },
+    {
+      "path": "objects/secretAltar/grow_00.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "object",
+        "roomType": "secretAltar",
+        "frame": 0
+      }
+    },
+    {
+      "path": "objects/secretAltar/grow_01.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "object",
+        "roomType": "secretAltar",
+        "frame": 1
+      }
+    },
+    {
+      "path": "objects/secretAltar/grow_02.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "object",
+        "roomType": "secretAltar",
+        "frame": 2
+      }
+    },
+    {
+      "path": "objects/secretAltar/grow_03.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "object",
+        "roomType": "secretAltar",
+        "frame": 3
+      }
+    },
+    {
+      "path": "objects/secretAltar/grow_04.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "object",
+        "roomType": "secretAltar",
+        "frame": 4
       }
     }
   ],

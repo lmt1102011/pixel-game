@@ -1,7 +1,7 @@
 {
   "version": "20260718-pixel-vfx-309",
   "sourceVersion": "20260718-pixel-vfx-309",
-  "generatedAt": "2026-06-21T15:08:53Z",
+  "generatedAt": "2026-07-18T04:23:49.231Z",
   "maxSize": 2048,
   "padding": 1,
   "sheets": [
@@ -499,6 +499,39 @@
       "rows": 1,
       "cellWidth": 194,
       "cellHeight": 194
+    },
+    {
+      "path": "assets/exported-atlas/objects/curseBook.png",
+      "group": "objects/curseBook",
+      "frames": 5,
+      "width": 1290,
+      "height": 258,
+      "columns": 5,
+      "rows": 1,
+      "cellWidth": 258,
+      "cellHeight": 258
+    },
+    {
+      "path": "assets/exported-atlas/objects/merchantStall.png",
+      "group": "objects/merchantStall",
+      "frames": 5,
+      "width": 1290,
+      "height": 258,
+      "columns": 5,
+      "rows": 1,
+      "cellWidth": 258,
+      "cellHeight": 258
+    },
+    {
+      "path": "assets/exported-atlas/objects/secretAltar.png",
+      "group": "objects/secretAltar",
+      "frames": 5,
+      "width": 1290,
+      "height": 258,
+      "columns": 5,
+      "rows": 1,
+      "cellWidth": 258,
+      "cellHeight": 258
     },
     {
       "path": "assets/exported-atlas/skills/blood/e.png",
@@ -3880,6 +3913,111 @@
       "y": 1,
       "w": 192,
       "h": 192
+    },
+    "assets/exported/objects/curseBook/grow_00.png": {
+      "sheet": "assets/exported-atlas/objects/curseBook.png",
+      "x": 1,
+      "y": 1,
+      "w": 256,
+      "h": 256
+    },
+    "assets/exported/objects/curseBook/grow_01.png": {
+      "sheet": "assets/exported-atlas/objects/curseBook.png",
+      "x": 259,
+      "y": 1,
+      "w": 256,
+      "h": 256
+    },
+    "assets/exported/objects/curseBook/grow_02.png": {
+      "sheet": "assets/exported-atlas/objects/curseBook.png",
+      "x": 517,
+      "y": 1,
+      "w": 256,
+      "h": 256
+    },
+    "assets/exported/objects/curseBook/grow_03.png": {
+      "sheet": "assets/exported-atlas/objects/curseBook.png",
+      "x": 775,
+      "y": 1,
+      "w": 256,
+      "h": 256
+    },
+    "assets/exported/objects/curseBook/grow_04.png": {
+      "sheet": "assets/exported-atlas/objects/curseBook.png",
+      "x": 1033,
+      "y": 1,
+      "w": 256,
+      "h": 256
+    },
+    "assets/exported/objects/merchantStall/grow_00.png": {
+      "sheet": "assets/exported-atlas/objects/merchantStall.png",
+      "x": 1,
+      "y": 1,
+      "w": 256,
+      "h": 256
+    },
+    "assets/exported/objects/merchantStall/grow_01.png": {
+      "sheet": "assets/exported-atlas/objects/merchantStall.png",
+      "x": 259,
+      "y": 1,
+      "w": 256,
+      "h": 256
+    },
+    "assets/exported/objects/merchantStall/grow_02.png": {
+      "sheet": "assets/exported-atlas/objects/merchantStall.png",
+      "x": 517,
+      "y": 1,
+      "w": 256,
+      "h": 256
+    },
+    "assets/exported/objects/merchantStall/grow_03.png": {
+      "sheet": "assets/exported-atlas/objects/merchantStall.png",
+      "x": 775,
+      "y": 1,
+      "w": 256,
+      "h": 256
+    },
+    "assets/exported/objects/merchantStall/grow_04.png": {
+      "sheet": "assets/exported-atlas/objects/merchantStall.png",
+      "x": 1033,
+      "y": 1,
+      "w": 256,
+      "h": 256
+    },
+    "assets/exported/objects/secretAltar/grow_00.png": {
+      "sheet": "assets/exported-atlas/objects/secretAltar.png",
+      "x": 1,
+      "y": 1,
+      "w": 256,
+      "h": 256
+    },
+    "assets/exported/objects/secretAltar/grow_01.png": {
+      "sheet": "assets/exported-atlas/objects/secretAltar.png",
+      "x": 259,
+      "y": 1,
+      "w": 256,
+      "h": 256
+    },
+    "assets/exported/objects/secretAltar/grow_02.png": {
+      "sheet": "assets/exported-atlas/objects/secretAltar.png",
+      "x": 517,
+      "y": 1,
+      "w": 256,
+      "h": 256
+    },
+    "assets/exported/objects/secretAltar/grow_03.png": {
+      "sheet": "assets/exported-atlas/objects/secretAltar.png",
+      "x": 775,
+      "y": 1,
+      "w": 256,
+      "h": 256
+    },
+    "assets/exported/objects/secretAltar/grow_04.png": {
+      "sheet": "assets/exported-atlas/objects/secretAltar.png",
+      "x": 1033,
+      "y": 1,
+      "w": 256,
+      "h": 256
     },
     "assets/exported/skills/blood/e/awakened_00.png": {
       "sheet": "assets/exported-atlas/skills/blood/e.png",

@@ -1,0 +1,12 @@
+{
+  "name": "pixel-game",
+  "version": "1.0.0",
+  "private": true,
+  "type": "commonjs",
+  "scripts": {
+    "export-assets": "node tools/export-assets.js"
+  },
+  "devDependencies": {
+    "playwright-core": "^1.44.0"
+  }
+}

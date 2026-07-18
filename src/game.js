@@ -6023,6 +6023,9 @@
         for (const object of this.run.roomObjects || []) {
           if (object.type === "treasureChest") this.preloadChestExportFrames("treasureChest", true);
           if (object.type === "nextDoor" || object.type === "bossGate" || object.type === "bossExit") this.preloadDoorExportFrames(this.doorExportId(object), true);
+          if (object.type === "merchantStall") this.queueExportedSequence("assets/exported/objects/merchantStall/grow_00.png", true);
+          if (object.type === "curseBook") this.queueExportedSequence("assets/exported/objects/curseBook/grow_00.png", true);
+          if (object.type === "secretAltar") this.queueExportedSequence("assets/exported/objects/secretAltar/grow_00.png", true);
         }
         if (this.run.currentRoom?.type === "normal") this.preloadDoorExportFrames("normal", false);
         if (this.run.currentRoom?.type === "boss") this.preloadDoorExportFrames("bossGate", true);
@@ -6129,6 +6132,9 @@
         for (const type of ["thorn", "ice", "lava", "voltage", "blade"]) {
           this.queueExportedSequence(`assets/exported/traps/${type}/active_00.png`, false);
         }
+        this.queueExportedSequence("assets/exported/objects/merchantStall/grow_00.png", false);
+        this.queueExportedSequence("assets/exported/objects/curseBook/grow_00.png", false);
+        this.queueExportedSequence("assets/exported/objects/secretAltar/grow_00.png", false);
         this.preloadChestExportFrames("woodChest", false);
         this.preloadChestExportFrames("goldChest", false);
         this.preloadChestExportFrames("treasureChest", false);
@@ -6196,6 +6202,9 @@
       for (const object of this.run?.roomObjects || []) {
         if (object.type === "nextDoor" || object.type === "bossGate" || object.type === "bossExit") keep(`assets/exported/doors/${this.doorExportId(object)}/grow_00.png`);
         if (object.type === "treasureChest") keep("assets/exported/chests/treasureChest/open_00.png");
+        if (object.type === "merchantStall") keep("assets/exported/objects/merchantStall/grow_00.png");
+        if (object.type === "curseBook") keep("assets/exported/objects/curseBook/grow_00.png");
+        if (object.type === "secretAltar") keep("assets/exported/objects/secretAltar/grow_00.png");
       }
       for (const hazard of this.run?.hazards || []) keep(`assets/exported/traps/${hazard.type || "blade"}/active_00.png`);
       keep("assets/exported/chests/woodChest/open_00.png");
@@ -6389,14 +6398,12 @@
     }
 
     drawExportedDoorObject(ctx, object, grow, y, w, h) {
-      if (grow < 0.985) return false;
       const id = this.doorExportId(object);
-      const frame = 4;
+      const frame = clamp(Math.floor((grow || 0) * 5), 0, 4);
       const path = `assets/exported/doors/${id}/grow_${String(frame).padStart(2, "0")}.png`;
       const image = this.exportedImage(path, { stableSequence: true });
       if (!image) return false;
       const boss = object.type === "bossGate";
-      const scale = 1;
       const originX = boss ? 144 : 128;
       const originY = boss ? 172 : 156;
       const width = boss ? 288 : 256;
@@ -6404,26 +6411,25 @@
       this.drawObjectAmbient(ctx, { ...object, y }, Math.max(w, h) * 0.62);
       ctx.save();
       ctx.translate(object.x, y);
-      ctx.scale(scale, scale);
       const smoothing = ctx.imageSmoothingEnabled;
       ctx.imageSmoothingEnabled = false;
       this.drawExportedDrawable(ctx, image, -originX, -originY, width, height);
       ctx.imageSmoothingEnabled = smoothing;
       if (object.enterProgress > 0) {
         ctx.strokeStyle = "#fff0ad";
-        ctx.lineWidth = 4 / scale;
+        ctx.lineWidth = 4;
         ctx.beginPath();
         ctx.arc(0, h * 0.1, Math.max(w, h) * 0.38, -Math.PI / 2, -Math.PI / 2 + TAU * clamp(object.enterProgress, 0, 1));
         ctx.stroke();
       }
       if (object.label) {
         ctx.shadowBlur = 0;
-        ctx.font = this.readableFont(900, 12 / scale);
+        ctx.font = this.readableFont(900, 12);
         ctx.textAlign = "center";
         this.drawReadableText(ctx, String(object.label).slice(0, 18), 0, h * 0.68, {
           fill: "#fff4d6",
           stroke: "rgba(3,5,10,0.96)",
-          strokeWidth: 3.4 / scale
+          strokeWidth: 3.4
         });
       }
       ctx.restore();
@@ -6458,6 +6464,51 @@
       const smoothing = ctx.imageSmoothingEnabled;
       ctx.imageSmoothingEnabled = false;
       this.drawExportedDrawable(ctx, image, -128, -122, 256, 220);
+      ctx.imageSmoothingEnabled = smoothing;
+      ctx.restore();
+      return true;
+    }
+
+    drawExportedMerchantStall(ctx, object) {
+      const frame = clamp(Math.floor((object.grow || 0) * 5), 0, 4);
+      const path = `assets/exported/objects/merchantStall/grow_${String(frame).padStart(2, "0")}.png`;
+      const image = this.exportedImage(path, { stableSequence: true });
+      if (!image) return false;
+      ctx.save();
+      ctx.translate(object.x, object.y);
+      const smoothing = ctx.imageSmoothingEnabled;
+      ctx.imageSmoothingEnabled = false;
+      this.drawExportedDrawable(ctx, image, -128, -128, 256, 256);
+      ctx.imageSmoothingEnabled = smoothing;
+      ctx.restore();
+      return true;
+    }
+
+    drawExportedCurseBook(ctx, object) {
+      const frame = clamp(Math.floor((object.grow || 0) * 5), 0, 4);
+      const path = `assets/exported/objects/curseBook/grow_${String(frame).padStart(2, "0")}.png`;
+      const image = this.exportedImage(path, { stableSequence: true });
+      if (!image) return false;
+      ctx.save();
+      ctx.translate(object.x, object.y);
+      const smoothing = ctx.imageSmoothingEnabled;
+      ctx.imageSmoothingEnabled = false;
+      this.drawExportedDrawable(ctx, image, -128, -128, 256, 256);
+      ctx.imageSmoothingEnabled = smoothing;
+      ctx.restore();
+      return true;
+    }
+
+    drawExportedSecretAltar(ctx, object) {
+      const frame = clamp(Math.floor((object.grow || 0) * 5), 0, 4);
+      const path = `assets/exported/objects/secretAltar/grow_${String(frame).padStart(2, "0")}.png`;
+      const image = this.exportedImage(path, { stableSequence: true });
+      if (!image) return false;
+      ctx.save();
+      ctx.translate(object.x, object.y);
+      const smoothing = ctx.imageSmoothingEnabled;
+      ctx.imageSmoothingEnabled = false;
+      this.drawExportedDrawable(ctx, image, -128, -128, 256, 256);
       ctx.imageSmoothingEnabled = smoothing;
       ctx.restore();
       return true;
@@ -25393,6 +25444,35 @@
           }, { category: "chest", container: "treasureChest", state: "open", frame });
         }
 
+        const roomObjectFrames = [0.2, 0.45, 0.7, 0.9, 1];
+        for (const roomObject of [
+          { id: "merchantStall", type: "merchantStall", width: 256, height: 256, color: "#35d6c9" },
+          { id: "curseBook", type: "curseBook", width: 256, height: 256, color: "#a169ff" },
+          { id: "secretAltar", type: "secretAltar", width: 256, height: 256, color: "#82ffd3" }
+        ]) {
+          for (let frame = 0; frame < roomObjectFrames.length; frame++) {
+            const grow = roomObjectFrames[frame];
+            setExportRun(BIOMES[0], POWERS[0]);
+            this.menuTime = frame * 0.18;
+            addFrame(`objects/${safeSlug(roomObject.id)}/grow_${String(frame).padStart(2, "0")}.png`, roomObject.width, roomObject.height, (ctx, width, height) => {
+              const obj = {
+                type: roomObject.type,
+                x: width / 2,
+                y: height / 2 + 18,
+                radius: 52,
+                grow,
+                opened: false,
+                color: roomObject.color,
+                label: "",
+                effect: roomObject.id === "secretAltar" ? "secret" : roomObject.id === "merchantStall" ? "merchant" : "curse"
+              };
+              if (roomObject.type === "merchantStall") this.drawMerchantStall(ctx, obj);
+              else if (roomObject.type === "curseBook") this.drawCurseBook(ctx, obj);
+              else if (roomObject.type === "secretAltar") this.drawSecretAltar(ctx, obj);
+            }, { category: "object", roomType: roomObject.id, frame });
+          }
+        }
+
         for (const biome of BIOMES) {
           setExportRun(biome, POWERS[0]);
           this.roomBackgroundCache.clear();
@@ -26076,10 +26156,14 @@
       for (const object of objects) {
         if (!this.inView(object.x, object.y, (object.radius || 50) + 180)) continue;
         if (object.type === "nextDoor" || object.type === "bossGate" || object.type === "bossExit") this.drawDoorObject(ctx, object);
-        if (object.type === "treasureChest") this.drawTreasureChest(ctx, object);
-        if (object.type === "merchantStall") this.drawMerchantStall(ctx, object);
-        if (object.type === "curseBook") this.drawCurseBook(ctx, object);
-        if (object.type === "secretAltar") this.drawSecretAltar(ctx, object);
+        else if (object.type === "treasureChest") this.drawTreasureChest(ctx, object);
+        else if (object.type === "merchantStall") {
+          if (!this.drawExportedMerchantStall(ctx, object)) this.drawMerchantStall(ctx, object);
+        } else if (object.type === "curseBook") {
+          if (!this.drawExportedCurseBook(ctx, object)) this.drawCurseBook(ctx, object);
+        } else if (object.type === "secretAltar") {
+          if (!this.drawExportedSecretAltar(ctx, object)) this.drawSecretAltar(ctx, object);
+        }
       }
     }
 
@@ -26156,6 +26240,7 @@
       const w = object.type === "bossGate" ? 118 : object.type === "bossExit" ? 92 : 84;
       const h = object.type === "bossGate" ? 146 : object.type === "bossExit" ? 112 : 120;
       const y = object.y + (1 - visualGrow) * 54;
+      if (this.drawExportedDoorObject(ctx, object, visualGrow, y, w, h)) return;
       // Gameplay doors stay on one render path so late-loading exported sprites cannot resize them during approach.
       this.drawObjectAmbient(ctx, { ...object, y }, Math.max(w, h) * 0.62);
       ctx.save();

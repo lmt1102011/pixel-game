@@ -9167,6 +9167,15 @@
       this.canvas.height = nextCanvasHeight;
       this.canvas.style.width = `${this.width}px`;
       this.canvas.style.height = `${this.height}px`;
+      const rootEl = document.documentElement;
+      if (rootEl) {
+        if (this.width > 0 && Math.abs(Number(rootEl.style.getPropertyValue("--app-width")) - this.width) > 0.5) {
+          rootEl.style.setProperty("--app-width", `${this.width}px`);
+        }
+        if (this.height > 0 && Math.abs(Number(rootEl.style.getPropertyValue("--app-height")) - this.height) > 0.5) {
+          rootEl.style.setProperty("--app-height", `${this.height}px`);
+        }
+      }
       this.ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
       this.ctx.imageSmoothingEnabled = true;
       this.ctx.imageSmoothingQuality = this.dpr < 0.9 ? "high" : "medium";

@@ -10,7 +10,7 @@
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
   const SIGNAL_REALTIME_RELAY_LIMIT = 2;
   const SIGNAL_REALTIME_TYPES = new Set(["state", "snapshot", "attack", "skill", "collect", "openChest", "dropItem", "damage", "chooseDoor"]);
-  const APP_VERSION = "20260718-pixel-vfx-314";
+  const APP_VERSION = "20260718-pixel-vfx-315";
   const CHANGELOG_ENTRIES = [
     {
       version: APP_VERSION,
@@ -5246,6 +5246,7 @@
       this.deviceBiasCacheKey = "";
       this.deviceBiasCacheValue = 0;
       this.roomBackgroundCache = new Map();
+      this.exportedRoomCache = new Map();
       this.enemySpriteCache = new Map();
       this.objectPools = {
         particle: [],
@@ -5257,6 +5258,8 @@
       this.touchButtons = [];
       this.nextHudAt = 0;
       this.frameIndex = 0;
+      this.vfxBudgetFrame = -1;
+      this.vfxBudgetRemaining = 0;
       this.updateTimer = null;
       this.updateInProgress = false;
       this.bootReady = false;
@@ -6543,19 +6546,43 @@
       const viewH = Math.max(1, viewBottom - viewTop);
       const pattern = this.exportedPatternFor(ctx, tilePath, tile);
       if (!pattern) return false;
-      ctx.fillStyle = style.void || "#05070b";
-      ctx.fillRect(viewLeft, viewTop, viewW, viewH);
-      const floorLeft = Math.max(ROOM_PAD, viewLeft);
-      const floorTop = Math.max(ROOM_PAD, viewTop);
-      const floorRight = Math.min(WORLD_W - ROOM_PAD, viewRight);
-      const floorBottom = Math.min(WORLD_H - ROOM_PAD, viewBottom);
-      if (floorRight > floorLeft && floorBottom > floorTop) {
-        ctx.fillStyle = pattern;
-        ctx.fillRect(floorLeft, floorTop, floorRight - floorLeft, floorBottom - floorTop);
+      const bgCanvas = this.getExportedRoomBackgroundCanvas(biome, tilePath, pattern, tile, lowDetail);
+      if (!bgCanvas) {
+        ctx.fillStyle = style.void || "#05070b";
+        ctx.fillRect(viewLeft, viewTop, viewW, viewH);
+        return true;
       }
-      this.drawBiomeWalls(ctx, biome, viewLeft, viewTop, viewRight, viewBottom, lowDetail);
-      this.drawRoomInnerPixelTrim(ctx, biome, viewLeft, viewTop, viewRight, viewBottom, lowDetail);
+      ctx.save();
+      ctx.imageSmoothingEnabled = false;
+      ctx.drawImage(bgCanvas, viewLeft, viewTop, viewW, viewH, viewLeft, viewTop, viewW, viewH);
+      ctx.restore();
       return true;
+    }
+
+    getExportedRoomBackgroundCanvas(biome, tilePath, pattern, tile, lowDetail = false) {
+      const style = this.biomePixelStyle(biome);
+      const key = `${tilePath}|${lowDetail ? "low" : "full"}|${tile.width}x${tile.height}|${Math.round((this.run?.seed || 0) * 4096)}`;
+      const cached = this.exportedRoomCache.get(key);
+      if (cached) return cached;
+      const canvas = this.createRenderCanvas(WORLD_W, WORLD_H);
+      const bg = canvas.getContext("2d");
+      if (!bg) return null;
+      bg.imageSmoothingEnabled = false;
+      bg.fillStyle = style.void || "#05070b";
+      bg.fillRect(0, 0, WORLD_W, WORLD_H);
+      const floorLeft = ROOM_PAD;
+      const floorTop = ROOM_PAD;
+      const floorRight = WORLD_W - ROOM_PAD;
+      const floorBottom = WORLD_H - ROOM_PAD;
+      if (floorRight > floorLeft && floorBottom > floorTop) {
+        bg.fillStyle = pattern;
+        bg.fillRect(floorLeft, floorTop, floorRight - floorLeft, floorBottom - floorTop);
+      }
+      this.drawBiomeWalls(bg, biome, 0, 0, WORLD_W, WORLD_H, lowDetail);
+      this.drawRoomInnerPixelTrim(bg, biome, 0, 0, WORLD_W, WORLD_H, lowDetail);
+      this.exportedRoomCache.set(key, canvas);
+      this.trimCache(this.exportedRoomCache, 5);
+      return canvas;
     }
 
     drawExportedTrapSprite(ctx, hazard) {
@@ -15213,6 +15240,7 @@
 
     update(dt) {
       if (!this.run) return;
+      this.resetVfxFrameBudget();
       const player = this.run.player;
       if (this.isMobileDevice()) this.updateTouchVector(dt);
       this.updateCamera(dt);
@@ -17997,15 +18025,41 @@
       );
     }
 
+    vfxFrameBudgetLimit() {
+      const scale = this.visualBudgetScale();
+      const weak = this.perf?.coreAutoLevel < 3;
+      const base = weak ? 70 : this.isMobileDevice() ? 130 : 260;
+      return Math.max(40, Math.round(base * clamp(scale, 0.4, 1)));
+    }
+
+    resetVfxFrameBudget() {
+      const frame = this.frameIndex;
+      if (this.vfxBudgetFrame !== frame) {
+        this.vfxBudgetFrame = frame;
+        this.vfxBudgetRemaining = this.vfxFrameBudgetLimit();
+      }
+    }
+
+    takeVfxBudget(requested) {
+      const remaining = this.vfxBudgetRemaining;
+      if (remaining <= 0) return 0;
+      const used = Math.min(requested, remaining);
+      this.vfxBudgetRemaining -= used;
+      return used;
+    }
+
     emitPowerVfx(kind, role, x, y, count = 6, options = {}) {
       if (!this.run) return;
       const quality = this.effectQuality();
       const mobileScale = this.isMobileDevice() ? 0.68 : 1;
       const pixelScale = this.pixelVfxActive() ? 0.68 : 1;
-      const amount = this.particleCount(count * mobileScale * pixelScale * clamp(quality + 0.14, 0.38, 1), {
+      let amount = this.particleCount(count * mobileScale * pixelScale * clamp(quality + 0.14, 0.38, 1), {
         min: options.min ?? (options.important ? 3 : 1),
         important: Boolean(options.important)
       });
+      const budget = this.takeVfxBudget(amount);
+      amount = Math.min(amount, budget);
+      if (amount <= 0) return;
       const spread = Number(options.spread || 0);
       for (let i = 0; i < amount; i++) {
         const baseAngle = Number.isFinite(options.angle) ? options.angle : rand(0, TAU);
@@ -30891,7 +30945,7 @@
       const x = Number(effect.x || 0);
       const y = Number(effect.y || 0);
       const filled = clamp(growProgress, 0, 1);
-      const lowDetail = this.isMobileDevice() || this.effectQuality() < 0.72;
+      const lowDetail = this.isMobileDevice() || this.effectQuality() < 0.72 || this.devicePerformanceBias() > 0.45;
       const pulse = Math.sin(t * 6 + progress * 2) * 3;
       const wobble = (ri, jitter) => radius * (0.92 + jitter);
       const wobblePt = (a, amp) => {

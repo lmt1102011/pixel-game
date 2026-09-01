@@ -18897,12 +18897,19 @@
           areaBoost: kind === "fire" || kind === "void" ? 1.24 : awakened ? 1.2 : 1.14,
           awakened: Boolean(awakened)
         });
-        this.camera.shake = Math.max(this.camera.shake, 8);
+        this.camera.shake = Math.max(this.camera.shake, this.domainCameraKick(kind));
         this.finishDesignedPowerSkill(kind, key, caster, angle, { x, y }, damage, owner, casterId, remote, awakened);
         return true;
       }
 
       return false;
+    }
+
+    domainCameraKick(kind = "fire") {
+      return {
+        fire: 26, ice: 12, lightning: 30, shadow: 18, blood: 16,
+        gravity: 24, nature: 10, void: 28, time: 6, crystal: 14
+      }[kind] || 16;
     }
 
     executePowerSkill(key, power, caster, angle, target, options = {}) {
@@ -34820,7 +34827,48 @@
         ctx.lineWidth = 16;
         ctx.strokeRect(8, 8, this.width - 16, this.height - 16);
       }
+      this.drawDomainAmbience(ctx);
       ctx.restore();
+    }
+
+    drawDomainAmbience(ctx) {
+      const run = this.run;
+      if (!run?.effects?.length) return;
+      const ambience = {
+        fire:     { tint: "rgba(255,84,20,", edge: "#ff5a1f", wash: 0.05, dusk: 1 },
+        ice:      { tint: "rgba(120,215,255,", edge: "#9ee8ff", wash: 0.05, dusk: -1 },
+        lightning:{ tint: "rgba(120,140,255,", edge: "#adc6ff", wash: 0.04, dusk: 1 },
+        shadow:   { tint: "rgba(60,30,90,", edge: "#a78bff", wash: 0.12, dusk: 1 },
+        blood:    { tint: "rgba(200,30,60,", edge: "#ff5d6c", wash: 0.06, dusk: 1 },
+        gravity:  { tint: "rgba(90,60,160,", edge: "#b087ff", wash: 0.07, dusk: 1 },
+        nature:   { tint: "rgba(60,150,80,", edge: "#69e08a", wash: 0.05, dusk: -1 },
+        void:     { tint: "rgba(60,40,110,", edge: "#9f7bff", wash: 0.1, dusk: 1 },
+        time:     { tint: "rgba(200,200,255,", edge: "#d8dcff", wash: 0.05, dusk: 0 },
+        crystal:  { tint: "rgba(160,120,220,", edge: "#c9a6ff", wash: 0.05, dusk: 1 }
+      };
+      let a = 0, tint = "", edge = "";
+      for (const effect of this.activeContainmentDomains()) {
+        const spec = ambience[effect.kind || "fire"];
+        if (!spec) continue;
+        a += spec.wash;
+        tint = spec.tint;
+        edge = spec.edge;
+      }
+      if (a <= 0.015) return;
+      const xc = this.width * 0.5;
+      const yc = this.height * 0.5;
+      const rad = Math.max(this.width, this.height) * 0.78;
+      const grad = ctx.createRadialGradient(xc, yc, rad * 0.35, xc, yc, rad);
+      grad.addColorStop(0, "rgba(0,0,0,0)");
+      grad.addColorStop(1, tint + a + ")");
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, this.width, this.height);
+      const beat = 0.6 + 0.4 * Math.abs(Math.sin(this.menuTime * 3.4));
+      ctx.strokeStyle = edge;
+      ctx.lineWidth = 10 + 6 * beat;
+      ctx.globalAlpha = Math.min(0.5, a * 2.2 * beat);
+      ctx.strokeRect(5, 5, this.width - 10, this.height - 10);
+      ctx.globalAlpha = 1;
     }
 
     drawDomainCutinOverlay(ctx) {

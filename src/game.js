@@ -6582,11 +6582,24 @@
       return object.roomType || "normal";
     }
 
+    exportedFrameClosestDrawable(sequencePath = "", index = 0) {
+      const paths = this.exportedSequencePaths(sequencePath);
+      if (!paths.length) return null;
+      for (let f = Math.min(index, paths.length - 1); f >= 0; f--) {
+        const path = paths[f];
+        const atlas = this.exportedAtlasDrawableFor(path, { queue: false });
+        if (atlas) return atlas;
+        const image = this.exportedAssetImages.get(path);
+        if (this.isExportedImageReady(image)) return this.exportedDrawableFor(path, image);
+      }
+      this.queueExportedSequence(sequencePath, this.exportedRuntimePreloadPriority());
+      return null;
+    }
+
     drawExportedDoorObject(ctx, object, grow, y, w, h) {
       const id = this.doorExportId(object);
       const frame = clamp(Math.floor((grow || 0) * 5), 0, 4);
-      const path = `assets/exported/doors/${id}/grow_${String(frame).padStart(2, "0")}.png`;
-      const image = this.exportedImage(path, { stableSequence: true });
+      const image = this.exportedFrameClosestDrawable(`assets/exported/doors/${id}/grow_00.png`, frame);
       if (!image) return false;
       const boss = object.type === "bossGate";
       const originX = boss ? 144 : 128;

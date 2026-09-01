@@ -10,16 +10,14 @@
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
   const SIGNAL_REALTIME_RELAY_LIMIT = 2;
   const SIGNAL_REALTIME_TYPES = new Set(["state", "snapshot", "attack", "skill", "collect", "openChest", "dropItem", "damage", "chooseDoor"]);
-  const APP_VERSION = "20260718-pixel-vfx-312";
+  const APP_VERSION = "20260718-pixel-vfx-313";
   const CHANGELOG_ENTRIES = [
     {
       version: APP_VERSION,
-      title: "Đại tu hiệu ứng 27 chiêu Q/E/R",
+      title: "Sửa giao diện khít màn hình + lướt mượt",
       items: [
-        "Mỗi chiêu Q/E/R của 9 power (Lửa, Băng, Sấm, Bóng, Máu, Trọng Lực, Cây, Hư Không, Thời Gian) giờ có bản sắc hiệu ứng code riêng: silhouette, chuyển động và impact đặc trưng.",
-        "Chiêu Q (bắn thẳng) xoay theo hướng ngắm; chiêu E (bao quanh người) và R (tại điểm) vẽ đối xứng quanh vị trí thi triển — không còn nhìn như hình lao không định hướng.",
-        "Lãnh địa F mỗi power có địa hình riêng (magma-nứt, băng-tinh, giông-bão, bóng-tối, máu, trọng lực, rễ, hư không, thời gian) kèm rung nhẹ camera và viền sáng theo nhịp.",
-        "Hiệu suất giữ ổn định: 27 chiêu render 0 lỗi, FPS 55-58 ở nhiều kịch bản."
+        "Khắc phục giao diện trên điện thoại bị lồi lõm/lệch cạnh trên-dưới: canvas, HUD và overlay giờ luôn khớp đúng vùng hiển thị theo visual viewport, đồng bộ khi thanh địa chỉ trình duyệt hiện/ẩn.",
+        "Không còn viền đen hoặc HUD đặt lệch khỏi canvas khi xoay/mở bàn phím ảo/đổi tỉ lệ màn hình."
       ]
     }
   ];

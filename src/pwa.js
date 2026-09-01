@@ -1,12 +1,13 @@
 (() => {
   "use strict";
 
-  const APP_VERSION = "20260718-pixel-vfx-309";
+  const APP_VERSION = "20260718-pixel-vfx-311";
   const APP_ICON = "assets/icons/app-icon-20260605-logo-xl-149.svg";
   let deferredInstallPrompt = null;
   let startGame = null;
   let iosGuideShown = false;
   let viewportSyncKey = "";
+  let viewportSyncQueued = false;
 
   function qs(selector) {
     return document.querySelector(selector);
@@ -48,6 +49,7 @@
   }
 
   function syncViewport() {
+    viewportSyncQueued = false;
     const viewport = window.visualViewport;
     const width = Math.round(viewport?.width || window.innerWidth || document.documentElement.clientWidth || 0);
     const height = Math.round(viewport?.height || window.innerHeight || document.documentElement.clientHeight || 0);
@@ -60,6 +62,16 @@
     if (height > 0) document.documentElement.style.setProperty("--app-height", `${height}px`);
     document.body.classList.toggle("pwa-standalone", standalone);
     document.body.classList.toggle("pwa-fullscreen-mode", fullscreen);
+  }
+
+  function scheduleViewportSync(delay = 0) {
+    if (delay > 0) {
+      window.setTimeout(scheduleViewportSync, delay);
+      return;
+    }
+    if (viewportSyncQueued) return;
+    viewportSyncQueued = true;
+    requestAnimationFrame(syncViewport);
   }
 
   async function requestInstalledFullscreen() {
@@ -193,10 +205,10 @@
 
   function bindLanding() {
     syncViewport();
-    window.addEventListener("resize", syncViewport);
-    window.addEventListener("orientationchange", () => window.setTimeout(syncViewport, 120));
-    window.visualViewport?.addEventListener("resize", syncViewport);
-    window.visualViewport?.addEventListener("scroll", syncViewport);
+    window.addEventListener("resize", scheduleViewportSync);
+    window.addEventListener("orientationchange", () => scheduleViewportSync(120));
+    window.visualViewport?.addEventListener("resize", scheduleViewportSync);
+    window.visualViewport?.addEventListener("scroll", scheduleViewportSync);
     window.addEventListener("pointerdown", requestInstalledFullscreen, { capture: true, passive: true });
     window.addEventListener("touchstart", requestInstalledFullscreen, { capture: true, passive: true });
     qs("#pwaInstallButton")?.addEventListener("click", () => {

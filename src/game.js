@@ -2,6 +2,7 @@
   "use strict";
 
   const TAU = Math.PI * 2;
+  const OPTIONAL_VISUAL_EFFECTS = new Set(["attackBurst", "hitSpark", "castBurst", "castCone", "shadowShard"]);
   const WORLD_W = 1840;
   const WORLD_H = 1160;
   const ROOM_PAD = 86;
@@ -9,17 +10,16 @@
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
   const SIGNAL_REALTIME_RELAY_LIMIT = 2;
   const SIGNAL_REALTIME_TYPES = new Set(["state", "snapshot", "attack", "skill", "collect", "openChest", "dropItem", "damage", "chooseDoor"]);
-  const APP_VERSION = "20260718-pixel-vfx-309";
+  const APP_VERSION = "20260718-pixel-vfx-311";
   const CHANGELOG_ENTRIES = [
     {
       version: APP_VERSION,
-      title: "Làm lại skill theo bản thiết kế mới",
+      title: "Thiết kế lại nhịp chơi Power",
       items: [
-        "Đổi tên skill của 10 power theo bản thiết kế mới.",
-        "Làm lại basic power và chỉ Võ sư dùng basic power bằng đánh thường.",
-        "Làm lại Q/E/R/F của Lửa, Băng, Sấm Sét, Bóng Tối, Máu, Trọng Lực, Pha Lê, Thiên Nhiên, Hư Không và Thời Gian theo hitbox/logic mới.",
-        "Thêm tường lửa chặn đạn, frost crack, root trap, briar wall, null zone, zero-G và time warp có tick gameplay thật.",
-        "Sửa animation thi triển: pose rõ hơn, không lắc ngẫu nhiên, vũ khí biến mất khi đang cast rồi xuất hiện lại sau khi cast."
+        "Mỗi power có một vòng lặp chiến đấu riêng: đốt-kích nổ, đóng băng-phá vỡ, điện tích-xả điện, săn dấu-kết liễu và nhiều cơ chế khác.",
+        "Q/E/R/F có chi phí năng lượng và hồi chiêu riêng theo vai trò, thay vì dùng chung một bảng cooldown.",
+        "Bổ sung các phản ứng combo quan trọng: Lửa kích nổ Than Hồng, Sấm Sét xả Điện Tích, Pha Lê nổ Mảnh Vỡ và Thiên Nhiên Nở Hoa trên mục tiêu trúng độc.",
+        "Sách Sức Mạnh giờ hiển thị lối chơi, cơ chế cốt lõi và mô tả từng skill để người chơi chọn power có chủ đích."
       ]
     }
   ];
@@ -63,6 +63,14 @@
   const NET_SNAPSHOT_RELAY_INTERVAL = 0.18;
   const NET_REALTIME_BUFFER_LIMIT = 128 * 1024;
   const NET_SNAPSHOT_STALE_MS = 1500;
+  const PIXEL_POWER_PARTICLE_SHAPES = new Set([
+    "ember", "flameCore", "smokeDiamond", "fireTrail",
+    "iceShard", "frostHex", "sparkLine", "shadowPixel", "shadowSlash",
+    "bloodDrop", "bloodPool", "bloodRibbon", "gravityPixel", "gravityRing",
+    "crystalFacet", "leafShard", "thornChip", "vineSegment",
+    "voidFragment", "glitchPixel", "timeTick", "timeRing"
+  ]);
+  const SIMPLE_ORGANIC_PARTICLE_SHAPES = new Set(["leaf", "shard", "drop", "flame", "snow", "void", "clock"]);
   const DEFAULT_ICE_SERVERS = [
     { urls: "stun:stun.l.google.com:19302" },
     { urls: "stun:stun1.l.google.com:19302" },
@@ -109,165 +117,325 @@
   const POWERS = [
     {
       id: "fire",
-      name: "Lửa",
+      name: "Xích Viêm",
       icon: "LỬA",
       color: "#ff6b3a",
       accent: "#ffd166",
       rarity: "rare",
-      passive: "Đòn đánh thiêu đốt và cộng dồn sát thương nóng chảy.",
+      identity: "Đốt - Kích nổ",
+      playstyle: "Dọn đám, khóa lối đi và bùng nổ sát thương theo nhịp.",
+      passive: "Đòn đánh đặt Than Hồng. Nuôi tầng cháy bằng Q/R, rồi dùng E để kích nổ cả cụm.",
       skills: {
-        basic: "Thiêu Chém",
-        q: "Phun Lửa",
-        e: "Đạp Lửa",
-        r: "Bức Tường Lửa",
-        f: "Địa Ngục Thiêu"
+        basic: "Xích Viêm Chú",
+        q: "Liệt Hỏa Trận",
+        e: "Hỏa Luyện Ngục",
+        r: "Lưu Tinh Vẫn Thạch",
+        f: "Tro Tàn Viễn Cổ"
+      },
+      skillDetails: {
+        basic: "Chém rộng, đặt Than Hồng lên nhiều mục tiêu.",
+        q: "Quét hình nón, để lại vệt tro nóng và cộng Than Hồng.",
+        e: "Nổ bốn hướng, kích nổ Than Hồng gần người thi triển.",
+        r: "Dựng tường dung nham chặn đạn và đốt mục tiêu đi qua.",
+        f: "Lãnh địa tăng tốc, liên tục thiêu và kích nổ kẻ địch."
       }
     },
     {
       id: "ice",
-      name: "Băng",
+      name: "Hàn Băng",
       icon: "BĂNG",
       color: "#83e8ff",
       accent: "#d9fbff",
       rarity: "rare",
-      passive: "Kẻ địch bị làm lạnh sẽ chậm lại rồi vỡ vụn.",
+      identity: "Đóng băng - Phá vỡ",
+      playstyle: "Khống chế chính xác, thưởng lớn khi phá băng đúng lúc.",
+      passive: "Đòn đánh tích Ấn Sương. Đủ 3 ấn đóng băng; Q và R phá vỡ mục tiêu bị phong ấn.",
       skills: {
-        basic: "Shard Lạnh",
-        q: "Vũ Băng",
-        e: "Giam Hãm Băng",
-        r: "Đường Băng Nứt",
-        f: "Vương Quốc Tuyết"
+        basic: "Tuyết Nhai Ấn",
+        q: "Hàn Băng Xung",
+        e: "Tuyết Tinh Kết Giới",
+        r: "Lãnh Cực Tam Tuyến",
+        f: "Kỷ Băng Hà Thức"
+      },
+      skillDetails: {
+        basic: "Mảnh băng tầm xa tích Ấn Sương và tạo trạng thái đóng băng.",
+        q: "Vòng băng quét quanh người, phá vỡ mục tiêu đã bị đóng băng.",
+        e: "Đặt phong ấn hẹn giờ, khi nổ đóng băng khu vực nhỏ.",
+        r: "Mở khe băng xuyên thẳng, làm chậm và khóa đường di chuyển.",
+        f: "Lãnh địa tuyết chậm toàn vùng, liên tục giam mục tiêu trong băng."
       }
     },
     {
       id: "lightning",
-      name: "Sấm Sét",
+      name: "Lôi Đình",
       icon: "SÉT",
       color: "#ffe45e",
       accent: "#70f6ff",
       rarity: "epic",
-      passive: "Đòn chí mạng phóng sét lan sang mục tiêu gần đó.",
+      identity: "Điện tích - Xả điện",
+      playstyle: "Tốc độ cao, đổi vị trí liên tục và lan sát thương theo chuỗi.",
+      passive: "Đòn đánh tích Điện Tích. Q/R lan điện, E xả toàn bộ điện tích tại điểm đáp.",
       skills: {
-        basic: "Tia Sét",
-        q: "Vòng Tĩnh Điện",
-        e: "Tốc Biến Sét",
-        r: "Bão Sét",
-        f: "Cơn Thịnh Nộ Sấm"
+        basic: "Tịch Lôi Kích",
+        q: "Thiên Lôi Cửu Chuyển",
+        e: "Lôi Độn Ảnh",
+        r: "Cửu Tiên Lôi Phạt",
+        f: "Hỗn Nguyên Lôi Kiếp"
+      },
+      skillDetails: {
+        basic: "Tia điện thẳng xuyên đội hình, tích Điện Tích và lan sang mục tiêu gần.",
+        q: "Phóng vòng lôi quanh người, nối các mục tiêu có điện tích.",
+        e: "Lướt cực nhanh, làm choáng điểm đến và xả Điện Tích.",
+        r: "Gọi nhiều cột sét ngẫu nhiên trong một khu vực đã chọn.",
+        f: "Lãnh địa bão đánh liên hoàn, giúp chuỗi điện không bị đứt."
       }
     },
     {
       id: "shadow",
-      name: "Bóng Tối",
+      name: "Ám Ảnh",
       icon: "BÓNG",
       color: "#8f72ff",
       accent: "#202335",
       rarity: "epic",
-      passive: "Lướt xuyên mục tiêu sẽ đánh dấu chúng để kết liễu.",
+      identity: "Săn dấu - Kết liễu",
+      playstyle: "Ám sát mục tiêu ưu tiên, di chuyển khó đoán và cắt tầm nhìn.",
+      passive: "Đòn đánh và lướt đặt Dấu Săn. E/R tiêu dấu để hút năng lượng và kết liễu.",
       skills: {
-        basic: "Cắt Bóng",
-        q: "Bước Bóng",
-        e: "Xúc Tu Tối",
-        r: "Vùng Tối",
-        f: "Vương Quốc Bóng Đêm"
+        basic: "Ám Sát Thức",
+        q: "Huyễn Ảnh Bộ",
+        e: "Vô Minh Tỏa",
+        r: "Dạ Hành Quyết",
+        f: "Vô Tận Hắc Dạ"
+      },
+      skillDetails: {
+        basic: "Cắt ngắn nhưng hiểm, đánh sau lưng gây thêm sát thương và đặt Dấu Săn.",
+        q: "Dịch chuyển xuyên qua mục tiêu, tạo mồi nhử bóng tối ở điểm xuất phát.",
+        e: "Khóa một con mồi, kéo nó về và tiêu Dấu Săn để kết liễu.",
+        r: "Tạo màn đêm quanh người, làm mù và nuôi Dấu Săn theo nhịp.",
+        f: "Lãnh địa săn đêm biến mọi kẻ địch thành con mồi bị truy sát."
       }
     },
     {
       id: "blood",
-      name: "Máu",
+      name: "Huyết Hồn",
       icon: "MÁU",
       color: "#ff3f5f",
       accent: "#ffc0c8",
       rarity: "epic",
-      passive: "Một phần sát thương gây ra hồi lại máu.",
+      identity: "Hiến máu - Hút máu",
+      playstyle: "Đánh đổi máu để mở sát thương, rồi cướp lại từ kẻ địch.",
+      passive: "Kỹ năng hiến máu mạnh hơn khi thấp máu; gây Chảy Máu để hút ngược sinh lực.",
       skills: {
-        basic: "Lưỡi Máu",
-        q: "Bắn Máu",
-        e: "Xiềng Máu",
-        r: "Hiến Tế",
-        f: "Biển Máu"
+        basic: "Huyết Nguyệt Trảm",
+        q: "Tế Huyết Vũ",
+        e: "Huyết Khấp Tỏa",
+        r: "Luyện Huyết Trận",
+        f: "Huyết Hải Hàng Lâm"
+      },
+      skillDetails: {
+        basic: "Chém vòng cung và hồi máu theo số mục tiêu trúng đòn.",
+        q: "Hiến một phần máu để phóng mưa lưỡi máu; càng nguy hiểm càng nhiều nhát.",
+        e: "Móc một con mồi, kéo về gần và hút máu từ vết Chảy Máu.",
+        r: "Nghi thức quanh người, tạo quỹ đạo máu dồn ép mọi mục tiêu xung quanh.",
+        f: "Lãnh địa tế lễ hồi máu theo số kẻ địch đang chảy máu."
       }
     },
     {
       id: "gravity",
-      name: "Trọng Lực",
+      name: "Vạn Môn",
       icon: "LỰC",
       color: "#b28dff",
       accent: "#59ffd4",
       rarity: "legendary",
-      passive: "Đòn nặng kéo lệch thăng bằng của kẻ địch.",
+      identity: "Kéo - Đảo cực",
+      playstyle: "Điều khiển vị trí, gom quái và tạo khoảnh khoắc nghiền nát.",
+      passive: "Đòn đánh gắn Trọng Áp. Mục tiêu càng nặng càng khó trốn khỏi tâm điểm.",
       skills: {
-        basic: "Sóng Đẩy",
-        q: "Hố Hấp Dẫn",
-        e: "Bước Siêu Trọng Lực",
-        r: "Vùng Không Trọng",
-        f: "Sụp Đổ Lỗ Đen"
+        basic: "Trầm Địa Ấn",
+        q: "Vạn Dẫn Điểm",
+        e: "Phá Cực Thức",
+        r: "Thiên Địa Nghịch Chuyển",
+        f: "Hỗn Độn Điểm"
+      },
+      skillDetails: {
+        basic: "Sóng nặng đẩy mục tiêu và đặt Trọng Áp.",
+        q: "Tạo tâm điểm hút quái vào giữa trước khi nghiền nát lõi.",
+        e: "Đảo cực để lao tới, hất văng đội hình ở vị trí đáp.",
+        r: "Nhấc toàn bộ khu vực vào trạng thái vô trọng lực rồi thả rơi.",
+        f: "Lãnh địa kỳ điểm kéo cả phòng vào một điểm không thể thoát."
       }
     },
     {
       id: "crystal",
-      name: "Pha Lê",
+      name: "Lưu Ly",
       icon: "PHA",
       color: "#76ffd8",
       accent: "#ffc4f5",
       rarity: "rare",
-      passive: "Mỗi đòn thứ ba tạo mảnh pha lê bay quanh người.",
+      identity: "Tạo mảnh - Phản xạ",
+      playstyle: "Xây thế trận bằng tinh thể rồi phá vỡ để lan sát thương.",
+      passive: "Đòn đánh gắn Mảnh Vỡ Pha Lê. R kích nổ chúng để tạo phản ứng dây chuyền.",
       skills: {
-        basic: "Ném Shard",
-        q: "Thành Lũy Tinh Thể",
-        e: "Gương Tinh Thể",
-        r: "Mưa Tinh Thể",
-        f: "Cung Điện Pha Lê"
+        basic: "Lưu Ly Thứ",
+        q: "Tam Cực Tinh Thương",
+        e: "Huyễn Cảnh Kính",
+        r: "Vẫn Lưu Ly Bạo",
+        f: "Lưu Ly Cung Thức"
+      },
+      skillDetails: {
+        basic: "Lăng kính xuyên hàng, để lại mảnh bẫy ở điểm cuối.",
+        q: "Bắn ba tinh thương mở góc, phủ Mảnh Vỡ lên nhiều mục tiêu.",
+        e: "Dựng gương pha lê tạo khiên và bắn phản kích quanh người.",
+        r: "Mưa lăng kính xuống khu vực, kích nổ mọi Mảnh Vỡ đã gắn.",
+        f: "Lãnh địa cung điện tạo phản xạ đạn pha lê từ mọi kẻ địch."
       }
     },
     {
       id: "nature",
-      name: "Thiên Nhiên",
+      name: "Vạn Tượng",
       icon: "CÂY",
       color: "#75e66e",
       accent: "#ffe082",
       rarity: "rare",
-      passive: "Cây dại định kỳ hồi máu và trói chân kẻ địch.",
+      identity: "Gieo mầm - Nở hoa",
+      playstyle: "Kiểm soát địa hình, độc bền bỉ và hồi phục theo vùng.",
+      passive: "Đòn đánh gieo Mầm Độc. Đủ 3 mầm trói rễ; R làm mục tiêu trúng độc nở hoa.",
       skills: {
-        basic: "Gai Phóng",
-        q: "Rễ Bẫy",
-        e: "Bức Tường Cây",
-        r: "Bào Tử Độc",
-        f: "Rừng Nguyên Thủy"
+        basic: "Khô Mộc Thứ",
+        q: "Phệ Huyết Chủng",
+        e: "Bách Trảo Mộc",
+        r: "Vạn Tượng Sinh Mầm",
+        f: "Thần Thụ Tế Lễ"
+      },
+      skillDetails: {
+        basic: "Gai xuyên hàng gieo độc và tích Mầm Độc để trói rễ.",
+        q: "Ném hạt săn mồi, mục tiêu bước vào sẽ bị rễ trói.",
+        e: "Dựng hàng gai dài, làm chậm, đầu độc và chặn đường tiến.",
+        r: "Gây một vườn bào tử; mục tiêu trúng độc sẽ nở hoa và bị trói thêm.",
+        f: "Lãnh địa cổ thụ hút sinh lực địch để hồi máu và năng lượng."
       }
     },
     {
       id: "void",
-      name: "Hư Không",
+      name: "Thái Hư",
       icon: "HƯ",
       color: "#6a8dff",
       accent: "#f2f6ff",
       rarity: "mythic",
-      passive: "Dấu hư không sụp đổ sau nhiều lần trúng đòn.",
+      identity: "Xóa bỏ - Sụp đổ",
+      playstyle: "Tước trạng thái, bẻ thế trận và trừng phạt mục tiêu cố chạy.",
+      passive: "Đòn đánh xóa khiên, đặt Vết Rạn và Bào Mòn Hư Không lên mục tiêu.",
       skills: {
-        basic: "Rạn Nứt",
-        q: "Nuốt Chửng",
-        e: "Xóa Sổ",
-        r: "Vùng Xóa",
-        f: "Ngục Hư Vô"
+        basic: "Thái Hư Rạn",
+        q: "Hư Vô Tỏa",
+        e: "Đoạt Mệnh Quyết",
+        r: "Vô Ngôn Cảnh",
+        f: "Thái Hư Diệt Thế"
+      },
+      skillDetails: {
+        basic: "Vết rạn xuyên hàng, xóa khiên và gây Bào Mòn khi mục tiêu di chuyển.",
+        q: "Mở khe hư không hút quái, đặt nhiều Vết Rạn để chuẩn bị sụp đổ.",
+        e: "Chém tia xóa bỏ trạng thái có lợi của địch và làm sạch debuff bản thân.",
+        r: "Tạo vùng im lặng, phá đạn và khóa kỹ năng của mọi mục tiêu bên trong.",
+        f: "Lãnh địa hư vô buộc đối thủ vào vòng sụp đổ liên tục."
       }
     },
     {
       id: "time",
-      name: "Thời Gian",
+      name: "Quang Âm",
       icon: "GIỜ",
       color: "#e8d17d",
       accent: "#8ff7ff",
       rarity: "mythic",
-      passive: "Né hoàn hảo hoàn trả hồi chiêu.",
+      identity: "Đóng băng - Hồi âm",
+      playstyle: "Canh nhịp, trả lại sai lầm và dồn sát thương bị trì hoãn.",
+      passive: "Mỗi nhát tạo Hồi Âm sau một nhịp. Đánh vào mục tiêu bị dừng thời gian sẽ lưu sát thương.",
       skills: {
-        basic: "Nhát Thời Gian",
-        q: "Làm Chậm",
-        e: "Tua Lại",
-        r: "Ngừng Thời Gian",
-        f: "Lãnh Địa Đồng Hồ"
+        basic: "Quang Âm Trảm",
+        q: "Thời Cực Ấn",
+        e: "Nghịch Chuyển Mệnh",
+        r: "Vĩnh Hằng Cấm Địa",
+        f: "Vô Chung Luân Hồi"
+      },
+      skillDetails: {
+        basic: "Chém hình cung rồi tái hiện một Hồi Âm sau đó.",
+        q: "Đóng băng một vùng phía trước, khiến sát thương được lưu lại.",
+        e: "Quay về vị trí cũ, hoàn máu một phần và gỡ các hiệu ứng xấu.",
+        r: "Giam khu vực lớn trong khoảnh khắc đứng yên rồi giải phóng toàn bộ sát thương.",
+        f: "Lãnh địa đồng hồ liên tục dừng thời gian và hoàn hồi chiêu."
       }
     }
   ];
+
+  const DEFAULT_POWER_SKILL_TUNING = {
+    q: { cost: 18, cooldown: 3.2, energyMult: 1 },
+    e: { cost: 24, cooldown: 5.4, energyMult: 1 },
+    r: { cost: 34, cooldown: 8.6, energyMult: 1 },
+    f: { cost: 0, cooldown: 0.8, energyMult: 1 }
+  };
+
+  const POWER_SKILL_TUNING = {
+    fire: {
+      q: { cost: 20, cooldown: 3.0, energyMult: 1 },
+      e: { cost: 26, cooldown: 5.2, energyMult: 1 },
+      r: { cost: 36, cooldown: 9.0, energyMult: 1 },
+      f: { cost: 0, cooldown: 1.0, energyMult: 0.9 }
+    },
+    ice: {
+      q: { cost: 18, cooldown: 3.8, energyMult: 1 },
+      e: { cost: 26, cooldown: 6.2, energyMult: 1 },
+      r: { cost: 36, cooldown: 9.6, energyMult: 1 },
+      f: { cost: 0, cooldown: 1.0, energyMult: 1.04 }
+    },
+    lightning: {
+      q: { cost: 16, cooldown: 2.4, energyMult: 1 },
+      e: { cost: 20, cooldown: 4.8, energyMult: 1 },
+      r: { cost: 38, cooldown: 9.2, energyMult: 1 },
+      f: { cost: 0, cooldown: 0.9, energyMult: 0.94 }
+    },
+    shadow: {
+      q: { cost: 16, cooldown: 2.8, energyMult: 1 },
+      e: { cost: 26, cooldown: 6.0, energyMult: 1 },
+      r: { cost: 34, cooldown: 8.2, energyMult: 1 },
+      f: { cost: 0, cooldown: 0.9, energyMult: 0.96 }
+    },
+    blood: {
+      q: { cost: 20, cooldown: 3.4, energyMult: 1 },
+      e: { cost: 22, cooldown: 5.8, energyMult: 1 },
+      r: { cost: 38, cooldown: 9.4, energyMult: 1 },
+      f: { cost: 0, cooldown: 1.0, energyMult: 1.02 }
+    },
+    gravity: {
+      q: { cost: 24, cooldown: 4.2, energyMult: 1 },
+      e: { cost: 26, cooldown: 6.4, energyMult: 1 },
+      r: { cost: 40, cooldown: 10.4, energyMult: 1 },
+      f: { cost: 0, cooldown: 1.1, energyMult: 1.05 }
+    },
+    crystal: {
+      q: { cost: 20, cooldown: 3.2, energyMult: 1 },
+      e: { cost: 28, cooldown: 6.0, energyMult: 1 },
+      r: { cost: 36, cooldown: 9.0, energyMult: 1 },
+      f: { cost: 0, cooldown: 1.0, energyMult: 1 }
+    },
+    nature: {
+      q: { cost: 18, cooldown: 3.6, energyMult: 1 },
+      e: { cost: 24, cooldown: 5.6, energyMult: 1 },
+      r: { cost: 34, cooldown: 8.8, energyMult: 1 },
+      f: { cost: 0, cooldown: 0.9, energyMult: 0.92 }
+    },
+    void: {
+      q: { cost: 22, cooldown: 4.0, energyMult: 1 },
+      e: { cost: 20, cooldown: 5.0, energyMult: 1 },
+      r: { cost: 38, cooldown: 9.6, energyMult: 1 },
+      f: { cost: 0, cooldown: 1.1, energyMult: 1.1 }
+    },
+    time: {
+      q: { cost: 22, cooldown: 4.2, energyMult: 1 },
+      e: { cost: 26, cooldown: 6.2, energyMult: 1 },
+      r: { cost: 40, cooldown: 10.2, energyMult: 1 },
+      f: { cost: 0, cooldown: 1.1, energyMult: 1.08 }
+    }
+  };
 
   const AWAKENING_RAID_BIOMES = {
     fire: "lava",
@@ -346,16 +514,16 @@
   };
 
   const POWER_DESIGN_PALETTES = {
-    fire: { color: "#d85a2a", accent: "#e6b85a", dark: "#6d1e16", awakened: "#69cfd0", awakenedAccent: "#285f8f" },
-    ice: { color: "#9fd7e5", accent: "#e8f5f7", dark: "#173451", awakened: "#151820", awakenedAccent: "#5f4c78" },
-    lightning: { color: "#e8d26a", accent: "#f4f2cf", dark: "#5f4c8a", awakened: "#7a62b8", awakenedAccent: "#e9e4ff" },
-    shadow: { color: "#5b35d5", accent: "#d7c4ff", dark: "#05030d", awakened: "#111111", awakenedAccent: "#b9a5ff" },
-    blood: { color: "#9e2437", accent: "#e8a8af", dark: "#351018", awakened: "#d34d63", awakenedAccent: "#1a1215" },
-    gravity: { color: "#9b83d6", accent: "#76cbb6", dark: "#211b31", awakened: "#14151e", awakenedAccent: "#b9a2df" },
-    crystal: { color: "#78d6c4", accent: "#e5b9d9", dark: "#1f4a54", awakened: "#e9dde8", awakenedAccent: "#9bdfe0" },
-    nature: { color: "#71b866", accent: "#d6bd70", dark: "#203f20", awakened: "#a6c95b", awakenedAccent: "#76aa61" },
-    void: { color: "#10121f", accent: "#d9dde8", dark: "#030407", awakened: "#5aa66a", awakenedAccent: "#0c100d" },
-    time: { color: "#b59a41", accent: "#e2ddbd", dark: "#1f5d5d", awakened: "#d9c85a", awakenedAccent: "#6fbf77" }
+    fire: { color: "#ff4d00", accent: "#ffb347", dark: "#6d1e16", awakened: "#ffffff", awakenedAccent: "#00bfff" },
+    ice: { color: "#00ffff", accent: "#e8f5f7", dark: "#173451", awakened: "#000000", awakenedAccent: "#00008b" },
+    lightning: { color: "#ffd700", accent: "#ffffe0", dark: "#5f4c8a", awakened: "#8a2be2", awakenedAccent: "#da70d6" },
+    shadow: { color: "#2f4f4f", accent: "#808080", dark: "#05030d", awakened: "#000000", awakenedAccent: "#8b0000" },
+    blood: { color: "#ff0000", accent: "#ffc0cb", dark: "#351018", awakened: "#8b0000", awakenedAccent: "#ffd700" },
+    gravity: { color: "#9370db", accent: "#dda0dd", dark: "#211b31", awakened: "#000000", awakenedAccent: "#4b0082" },
+    crystal: { color: "#40e0d0", accent: "#e0ffff", dark: "#1f4a54", awakened: "#f8f8ff", awakenedAccent: "#c0c0c0" },
+    nature: { color: "#32cd32", accent: "#90ee90", dark: "#203f20", awakened: "#39ff14", awakenedAccent: "#ffffe0" },
+    void: { color: "#4b0082", accent: "#8a2be2", dark: "#030407", awakened: "#ffffff", awakenedAccent: "#f5f5f5" },
+    time: { color: "#eee8aa", accent: "#fff8dc", dark: "#1f5d5d", awakened: "#c0c0c0", awakenedAccent: "#f8f8ff" }
   };
 
   const DESIGNED_CAST_SECONDS = {
@@ -1097,6 +1265,10 @@
 
   function powerById(id) {
     return POWERS.find((power) => power.id === id) || POWERS[0];
+  }
+
+  function powerSkillTuning(powerId, key) {
+    return POWER_SKILL_TUNING[powerId]?.[key] || DEFAULT_POWER_SKILL_TUNING[key] || DEFAULT_POWER_SKILL_TUNING.q;
   }
 
   function itemById(id) {
@@ -4968,11 +5140,14 @@
       this.exportedAssetIdleWarmupStarted = false;
       this.exportedAssetGpuWarmCanvas = null;
       this.exportedAssetGpuWarmCtx = null;
-      this.assetCleanupTimer = 0;
+      this.assetCleanupTimer = 1.5;
       if (!window.SOULRIFT_EXPORT_ONLY) this.loadMonsterSprites();
       this.run = null;
       this.mode = "loading";
       this.last = 0;
+      this.lastMainCanvasRenderAt = -999;
+      this.lastMenuHeroRenderAt = -999;
+      this.lastSquadHeroRenderAt = -999;
       this.camera = { x: 0, y: 0, leadX: 0, leadY: 0, shake: 0, shakeX: 0, shakeY: 0, shakePhase: 0 };
       this.input = {
         keys: new Set(),
@@ -5039,6 +5214,8 @@
       this.resizePending = false;
       this.resizeDelayTimer = null;
       this.lastViewportSyncKey = "";
+      this.canvasRectCache = null;
+      this.canvasRectCacheAt = 0;
       this.renderActorBuffer = [];
       this.enemyQueryBuffers = Array.from({ length: 8 }, () => []);
       this.enemyQueryBufferIndex = 0;
@@ -6263,17 +6440,25 @@
       if (this.roomAssetWarmupActive()) return;
       this.assetCleanupTimer -= dt;
       if (this.assetCleanupTimer > 0) return;
-      this.trimExportedAtlasSheets(false);
-      if (!this.exportedAssetImages?.size) {
-        this.assetCleanupTimer = this.isMobileDevice() ? 2.5 : 4.5;
-        return;
-      }
       const weakBias = this.devicePerformanceBias();
       const mobile = this.isMobileDevice();
       const maxImages = mobile
         ? Math.round(190 - weakBias * 60)
         : Math.round(360 - weakBias * 80);
-      if ((this.exportedAssetBitmapPixels || 0) > this.exportedBitmapPixelBudget() * 1.05) {
+      const bitmapBudget = this.exportedBitmapPixelBudget();
+      const activeCombat = Boolean(this.run && this.mode === "game" && this.graphicsActiveCombat());
+      const overBitmapBudget = (this.exportedAssetBitmapPixels || 0) > bitmapBudget * 1.05;
+      const overImageBudget = (this.exportedAssetImages?.size || 0) > maxImages;
+      if (activeCombat && !this.performanceEmergency() && !overBitmapBudget && !overImageBudget) {
+        this.assetCleanupTimer = mobile ? 1.5 : 2.2;
+        return;
+      }
+      this.trimExportedAtlasSheets(false);
+      if (!this.exportedAssetImages?.size) {
+        this.assetCleanupTimer = mobile ? 2.5 : 4.5;
+        return;
+      }
+      if (overBitmapBudget) {
         this.trimExportedBitmapBudget(0, true);
       }
       if (this.exportedAssetImages.size <= maxImages) {
@@ -8152,6 +8337,28 @@
       return clamp((ms - start) / range + spikePressure, 0, 1);
     }
 
+    shouldRenderMainCanvas(time = 0) {
+      if (this.run || this.mode === "game") return true;
+      const interval = this.isMobileDevice() ? 66 : 50;
+      if (time - this.lastMainCanvasRenderAt < interval) return false;
+      this.lastMainCanvasRenderAt = time;
+      return true;
+    }
+
+    shouldRenderMenuHero(time = 0) {
+      const interval = this.isMobileDevice() ? 100 : 66;
+      if (time - this.lastMenuHeroRenderAt < interval) return false;
+      this.lastMenuHeroRenderAt = time;
+      return true;
+    }
+
+    shouldRenderSquadHeroes(time = 0) {
+      const interval = this.isMobileDevice() ? 125 : 83;
+      if (time - this.lastSquadHeroRenderAt < interval) return false;
+      this.lastSquadHeroRenderAt = time;
+      return true;
+    }
+
     performancePressure() {
       return clamp(Number(this.perf?.pressure || 0), 0, 1);
     }
@@ -8263,13 +8470,7 @@
     }
 
     optionalVisualEffect(type) {
-      return [
-        "attackBurst",
-        "hitSpark",
-        "castBurst",
-        "castCone",
-        "shadowShard"
-      ].includes(type);
+      return OPTIONAL_VISUAL_EFFECTS.has(type);
     }
 
     projectileLimit() {
@@ -8559,22 +8760,39 @@
     trimEffectList() {
       if (!this.run) return;
       const limit = this.effectLimit();
-      while (this.run.effects.length > limit) {
-        const index = this.run.effects.findIndex((effect) => (
-          effect.type === "attackBurst" ||
-          effect.type === "hitSpark" ||
-          effect.type === "castBurst" ||
-          effect.type === "castCone" ||
-          effect.type === "shadowShard" ||
-          effect.type === "powerBolt" ||
-          effect.type === "powerStageVfx"
-        ));
-        const fallbackIndex = index >= 0 ? index : this.performancePanic()
-          ? this.run.effects.findIndex((effect) => effect.type === "skillShape" || effect.type === "powerGlyph")
-          : -1;
-        if (fallbackIndex < 0) break;
-        const [removed] = this.run.effects.splice(fallbackIndex, 1);
-        this.releasePooledObject("effect", removed);
+      const effects = this.run.effects;
+      let remove = effects.length - limit;
+      if (remove > 0) {
+        for (let i = 0; i < effects.length && remove > 0;) {
+          const effect = effects[i];
+          if (
+            effect.type === "attackBurst" ||
+            effect.type === "hitSpark" ||
+            effect.type === "castBurst" ||
+            effect.type === "castCone" ||
+            effect.type === "shadowShard" ||
+            effect.type === "powerBolt" ||
+            effect.type === "powerStageVfx"
+          ) {
+            const [removed] = effects.splice(i, 1);
+            this.releasePooledObject("effect", removed);
+            remove--;
+          } else {
+            i++;
+          }
+        }
+      }
+      if (remove > 0 && this.performancePanic()) {
+        for (let i = 0; i < effects.length && remove > 0;) {
+          const effect = effects[i];
+          if (effect.type === "skillShape" || effect.type === "powerGlyph") {
+            const [removed] = effects.splice(i, 1);
+            this.releasePooledObject("effect", removed);
+            remove--;
+          } else {
+            i++;
+          }
+        }
       }
       if (this.ultraPerformanceMode()) this.trimTelegraphEffects(this.isMobileDevice() ? 10 : 16);
     }
@@ -8723,6 +8941,7 @@
     bindTouchControls() {
       const stick = document.getElementById("stick");
       const nub = stick.querySelector("span");
+      let stickRect = null;
       const placeStick = (touch) => {
         const size = stick.offsetWidth || 132;
         const half = size / 2;
@@ -8734,9 +8953,10 @@
         stick.style.left = `${x - half}px`;
         stick.style.top = `${y - half}px`;
         stick.style.bottom = "auto";
+        stickRect = null;
       };
       const updateStick = (touch) => {
-        const rect = stick.getBoundingClientRect();
+        const rect = stickRect || (stickRect = stick.getBoundingClientRect());
         const cx = rect.left + rect.width / 2;
         const cy = rect.top + rect.height / 2;
         const dx = touch.clientX - cx;
@@ -8764,7 +8984,12 @@
         if (floating) placeStick(touch);
         updateStick(touch);
       };
-      const touchById = (touches) => Array.from(touches).find((touch) => touch.identifier === this.joystickTouchId);
+      const touchById = (touches) => {
+        for (let i = 0; i < (touches?.length || 0); i++) {
+          if (touches[i].identifier === this.joystickTouchId) return touches[i];
+        }
+        return null;
+      };
       stick.addEventListener("touchstart", (event) => {
         event.preventDefault();
         beginStick(event.changedTouches[0], false);
@@ -8786,6 +9011,7 @@
         stick.style.top = "";
         stick.style.bottom = "";
         nub.style.transform = "translate(0, 0)";
+        stickRect = null;
       };
       const maybeResetStick = (event) => {
         if (this.joystickTouchId === null) return;
@@ -8922,6 +9148,8 @@
       this.width = nextWidth;
       this.height = nextHeight;
       this.dpr = nextDpr;
+      this.canvasRectCache = null;
+      this.canvasRectCacheAt = 0;
       this.canvas.width = nextCanvasWidth;
       this.canvas.height = nextCanvasHeight;
       this.canvas.style.width = `${this.width}px`;
@@ -8937,8 +9165,16 @@
       }
     }
 
+    canvasClientRect() {
+      const now = typeof performance !== "undefined" && performance.now ? performance.now() : Date.now();
+      if (this.canvasRectCache && now - this.canvasRectCacheAt < 120) return this.canvasRectCache;
+      this.canvasRectCache = this.canvas.getBoundingClientRect();
+      this.canvasRectCacheAt = now;
+      return this.canvasRectCache;
+    }
+
     updateMouse(event) {
-      const rect = this.canvas.getBoundingClientRect();
+      const rect = this.canvasClientRect();
       const scale = this.worldViewScale();
       this.input.mouse.x = event.clientX - rect.left;
       this.input.mouse.y = event.clientY - rect.top;
@@ -9097,15 +9333,18 @@
           ? this.perf.avgUpdateMs * 0.86 + updateMs * 0.14
           : updateMs;
         this.audio.update(dt);
-        const renderStart = performance.now();
-        this.render();
-        const renderMs = performance.now() - renderStart;
-        this.perf.renderMs = renderMs;
-        this.perf.avgRenderMs = this.perf.avgRenderMs
-          ? this.perf.avgRenderMs * 0.86 + renderMs * 0.14
-          : renderMs;
-        if (this.mode === "menu" && this.screen?.classList.contains("aaa-menu-screen")) this.renderMainMenuHero();
-        if (this.mode === "play" && this.screen?.classList.contains("valorant-screen")) this.renderSquadHeroCanvases();
+        let renderMs = 0;
+        if (this.shouldRenderMainCanvas(time)) {
+          const renderStart = performance.now();
+          this.render();
+          renderMs = performance.now() - renderStart;
+          this.perf.renderMs = renderMs;
+          this.perf.avgRenderMs = this.perf.avgRenderMs
+            ? this.perf.avgRenderMs * 0.86 + renderMs * 0.14
+            : renderMs;
+        }
+        if (this.mode === "menu" && this.screen?.classList.contains("aaa-menu-screen") && this.shouldRenderMenuHero(time)) this.renderMainMenuHero();
+        if (this.mode === "play" && this.screen?.classList.contains("valorant-screen") && this.shouldRenderSquadHeroes(time)) this.renderSquadHeroCanvases();
         const loopMs = performance.now() - loopStart;
         this.perf.loopMs = loopMs;
         this.perf.avgLoopMs = this.perf.avgLoopMs
@@ -12467,11 +12706,28 @@
         ? `<button class="btn" data-action="toggle-awakened-power" data-power="${power.id}">${activeAwakened ? "DÙNG BẢN THƯỜNG" : "DÙNG THỨC TỈNH"}</button>`
         : "";
       const actionButtons = `${selectButton}${awakenedButton}`;
+      const showDetails = Boolean(options.details);
+      const identityHtml = power.identity
+        ? '<p class="power-identity"><b>' + power.identity + '</b> ' + (power.playstyle || "") + '</p>'
+        : "";
+      const skillRows = showDetails
+        ? Object.entries(power.skills || {}).map(([key, name]) => {
+          const detail = power.skillDetails?.[key] || "";
+          const tuning = powerSkillTuning(power.id, key);
+          const metaText = key === "f"
+            ? "100% Tuyệt kỹ"
+            : tuning.cost + " NL · " + tuning.cooldown.toFixed(1) + "s";
+          const keyLabel = key === "basic" ? "ĐÁNH" : key.toUpperCase();
+          return '<div class="power-skill-line"><b>' + keyLabel + '</b><span><strong>' + name + '</strong><small>' + detail + '</small></span><em>' + metaText + '</em></div>';
+        }).join("")
+        : "";
       return `
-        <div class="choice-card power-card rarity-${meta.rarity} ${owned ? "" : "locked"} ${selected ? "selected" : ""}">
+        <div class="choice-card power-card rarity-${meta.rarity} ${owned ? "" : "locked"} ${selected ? "selected" : ""}" style="--ill:${power.color}; --ill2:${power.accent}">
           ${this.powerIllustration(power)}
           <h3 style="color:${power.color}">${power.name}</h3>
           <p>${power.passive}</p>
+          ${identityHtml}
+          ${skillRows ? `<div class="power-skill-list">${skillRows}</div>` : ""}
           <p class="small">${owned ? `Cấp ${meta.level} - ${awakened}` : "Chưa sở hữu"}${selected ? " - Đang chọn" : ""}</p>
           ${actionButtons ? `<div class="item-actions">${actionButtons}</div>` : ""}
         </div>
@@ -12814,7 +13070,8 @@
       const selected = this.save.account.selectedPower ? powerById(this.save.account.selectedPower) : null;
       const rows = ownedPowers.map((power) => this.powerCard(power, "choose-power", {
         showSelectedButton: false,
-        showAwakenedNormalButton: false
+        showAwakenedNormalButton: false,
+        details: true
       })).join("");
       this.setScreen(`
         <section class="shell command-page character-command">
@@ -12847,7 +13104,7 @@
 
     showPowerBook() {
       this.mode = "powerBook";
-      const rows = POWERS.map((power) => this.powerCard(power, "choose-power", { actions: false })).join("");
+      const rows = POWERS.map((power) => this.powerCard(power, "choose-power", { actions: false, details: true })).join("");
       this.setScreen(`
         <section class="shell">
           ${this.navHtml("character")}
@@ -16542,8 +16799,9 @@
       });
     }
 
-    ultimateEnergyCost(player) {
-      return Math.ceil(Math.max(0, player?.maxEnergy || 0) * DOMAIN_ENERGY_COST_RATIO);
+    ultimateEnergyCost(player, powerId = this.run?.power?.id || this.save?.account?.selectedPower || "fire") {
+      const tuning = powerSkillTuning(powerId, "f");
+      return Math.ceil(Math.max(0, player?.maxEnergy || 0) * DOMAIN_ENERGY_COST_RATIO * (tuning.energyMult || 1));
     }
 
     useSkill(key) {
@@ -16554,9 +16812,11 @@
         this.usePlayerBossAction(key);
         return;
       }
-      const cost = { q: 18, e: 24, r: 34, f: 0 }[key];
-      const cooldown = { q: 3.2, e: 5.4, r: 8.6, f: 0.8 }[key];
-      const ultimateCost = key === "f" ? this.ultimateEnergyCost(p) : 0;
+      const power = this.run.power;
+      const tuning = powerSkillTuning(power.id, key);
+      const cost = tuning.cost;
+      const cooldown = tuning.cooldown;
+      const ultimateCost = key === "f" ? this.ultimateEnergyCost(p, power.id) : 0;
       const freeEnergy = this.trainingRule("freeEnergy");
       const noCooldown = this.trainingRule("noCooldown");
       if (key !== "f" && ((!noCooldown && p.cooldowns[key] > 0) || (!freeEnergy && p.energy < cost))) return;
@@ -16576,7 +16836,6 @@
         p.domainLock = Math.max(p.domainLock || 0, DOMAIN_CUTIN_TIME + DOMAIN_GROW_TIME + 0.15);
         p.invuln = Math.max(p.invuln || 0, DOMAIN_CAST_INVULN_TIME);
       }
-      const power = this.run.power;
       const aim = this.skillAimAngle(p);
       const target = this.skillTargetPoint(p, aim, 250);
       if (this.isMultiplayerClient()) this.sendSkillPacket(key, power, p, aim, target);
@@ -17405,9 +17664,12 @@
         enemy.mark = 0;
         this.addShadowShard(enemy, caster, mark);
         if (!this.isMultiplayerClient()) {
+          const dx = enemy.x - caster.x;
+          const dy = enemy.y - caster.y;
+          const invD = 1 / (Math.hypot(dx, dy) || 1);
           this.damageEnemy(enemy, damage * (0.08 + mark * 0.035), {
-            x: (enemy.x - caster.x) / (Math.hypot(enemy.x - caster.x, enemy.y - caster.y) || 1),
-            y: (enemy.y - caster.y) / (Math.hypot(enemy.x - caster.x, enemy.y - caster.y) || 1),
+            x: dx * invD,
+            y: dy * invD,
             source: "shadowDrain",
             kind: "shadow",
             sourceId: casterId
@@ -17588,52 +17850,52 @@
       const palette = this.powerDesignPalette(kind, false);
       const map = {
         fire: {
-          color: "#d85a2a", accent: "#e6b85a", dark: "#6d1e16",
+          color: "#ff4d00", accent: "#ffb347", dark: "#6d1e16",
           hit: "ember", cast: "flameCore", status: "ember", zone: "fireTrail",
           drag: 0.18, gravity: 18
         },
         ice: {
-          color: "#9fd7e5", accent: "#e8f5f7", dark: "#173451",
+          color: "#00ffff", accent: "#e8f5f7", dark: "#173451",
           hit: "iceShard", cast: "frostHex", status: "frostHex", zone: "iceShard",
           drag: 0.12, gravity: 0
         },
         lightning: {
-          color: "#e8d26a", accent: "#f4f2cf", dark: "#5f4c8a",
+          color: "#ffd700", accent: "#ffffe0", dark: "#5f4c8a",
           hit: "sparkLine", cast: "sparkLine", status: "sparkLine", zone: "sparkLine",
           drag: 0.08, gravity: 0
         },
         shadow: {
-          color: "#4d3396", accent: "#bca8e8", dark: "#0a0712",
+          color: "#2f4f4f", accent: "#808080", dark: "#05030d",
           hit: "shadowPixel", cast: "shadowSlash", status: "shadowPixel", zone: "shadowPixel",
           drag: 0.24, gravity: 0
         },
         blood: {
-          color: "#9e2437", accent: "#e8a8af", dark: "#351018",
+          color: "#ff0000", accent: "#ffc0cb", dark: "#351018",
           hit: "bloodDrop", cast: "bloodRibbon", status: "bloodDrop", zone: "bloodPool",
           drag: 0.2, gravity: 90
         },
         gravity: {
-          color: "#9b83d6", accent: "#76cbb6", dark: "#211b31",
+          color: "#9370db", accent: "#dda0dd", dark: "#211b31",
           hit: "gravityPixel", cast: "gravityRing", status: "gravityPixel", zone: "gravityRing",
           drag: 0.16, gravity: 0
         },
         crystal: {
-          color: "#78d6c4", accent: "#e5b9d9", dark: "#1f4a54",
+          color: "#40e0d0", accent: "#e0ffff", dark: "#1f4a54",
           hit: "crystalFacet", cast: "crystalFacet", status: "crystalFacet", zone: "crystalFacet",
           drag: 0.1, gravity: 22
         },
         nature: {
-          color: "#71b866", accent: "#d6bd70", dark: "#203f20",
+          color: "#32cd32", accent: "#90ee90", dark: "#203f20",
           hit: "thornChip", cast: "leafShard", status: "leafShard", zone: "vineSegment",
           drag: 0.28, gravity: 12
         },
         void: {
-          color: "#10121f", accent: "#d9dde8", dark: "#030407",
+          color: "#4b0082", accent: "#8a2be2", dark: "#030407",
           hit: "voidFragment", cast: "glitchPixel", status: "voidFragment", zone: "voidFragment",
           drag: 0.2, gravity: 0
         },
         time: {
-          color: "#b59a41", accent: "#e2ddbd", dark: "#1f5d5d",
+          color: "#eee8aa", accent: "#fff8dc", dark: "#1f5d5d",
           hit: "timeTick", cast: "timeRing", status: "timeTick", zone: "timeRing",
           drag: 0.18, gravity: 0
         }
@@ -18365,6 +18627,10 @@
 
       if (key === "e") {
         if (kind === "fire") {
+          const primed = new Set();
+          for (const enemy of this.enemiesNear(x, y, 162, 12)) {
+            if ((enemy.fireStacks || 0) >= 2) primed.add(enemy);
+          }
           const hits = [];
           for (let i = 0; i < 4; i++) hits.push(...this.rectangleSkillDamage(x, y, i * Math.PI / 2, 120, 40, damage * 1.08, palette.color, kind, casterId));
           for (const enemy of hits) {
@@ -18376,6 +18642,7 @@
             this.applyFireStacks(enemy, 2, 4.2, palette.color);
             if ((enemy.fireStacks || 0) >= 3) this.damageEnemy(enemy, damage * 0.62, { x: 0, y: 0, source: "flameStompBonus", kind, noKnockback: true, sourceId: casterId });
           }
+          for (const enemy of primed) this.detonateFireStacks(enemy, damage, casterId, palette.accent);
           for (let i = 0; i < 4; i++) this.addTrailDamage(x + Math.cos(i * Math.PI / 2) * 58, y + Math.sin(i * Math.PI / 2) * 58, palette.color);
         } else if (kind === "ice") {
           const center = clampTarget(200);
@@ -18383,11 +18650,13 @@
           this.addEffect({ type: "skillBurst", x: center.x, y: center.y, radius: 48, time: 2.0, maxTime: 2.0, damage: damage * 0.42, color: palette.color, kind, casterId });
         } else if (kind === "lightning") {
           const end = pointAhead(200);
+          const charged = this.enemiesNear(end.x, end.y, 82, 8).filter((enemy) => (enemy.shockStacks || 0) >= 2);
           caster.invuln = Math.max(caster.invuln || 0, 0.4);
           lineHits(x, y, 200, 16, damage * 0.44, 8);
           this.setDesignedCasterPosition(caster, end.x, end.y, { owner, casterId });
           this.areaDamage(end.x, end.y, 60, damage * 0.86, palette.color, kind, false, casterId);
           for (const enemy of this.enemiesNear(end.x, end.y, 70, 8)) enemy.stun = Math.max(enemy.stun || 0, enemy.boss ? 0.08 : 0.5);
+          for (const enemy of charged) this.detonateLightningCharge(enemy, damage, casterId, palette.accent);
         } else if (kind === "shadow") {
           const hits = lineHits(x, y, 250, 24, damage * 0.74, 1, { noKnockback: true });
           for (const enemy of hits) {
@@ -18501,16 +18770,27 @@
           }
         } else if (kind === "crystal") {
           const center = clampTarget(240);
+          const seeded = this.enemiesNear(center.x, center.y, 165, 8).filter((enemy) => (enemy.crystalShards || 0) >= 2);
           for (let i = 0; i < 16; i++) {
             const px = center.x + rand(-120, 120);
             const py = center.y + rand(-95, 95);
             this.addSkillShape(kind, "design-crystal-r", px, py, -Math.PI / 2, 54, 0.36, { design: true, color: palette.color, accent: palette.accent });
             this.areaDamage(px, py, 22, damage * 0.34, palette.color, kind, false, casterId);
           }
+          if (!this.isMultiplayerClient()) {
+            for (const enemy of seeded) this.detonateCrystalShards(enemy, damage, owner, casterId, palette.accent);
+          }
         } else if (kind === "nature") {
           const center = clampTarget(240);
+          const blooming = this.enemiesNear(center.x, center.y, 132, 8).filter((enemy) => (enemy.poison || 0) > 0);
           this.addEffect({ type: "zone", x: center.x, y: center.y, radius: 120, time: 4.2, tick: 0.12, tickRate: 0.45, damage: damage * 0.08, statusKind: "natureSpores", color: palette.color, kind, casterId });
           for (const enemy of this.enemiesNear(center.x, center.y, 130, 10)) this.applyEnemyPoison(enemy, damage, 5.8, casterId);
+          for (const enemy of blooming) {
+            enemy.stun = Math.max(enemy.stun || 0, enemy.boss ? 0.14 : 0.72);
+            this.damageEnemy(enemy, damage * 0.34, { x: 0, y: 0, source: "natureBloom", kind, noKnockback: true, sourceId: casterId });
+            this.addRootSnareVisual(enemy, caster, palette.accent);
+          }
+          if (!remote && blooming.length) healFromSkill(Math.min(12, blooming.length * 1.8));
         } else if (kind === "void") {
           const center = clampTarget(240);
           this.addEffect({ type: "zone", x: center.x, y: center.y, radius: 180, time: 4.0, tick: 0.12, tickRate: 0.45, damage: damage * 0.08, statusKind: "nullZone", color: palette.color, kind, casterId });
@@ -23931,23 +24211,19 @@
       }
       if (!this.isMultiplayerClient()) {
         const domainId = this.domainContainmentId(effect);
-        for (const enemy of this.run.enemies) {
-          const d = Math.hypot(enemy.x - effect.x, enemy.y - effect.y);
-          if (d <= radius + (enemy.radius || 18)) {
-            enemy.domainBound = domainId;
-            this.applyEnemyDomainContainment(enemy);
-          }
+        for (const enemy of this.enemiesNear(effect.x, effect.y, radius, 99)) {
+          enemy.domainBound = domainId;
+          this.applyEnemyDomainContainment(enemy);
         }
       }
       if (!this.isMultiplayerClient() && (kind === "gravity" || kind === "void")) {
-        for (const enemy of this.run.enemies) {
-          const d = Math.hypot(enemy.x - effect.x, enemy.y - effect.y);
-          if (d < radius + enemy.radius) {
-            const pull = kind === "gravity" ? 210 : 165;
-            const a = Math.atan2(effect.y - enemy.y, effect.x - enemy.x);
-            enemy.vx += Math.cos(a) * pull * dt;
-            enemy.vy += Math.sin(a) * pull * dt;
-          }
+        const pull = kind === "gravity" ? 210 : 165;
+        for (const enemy of this.enemiesNear(effect.x, effect.y, radius, 99)) {
+          const dx = effect.x - enemy.x;
+          const dy = effect.y - enemy.y;
+          const invD = 1 / (Math.hypot(dx, dy) || 1);
+          enemy.vx += dx * invD * pull * dt;
+          enemy.vy += dy * invD * pull * dt;
         }
       }
       effect.tick = Number.isFinite(effect.tick) ? effect.tick - dt : 0;
@@ -24013,13 +24289,12 @@
         }
         if (effect.type === "pull" && !this.isMultiplayerClient()) {
           const strength = Number.isFinite(Number(effect.strength)) ? Number(effect.strength) : 420;
-          for (const enemy of this.run.enemies) {
-            const d = Math.hypot(effect.x - enemy.x, effect.y - enemy.y);
-            if (d < effect.radius) {
-              const a = Math.atan2(effect.y - enemy.y, effect.x - enemy.x);
-              enemy.vx += Math.cos(a) * strength * dt;
-              enemy.vy += Math.sin(a) * strength * dt;
-            }
+          for (const enemy of this.enemiesNear(effect.x, effect.y, effect.radius, 99)) {
+            const dx = effect.x - enemy.x;
+            const dy = effect.y - enemy.y;
+            const invD = 1 / (Math.hypot(dx, dy) || 1);
+            enemy.vx += dx * invD * strength * dt;
+            enemy.vy += dy * invD * strength * dt;
           }
         }
         if (effect.type === "zone") {
@@ -24495,22 +24770,24 @@
     updateParticles(dt) {
       if (!this.run) return;
       let write = 0;
-      for (let i = 0; i < this.run.particles.length; i++) {
-        const particle = this.run.particles[i];
+      const defaultDragFactor = Math.pow(0.05, dt);
+      const particles = this.run.particles;
+      for (let i = 0; i < particles.length; i++) {
+        const particle = particles[i];
         particle.life -= dt;
         particle.x += particle.vx * dt;
         particle.y += particle.vy * dt;
         if (particle.gravity) particle.vy += particle.gravity * dt;
-        const drag = Number.isFinite(particle.drag) ? particle.drag : 0.05;
-        particle.vx *= Math.pow(drag, dt);
-        particle.vy *= Math.pow(drag, dt);
+        const drag = particle.drag || 0.05;
+        particle.vx *= (drag === 0.05 ? defaultDragFactor : Math.pow(drag, dt));
+        particle.vy *= (drag === 0.05 ? defaultDragFactor : Math.pow(drag, dt));
         if (particle.spin) particle.angle = (particle.angle || 0) + particle.spin * dt;
-        if (particle.life > 0) this.run.particles[write++] = particle;
+        if (particle.life > 0) particles[write++] = particle;
         else this.releasePooledObject("particle", particle);
       }
-      this.run.particles.length = write;
+      particles.length = write;
       const limit = this.particleLimit();
-      if (this.run.particles.length > limit) this.recycleListHead(this.run.particles, this.run.particles.length - limit, "particle");
+      if (particles.length > limit) this.recycleListHead(particles, particles.length - limit, "particle");
     }
 
     updateDamageTexts(dt) {
@@ -24860,7 +25137,13 @@
       }
       if (hudNow < this.nextHudSkillAt) return;
       this.nextHudSkillAt = hudNow + (this.effectQuality() < 0.7 ? 150 : 95);
-      const ultimateCost = this.ultimateEnergyCost(p);
+      const ultimateCost = this.ultimateEnergyCost(p, this.run.power.id);
+      const powerTuning = {
+        q: powerSkillTuning(this.run.power.id, "q"),
+        e: powerSkillTuning(this.run.power.id, "e"),
+        r: powerSkillTuning(this.run.power.id, "r"),
+        f: powerSkillTuning(this.run.power.id, "f")
+      };
       const bossLabels = this.isLocalPlayerBoss() ? this.playerBossSkillLabels() : null;
       const skills = this.isLocalPlayerBoss() ? [
         ["ĐÁNH", bossLabels.basic, this.run.player.attackCd, 1.0],
@@ -24870,10 +25153,10 @@
         ["F", bossLabels.f, p.cooldowns.f, 10.2]
       ] : [
         ["ĐÁNH", this.run.power.skills.basic, this.run.player.attackCd, this.run.player.basicAttackCd || 0.38],
-        ["Q", this.run.power.skills.q, p.cooldowns.q, 3.2],
-        ["E", this.run.power.skills.e, p.cooldowns.e, 5.4],
-        ["R", this.run.power.skills.r, p.cooldowns.r, 8.6],
-        ["F", `${this.run.power.skills.f} ${Math.floor(p.ult)}% - ${ultimateCost} NL`, p.ult >= 100 && p.energy >= ultimateCost ? 0 : 1, 1]
+        ["Q", this.run.power.skills.q, p.cooldowns.q, powerTuning.q.cooldown],
+        ["E", this.run.power.skills.e, p.cooldowns.e, powerTuning.e.cooldown],
+        ["R", this.run.power.skills.r, p.cooldowns.r, powerTuning.r.cooldown],
+        ["F", `${this.run.power.skills.f} ${Math.floor(p.ult)}% - ${ultimateCost} NL`, p.ult >= 100 && p.energy >= ultimateCost ? 0 : 1, powerTuning.f.cooldown]
       ];
       if (mobileHud) {
         this.updateTouchCooldowns(skills);
@@ -25039,9 +25322,7 @@
           }
           if (this.isMultiplayerRun()) this.drawNameTag(ctx, actor.x, actor.y - 58, actor.name || this.save.account.username || "Bạn", true, actor.hp, actor.maxHp);
         } else {
-          const enemyX = Number.isFinite(actor.displayX) ? actor.displayX : actor.x;
-          const enemyY = Number.isFinite(actor.displayY) ? actor.displayY : actor.y;
-          if (this.inView(enemyX, enemyY, actor.radius + enemyCullPad)) this.drawEnemy(ctx, actor);
+          this.drawEnemy(ctx, actor);
         }
       }
       for (const remote of this.remotePlayers.values()) {
@@ -33771,7 +34052,7 @@
         } else if (particle.shape === "plus") {
           ctx.fillRect(particle.x - size / 4, particle.y - size / 2, size / 2, size);
           ctx.fillRect(particle.x - size / 2, particle.y - size / 4, size, size / 2);
-        } else if (["spark", "crit"].includes(particle.shape)) {
+        } else if (particle.shape === "spark" || particle.shape === "crit") {
           if (simple) {
             ctx.fillRect(particle.x - size / 2, particle.y - 1, size, 2);
             ctx.fillRect(particle.x - 1, particle.y - size / 2, 2, size);
@@ -33807,13 +34088,7 @@
             ctx.stroke();
             ctx.restore();
           }
-        } else if ([
-          "ember", "flameCore", "smokeDiamond", "fireTrail",
-          "iceShard", "frostHex", "sparkLine", "shadowPixel", "shadowSlash",
-          "bloodDrop", "bloodPool", "bloodRibbon", "gravityPixel", "gravityRing",
-          "crystalFacet", "leafShard", "thornChip", "vineSegment",
-          "voidFragment", "glitchPixel", "timeTick", "timeRing"
-        ].includes(particle.shape)) {
+        } else if (PIXEL_POWER_PARTICLE_SHAPES.has(particle.shape)) {
           ctx.save();
           ctx.translate(particle.x, particle.y);
           ctx.rotate(Number(particle.angle || 0));
@@ -33821,8 +34096,9 @@
           const px = Math.max(1.2, Math.round(size * 0.22));
           const core = particle.color;
           const kind = particle.kind || "";
-          const accent = this.powerVfxSpec(kind).accent || "#ffffff";
-          const dark = this.powerVfxSpec(kind).dark || "#05030d";
+          const spec = this.powerVfxSpec(kind);
+          const accent = spec.accent || "#ffffff";
+          const dark = spec.dark || "#05030d";
           ctx.shadowBlur = 0;
           ctx.lineCap = "butt";
           ctx.lineJoin = "miter";
@@ -34097,7 +34373,7 @@
             }
           }
           ctx.restore();
-        } else if (["leaf", "shard", "drop", "flame", "snow", "void", "clock"].includes(particle.shape)) {
+        } else if (SIMPLE_ORGANIC_PARTICLE_SHAPES.has(particle.shape)) {
           if (simple) {
             if (particle.shape === "snow") {
               ctx.fillRect(particle.x - size / 2, particle.y - 1, size, 2);
@@ -34219,7 +34495,14 @@
 
     drawDomainCutinOverlay(ctx) {
       if (!this.run?.effects?.length) return;
-      const effect = [...this.run.effects].reverse().find((entry) => entry.type === "domainCutin" && entry.time > 0);
+      let effect = null;
+      for (let i = this.run.effects.length - 1; i >= 0; i--) {
+        const entry = this.run.effects[i];
+        if (entry.type === "domainCutin" && entry.time > 0) {
+          effect = entry;
+          break;
+        }
+      }
       if (!effect) return;
       const progress = clamp(1 - effect.time / Math.max(0.1, effect.maxTime || DOMAIN_CUTIN_TIME), 0, 1);
       const fadeIn = clamp(progress / 0.22, 0, 1);

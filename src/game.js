@@ -32057,26 +32057,32 @@
             this.pixelVfxBlock(ctx, xx, core * (2.6 + (i % 2)), block * 0.8, block * 0.8, i % 2 ? edge : color, a * 0.7);
           }
         } else if (key === "e") {
-          ctx.globalAlpha = a * 0.8;
-          ctx.fillStyle = color;
-          ctx.strokeStyle = edge;
-          ctx.lineWidth = block * 0.9;
-          for (let side = -1; side <= 1; side += 2) {
+          const flames = lowDetail ? 6 : 10;
+          for (let i = 0; i < flames; i++) {
+            const ang = i * TAU / flames + t * 0.4;
+            const sway = 0.8 + 0.2 * Math.sin(t * 7 + i * 2.1);
+            const rr = r * (0.5 + 0.12 * Math.sin(t * 3 + i * 1.3));
+            const fx = Math.cos(ang) * rr;
+            const fy = Math.sin(ang) * rr;
+            const tipx = fx + Math.cos(ang) * block * 2.4;
+            const tipy = fy + Math.sin(ang) * block * 2.4;
+            ctx.globalAlpha = a * 0.8;
+            ctx.fillStyle = i % 2 ? color : edge;
+            ctx.strokeStyle = edge;
+            ctx.lineWidth = block * 0.6;
             ctx.beginPath();
-            ctx.moveTo(-L * 0.2, side * L * 0.06);
-            ctx.quadraticCurveTo(L * 0.18, side * L * 0.34, L * 0.5, side * L * 0.2);
-            ctx.quadraticCurveTo(L * 0.5, side * L * 0.62, L * 0.78, side * L * 0.5);
-            ctx.quadraticCurveTo(L * 0.92, side * L * 0.7, L, side * L * 0.4);
-            ctx.quadraticCurveTo(L * 0.7, side * L * 0.12, L * 0.3, side * L * 0.08);
+            ctx.moveTo(fx - Math.cos(ang) * block, fy - Math.sin(ang) * block);
+            ctx.quadraticCurveTo(fx + Math.cos(ang) * block * 0.2, fy + Math.sin(ang) * block * 0.2, tipx, tipy);
+            ctx.quadraticCurveTo(fx - Math.cos(ang) * block * 0.1, fy + Math.sin(ang) * block * 0.1, fx - Math.cos(ang) * block, fy - Math.sin(ang) * block);
             ctx.closePath();
             ctx.fill();
             ctx.stroke();
           }
           const na = lowDetail ? 2 : 4;
           for (let i = 0; i < na; i++) {
-            const xx = L * (0.5 + i * 0.11);
+            const ang = i * TAU / na + t * 0.6;
             ctx.globalAlpha = a * 0.7;
-            this.pixelVfxBlock(ctx, xx, Math.sin(seed + i * 2 + t * 9) * L * 0.05, block * 1.2, block * 1.2, i % 2 ? edge : "#ffb347", a * 0.6);
+            this.pixelVfxBlock(ctx, Math.cos(ang) * r * 0.6, Math.sin(ang) * r * 0.6, block * 1.2, block * 1.2, i % 2 ? edge : "#ffb347", a * 0.6);
           }
         } else {
           const chunks = lowDetail ? 6 : 9;
@@ -32180,14 +32186,29 @@
           bolt(0, 0, L, 0, block * 0.7, "#ffffff", r * 0.16, lowDetail ? 5 : 7, a * 0.8, 2);
           this.pixelVfxBlock(ctx, L, -block, block * 2, block * 2, "#ffffff", a);
         } else if (key === "e") {
-          const hops = lowDetail ? 2 : 3;
-          for (let i = 0; i < hops; i++) {
-            const sx = i * L / hops;
-            const sy = (i % 2 ? 1 : -1) * r * 0.2 * wing;
-            const ex2 = (i + 1) * L / hops;
-            const ey2 = ((i + 1) % 2 ? 1 : -1) * r * 0.2 * wing;
-            bolt(sx, sy, ex2, ey2, block * 1.4, i % 2 ? color : edge, r * 0.14, lowDetail ? 4 : 6, a, 2);
-            this.pixelVfxBlock(ctx, (sx + ex2) * 0.5, (sy + ey2) * 0.5, block, block, edge, a * 0.7);
+          const arcs = lowDetail ? 4 : 8;
+          for (let i = 0; i < arcs; i++) {
+            const ang = i * TAU / arcs + t * 0.3;
+            const rr = r * (0.42 + 0.1 * Math.sin(t * 6 + i * 1.7));
+            const bx = Math.cos(ang) * rr;
+            const by = Math.sin(ang) * rr;
+            ctx.globalAlpha = a * 0.7;
+            ctx.strokeStyle = i % 2 ? color : edge;
+            ctx.lineWidth = block * (1 + (i % 3) * 0.3);
+            ctx.beginPath();
+            ctx.moveTo(0, 0);
+            const nseg = lowDetail ? 3 : 5;
+            for (let s = 1; s <= nseg; s++) {
+              const nx = Math.cos(ang) * rr * (s / nseg) + Math.cos(ang + 1.2) * block * (s % 2 ? 1 : -1) * 0.5;
+              const ny = Math.sin(ang) * rr * (s / nseg) + Math.sin(ang + 1.2) * block * (s % 2 ? 1 : -1) * 0.5;
+              ctx.lineTo(nx, ny);
+            }
+            ctx.stroke();
+            this.pixelVfxBlock(ctx, bx + Math.cos(ang + 0.5) * r * 0.14, by + Math.sin(ang + 0.5) * r * 0.14, block, block, edge, a * 0.7);
+          }
+          for (let i = 0; i < (lowDetail ? 2 : 4); i++) {
+            const ang = i * TAU / (lowDetail ? 2 : 4) + t * 0.5;
+            this.pixelVfxBlock(ctx, Math.cos(ang) * r * 0.22, Math.sin(ang) * r * 0.22, block * 1.6, block * 1.6, "#ffffff", a * 0.8);
           }
         } else {
           const bolts = lowDetail ? 4 : 8;
@@ -32246,27 +32267,28 @@
             this.drawPixelVfxJagged(ctx, L * 0.1, r * 0.08, 3, dark, a * 0.6, block, seed + i);
           }
         } else if (key === "e") {
-          ctx.rotate(effect.angle || 0);
-          ctx.globalAlpha = a * 0.85;
+          const spines = lowDetail ? 6 : 10;
+          for (let i = 0; i < spines; i++) {
+            const ang = i * TAU / spines + t * 0.2;
+            const len = r * (0.34 + 0.1 * Math.sin(t * 5 + i * 1.9));
+            const ox = Math.cos(ang) * len;
+            const oy = Math.sin(ang) * len;
+            ctx.globalAlpha = a * 0.7;
+            ctx.strokeStyle = i % 2 ? dark : edge;
+            ctx.lineWidth = block * (1 + (i % 3) * 0.3);
+            ctx.beginPath();
+            ctx.moveTo(0, 0);
+            ctx.lineTo(ox, oy);
+            ctx.moveTo(ox, oy);
+            ctx.lineTo(ox + Math.cos(ang + 0.5) * len * 0.3, oy + Math.sin(ang + 0.5) * len * 0.3);
+            ctx.stroke();
+            this.drawPixelVfxDiamond(ctx, ox, oy, block * 1.2, block * 1.2, i % 2 ? edge : dark, a * 0.5, edge);
+          }
+          ctx.globalAlpha = a * 0.5;
           ctx.fillStyle = dark;
-          ctx.strokeStyle = edge;
-          ctx.lineWidth = block * 0.7;
           ctx.beginPath();
-          ctx.moveTo(-L * 0.1, -r * 0.26);
-          for (let i = 0; i <= (lowDetail ? 4 : 8); i++) {
-            const xx = L * i / (lowDetail ? 4 : 8);
-            const yy = (i % 2 ? 1 : -1) * r * 0.16;
-            ctx.lineTo(xx, yy);
-          }
-          ctx.lineTo(L * 0.1, -r * 0.16);
-          for (let i = (lowDetail ? 4 : 8); i >= 0; i--) {
-            const xx = L * i / (lowDetail ? 4 : 8);
-            const yy = -(i % 2 ? 1 : -1) * r * 0.12;
-            ctx.lineTo(xx, yy);
-          }
-          ctx.closePath();
+          ctx.arc(0, 0, r * 0.26, 0, TAU);
           ctx.fill();
-          ctx.stroke();
         } else {
           const arms = lowDetail ? 2 : 3;
           for (let i = 0; i < arms; i++) {
@@ -32314,25 +32336,36 @@
             ctx.fill();
           }
         } else if (key === "e") {
-          ctx.globalAlpha = a * 0.8;
-          ctx.strokeStyle = color;
-          ctx.lineWidth = block * 1.1;
+          const vessels = lowDetail ? 4 : 8;
+          for (let i = 0; i < vessels; i++) {
+            const ang = i * TAU / vessels;
+            const rr = r * (0.4 + 0.12 * Math.sin(t * 4 + i * 1.6));
+            ctx.globalAlpha = a * 0.75;
+            ctx.strokeStyle = i % 2 ? color : edge;
+            ctx.lineWidth = block * 0.8;
+            ctx.beginPath();
+            ctx.moveTo(0, 0);
+            const segs = 4;
+            for (let s2 = 1; s2 <= segs; s2++) {
+              const nn = ang + Math.sin(seed + s2 * 1.3 + i + t) * 0.35;
+              const nx = Math.cos(nn) * rr * (s2 / segs);
+              const ny = Math.sin(nn) * rr * (s2 / segs);
+              ctx.lineTo(nx, ny);
+            }
+            ctx.stroke();
+            ctx.globalAlpha = a * 0.6;
+            const px = Math.cos(ang) * rr;
+            const py = Math.sin(ang) * rr;
+            this.pixelVfxBlock(ctx, px, py, block, block, edge, a * 0.5);
+          }
+          ctx.globalAlpha = a * 0.85;
+          ctx.fillStyle = color;
+          ctx.strokeStyle = edge;
+          ctx.lineWidth = block * 0.6;
           ctx.beginPath();
-          ctx.moveTo(-L * 0.5, 0);
-          const segs = lowDetail ? 5 : 8;
-          for (let i = 1; i <= segs; i++) {
-            const xx = -L * 0.5 + L * i / segs;
-            const yy = Math.sin(seed + i * 1.4 + t * 5) * r * 0.22;
-            ctx.lineTo(xx, yy);
-          }
+          ctx.arc(0, 0, block * 1.8 + Math.sin(t * 6) * block * 0.5, 0, TAU);
+          ctx.fill();
           ctx.stroke();
-          ctx.globalAlpha = a * 0.6;
-          ctx.fillStyle = edge;
-          for (let i = 0; i < segs; i++) {
-            const xx = -L * 0.5 + L * (i + 0.5) / segs;
-            const yy = Math.sin(seed + (i + 0.5) * 1.4 + t * 5) * r * 0.22;
-            this.pixelVfxBlock(ctx, xx, yy, block, block, edge, a * 0.5);
-          }
         } else {
           const vessels = lowDetail ? 4 : 7;
           const pull = wing;

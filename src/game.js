@@ -31973,6 +31973,733 @@
       }
     }
 
+    drawDesignedSkillShape(ctx, effect, progress, fade, r, length, kind, accent, variant) {
+      if (!/^design(-awakened)?-(fire|ice|lightning|shadow|blood|gravity|crystal|nature|void|time)-([qer])$/i.test(variant)) return false;
+      const m = variant.toLowerCase().match(/^design(-awakened)?-(fire|ice|lightning|shadow|blood|gravity|crystal|nature|void|time)-([qer])$/);
+      const k = m[2];
+      const awake = Boolean(m[1]);
+      const key = m[3];
+      const palette = this.pixelVfxPalette(k, effect);
+      const color = effect.color || palette.color;
+      const edge = accent || palette.accent;
+      const dark = effect.dark || palette.dark;
+      const lowDetail = this.isMobileDevice() || this.effectQuality() < 0.72 || this.fastVisualMode();
+      const seed = Number(effect.seed || 0);
+      const block = Math.max(4, Math.round(lowDetail ? 6 : 5));
+      const a = clamp(fade, 0.5, 1) * (awake ? 0.98 : 0.9);
+      const px = Math.cos(effect.angle || 0);
+      const py = Math.sin(effect.angle || 0);
+      const t = this.menuTime;
+      const L = Math.max(24, length || r);
+      const wing = 0.4 + Math.sin(progress * Math.PI) * 0.3;
+      const bolt = (x1, y1, x2, y2, w, c, amp, segs, al, branches = 0) => {
+        const dx = x2 - x1, dy = y2 - y1;
+        const len = Math.hypot(dx, dy) || 1;
+        const nx = -dy / len, ny = dx / len;
+        ctx.globalAlpha = al;
+        ctx.strokeStyle = c;
+        ctx.lineWidth = w;
+        ctx.beginPath();
+        ctx.moveTo(x1, y1);
+        let prevX = x1, prevY = y1;
+        for (let i = 1; i <= segs; i++) {
+          const tt = i / segs;
+          const jit = Math.sin(seed + i * 2.31 + t * 2 + progress * 1.3) * amp * (1 - tt * 0.1);
+          const ux = x1 + dx * tt + nx * jit;
+          const uy = y1 + dy * tt + ny * jit;
+          ctx.lineTo(ux, uy);
+          if (branches > 0 && i > 1 && i < segs && (i % 2 === 0)) {
+            const ba = Math.atan2(uy - prevY, ux - prevX);
+            const bs = len * 0.12;
+            ctx.moveTo(ux, uy);
+            ctx.lineTo(ux + Math.cos(ba + (i % 4 === 0 ? 0.9 : -0.9)) * bs, uy + Math.sin(ba + (i % 4 === 0 ? 0.9 : -0.9)) * bs);
+            ctx.moveTo(ux, uy);
+          }
+          prevX = ux; prevY = uy;
+        }
+        ctx.stroke();
+      };
+
+      ctx.save();
+      ctx.translate(Math.round(effect.x || 0), Math.round(effect.y || 0));
+      ctx.globalCompositeOperation = "source-over";
+      ctx.shadowBlur = 0;
+      ctx.lineCap = "round";
+      ctx.lineJoin = "round";
+
+      if (k === "fire") {
+        if (key === "q") {
+          ctx.rotate(effect.angle || 0);
+          const core = 6;
+          ctx.globalAlpha = a;
+          ctx.fillStyle = edge;
+          ctx.beginPath();
+          ctx.moveTo(0, -core);
+          ctx.quadraticCurveTo(L * 0.4, -core * (1 + wing), L * 0.92, -core * 0.6);
+          ctx.lineTo(L, 0);
+          ctx.lineTo(L * 0.92, core * 0.55);
+          ctx.quadraticCurveTo(L * 0.42, core * (1 + wing), 0, core);
+          ctx.closePath();
+          ctx.fill();
+          ctx.globalAlpha = a * 0.9;
+          ctx.fillStyle = "#fff3ea";
+          ctx.beginPath();
+          ctx.moveTo(L * 0.1, -core * 0.5);
+          ctx.quadraticCurveTo(L * 0.5, -core * 0.7, L * 0.9, -core * 0.3);
+          ctx.lineTo(L * 0.82, core * 0.3);
+          ctx.quadraticCurveTo(L * 0.5, core * 0.6, L * 0.14, core * 0.35);
+          ctx.closePath();
+          ctx.fill();
+          const drops = lowDetail ? 2 : 4;
+          for (let i = 0; i < drops; i++) {
+            const xx = L * (0.28 + i * 0.18 + Math.sin(seed + i + t * 7) * 0.04);
+            ctx.globalAlpha = a * 0.55;
+            this.pixelVfxBlock(ctx, xx, core * (2.6 + (i % 2)), block * 0.8, block * 0.8, i % 2 ? edge : color, a * 0.7);
+          }
+        } else if (key === "e") {
+          ctx.globalAlpha = a * 0.8;
+          ctx.fillStyle = color;
+          ctx.strokeStyle = edge;
+          ctx.lineWidth = block * 0.9;
+          for (let side = -1; side <= 1; side += 2) {
+            ctx.beginPath();
+            ctx.moveTo(-L * 0.2, side * L * 0.06);
+            ctx.quadraticCurveTo(L * 0.18, side * L * 0.34, L * 0.5, side * L * 0.2);
+            ctx.quadraticCurveTo(L * 0.5, side * L * 0.62, L * 0.78, side * L * 0.5);
+            ctx.quadraticCurveTo(L * 0.92, side * L * 0.7, L, side * L * 0.4);
+            ctx.quadraticCurveTo(L * 0.7, side * L * 0.12, L * 0.3, side * L * 0.08);
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+          }
+          const na = lowDetail ? 2 : 4;
+          for (let i = 0; i < na; i++) {
+            const xx = L * (0.5 + i * 0.11);
+            ctx.globalAlpha = a * 0.7;
+            this.pixelVfxBlock(ctx, xx, Math.sin(seed + i * 2 + t * 9) * L * 0.05, block * 1.2, block * 1.2, i % 2 ? edge : "#ffb347", a * 0.6);
+          }
+        } else {
+          const chunks = lowDetail ? 6 : 9;
+          for (let i = 0; i < chunks; i++) {
+            const ang = i * TAU / chunks + seed * 0.04;
+            const dist = r * (0.2 + (i % 3) * 0.16) * (1 + 0.25 * Math.sin(t * 8 + i));
+            const s = block * (1.5 + (i % 3) * 0.5) * wing;
+            ctx.globalAlpha = a * (0.5 + 0.3 * Math.sin(t * 6 + i * 1.7));
+            this.pixelVfxBlock(ctx, Math.cos(ang) * dist, Math.sin(ang) * dist, s, s, i % 3 ? color : edge, a * 0.72);
+            ctx.globalAlpha = a * 0.8;
+            ctx.strokeStyle = edge;
+            ctx.lineWidth = block * 0.7;
+            ctx.beginPath();
+            ctx.moveTo(Math.cos(ang) * dist * 0.5, Math.sin(ang) * dist * 0.5);
+            ctx.lineTo(Math.cos(ang) * dist, Math.sin(ang) * dist);
+            ctx.stroke();
+          }
+          ctx.globalAlpha = a * 0.95;
+          ctx.fillStyle = edge;
+          ctx.beginPath();
+          ctx.moveTo(0, -r * 0.2);
+          ctx.quadraticCurveTo(r * 0.14, 0, 0, r * 0.2);
+          ctx.quadraticCurveTo(-r * 0.14, 0, 0, -r * 0.2);
+          ctx.fill();
+        }
+      } else if (k === "ice") {
+        if (key === "q") {
+          ctx.rotate(effect.angle || 0);
+          const hw = Math.max(2, r * 0.02 * wing);
+          ctx.globalAlpha = a * 0.85;
+          ctx.strokeStyle = edge;
+          ctx.lineWidth = 2.5;
+          ctx.beginPath();
+          ctx.moveTo(L, 0);
+          ctx.lineTo(L * 0.6, hw * 1.6);
+          ctx.lineTo(0, hw * 0.9);
+          ctx.lineTo(0, -hw * 0.9);
+          ctx.lineTo(L * 0.6, -hw * 1.6);
+          ctx.closePath();
+          ctx.stroke();
+          ctx.globalAlpha = a * 0.45;
+          ctx.strokeStyle = "#cfeeee";
+          ctx.lineWidth = 1.4;
+          ctx.beginPath();
+          ctx.moveTo(-2, 0);
+          ctx.lineTo(L, 0);
+          ctx.stroke();
+          const shards = lowDetail ? 3 : 5;
+          for (let i = 1; i <= shards; i++) {
+            const xx = L * i / (shards + 1);
+            const side = (i % 2 ? 1 : -1);
+            this.drawPixelVfxDiamond(ctx, xx, side * hw * 2.4, block * 0.9, block * 1.5, side > 0 ? edge : color, a * 0.6, edge);
+          }
+        } else if (key === "e") {
+          const stages = Math.floor(progress * (lowDetail ? 4 : 12));
+          const grow = clamp((progress - stages * 0.08) * 8, 0, 1);
+          const base = r * (0.28 + stages * 0.05);
+          const spread = lowDetail ? 3 : 7;
+          for (let i = 0; i < spread; i++) {
+            const ang = -Math.PI / 2 + (i - (spread - 1) / 2) * 0.4;
+            const len = base * (0.6 + (i % 2) * 0.5) * grow;
+            const cx = Math.cos(ang) * len * 0.3;
+            const cy = -Math.sin(ang) * len * 0.9 - r * 0.1;
+            this.drawPixelVfxDiamond(ctx, cx, cy, block * (0.7 + (i % 3) * 0.2), Math.max(2, len * 0.75), i % 2 ? color : edge, a * 0.72, edge);
+          }
+          if (progress > 0.55) {
+            const deb = lowDetail ? 4 : 8;
+            for (let i = 0; i < deb; i++) {
+              const ang = i * TAU / deb + seed * 0.1 + progress * 1.5;
+              const dd = r * (0.3 + ((progress - 0.55) / 0.45) * 0.8) * (0.7 + (i % 3) * 0.2);
+              this.drawPixelVfxDiamond(ctx, Math.cos(ang) * dd, Math.sin(ang) * dd, block * 0.8, block * 1.1, i % 2 ? edge : color, a * (0.7 - (progress - 0.55) * 0.5), edge);
+            }
+          }
+        } else {
+          const rise = clamp(progress * 2, 0, 1);
+          for (let side = -1; side <= 1; side += 2) {
+            ctx.globalAlpha = a * 0.6;
+            ctx.fillStyle = color;
+            ctx.strokeStyle = edge;
+            ctx.lineWidth = block * 0.6;
+            const bx = side * r * 0.42;
+            ctx.beginPath();
+            ctx.moveTo(bx, r * 0.5 * (1 - rise * 0.4));
+            ctx.lineTo(bx + side * r * 0.1, -r * 0.38 * rise);
+            ctx.lineTo(bx, -r * 0.6 * rise);
+            ctx.lineTo(bx - side * r * 0.12, -r * 0.3 * rise);
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+          }
+          for (let i = 0; i < (lowDetail ? 4 : 7); i++) {
+            const ang = i * TAU / (lowDetail ? 4 : 7) + seed * 0.2;
+            const rr = r * 0.1 + i * r * 0.07;
+            this.drawPixelVfxRing(ctx, rr, i % 2 ? edge : color, edge, a * (0.2 + i * 0.06), 6, block, progress * 0.3);
+          }
+        }
+      } else if (k === "lightning") {
+        if (key === "q") {
+          ctx.rotate(effect.angle || 0);
+          bolt(0, 0, L, 0, block * 1.6, edge, r * 0.3, lowDetail ? 6 : 9, a, 3);
+          bolt(0, 0, L, 0, block * 0.7, "#ffffff", r * 0.16, lowDetail ? 5 : 7, a * 0.8, 2);
+          this.pixelVfxBlock(ctx, L, -block, block * 2, block * 2, "#ffffff", a);
+        } else if (key === "e") {
+          const hops = lowDetail ? 2 : 3;
+          for (let i = 0; i < hops; i++) {
+            const sx = i * L / hops;
+            const sy = (i % 2 ? 1 : -1) * r * 0.2 * wing;
+            const ex2 = (i + 1) * L / hops;
+            const ey2 = ((i + 1) % 2 ? 1 : -1) * r * 0.2 * wing;
+            bolt(sx, sy, ex2, ey2, block * 1.4, i % 2 ? color : edge, r * 0.14, lowDetail ? 4 : 6, a, 2);
+            this.pixelVfxBlock(ctx, (sx + ex2) * 0.5, (sy + ey2) * 0.5, block, block, edge, a * 0.7);
+          }
+        } else {
+          const bolts = lowDetail ? 4 : 8;
+          for (let i = 0; i < bolts; i++) {
+            const ang = i * TAU / bolts + seed * 0.1;
+            const bx = Math.cos(ang) * r * 0.62;
+            const by = Math.sin(ang) * r * 0.62;
+            ctx.globalAlpha = a * 0.7;
+            ctx.strokeStyle = i % 2 ? color : edge;
+            ctx.lineWidth = block * (1.4 + (i % 3) * 0.3);
+            ctx.beginPath();
+            ctx.moveTo(bx * 0.4, by * 0.4);
+            ctx.lineTo(bx, by);
+            ctx.moveTo(bx, by);
+            ctx.lineTo(bx + (Math.cos(ang + 0.5) * r * 0.18), by + (Math.sin(ang + 0.5) * r * 0.18));
+            ctx.moveTo(bx, by);
+            ctx.lineTo(bx + (Math.cos(ang - 0.5) * r * 0.14), by + (Math.sin(ang - 0.5) * r * 0.14));
+            ctx.stroke();
+          }
+          ctx.globalAlpha = a * 0.6;
+          ctx.fillStyle = dark;
+          ctx.beginPath();
+          ctx.arc(0, -r * 0.12, r * 0.28, 0, TAU);
+          ctx.fill();
+          ctx.globalAlpha = a * 0.9;
+          ctx.strokeStyle = edge;
+          ctx.lineWidth = block;
+          ctx.beginPath();
+          ctx.moveTo(0, -r * 0.4);
+          ctx.lineTo(0, -r * 0.02);
+          ctx.stroke();
+        }
+      } else if (k === "shadow") {
+        if (key === "q") {
+          ctx.rotate(effect.angle || 0);
+          ctx.globalAlpha = a * 0.9;
+          ctx.fillStyle = dark;
+          ctx.strokeStyle = edge;
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.moveTo(0, -r * 0.34);
+          ctx.lineTo(L * 0.78, -r * 0.2);
+          ctx.lineTo(L * 0.92, -r * 0.3);
+          ctx.lineTo(L, -r * 0.1);
+          ctx.lineTo(L * 0.9, r * 0.22);
+          ctx.lineTo(L * 0.7, r * 0.32);
+          ctx.lineTo(0, r * 0.42);
+          ctx.closePath();
+          ctx.fill();
+          ctx.stroke();
+          const claws = lowDetail ? 2 : 4;
+          for (let i = 0; i < claws; i++) {
+            const xx = L * (0.5 + i * 0.1);
+            const yy = -r * 0.16 + i * r * 0.1;
+            ctx.globalAlpha = a * 0.5;
+            this.drawPixelVfxJagged(ctx, L * 0.1, r * 0.08, 3, dark, a * 0.6, block, seed + i);
+          }
+        } else if (key === "e") {
+          ctx.rotate(effect.angle || 0);
+          ctx.globalAlpha = a * 0.85;
+          ctx.fillStyle = dark;
+          ctx.strokeStyle = edge;
+          ctx.lineWidth = block * 0.7;
+          ctx.beginPath();
+          ctx.moveTo(-L * 0.1, -r * 0.26);
+          for (let i = 0; i <= (lowDetail ? 4 : 8); i++) {
+            const xx = L * i / (lowDetail ? 4 : 8);
+            const yy = (i % 2 ? 1 : -1) * r * 0.16;
+            ctx.lineTo(xx, yy);
+          }
+          ctx.lineTo(L * 0.1, -r * 0.16);
+          for (let i = (lowDetail ? 4 : 8); i >= 0; i--) {
+            const xx = L * i / (lowDetail ? 4 : 8);
+            const yy = -(i % 2 ? 1 : -1) * r * 0.12;
+            ctx.lineTo(xx, yy);
+          }
+          ctx.closePath();
+          ctx.fill();
+          ctx.stroke();
+        } else {
+          const arms = lowDetail ? 2 : 3;
+          for (let i = 0; i < arms; i++) {
+            const ax = (i - (arms - 1) / 2) * r * 0.3;
+            ctx.globalAlpha = a * 0.6;
+            ctx.strokeStyle = i % 2 ? edge : dark;
+            ctx.lineWidth = block * (1.6 + i * 0.3);
+            ctx.beginPath();
+            ctx.moveTo(ax, r * 0.5);
+            ctx.bezierCurveTo(ax + r * 0.1, r * 0.1, ax - r * 0.12, -r * 0.2, ax + Math.sin(t * 3 + i) * r * 0.1, -r * 0.4);
+            ctx.stroke();
+            ctx.globalAlpha = a * 0.5;
+            this.pixelVfxBlock(ctx, ax + Math.sin(t * 3 + i) * r * 0.1, -r * 0.42, block * 1.5, block * 1.5, i % 2 ? color : edge, a * 0.55);
+          }
+          ctx.globalAlpha = a * 0.5;
+          ctx.fillStyle = dark;
+          ctx.beginPath();
+          ctx.arc(0, r * 0.42, r * 0.3, 0, TAU);
+          ctx.fill();
+        }
+      } else if (k === "blood") {
+        if (key === "q") {
+          ctx.rotate(effect.angle || 0);
+          const pulse = 0.8 + 0.2 * Math.sin(t * 9 + seed);
+          ctx.globalAlpha = a * 0.9;
+          ctx.fillStyle = color;
+          ctx.strokeStyle = edge;
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.moveTo(0, -r * 0.16 * pulse);
+          ctx.bezierCurveTo(L * 0.5, -r * 0.22 * pulse, L * 0.8, -r * 0.16, L, 0);
+          ctx.bezierCurveTo(L * 0.8, r * 0.16, L * 0.5, r * 0.22 * pulse, 0, r * 0.16 * pulse);
+          ctx.quadraticCurveTo(-L * 0.12, 0, 0, -r * 0.16 * pulse);
+          ctx.closePath();
+          ctx.fill();
+          ctx.stroke();
+          const drops = lowDetail ? 2 : 4;
+          for (let i = 0; i < drops; i++) {
+            const dx = L * (0.3 + i * 0.18);
+            const dy = Math.sin(t * 11 + i * 2 + seed) * r * 0.1;
+            ctx.globalAlpha = a * 0.7;
+            ctx.fillStyle = color;
+            ctx.beginPath();
+            ctx.arc(dx, r * 0.3 + dy, block * 0.7, 0, TAU);
+            ctx.fill();
+          }
+        } else if (key === "e") {
+          ctx.globalAlpha = a * 0.8;
+          ctx.strokeStyle = color;
+          ctx.lineWidth = block * 1.1;
+          ctx.beginPath();
+          ctx.moveTo(-L * 0.5, 0);
+          const segs = lowDetail ? 5 : 8;
+          for (let i = 1; i <= segs; i++) {
+            const xx = -L * 0.5 + L * i / segs;
+            const yy = Math.sin(seed + i * 1.4 + t * 5) * r * 0.22;
+            ctx.lineTo(xx, yy);
+          }
+          ctx.stroke();
+          ctx.globalAlpha = a * 0.6;
+          ctx.fillStyle = edge;
+          for (let i = 0; i < segs; i++) {
+            const xx = -L * 0.5 + L * (i + 0.5) / segs;
+            const yy = Math.sin(seed + (i + 0.5) * 1.4 + t * 5) * r * 0.22;
+            this.pixelVfxBlock(ctx, xx, yy, block, block, edge, a * 0.5);
+          }
+        } else {
+          const vessels = lowDetail ? 4 : 7;
+          const pull = wing;
+          for (let i = 0; i < vessels; i++) {
+            const ang = i * TAU / vessels + seed * 0.05;
+            ctx.globalAlpha = a * 0.65;
+            ctx.strokeStyle = i % 2 ? edge : color;
+            ctx.lineWidth = block * (0.8 + (i % 3) * 0.3);
+            ctx.beginPath();
+            ctx.moveTo(0, 0);
+            const segs = 4;
+            let px = 0, pyp = 0;
+            for (let s2 = 1; s2 <= segs; s2++) {
+              const rr = r * (s2 / segs) * pull * (0.5 + (i % 3) * 0.16);
+              const nn = ang + Math.sin(s2 * 1.2 + i + t) * 0.4;
+              const nx = Math.cos(nn) * rr;
+              const ny = Math.sin(nn) * rr;
+              ctx.lineTo(nx, ny);
+              px = nx; pyp = ny;
+            }
+            ctx.stroke();
+          }
+          for (let i = 0; i < (lowDetail ? 2 : 4); i++) {
+            const ang = i * TAU / (lowDetail ? 2 : 4) + t * 0.5;
+            const rr = r * (0.15 + i * 0.2) * wing;
+            this.pixelVfxBlock(ctx, Math.cos(ang) * rr, Math.sin(ang) * rr, block, block, edge, a * 0.6);
+          }
+        }
+      } else if (k === "gravity") {
+        if (key === "q") {
+          ctx.rotate(effect.angle || 0);
+          const focal = 0.5 + 0.1 * wing;
+          const raysOnly = lowDetail ? 4 : 6;
+          for (let i = 0; i < raysOnly; i++) {
+            const sx = (i - (raysOnly - 1) / 2) * L * 0.32;
+            ctx.globalAlpha = a * 0.7;
+            ctx.strokeStyle = i % 2 ? color : edge;
+            ctx.lineWidth = block * 0.8;
+            ctx.beginPath();
+            ctx.moveTo(sx, -r * 0.3);
+            ctx.quadraticCurveTo(sx * 0.4, 0, L * focal, 0);
+            ctx.moveTo(sx, r * 0.3);
+            ctx.quadraticCurveTo(sx * 0.4, 0, L * focal, 0);
+            ctx.stroke();
+          }
+          this.pixelVfxBlock(ctx, L * focal, -block, block * 2.4, block * 2.4, edge, a);
+        } else if (key === "e") {
+          const orbit = progress * TAU * (kind === "gravity" ? 0.8 : 1);
+          const rr = r * 0.5;
+          ctx.globalAlpha = a * 0.75;
+          ctx.strokeStyle = edge;
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.arc(0, 0, rr, 0, TAU * 0.9);
+          ctx.stroke();
+          const o = 3;
+          for (let i = 0; i < o; i++) {
+            const ang = orbit + i * TAU / o;
+            const ox = Math.cos(ang) * rr;
+            const oy = Math.sin(ang) * rr;
+            this.drawPixelVfxDiamond(ctx, ox, oy, block * 1.4, block * 1.4, i % 2 ? color : edge, a * 0.85, edge);
+          }
+          ctx.globalAlpha = a * 0.8;
+          ctx.strokeStyle = color;
+          ctx.lineWidth = block * 0.7;
+          ctx.beginPath();
+          ctx.arc(0, 0, rr * 0.3 + Math.sin(t * 6) * 3, 0, TAU);
+          ctx.stroke();
+        } else {
+          const sink = 1 - progress * 0.4;
+          ctx.globalAlpha = a * 0.7;
+          ctx.fillStyle = dark;
+          ctx.beginPath();
+          ctx.ellipse(0, 0, r * 0.5 * sink, r * 0.2 * sink, 0, 0, TAU);
+          ctx.fill();
+          ctx.globalAlpha = a * 0.85;
+          ctx.fillStyle = color;
+          ctx.strokeStyle = edge;
+          ctx.lineWidth = block * 0.8;
+          ctx.beginPath();
+          ctx.arc(0, 0, r * 0.3 * sink, 0, TAU);
+          ctx.fill();
+          ctx.stroke();
+          const debris = lowDetail ? 3 : 6;
+          for (let i = 0; i < debris; i++) {
+            const ang = i * TAU / debris + progress * 1.5;
+            const dd = r * (0.42 + (progress * 0.5) + (i % 3) * 0.1);
+            const ds = block * (1.2 + (i % 3) * 0.4) * (1 - progress * 0.4);
+            ctx.globalAlpha = a * 0.7;
+            ctx.strokeStyle = i % 2 ? edge : color;
+            ctx.lineWidth = block * 0.5;
+            ctx.save();
+            ctx.translate(Math.cos(ang) * dd, Math.sin(ang) * dd);
+            ctx.rotate(ang);
+            ctx.strokeRect(-ds * 0.5, -ds * 0.5, ds, ds);
+            ctx.restore();
+          }
+        }
+      } else if (k === "nature") {
+        if (key === "q") {
+          ctx.rotate(effect.angle || 0);
+          ctx.globalAlpha = a * 0.9;
+          ctx.strokeStyle = color;
+          ctx.lineWidth = block * 1.2;
+          ctx.beginPath();
+          ctx.moveTo(0, 0);
+          const segs = lowDetail ? 5 : 8;
+          for (let i = 1; i <= segs; i++) {
+            const xx = L * i / segs;
+            const yy = Math.sin(seed + i * 1.8 + t * 4) * r * 0.14;
+            ctx.lineTo(xx, yy);
+          }
+          ctx.stroke();
+          ctx.fillStyle = edge;
+          for (let i = 1; i < segs; i++) {
+            const xx = L * i / segs;
+            const yy = Math.sin(seed + i * 1.8 + t * 4) * r * 0.14;
+            this.drawPixelVfxDiamond(ctx, xx, yy - r * 0.06, block * 1.3, block * 0.8, i % 2 ? color : edge, a * 0.8, edge);
+          }
+        } else if (key === "e") {
+          const rootsCount = lowDetail ? 2 : 3;
+          for (let i = 0; i < rootsCount; i++) {
+            const ang = (i - (rootsCount - 1) / 2) * 0.5;
+            ctx.globalAlpha = a * 0.8;
+            ctx.strokeStyle = color;
+            ctx.lineWidth = block * 1.3;
+            ctx.beginPath();
+            ctx.moveTo(0, r * 0.34);
+            ctx.bezierCurveTo(Math.sin(ang) * r * 0.2, r * 0.05, Math.cos(ang) * r * 0.3, -r * 0.1, Math.sin(ang + 1) * r * 0.24, -r * 0.3);
+            ctx.stroke();
+          }
+          for (let i = 0; i < (lowDetail ? 3 : 5); i++) {
+            const ang = i * TAU / (lowDetail ? 3 : 5) + t * 0.3;
+            const rr = r * (0.2 + (i % 3) * 0.14) * (1 - progress * 0.2);
+            ctx.globalAlpha = a * 0.6;
+            this.drawPixelVfxDiamond(ctx, Math.cos(ang) * rr, Math.sin(ang) * rr, block * 1.2, block * 1.6, i % 2 ? color : edge, a * 0.7, edge);
+          }
+          ctx.globalAlpha = a * 0.6;
+          ctx.fillStyle = color;
+          ctx.beginPath();
+          ctx.arc(0, r * 0.3, r * 0.16, 0, TAU);
+          ctx.fill();
+        } else {
+          const breath = 0.85 + 0.15 * Math.sin(t * 2);
+          ctx.globalAlpha = a * 0.9;
+          ctx.fillStyle = color;
+          ctx.strokeStyle = edge;
+          ctx.lineWidth = block * 0.8;
+          ctx.beginPath();
+          ctx.moveTo(-r * 0.4 * breath, r * 0.44);
+          ctx.quadraticCurveTo(-r * 0.5, 0, -r * 0.18, -r * 0.4);
+          ctx.quadraticCurveTo(0, -r * 0.62, r * 0.18, -r * 0.4);
+          ctx.quadraticCurveTo(r * 0.5, 0, r * 0.4 * breath, r * 0.44);
+          ctx.closePath();
+          ctx.fill();
+          ctx.stroke();
+          for (let i = 0; i < (lowDetail ? 2 : 3); i++) {
+            ctx.globalAlpha = a * 0.5;
+            ctx.fillStyle = edge;
+            ctx.beginPath();
+            ctx.arc((i - 1) * r * 0.2, -r * 0.05, block * 0.9, 0, TAU);
+            ctx.fill();
+          }
+          const fronds = lowDetail ? 3 : 5;
+          for (let i = 0; i < fronds; i++) {
+            ctx.globalAlpha = a * 0.7;
+            ctx.fillStyle = i % 2 ? color : edge;
+            ctx.beginPath();
+            ctx.ellipse(Math.cos(t * 2 + i * 1.5) * r * 0.3, -r * 0.55 - i * 3, block * 1.6, block * 2.2, 0.3, 0, TAU);
+            ctx.fill();
+          }
+        }
+      } else if (k === "void") {
+        if (key === "q") {
+          ctx.rotate(effect.angle || 0);
+          ctx.globalAlpha = a * 0.95;
+          ctx.strokeStyle = edge;
+          ctx.lineWidth = block * 0.8;
+          ctx.beginPath();
+          ctx.moveTo(L * 0.12, -r * 0.28);
+          ctx.lineTo(L * 0.5, -r * 0.2);
+          ctx.lineTo(L * 0.74, -r * 0.26);
+          ctx.lineTo(L * 0.92, -r * 0.1);
+          ctx.lineTo(L * 0.8, 0);
+          ctx.lineTo(L, r * 0.05);
+          ctx.lineTo(L * 0.7, r * 0.25);
+          ctx.lineTo(L * 0.35, r * 0.28);
+          ctx.lineTo(L * 0.05, r * 0.18);
+          ctx.closePath();
+          ctx.fillStyle = dark;
+          ctx.fill();
+          ctx.stroke();
+          const tear = lowDetail ? 3 : 5;
+          for (let i = 0; i < tear; i++) {
+            const xx = L * (0.2 + i * 0.16);
+            const yy = (i % 2 ? 1 : -1) * r * 0.3;
+            this.drawPixelVfxDiamond(ctx, xx, yy, block * 0.7, block * 1.1, i % 2 ? edge : color, a * 0.5, edge);
+          }
+        } else if (key === "e") {
+          const suck = clamp(1 - progress, 0, 1);
+          ctx.globalAlpha = a * 0.9;
+          ctx.strokeStyle = edge;
+          ctx.lineWidth = block * 0.8;
+          for (let i = 0; i < (lowDetail ? 3 : 5); i++) {
+            const ang = i * TAU / (lowDetail ? 3 : 5);
+            ctx.beginPath();
+            ctx.moveTo(Math.cos(ang) * r * 0.6, Math.sin(ang) * r * 0.6);
+            ctx.quadraticCurveTo(Math.cos(ang + 0.4) * r * 0.32, Math.sin(ang + 0.4) * r * 0.32, 0, 0);
+            ctx.stroke();
+          }
+          for (let i = 0; i < (lowDetail ? 2 : 4); i++) {
+            const ang = i * TAU / (lowDetail ? 2 : 4) + t * 0.4;
+            const rr = r * (0.18 + i * 0.16) * suck;
+            ctx.globalAlpha = a * 0.6;
+            this.drawPixelVfxDiamond(ctx, Math.cos(ang) * rr, Math.sin(ang) * rr, block, block, i % 2 ? color : edge, a * 0.55, edge);
+          }
+        } else {
+          ctx.globalAlpha = a * 0.9;
+          ctx.fillStyle = dark;
+          ctx.strokeStyle = edge;
+          ctx.lineWidth = block * 0.6;
+          ctx.beginPath();
+          const segs = lowDetail ? 8 : 14;
+          for (let i = 0; i <= segs; i++) {
+            const ang = i * TAU / segs;
+            const rr = r * (0.26 + 0.12 * Math.sin(ang * 4 + progress * 3) + 0.06 * Math.sin(ang * 7));
+            if (i === 0) ctx.moveTo(Math.cos(ang) * rr, Math.sin(ang) * rr);
+            else ctx.lineTo(Math.cos(ang) * rr, Math.sin(ang) * rr);
+          }
+          ctx.closePath();
+          ctx.fill();
+          ctx.stroke();
+          const frag = lowDetail ? 2 : 4;
+          for (let i = 0; i < frag; i++) {
+            const ang = i * TAU / frag + progress * 2;
+            const rr = r * (0.3 + progress * 0.3 + (i % 3) * 0.08);
+            ctx.globalAlpha = a * 0.6;
+            ctx.save();
+            ctx.translate(Math.cos(ang) * rr, Math.sin(ang) * rr);
+            ctx.rotate(ang + progress);
+            ctx.strokeRect(-block, -block, block * 2, block * 2);
+            ctx.restore();
+          }
+        }
+      } else if (k === "time") {
+        if (key === "q") {
+          ctx.rotate(effect.angle || 0);
+          for (let i = 0; i < (lowDetail ? 2 : 3); i++) {
+            ctx.globalAlpha = a * (0.28 - i * 0.07);
+            ctx.strokeStyle = edge;
+            ctx.lineWidth = block * 1.1;
+            ctx.beginPath();
+            ctx.moveTo(-i * r * 0.1, 0);
+            ctx.lineTo(L - i * r * 0.12, 0);
+            ctx.stroke();
+          }
+          ctx.globalAlpha = a * 0.9;
+          ctx.strokeStyle = edge;
+          ctx.lineWidth = block * 1.5;
+          ctx.beginPath();
+          ctx.moveTo(0, 0);
+          ctx.lineTo(L, 0);
+          ctx.stroke();
+          for (let i = 0; i < (lowDetail ? 3 : 5); i++) {
+            const xx = L * (i + 0.5) / (lowDetail ? 3 : 5);
+            ctx.globalAlpha = a * 0.5;
+            ctx.strokeStyle = color;
+            ctx.lineWidth = block * 0.6;
+            ctx.beginPath();
+            ctx.moveTo(xx, -block);
+            ctx.lineTo(xx, block);
+            ctx.stroke();
+          }
+          this.drawPixelVfxDiamond(ctx, L, 0, block * 1.6, block * 1.6, edge, a, color);
+        } else if (key === "e") {
+          for (let i = 0; i < (lowDetail ? 2 : 4); i++) {
+            const off = r * 0.18 * i;
+            ctx.globalAlpha = a * (0.5 - i * 0.1);
+            ctx.strokeStyle = i % 2 ? color : edge;
+            ctx.lineWidth = block * (1.4 - i * 0.2);
+            ctx.beginPath();
+            ctx.arc(0, 0, Math.max(4, r * 0.5 - off), t * 0.3 + i * 0.4, t * 0.3 + i * 0.4 + TAU * 0.62);
+            ctx.stroke();
+          }
+          this.drawPixelVfxRing(ctx, r * 0.26, edge, color, a * 0.7, 10, block, -progress);
+        } else {
+          const closeIn = 1 - progress * 0.35;
+          for (let i = 0; i < (lowDetail ? 2 : 3); i++) {
+            ctx.globalAlpha = a * (0.7 - i * 0.2);
+            ctx.strokeStyle = i % 2 ? color : edge;
+            ctx.lineWidth = block * 1.2;
+            ctx.beginPath();
+            ctx.arc(0, 0, r * 0.62 * closeIn * (1 - i * 0.2) * 2, 0, TAU);
+            ctx.stroke();
+          }
+          ctx.globalAlpha = a * 0.9;
+          ctx.strokeStyle = edge;
+          ctx.lineWidth = block * 0.6;
+          ctx.beginPath();
+          ctx.moveTo(-r * 0.5 * closeIn, r * 0.06);
+          ctx.lineTo(0, -r * 0.28);
+          ctx.lineTo(r * 0.5 * closeIn, r * 0.06);
+          ctx.stroke();
+          for (let i = 0; i < (lowDetail ? 3 : 5); i++) {
+            const ang = i * TAU / (lowDetail ? 3 : 5) - t * 0.2;
+            const rr = r * 0.42 * closeIn;
+            this.pixelVfxBlock(ctx, Math.cos(ang) * rr, Math.sin(ang) * rr, block, block, i % 2 ? edge : color, a * 0.6);
+          }
+        }
+      } else if (k === "crystal") {
+        if (key === "q") {
+          ctx.rotate(effect.angle || 0);
+          const facets = lowDetail ? 3 : 5;
+          for (let i = -Math.floor(facets / 2); i <= Math.floor(facets / 2); i++) {
+            const a2 = i * 0.4;
+            ctx.globalAlpha = a * 0.8;
+            ctx.fillStyle = i % 2 ? edge : color;
+            ctx.strokeStyle = i % 2 ? color : edge;
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(0, 0);
+            ctx.lineTo(L * 0.9, a2 * r * 0.4);
+            ctx.lineTo(L, 0);
+            ctx.lineTo(L * 0.9, -a2 * r * 0.4);
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+          }
+        } else if (key === "e") {
+          const aegis = 0.5 + 0.2 * Math.sin(t * 4);
+          for (let i = 0; i < (lowDetail ? 6 : 8); i++) {
+            const ang = i * TAU / (lowDetail ? 6 : 8) + t * 0.2;
+            const rr = r * aegis;
+            this.drawPixelVfxDiamond(ctx, Math.cos(ang) * rr, Math.sin(ang) * rr, block * 1.5, block * 1.8, i % 2 ? color : edge, a * 0.8, edge);
+          }
+          ctx.globalAlpha = a * 0.9;
+          ctx.strokeStyle = edge;
+          ctx.lineWidth = block * 0.8;
+          ctx.beginPath();
+          ctx.arc(0, 0, r * aegis, 0, TAU);
+          ctx.stroke();
+        } else {
+          const shards = lowDetail ? 4 : 9;
+          for (let i = 0; i < shards; i++) {
+            const ang = i * TAU / shards + progress * 0.5;
+            const rr = r * (0.2 + (i % 3) * 0.16) * (0.6 + 0.4 * Math.sin(t * 5 + i));
+            ctx.globalAlpha = a * 0.8;
+            ctx.save();
+            ctx.translate(Math.cos(ang) * rr, Math.sin(ang) * rr);
+            ctx.rotate(ang);
+            ctx.fillStyle = i % 2 ? edge : color;
+            ctx.beginPath();
+            ctx.moveTo(0, -block * 2.4);
+            ctx.lineTo(block * 0.9, 0);
+            ctx.lineTo(0, block * 2.4);
+            ctx.lineTo(-block * 0.9, 0);
+            ctx.closePath();
+            ctx.fill();
+            ctx.restore();
+          }
+          this.drawPixelVfxRing(ctx, r * 0.62, color, edge, a * 0.5, 8, block, progress);
+        }
+      }
+      ctx.restore();
+      return true;
+    }
+
     drawSkillShape(ctx, effect) {
       const progress = clamp(1 - effect.time / effect.maxTime, 0, 1);
       const fade = clamp(effect.time / effect.maxTime, 0, 1);
@@ -31985,6 +32712,7 @@
       const quality = this.effectQuality();
       const lowDetail = this.isMobileDevice() || quality < 0.74;
       if (quality < 0.52 && effect.variant !== "ultimate" && progress > 0.62) return;
+      if (this.drawDesignedSkillShape(ctx, effect, progress, fade, r, length, kind, accent, variant)) return;
       if (this.drawPixelSkillShape(ctx, effect, progress, fade, r, length, kind, accent, variant)) return;
       if (this.drawExportedSkillShape(ctx, effect, progress, fade, r)) return;
       ctx.translate(effect.x, effect.y);

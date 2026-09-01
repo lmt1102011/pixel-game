@@ -10,14 +10,15 @@
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
   const SIGNAL_REALTIME_RELAY_LIMIT = 2;
   const SIGNAL_REALTIME_TYPES = new Set(["state", "snapshot", "attack", "skill", "collect", "openChest", "dropItem", "damage", "chooseDoor"]);
-  const APP_VERSION = "20260718-pixel-vfx-313";
+  const APP_VERSION = "20260718-pixel-vfx-314";
   const CHANGELOG_ENTRIES = [
     {
       version: APP_VERSION,
-      title: "Sửa giao diện khít màn hình + lướt mượt",
+      title: "Giao diện mobile khít như PC",
       items: [
-        "Khắc phục giao diện trên điện thoại bị lồi lõm/lệch cạnh trên-dưới: canvas, HUD và overlay giờ luôn khớp đúng vùng hiển thị theo visual viewport, đồng bộ khi thanh địa chỉ trình duyệt hiện/ẩn.",
-        "Không còn viền đen hoặc HUD đặt lệch khỏi canvas khi xoay/mở bàn phím ảo/đổi tỉ lệ màn hình."
+        "HUD trên điện thoại giờ dùng đúng bố cục 3 cột như PC: thanh HP/năng lượng (trái), thông tin phòng/mục tiêu (giữa) và dải kỹ năng Q/E/R/F kèm hồi chiêu (phải).",
+        "Vẫn giữ joystick và bàn phím cảm ứng để chơi; không thay đổi đồ họa trong game.",
+        "Bố cục bo theo vùng an toàn màn hình (safe-area) nên không tràn/lệch mép trên điện thoại."
       ]
     }
   ];
@@ -25210,12 +25211,6 @@
       ];
       if (mobileHud) {
         this.updateTouchCooldowns(skills);
-        if (this.hudSkillMarkup !== "") {
-          this.hudSkillMarkup = "";
-          const skillStrip = this.hudElement("skillStrip");
-          if (skillStrip) skillStrip.innerHTML = "";
-        }
-        return;
       }
       const markup = skills.map(([key, name, cd, max]) => `
         <div class="skill ${cd <= 0 ? "ready" : ""}">

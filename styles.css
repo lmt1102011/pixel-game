@@ -6789,10 +6789,11 @@ body.is-mobile-ui .lobby-friends > .btn {
 }
 
 body.is-mobile-ui .hud {
-  inset: calc(6px + env(safe-area-inset-top)) calc(100px + env(safe-area-inset-right)) auto calc(8px + env(safe-area-inset-left));
-  grid-template-columns: minmax(132px, 176px) minmax(0, 1fr);
-  gap: 6px;
+  inset: calc(6px + env(safe-area-inset-top)) calc(8px + env(safe-area-inset-right)) auto calc(8px + env(safe-area-inset-left));
+  grid-template-columns: minmax(132px, 168px) minmax(0, 1fr) minmax(150px, 240px);
+  gap: 8px;
   align-items: start;
+  pointer-events: none;
 }
 
 body.is-mobile-ui .brand-mini {
@@ -6827,17 +6828,42 @@ body.is-mobile-ui .status-icon {
 
 body.is-mobile-ui .hud-center {
   grid-column: 2;
-  flex-direction: row;
-  justify-content: center;
-  align-items: flex-start;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
   min-width: 0;
-  gap: 4px;
+  gap: 5px;
 }
 
-body.is-mobile-ui .hud-right,
-body.is-mobile-ui .skill-strip,
+body.is-mobile-ui .hud-right {
+  grid-column: 3;
+  padding-top: 58px;
+  min-width: 0;
+  display: flex;
+  justify-content: flex-end;
+}
+
+body.is-mobile-ui .skill-strip {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(26px, 34px));
+  gap: 5px;
+  justify-content: flex-end;
+  pointer-events: auto;
+}
+
 body.is-mobile-ui .skill {
-  display: none;
+  min-height: 34px;
+  border-radius: 8px;
+}
+
+body.is-mobile-ui .skill .key {
+  left: 3px;
+  top: 3px;
+  font-size: 8px;
+}
+
+body.is-mobile-ui .skill .name {
+  font-size: 8px;
 }
 
 body.is-mobile-ui .room-pill,
@@ -6929,8 +6955,22 @@ body.is-mobile-ui .touch-actions [data-touch="dash"] {
 
 @media (max-height: 420px) {
   body.is-mobile-ui .hud {
-    inset: calc(5px + env(safe-area-inset-top)) calc(92px + env(safe-area-inset-right)) auto calc(7px + env(safe-area-inset-left));
-    grid-template-columns: minmax(126px, 166px) minmax(0, 1fr);
+    inset: calc(5px + env(safe-area-inset-top)) calc(8px + env(safe-area-inset-right)) auto calc(7px + env(safe-area-inset-left));
+    grid-template-columns: minmax(118px, 150px) minmax(0, 1fr) minmax(130px, 200px);
+    gap: 6px;
+  }
+
+  body.is-mobile-ui .hud-right {
+    padding-top: 46px;
+  }
+
+  body.is-mobile-ui .skill-strip {
+    grid-template-columns: repeat(5, minmax(22px, 30px));
+    gap: 4px;
+  }
+
+  body.is-mobile-ui .skill {
+    min-height: 30px;
   }
 
   body.is-mobile-ui .bar-frame {

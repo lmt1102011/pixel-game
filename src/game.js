@@ -31646,6 +31646,7 @@
       const line = signature.anchor === "line" || len > r * 1.18;
       const seed = Number(effect.seed || 0);
       const block = Math.max(4, Math.round((this.isMobileDevice() || this.effectQuality() < 0.72) ? 6 : 5));
+      const lowDetail = this.isMobileDevice() || this.effectQuality() < 0.72 || this.fastVisualMode();
       const awakened = Boolean(effect.awakened || String(variant).startsWith("awakened-") || String(variant).startsWith("design-awakened-"));
       const alpha = Math.min(0.92, Math.max(0, fade) * (awakened ? 0.98 : 0.88));
       const pulse = 0.86 + Math.sin(progress * Math.PI) * 0.18;
@@ -31784,7 +31785,52 @@
         this.drawPixelVfxRing(ctx, ringR * 0.72, edge, color, alpha * 0.56, 12, block, progress * -0.7);
       }
 
-      this.drawPixelPowerMark(ctx, kind, Math.max(20, r * (key === "f" ? 0.2 : 0.16)), color, edge, dark, alpha);
+      const center = Math.max(6, r * (key === "r" ? 0.2 : 0.16));
+      if (key === "e") {
+        const spokes = lowDetail ? 2 : 4;
+        ctx.globalAlpha = alpha * 0.4;
+        ctx.strokeStyle = edge;
+        ctx.lineWidth = Math.max(2, block * 0.5);
+        for (let i = 0; i < spokes; i++) {
+          const a = i * Math.PI / spokes + progress * (kind === "time" ? 0.5 : -0.5) + 0.4;
+          ctx.beginPath();
+          ctx.moveTo(0, 0);
+          ctx.lineTo(Math.cos(a) * ringR * 0.9, Math.sin(a) * ringR * 0.9);
+          ctx.moveTo(0, 0);
+          ctx.lineTo(-Math.cos(a) * ringR * 0.9, -Math.sin(a) * ringR * 0.9);
+          ctx.stroke();
+        }
+        ctx.globalAlpha = alpha * 0.55;
+        this.drawPixelVfxRing(ctx, ringR * 0.5, color, edge, alpha * 0.5, 8, Math.max(3, block - 1), -seed);
+      } else if (key === "r") {
+        const burst = lowDetail ? 5 : 9;
+        ctx.globalAlpha = alpha * 0.5;
+        ctx.strokeStyle = color;
+        ctx.lineWidth = Math.max(2, block * 0.44);
+        for (let i = 0; i < burst; i++) {
+          const a = i * TAU / burst + seed * 0.1;
+          ctx.beginPath();
+          ctx.moveTo(0, 0);
+          ctx.lineTo(Math.cos(a) * ringR * 0.86, Math.sin(a) * ringR * 0.86);
+          ctx.stroke();
+        }
+        ctx.globalAlpha = alpha * 0.9;
+        this.pixelVfxBlock(ctx, -center * 0.5, -center * 0.5, center, center, edge, alpha * 0.9);
+        this.pixelVfxBlock(ctx, -center * 0.5 + (center * 0.22), -center * 0.5 + (center * 0.22), center * 0.84, center * 0.84, color, alpha * 0.7);
+      } else if (key === "q") {
+        ctx.globalAlpha = alpha * 0.34;
+        ctx.strokeStyle = edge;
+        ctx.lineWidth = Math.max(2, block * 0.4);
+        for (let i = 0; i < 4; i++) {
+          const a = i * TAU / 4 + seed * 0.2;
+          ctx.beginPath();
+          ctx.moveTo(Math.cos(a) * ringR * 0.62, Math.sin(a) * ringR * 0.62);
+          ctx.lineTo(Math.cos(a) * ringR * 1.0, Math.sin(a) * ringR * 1.0);
+          ctx.stroke();
+        }
+      }
+
+    this.drawPixelPowerMark(ctx, kind, center, color, edge, dark, alpha);
       ctx.restore();
       return true;
     }

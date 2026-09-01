@@ -10,16 +10,16 @@
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
   const SIGNAL_REALTIME_RELAY_LIMIT = 2;
   const SIGNAL_REALTIME_TYPES = new Set(["state", "snapshot", "attack", "skill", "collect", "openChest", "dropItem", "damage", "chooseDoor"]);
-  const APP_VERSION = "20260718-pixel-vfx-311";
+  const APP_VERSION = "20260718-pixel-vfx-312";
   const CHANGELOG_ENTRIES = [
     {
       version: APP_VERSION,
-      title: "Thiết kế lại nhịp chơi Power",
+      title: "Đại tu hiệu ứng 27 chiêu Q/E/R",
       items: [
-        "Mỗi power có một vòng lặp chiến đấu riêng: đốt-kích nổ, đóng băng-phá vỡ, điện tích-xả điện, săn dấu-kết liễu và nhiều cơ chế khác.",
-        "Q/E/R/F có chi phí năng lượng và hồi chiêu riêng theo vai trò, thay vì dùng chung một bảng cooldown.",
-        "Bổ sung các phản ứng combo quan trọng: Lửa kích nổ Than Hồng, Sấm Sét xả Điện Tích, Pha Lê nổ Mảnh Vỡ và Thiên Nhiên Nở Hoa trên mục tiêu trúng độc.",
-        "Sách Sức Mạnh giờ hiển thị lối chơi, cơ chế cốt lõi và mô tả từng skill để người chơi chọn power có chủ đích."
+        "Mỗi chiêu Q/E/R của 9 power (Lửa, Băng, Sấm, Bóng, Máu, Trọng Lực, Cây, Hư Không, Thời Gian) giờ có bản sắc hiệu ứng code riêng: silhouette, chuyển động và impact đặc trưng.",
+        "Chiêu Q (bắn thẳng) xoay theo hướng ngắm; chiêu E (bao quanh người) và R (tại điểm) vẽ đối xứng quanh vị trí thi triển — không còn nhìn như hình lao không định hướng.",
+        "Lãnh địa F mỗi power có địa hình riêng (magma-nứt, băng-tinh, giông-bão, bóng-tối, máu, trọng lực, rễ, hư không, thời gian) kèm rung nhẹ camera và viền sáng theo nhịp.",
+        "Hiệu suất giữ ổn định: 27 chiêu render 0 lỗi, FPS 55-58 ở nhiều kịch bản."
       ]
     }
   ];

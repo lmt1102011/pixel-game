@@ -30294,47 +30294,7 @@
           const growTotal = Math.max(0, Number(effect.growTotal) || 0);
           const growProgress = growTotal > 0 ? clamp(1 - Math.max(0, Number(effect.growTime) || 0) / growTotal, 0, 1) : 1;
           const r = Math.max(16, this.powerDomainRadius(effect) + pulse);
-          ctx.globalAlpha = 0.42 + lifeRatio * 0.2;
-          ctx.lineWidth = effect.awakened ? 9 : 7;
-          ctx.beginPath();
-          ctx.arc(effect.x, effect.y, r, 0, TAU);
-          ctx.stroke();
-          if (growProgress < 1) {
-            ctx.globalAlpha = 0.62 * (1 - growProgress * 0.35);
-            ctx.strokeStyle = effect.accent || "#ffffff";
-            ctx.lineWidth = 3;
-            ctx.beginPath();
-            ctx.arc(effect.x, effect.y, r + 16 + growProgress * 18, 0, TAU);
-            ctx.stroke();
-          }
-          ctx.strokeStyle = effect.accent || "#ffffff";
-          ctx.globalAlpha = 0.38;
-          ctx.lineWidth = 2;
-          ctx.beginPath();
-          ctx.arc(effect.x, effect.y, r - 10, 0, TAU);
-          ctx.stroke();
-          ctx.fillStyle = effect.color;
-          ctx.globalAlpha = 0.035 + lifeRatio * 0.03;
-          ctx.beginPath();
-          ctx.arc(effect.x, effect.y, r, 0, TAU);
-          ctx.fill();
-          ctx.globalAlpha = 0.3;
-          ctx.strokeStyle = effect.color;
-          ctx.lineWidth = 2;
-          const rays = effect.awakened ? 12 : 9;
-          for (let i = 0; i < rays; i++) {
-            const a = (i / rays) * TAU + this.menuTime * 0.22 * (effect.kind === "time" ? -1 : 1);
-            ctx.beginPath();
-            ctx.moveTo(effect.x + Math.cos(a) * r * 0.45, effect.y + Math.sin(a) * r * 0.45);
-            ctx.lineTo(effect.x + Math.cos(a) * r * 0.97, effect.y + Math.sin(a) * r * 0.97);
-            ctx.stroke();
-          }
-          ctx.globalAlpha = 0.5;
-          ctx.strokeStyle = effect.accent || effect.color;
-          ctx.lineWidth = 3;
-          ctx.beginPath();
-          ctx.arc(effect.x, effect.y, r * (0.5 + 0.04 * Math.sin(this.menuTime * 4)), 0, TAU);
-          ctx.stroke();
+          this.drawDomainTerrain(ctx, effect, r, lifeRatio, progress, growProgress);
           this.drawDomainPowerSigils(ctx, effect, r, growProgress);
         } else if (["pull", "zone", "danger", "ultimate"].includes(effect.type)) {
           const pulse = Math.sin(this.menuTime * 8) * 8;
@@ -30911,6 +30871,340 @@
         if (effect.type === "powerGlyph") this.drawPowerGlyph(ctx, effect);
         ctx.restore();
       }
+    }
+
+    drawDomainTerrain(ctx, effect, radius, lifeRatio, progress, growProgress = 1) {
+      const kind = effect.kind || "fire";
+      const power = powerById(kind);
+      const color = effect.color || power.color || powerById(kind).color;
+      const accent = effect.accent || power.accent || "#ffffff";
+      const t = this.menuTime;
+      const x = Number(effect.x || 0);
+      const y = Number(effect.y || 0);
+      const filled = clamp(growProgress, 0, 1);
+      const lowDetail = this.isMobileDevice() || this.effectQuality() < 0.72;
+      const pulse = Math.sin(t * 6 + progress * 2) * 3;
+      const wobble = (ri, jitter) => radius * (0.92 + jitter);
+      const wobblePt = (a, amp) => {
+        const rr = radius * (1 + amp * Math.sin(a * 3.1 + t * 0.6) * Math.cos(a * 2.7 + t * 0.4));
+        return [x + Math.cos(a) * rr, y + Math.sin(a) * rr];
+      };
+      ctx.save();
+      ctx.globalCompositeOperation = "source-over";
+
+      const seamlessGround = () => {
+        const edges = lowDetail ? 10 : 16;
+        ctx.beginPath();
+        for (let i = 0; i <= edges; i++) {
+          const a = (i / edges) * TAU + t * 0.03;
+          const rip = 1 + Math.sin(a * 5 + t) * 0.06 + Math.cos(a * 3 + t * 0.5) * 0.04;
+          const rr = Math.max(8, radius * rip * filled);
+          if (i === 0) ctx.moveTo(x + Math.cos(a) * rr, y + Math.sin(a) * rr);
+          else ctx.lineTo(x + Math.cos(a) * rr, y + Math.sin(a) * rr);
+        }
+        ctx.closePath();
+      };
+
+      if (kind === "fire") {
+        seamlessGround();
+        ctx.fillStyle = hexToRgba("#2a0800", 0.5 * filled);
+        ctx.fill();
+        ctx.strokeStyle = hexToRgba("#ff5a1f", 0.34 + progress * 0.1);
+        ctx.lineWidth = lowDetail ? 3 : 4;
+        ctx.stroke();
+        const cracks = lowDetail ? 5 : 8;
+        for (let i = 0; i < cracks; i++) {
+          const a = (i / cracks) * TAU + t * 0.05 + i * 0.4;
+          const cxs = x + Math.cos(a) * radius * 0.14;
+          const cys = y + Math.sin(a) * radius * 0.14;
+          ctx.beginPath();
+          ctx.moveTo(cxs, cys);
+          let px = cxs, pyp = cys;
+          const segs = 4 + (i % 3);
+          const grow = filled;
+          for (let s = 1; s <= segs; s++) {
+            const rr = radius * (0.14 + (s / segs) * (0.78 + (i % 2) * 0.12)) * grow;
+            const na = a + Math.sin(i * 2 + s + t) * 0.28;
+            const nx = x + Math.cos(na) * rr;
+            const ny = y + Math.sin(na) * rr;
+            ctx.lineTo(nx, ny);
+            px = nx; pyp = ny;
+          }
+          ctx.stroke();
+        }
+        const embers = lowDetail ? 4 : 7;
+        for (let i = 0; i < embers; i++) {
+          const a = (i / embers) * TAU + t * 0.12;
+          const rr = radius * (0.2 + (i % 3) * 0.2) * filled;
+          const ex = x + Math.cos(a) * rr;
+          const ey = y + Math.sin(a) * rr;
+          ctx.globalAlpha = 0.4 + 0.5 * Math.abs(Math.sin(t * 9 + i));
+          ctx.fillStyle = i % 2 ? "#ffb02e" : "#ff6a2a";
+          ctx.beginPath();
+          ctx.arc(ex, ey, Math.max(1.5, radius * 0.014), 0, TAU);
+          ctx.fill();
+        }
+      } else if (kind === "ice") {
+        seamlessGround();
+        ctx.fillStyle = hexToRgba("#082033", 0.55 * filled);
+        ctx.fill();
+        ctx.strokeStyle = hexToRgba(accent, 0.35 + progress * 0.08);
+        ctx.lineWidth = lowDetail ? 2 : 3;
+        ctx.stroke();
+        const crystals = lowDetail ? 4 : 7;
+        for (let i = 0; i < crystals; i++) {
+          const a = (i / crystals) * TAU + i * 0.9;
+          const rr = radius * (0.3 + (i % 3) * 0.2) * filled;
+          const cx = x + Math.cos(a) * rr;
+          const cy = y + Math.sin(a) * rr;
+          const hgt = radius * (0.16 + (i % 3) * 0.05) * (0.8 + Math.sin(t * 2 + i) * 0.2);
+          ctx.save();
+          ctx.translate(cx, cy);
+          ctx.rotate(a + Math.PI / 2);
+          ctx.globalAlpha = 0.35 + progress * 0.2;
+          ctx.fillStyle = hexToRgba(accent, 0.4);
+          ctx.beginPath();
+          ctx.moveTo(0, -hgt);
+          ctx.lineTo(radius * 0.045, 0);
+          ctx.lineTo(0, hgt * 0.2);
+          ctx.lineTo(-radius * 0.045, 0);
+          ctx.closePath();
+          ctx.fill();
+          ctx.strokeStyle = hexToRgba("#cfefff", 0.55);
+          ctx.lineWidth = 1.5;
+          ctx.stroke();
+          ctx.restore();
+        }
+      } else if (kind === "lightning") {
+        seamlessGround();
+        ctx.fillStyle = hexToRgba("#0a1020", 0.5 * filled);
+        ctx.fill();
+        ctx.globalAlpha = 0.3;
+        ctx.strokeStyle = accent;
+        ctx.lineWidth = 2;
+        const ringsI = lowDetail ? 3 : 5;
+        for (let i = 0; i < ringsI; i++) {
+          const rr = radius * (0.2 + i * 0.16) * filled;
+          ctx.beginPath();
+          const steps = 12;
+          for (let s = 0; s <= steps; s++) {
+            const a = (s / steps) * TAU + t * 0.25 * (i % 2 === 0 ? 1 : -1);
+            const jit = Math.sin(a * 6 + i * 3 + t * 2) * radius * 0.03;
+            const prr = Math.max(4, rr + jit);
+            if (s === 0) ctx.moveTo(x + Math.cos(a) * prr, y + Math.sin(a) * prr);
+            else ctx.lineTo(x + Math.cos(a) * prr, y + Math.sin(a) * prr);
+          }
+          ctx.stroke();
+        }
+        ctx.globalAlpha = 0.45;
+        for (let i = 0; i < (lowDetail ? 4 : 6); i++) {
+          const a = (i / (lowDetail ? 4 : 6)) * TAU + t * 0.3;
+          const cx = x + Math.cos(a) * radius * 0.55 * filled;
+          const cy = y + Math.sin(a) * radius * 0.55 * filled;
+          const len = radius * 0.12;
+          ctx.strokeStyle = accent;
+          ctx.lineWidth = 1.5;
+          ctx.beginPath();
+          let px = cx, pyp = cy;
+          const steps = 5;
+          for (let s = 1; s <= steps; s++) {
+            const ang = a + Math.sin(s * 1.7 + t * 4 + i) * 0.5;
+            const nx = px + Math.cos(ang) * (len / steps);
+            const ny = pyp + Math.sin(ang) * (len / steps);
+            ctx.lineTo(nx, ny);
+            px = nx; pyp = ny;
+          }
+          ctx.stroke();
+        }
+      } else if (kind === "shadow") {
+        const edges = lowDetail ? 12 : 20;
+        ctx.beginPath();
+        for (let i = 0; i <= edges; i++) {
+          const a = (i / edges) * TAU + t * 0.02;
+          const ar = Math.sin(a * 3 + t * 0.5);
+          const rr = Math.max(6, radius * filled * (1 + ar * 0.1 + Math.sin(a * 2) * 0.05));
+          if (i === 0) ctx.moveTo(x + Math.cos(a) * rr, y + Math.sin(a) * rr);
+          else ctx.lineTo(x + Math.cos(a) * rr, y + Math.sin(a) * rr);
+        }
+        ctx.closePath();
+        ctx.fillStyle = hexToRgba("#04010a", 0.6 * filled);
+        ctx.fill();
+        ctx.strokeStyle = hexToRgba(accent || "#a78bff", 0.28 + progress * 0.08);
+        ctx.lineWidth = lowDetail ? 2 : 3;
+        ctx.stroke();
+        const eyes = lowDetail ? 0 : 3;
+        for (let i = 0; i < eyes; i++) {
+          const a = (i / eyes) * TAU + i * 2.1;
+          const rr = radius * (0.4 + (i % 2) * 0.2) * filled;
+          const ex = x + Math.cos(a) * rr;
+          const ey = y + Math.sin(a) * rr;
+          ctx.globalAlpha = 0.5 + 0.5 * Math.sin(t * 3 + i * 2);
+          ctx.fillStyle = i % 2 ? "#c9a6ff" : "#7ef0ff";
+          ctx.beginPath();
+          ctx.ellipse(ex, ey, radius * 0.02, radius * 0.008, 0, 0, TAU);
+          ctx.fill();
+        }
+      } else if (kind === "blood") {
+        seamlessGround();
+        ctx.fillStyle = hexToRgba("#180309", 0.55 * filled);
+        ctx.fill();
+        ctx.strokeStyle = hexToRgba(color, 0.32 + progress * 0.08);
+        ctx.lineWidth = lowDetail ? 2 : 3;
+        ctx.stroke();
+        const veins = lowDetail ? 4 : 7;
+        for (let i = 0; i < veins; i++) {
+          const a = (i / veins) * TAU + i * 0.5;
+          ctx.beginPath();
+          ctx.moveTo(x, y);
+          const segs = 6;
+          let px = x, pyp = y;
+          ctx.strokeStyle = color;
+          ctx.globalAlpha = 0.4 + 0.35 * Math.abs(Math.sin(t * 2.4 + i));
+          ctx.lineWidth = lowDetail ? 2 : 3;
+          for (let s = 1; s <= segs; s++) {
+            const rr = radius * (s / segs) * (0.5 + (i % 3) * 0.14) * filled;
+            const na = a + Math.sin(s * 2 + t + i) * 0.4;
+            const nx = x + Math.cos(na) * rr;
+            const ny = y + Math.sin(na) * rr;
+            ctx.lineTo(nx, ny);
+            px = nx; pyp = ny;
+          }
+          ctx.stroke();
+        }
+      } else if (kind === "gravity") {
+        const edges = lowDetail ? 12 : 20;
+        ctx.beginPath();
+        let last = null;
+        for (let i = 0; i <= edges; i++) {
+          const a = (i / edges) * TAU + t * 0.05;
+          const rr = Math.max(6, radius * filled * (1 + 0.08 * Math.sin(a * 3.7 + t * 0.8)));
+          const px = x + Math.cos(a) * rr;
+          const py = y + Math.sin(a) * rr;
+          if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+          last = [px, py];
+        }
+        ctx.closePath();
+        ctx.fillStyle = hexToRgba("#0b0324", 0.55 * filled);
+        ctx.fill();
+        ctx.strokeStyle = hexToRgba(accent || "#b087ff", 0.3 + progress * 0.08);
+        ctx.lineWidth = lowDetail ? 2 : 3;
+        ctx.stroke();
+        const debris = lowDetail ? 3 : 5;
+        for (let i = 0; i < debris; i++) {
+          const rr = radius * (0.3 + i * 0.16) * filled;
+          const ang = t * (0.5 + i * 0.15) + i * 2;
+          const dx = x + Math.cos(ang) * rr;
+          const dy = y + Math.sin(ang) * rr;
+          ctx.save();
+          ctx.translate(dx, dy);
+          ctx.rotate(ang * 1.5);
+          ctx.globalAlpha = 0.5;
+          ctx.strokeStyle = i % 2 ? "#cbd6ff" : accent || "#b087ff";
+          ctx.lineWidth = 1.5;
+          const s = Math.max(2, radius * 0.018);
+          ctx.strokeRect(-s, -s, s * 2, s * 2);
+          ctx.restore();
+        }
+      } else if (kind === "nature") {
+        seamlessGround();
+        ctx.fillStyle = hexToRgba("#06240d", 0.55 * filled);
+        ctx.fill();
+        ctx.strokeStyle = hexToRgba("#3f7a32", 0.3 + progress * 0.08);
+        ctx.lineWidth = lowDetail ? 2 : 3;
+        ctx.stroke();
+        const roots = lowDetail ? 4 : 6;
+        for (let i = 0; i < roots; i++) {
+          const a = (i / roots) * TAU + i * 0.7;
+          ctx.beginPath();
+          ctx.moveTo(x + Math.cos(a) * radius * 0.9, y + Math.sin(a) * radius * 0.9);
+          ctx.bezierCurveTo(
+            x + Math.cos(a + 0.25) * radius * 0.55, y + Math.sin(a + 0.25) * radius * 0.55,
+            x + Math.cos(a - 0.2) * radius * 0.3, y + Math.sin(a - 0.2) * radius * 0.3,
+            x + Math.cos(a + t * 0.1) * radius * 0.12, y + Math.sin(a + t * 0.1) * radius * 0.12
+          );
+          ctx.strokeStyle = "#3a6b2c";
+          ctx.globalAlpha = 0.4 + 0.2 * Math.sin(t * 1.5 + i);
+          ctx.stroke();
+        }
+      } else if (kind === "void") {
+        const edges = lowDetail ? 14 : 24;
+        ctx.beginPath();
+        for (let i = 0; i <= edges; i++) {
+          const a = (i / edges) * TAU + t * 0.03;
+          const rr = Math.max(5, radius * filled * (1 + 0.13 * Math.sin(a * 4.2 + t * 0.6) + 0.06 * Math.sin(a * 7 + t * 1.1)));
+          if (i === 0) ctx.moveTo(x + Math.cos(a) * rr, y + Math.sin(a) * rr);
+          else ctx.lineTo(x + Math.cos(a) * rr, y + Math.sin(a) * rr);
+        }
+        ctx.closePath();
+        ctx.fillStyle = hexToRgba("#01030a", 0.62 * filled);
+        ctx.fill();
+        ctx.strokeStyle = hexToRgba(accent || "#9f7bff", 0.3 + progress * 0.08);
+        ctx.lineWidth = lowDetail ? 2 : 3;
+        ctx.stroke();
+        const shards = lowDetail ? 3 : 5;
+        for (let i = 0; i < shards; i++) {
+          const a = (i / shards) * TAU + i * 1.3 + t * 0.05;
+          const rr = radius * (0.25 + (i % 3) * 0.2) * filled;
+          const sx = x + Math.cos(a) * rr;
+          const sy = y + Math.sin(a) * rr;
+          ctx.save();
+          ctx.translate(sx, sy);
+          ctx.rotate(a * 0.7);
+          ctx.globalAlpha = 0.35 + progress * 0.2;
+          ctx.strokeStyle = accent || "#9f7bff";
+          ctx.lineWidth = 1.5;
+          const s = Math.max(3, radius * 0.02);
+          ctx.strokeRect(-s, -s, s * 2, s * 2);
+          ctx.restore();
+        }
+      } else if (kind === "time") {
+        const edges = lowDetail ? 14 : 22;
+        ctx.save();
+        ctx.globalAlpha = Math.max(0, (0.16 + progress * 0.2) * filled);
+        ctx.beginPath();
+        let previous = null;
+        for (let i = 0; i <= edges; i++) {
+          const a = (i / edges) * TAU;
+          const spline = radius * filled * (1 + 0.07 * Math.sin(a * 3.2 + t * 0.4) + (previous === null ? 0 : 0.04 * Math.sin(previous * 5)));
+          if (i === 0) ctx.moveTo(x + Math.cos(a) * spline, y + Math.sin(a) * spline);
+          else ctx.lineTo(x + Math.cos(a) * spline, y + Math.sin(a) * spline);
+          previous = a;
+        }
+        ctx.closePath();
+        ctx.fillStyle = hexToRgba("#0a0a12", 0.6 * filled);
+        ctx.fill();
+        ctx.strokeStyle = accent;
+        ctx.lineWidth = lowDetail ? 2 : 2.5;
+        ctx.stroke();
+        ctx.restore();
+        const layers = lowDetail ? 1 : 2;
+        for (let L = 0; L < layers; L++) {
+          ctx.save();
+          ctx.translate(x, y);
+          ctx.rotate(-t * 0.12 * (L + 1));
+          ctx.globalAlpha = 0.14 + progress * 0.1;
+          ctx.strokeStyle = accent;
+          ctx.lineWidth = 1.5;
+          const rr = radius * 0.85 * filled;
+          ctx.beginPath();
+          for (let i = 0; i <= 16; i++) {
+            const a = (i / 16) * TAU;
+            const prr = rr * (1 + 0.06 * Math.sin(a * 5 - t * 6) * 0.5);
+            if (i === 0) ctx.moveTo(Math.cos(a) * prr, Math.sin(a) * prr);
+            else ctx.lineTo(Math.cos(a) * prr, Math.sin(a) * prr);
+          }
+          ctx.stroke();
+          ctx.restore();
+        }
+      } else {
+        seamlessGround();
+        ctx.fillStyle = hexToRgba(color, 0.3 * filled);
+        ctx.fill();
+        ctx.strokeStyle = hexToRgba(accent, 0.28);
+        ctx.lineWidth = 2;
+        ctx.stroke();
+      }
+      ctx.restore();
     }
 
     drawDomainPowerSigils(ctx, effect, radius, growProgress = 1) {

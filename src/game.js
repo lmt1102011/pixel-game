@@ -123,8 +123,8 @@
       accent: "#ffd166",
       rarity: "rare",
       identity: "Đốt - Kích nổ",
-      playstyle: "Dọn đám, khóa lối đi và bùng nổ sát thương theo nhịp.",
-      passive: "Đòn đánh đặt Than Hồng. Nuôi tầng cháy bằng Q/R, rồi dùng E để kích nổ cả cụm.",
+      playstyle: "Chất đống Than Hồng rồi đốt pháo cả cụm theo nhịp.",
+      passive: "Mọi đòn đánh đặt 1 Than Hồng (tối đa 5, 4s). Kẻ đang cháy chịu thêm 6% sát thương. Nổ Than Hồng còn làm chậm 20% trong 1.5s.",
       skills: {
         basic: "Xích Viêm Chú",
         q: "Liệt Hỏa Trận",
@@ -133,11 +133,11 @@
         f: "Tro Tàn Viễn Cổ"
       },
       skillDetails: {
-        basic: "Chém rộng, đặt Than Hồng lên nhiều mục tiêu.",
-        q: "Quét hình nón, để lại vệt tro nóng và cộng Than Hồng.",
-        e: "Nổ bốn hướng, kích nổ Than Hồng gần người thi triển.",
-        r: "Dựng tường dung nham chặn đạn và đốt mục tiêu đi qua.",
-        f: "Lãnh địa tăng tốc, liên tục thiêu và kích nổ kẻ địch."
+        basic: "Quét nón lửa, đặt 1 Than Hồng lên mọi mục tiêu trúng; combo thứ 3 nổ ngay 1 tầng.",
+        q: "Quét nón lửa dài, đặt 2 Than Hồng và để lại Tro tàn làm chậm kẻ bước vào.",
+        e: "Kích nổ toàn bộ Than Hồng quanh người; mỗi tầng bắn ra chùm tia lửa.",
+        r: "Dựng tường dung nham chặn đạn, thiêu mục tiêu đi qua và đặt Than Hồng.",
+        f: "Lãnh địa Hỏa Sơn: liên tục đốt Than Hồng, giảm phòng thủ, và tự kích nổ theo chu kỳ."
       }
     },
     {
@@ -149,7 +149,7 @@
       rarity: "rare",
       identity: "Đóng băng - Phá vỡ",
       playstyle: "Khống chế chính xác, thưởng lớn khi phá băng đúng lúc.",
-      passive: "Đòn đánh tích Ấn Sương. Đủ 3 ấn đóng băng; Q và R phá vỡ mục tiêu bị phong ấn.",
+      passive: "Mỗi đòn tích 1 Ấn Sương (tối đa 3). Đủ 3 ấn Đóng băng mục tiêu; mục tiêu bị đóng băng chịu thêm 15% sát thương.",
       skills: {
         basic: "Tuyết Nhai Ấn",
         q: "Hàn Băng Xung",
@@ -158,11 +158,11 @@
         f: "Kỷ Băng Hà Thức"
       },
       skillDetails: {
-        basic: "Mảnh băng tầm xa tích Ấn Sương và tạo trạng thái đóng băng.",
-        q: "Vòng băng quét quanh người, phá vỡ mục tiêu đã bị đóng băng.",
-        e: "Đặt phong ấn hẹn giờ, khi nổ đóng băng khu vực nhỏ.",
-        r: "Mở khe băng xuyên thẳng, làm chậm và khóa đường di chuyển.",
-        f: "Lãnh địa tuyết chậm toàn vùng, liên tục giam mục tiêu trong băng."
+        basic: "Khối băng xuyên hàng, tích 1 Ấn Sương; đánh lên mục tiêu đang Đóng băng sẽ vỡ tan gây thêm sát thương.",
+        q: "Đóng băng tức thì toàn bộ mục tiêu quanh người; mục tiêu đã bị đóng băng thì vỡ ngay và trả năng lượng.",
+        e: "Đặt Bẫy băng hẹn giờ (telegraph rõ), kéo nhẹ kẻ địch rồi nổ làm Đóng băng vùng nhỏ.",
+        r: "Ba khe băng xuyên thẳng, làm chậm mạnh và đặt 3 Ấn Sương gần như Đóng băng ngay.",
+        f: "Lãnh địa Băng Hà: chậm toàn vùng, tích Ấn Sương và Đóng băng cả vùng theo nhịp."
       }
     },
     {
@@ -173,8 +173,8 @@
       accent: "#70f6ff",
       rarity: "epic",
       identity: "Điện tích - Xả điện",
-      playstyle: "Tốc độ cao, đổi vị trí liên tục và lan sát thương theo chuỗi.",
-      passive: "Đòn đánh tích Điện Tích. Q/R lan điện, E xả toàn bộ điện tích tại điểm đáp.",
+      playstyle: "Tăng tốc, tích điện trên người rồi trút cơn bão vào điểm đáp.",
+      passive: "Đòn đánh tích 1 Điện Tích trên người (tối đa 10); mỗi tích tăng 3% tốc độ đánh & chạy. Đủ 10 tự xả sét quanh người.",
       skills: {
         basic: "Tịch Lôi Kích",
         q: "Thiên Lôi Cửu Chuyển",
@@ -183,11 +183,11 @@
         f: "Hỗn Nguyên Lôi Kiếp"
       },
       skillDetails: {
-        basic: "Tia điện thẳng xuyên đội hình, tích Điện Tích và lan sang mục tiêu gần.",
-        q: "Phóng vòng lôi quanh người, nối các mục tiêu có điện tích.",
-        e: "Lướt cực nhanh, làm choáng điểm đến và xả Điện Tích.",
-        r: "Gọi nhiều cột sét ngẫu nhiên trong một khu vực đã chọn.",
-        f: "Lãnh địa bão đánh liên hoàn, giúp chuỗi điện không bị đứt."
+        basic: "Tia điện xuyên đội hình, tích 1 Điện Tích; có thể nối sang kẻ địch gần.",
+        q: "Xoáy sét quanh người, nối mọi mục tiêu bằng dây điện và tích điện theo số dây.",
+        e: "Lướt tức thì theo hướng ngắm, xả toàn bộ Điện Tích tại điểm đáp thành nhiều cột sét.",
+        r: "Gọi 9 cột sét sinh ra trong vùng chọn, mỗi cột sau chốc lát đánh xuống làm choáng.",
+        f: "Lãnh địa Bão Điện: sét đánh liên hoàn, mọi kẻ địch luôn nhiễm điện và tích điện tăng đôi."
       }
     },
     {
@@ -198,8 +198,8 @@
       accent: "#202335",
       rarity: "epic",
       identity: "Săn dấu - Kết liễu",
-      playstyle: "Ám sát mục tiêu ưu tiên, di chuyển khó đoán và cắt tầm nhìn.",
-      passive: "Đòn đánh và lướt đặt Dấu Săn. E/R tiêu dấu để hút năng lượng và kết liễu.",
+      playstyle: "Ám sát kẻ bị đánh dấu, di chuyển khó đoán, cắt tầm nhìn.",
+      passive: "Đòn đánh và lướt đặt Dấu Săn (tối đa 3, 4s). Đánh sau lưng hoặc kẻ bị mù gây +50% và đặt 2 dấu.",
       skills: {
         basic: "Ám Sát Thức",
         q: "Huyễn Ảnh Bộ",
@@ -208,11 +208,11 @@
         f: "Vô Tận Hắc Dạ"
       },
       skillDetails: {
-        basic: "Cắt ngắn nhưng hiểm, đánh sau lưng gây thêm sát thương và đặt Dấu Săn.",
-        q: "Dịch chuyển xuyên qua mục tiêu, tạo mồi nhử bóng tối ở điểm xuất phát.",
-        e: "Khóa một con mồi, kéo nó về và tiêu Dấu Săn để kết liễu.",
-        r: "Tạo màn đêm quanh người, làm mù và nuôi Dấu Săn theo nhịp.",
-        f: "Lãnh địa săn đêm biến mọi kẻ địch thành con mồi bị truy sát."
+        basic: "Nhát cắt ngắn hiểm; đánh sau lưng hoặc kẻ bị mù gây +50% và đặt 2 Dấu Săn.",
+        q: "Lướt xuyên qua mục tiêu, để lại mồi nhử bóng đổi hướng đạn và đặt Dấu Săn.",
+        e: "Khóa mồi ưu tiên mang dấu, kéo tít về gần và tiêu toàn bộ Dấu Săn thành dồn cắt mạnh.",
+        r: "Màn đêm lóe quanh người làm mù, mọi đòn trong lúc đó coi như đánh sau lưng và nuôi dấu.",
+        f: "Lãnh địa Săn Đêm: mọi kẻ địch là con mồi, mang Dấu Săn và bị truy sát liên tục."
       }
     },
     {
@@ -223,8 +223,8 @@
       accent: "#ffc0c8",
       rarity: "epic",
       identity: "Hiến máu - Hút máu",
-      playstyle: "Đánh đổi máu để mở sát thương, rồi cướp lại từ kẻ địch.",
-      passive: "Kỹ năng hiến máu mạnh hơn khi thấp máu; gây Chảy Máu để hút ngược sinh lực.",
+      playstyle: "Đánh đổi máu ở ngưỡng nguy hiểm để quật ngã đám đông, rồi cướp lại từ kẻ địch.",
+      passive: "Kỹ năng hiến máu; càng thấp máu sát thương càng cao (tối đa +30%). Gây Chảy Máu và hút ngược 8% sát thương.",
       skills: {
         basic: "Huyết Nguyệt Trảm",
         q: "Tế Huyết Vũ",
@@ -233,11 +233,11 @@
         f: "Huyết Hải Hàng Lâm"
       },
       skillDetails: {
-        basic: "Chém vòng cung và hồi máu theo số mục tiêu trúng đòn.",
-        q: "Hiến một phần máu để phóng mưa lưỡi máu; càng nguy hiểm càng nhiều nhát.",
-        e: "Móc một con mồi, kéo về gần và hút máu từ vết Chảy Máu.",
-        r: "Nghi thức quanh người, tạo quỹ đạo máu dồn ép mọi mục tiêu xung quanh.",
-        f: "Lãnh địa tế lễ hồi máu theo số kẻ địch đang chảy máu."
+        basic: "Vòng cung máu quét quanh, gây Chảy Máu và hồi máu theo số mục tiêu trúng.",
+        q: "Hiến 8% máu để phóng mưa lưỡi máu; máu càng thấp mưa càng dày và mạnh.",
+        e: "Móc mồi mang nhiều Chảy Máu về gần, chồng chảy máu và hút lại máu theo số vết thương.",
+        r: "Nghi thức quanh người: cướp máu theo các cú chí mạng rồi bùng nổ theo tổng máu cướp được.",
+        f: "Lãnh địa Tế Lễ Huyết Hải: mọi kẻ địch chảy máu liên tục, hồi máu theo số mục tiêu chảy máu."
       }
     },
     {
@@ -248,8 +248,8 @@
       accent: "#59ffd4",
       rarity: "legendary",
       identity: "Kéo - Đảo cực",
-      playstyle: "Điều khiển vị trí, gom quái và tạo khoảnh khoắc nghiền nát.",
-      passive: "Đòn đánh gắn Trọng Áp. Mục tiêu càng nặng càng khó trốn khỏi tâm điểm.",
+      playstyle: "Điều khiển thế trận, gom hết quái rồi bóp nát ở tâm điểm.",
+      passive: "Đòn đánh gắn Trọng Áp (tối đa 4). Mục tiêu càng nặng càng bị hút mạnh vào tâm và chịu khống chế lâu hơn.",
       skills: {
         basic: "Trầm Địa Ấn",
         q: "Vạn Dẫn Điểm",
@@ -258,11 +258,11 @@
         f: "Hỗn Độn Điểm"
       },
       skillDetails: {
-        basic: "Sóng nặng đẩy mục tiêu và đặt Trọng Áp.",
-        q: "Tạo tâm điểm hút quái vào giữa trước khi nghiền nát lõi.",
-        e: "Đảo cực để lao tới, hất văng đội hình ở vị trí đáp.",
-        r: "Nhấc toàn bộ khu vực vào trạng thái vô trọng lực rồi thả rơi.",
-        f: "Lãnh địa kỳ điểm kéo cả phòng vào một điểm không thể thoát."
+        basic: "Sóng nặng đẩy nhẹ, gắn 1 Trọng Áp lên mục tiêu trúng.",
+        q: "Tâm điểm hút quái vào giữa tăng dần rồi nghiền nát lõi, sát thương theo số kẻ dồn vào.",
+        e: "Đảo cực lao tới điểm đáp và hất văng đội hình; kẻ mang nặng Trọng Áp bị làm chậm lâu.",
+        r: "Nhấc cả vùng vào vô trọng lực rồi thả rơi gây sát thương diện rộng và làm choáng.",
+        f: "Lãnh địa Kỳ Điểm giữa phòng kéo mọi kẻ địch, giảm phòng thủ và xung nén theo chu kỳ."
       }
     },
     {
@@ -273,8 +273,8 @@
       accent: "#ffc4f5",
       rarity: "rare",
       identity: "Tạo mảnh - Phản xạ",
-      playstyle: "Xây thế trận bằng tinh thể rồi phá vỡ để lan sát thương.",
-      passive: "Đòn đánh gắn Mảnh Vỡ Pha Lê. R kích nổ chúng để tạo phản ứng dây chuyền.",
+      playstyle: "Xây thế trận gương & mảnh rồi đập vỡ cả bàn cờ bằng phản ứng dây chuyền.",
+      passive: "Đòn đánh gắn Mảnh Vỡ Pha Lê (tối đa 6, mỗi mảnh +8% sát thương). Mục tiêu chết mang mảnh vỡ bắn sang kẻ lân cận.",
       skills: {
         basic: "Lưu Ly Thứ",
         q: "Tam Cực Tinh Thương",
@@ -283,11 +283,11 @@
         f: "Lưu Ly Cung Thức"
       },
       skillDetails: {
-        basic: "Lăng kính xuyên hàng, để lại mảnh bẫy ở điểm cuối.",
-        q: "Bắn ba tinh thương mở góc, phủ Mảnh Vỡ lên nhiều mục tiêu.",
-        e: "Dựng gương pha lê tạo khiên và bắn phản kích quanh người.",
-        r: "Mưa lăng kính xuống khu vực, kích nổ mọi Mảnh Vỡ đã gắn.",
-        f: "Lãnh địa cung điện tạo phản xạ đạn pha lê từ mọi kẻ địch."
+        basic: "Lăng kính xuyên hàng, để lại bẫy mảnh tại điểm cuối và gắn 1 Mảnh Vỡ.",
+        q: "Bắn ba tia lăng kính mở góc, xuyên nhiều mục tiêu và gắn 2 Mảnh Vỡ mỗi tia.",
+        e: "Dựng gương pha lê tạo khiên đỡ và phản chiếu đạn kẻ địch ngược về nguồn.",
+        r: "Mưa lăng kính xuống vùng rồi kích nổ toàn bộ Mảnh Vỡ thành phản ứng dây chuyền.",
+        f: "Lãnh địa Cung Điện Pha Lê: mọi kẻ địch được gắn mảnh, đạn đều phản xạ và đủ mảnh tự vỡ."
       }
     },
     {
@@ -298,8 +298,8 @@
       accent: "#ffe082",
       rarity: "rare",
       identity: "Gieo mầm - Nở hoa",
-      playstyle: "Kiểm soát địa hình, độc bền bỉ và hồi phục theo vùng.",
-      passive: "Đòn đánh gieo Mầm Độc. Đủ 3 mầm trói rễ; R làm mục tiêu trúng độc nở hoa.",
+      playstyle: "Biến chiến trường thành khu vườn ăn thịt: độc, trói rễ và hồi phục theo vùng.",
+      passive: "Đòn đánh gieo 1 Mầm Độc (tối đa 3). Đủ 3 mầm trói rễ 1.5s và nở hoa tại chân mục tiêu.",
       skills: {
         basic: "Khô Mộc Thứ",
         q: "Phệ Huyết Chủng",
@@ -308,11 +308,11 @@
         f: "Thần Thụ Tế Lễ"
       },
       skillDetails: {
-        basic: "Gai xuyên hàng gieo độc và tích Mầm Độc để trói rễ.",
-        q: "Ném hạt săn mồi, mục tiêu bước vào sẽ bị rễ trói.",
-        e: "Dựng hàng gai dài, làm chậm, đầu độc và chặn đường tiến.",
-        r: "Gây một vườn bào tử; mục tiêu trúng độc sẽ nở hoa và bị trói thêm.",
-        f: "Lãnh địa cổ thụ hút sinh lực địch để hồi máu và năng lượng."
+        basic: "Mũi gai xuyên hàng gieo độc, 1 Mầm Độc và để bụi mầm làm chậm.",
+        q: "Ném hạt săn mồi; kẻ bước vào vùng bị rễ trói và hút máu trả về người chơi.",
+        e: "Dựng hàng gai dài chặn địa hình, làm chậm, đầu độc theo nhiều đợt.",
+        r: "Gieo vườn bào tử: mục tiêu trúng độc mỗi nhịp nở hoa lan độc sang kẻ gần và trói rễ ngắn.",
+        f: "Lãnh địa Cổ Thụ mọc giữa vùng hút sinh lực địch để hồi máu, năng lượng và luôn nhiễm độc."
       }
     },
     {
@@ -323,8 +323,8 @@
       accent: "#f2f6ff",
       rarity: "mythic",
       identity: "Xóa bỏ - Sụp đổ",
-      playstyle: "Tước trạng thái, bẻ thế trận và trừng phạt mục tiêu cố chạy.",
-      passive: "Đòn đánh xóa khiên, đặt Vết Rạn và Bào Mòn Hư Không lên mục tiêu.",
+      playstyle: "Đánh sập cấu trúc thế trận địch từ bên trong: xóa khiên, khóa kỹ năng, trừng phạt kẻ chạy.",
+      passive: "Đòn đánh xóa khiên, đặt Vết Rạn (tối đa 4) và Bào Mòn. Mục tiêu di chuyển càng xa càng mất máu.",
       skills: {
         basic: "Thái Hư Rạn",
         q: "Hư Vô Tỏa",
@@ -333,11 +333,11 @@
         f: "Thái Hư Diệt Thế"
       },
       skillDetails: {
-        basic: "Vết rạn xuyên hàng, xóa khiên và gây Bào Mòn khi mục tiêu di chuyển.",
-        q: "Mở khe hư không hút quái, đặt nhiều Vết Rạn để chuẩn bị sụp đổ.",
-        e: "Chém tia xóa bỏ trạng thái có lợi của địch và làm sạch debuff bản thân.",
-        r: "Tạo vùng im lặng, phá đạn và khóa kỹ năng của mọi mục tiêu bên trong.",
-        f: "Lãnh địa hư vô buộc đối thủ vào vòng sụp đổ liên tục."
+        basic: "Vết rạn xuyên hàng, xóa khiên, đặt 1 Vết Rạn và Bào Mòn lên mục tiêu trúng.",
+        q: "Mở khe hư không hình chữ nhật hút kẻ địch về giữa, im lặng kỹ năng và đặt nhiều Vết Rạn.",
+        e: "Chém tia xóa trạng thái có lợi của địch (khiên/buff) và làm sạch debuff bản thân; mỗi buff xóa +1 Vết Rạn.",
+        r: "Vùng im lặng phá toàn bộ đạn đi vào, khóa kỹ năng địch và Bào Mòn tăng dần theo thời gian.",
+        f: "Lãnh địa Hư Vô: mọi kẻ địch vào vòng sụp đổ theo chu kỳ, xóa khiên và nhấn sâu Bào Mòn."
       }
     },
     {
@@ -348,8 +348,8 @@
       accent: "#8ff7ff",
       rarity: "mythic",
       identity: "Đóng băng - Hồi âm",
-      playstyle: "Canh nhịp, trả lại sai lầm và dồn sát thương bị trì hoãn.",
-      passive: "Mỗi nhát tạo Hồi Âm sau một nhịp. Đánh vào mục tiêu bị dừng thời gian sẽ lưu sát thương.",
+      playstyle: "Canh nhịp, dừng giây để tích sát thương rồi thả một nhịp bùng nổ gấp bội.",
+      passive: "Mỗi nhát tạo Hồi Âm (bản phản chiếu) sau 0.5s đánh lại 40%. Đánh mục tiêu đang bị dừng thời gian sẽ tích sát thương để bùng khi hết.",
       skills: {
         basic: "Quang Âm Trảm",
         q: "Thời Cực Ấn",
@@ -358,11 +358,11 @@
         f: "Vô Chung Luân Hồi"
       },
       skillDetails: {
-        basic: "Chém hình cung rồi tái hiện một Hồi Âm sau đó.",
-        q: "Đóng băng một vùng phía trước, khiến sát thương được lưu lại.",
-        e: "Quay về vị trí cũ, hoàn máu một phần và gỡ các hiệu ứng xấu.",
-        r: "Giam khu vực lớn trong khoảnh khắc đứng yên rồi giải phóng toàn bộ sát thương.",
-        f: "Lãnh địa đồng hồ liên tục dừng thời gian và hoàn hồi chiêu."
+        basic: "Chém hình cung tạo Hồi Âm; đánh mục tiêu đang bị dừng giây sẽ ghi nhận sát thương.",
+        q: "Đóng băng thời gian vùng phía trước, hấp thụ toàn bộ sát thương bạn gây rồi bùng nổ trả gấp đôi.",
+        e: "Quay về vị trí cũ, hoàn một phần máu đã mất, gỡ debuff và để lại bản sao hồi âm tấn công.",
+        r: "Giam vùng lớn trong khoảnh khắc đứng yên, hấp thụ sát thương rồi giải phóng thành cú nổ tập trung.",
+        f: "Lãnh địa Đồng Hồ: dừng thời gian ngắt quãng, hoàn hồi chiêu nhanh và tự thả nhịp nổ theo chu kỳ."
       }
     }
   ];
@@ -16327,15 +16327,37 @@
         const struck = arcHits(awakened ? 126 : 90, awakened ? Math.PI * 0.9 : Math.PI * 0.44, baseDamage * (awakened ? 0.72 : 0.82), awakened ? 6 : 4);
         if (awakened) arcHits(126, Math.PI * 0.55, baseDamage * 0.66, 6);
         for (const enemy of struck) this.applyFireStacks(enemy, awakened ? 2 : 1, 3.2, palette.color);
+        if (combo === 3) {
+          const ignited = struck.filter((enemy) => (enemy.fireStacks || 0) > 0);
+          for (const enemy of ignited.slice(0, 4)) {
+            this.detonateFireStacks(enemy, baseDamage * 0.8, sourceId, palette.color);
+            for (const near of this.enemiesNear(enemy.x, enemy.y, 120, 3)) {
+              near.fireStackTime = Math.max(near.fireStackTime || 0, 3);
+            }
+          }
+        }
         if (struck.some((enemy) => (enemy.fireStacks || 0) > 0)) this.burstLines(x + dirX * 58, y + dirY * 58, palette.accent, 3, 82, 0.12);
       } else if (kind === "ice") {
         const struck = lineHits(350, 12, baseDamage * 0.68, awakened ? 4 : 1, x + dirX * 20, y + dirY * 20);
         for (const enemy of struck) {
+          const frozen = (enemy.domainFreeze || 0) > 0;
           enemy.chill = Math.max(enemy.chill || 0, 2);
-          enemy.iceBasicStacks = Math.min(3, Number(enemy.iceBasicStacks || 0) + 1);
-          if (enemy.iceBasicStacks >= 3) {
+          if (frozen) {
+            this.damageEnemy(enemy, baseDamage * 0.42, { x: dirX, y: dirY, source: "iceShatter", kind: "ice", sourceId, noKnockback: true });
+            this.addShockwave(enemy.x, enemy.y, 92, palette.accent, 0);
+            for (let i = 0; i < 5; i++) {
+              const a = rand(0, TAU);
+              this.spawnProjectile({ owner, casterId: sourceId, x: enemy.x, y: enemy.y, vx: Math.cos(a) * 320, vy: Math.sin(a) * 320, radius: 3, damage: baseDamage * 0.1, life: 0.24, color: palette.accent, pierce: 0, kind: "ice", visualImpact: true });
+            }
+            if (enemy.boss) enemy.domainFreeze = Math.max(0, enemy.domainFreeze - 0.25);
+            else enemy.domainFreeze = 0;
             enemy.iceBasicStacks = 0;
-            enemy.domainFreeze = Math.max(enemy.domainFreeze || 0, enemy.boss ? 0.3 : 1.0);
+          } else {
+            enemy.iceBasicStacks = Math.min(3, Number(enemy.iceBasicStacks || 0) + 1);
+            if (enemy.iceBasicStacks >= 3) {
+              enemy.iceBasicStacks = 0;
+              enemy.domainFreeze = Math.max(enemy.domainFreeze || 0, enemy.boss ? 0.3 : 1.0);
+            }
           }
           for (let i = 0; i < 4; i++) {
             const a = angle + Math.PI * 0.25 + i * Math.PI * 0.5;
@@ -17329,6 +17351,7 @@
       enemy.fireStacks = 0;
       enemy.fireStackTime = 0;
       enemy.burn = Math.max(enemy.burn || 0, 1.2);
+      enemy.chill = Math.max(enemy.chill || 0, 1.5);
       const blast = 44 + stacks * 13;
       this.addShockwave(enemy.x, enemy.y, blast + 28, color, 0);
       this.addSkillShape("fire", "design-fire-e", enemy.x, enemy.y, rand(0, TAU), 74 + stacks * 12, 0.32, {

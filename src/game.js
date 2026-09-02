@@ -10,7 +10,7 @@
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
   const SIGNAL_REALTIME_RELAY_LIMIT = 2;
   const SIGNAL_REALTIME_TYPES = new Set(["state", "snapshot", "attack", "skill", "collect", "openChest", "dropItem", "damage", "chooseDoor"]);
-  const APP_VERSION = "20260718-pixel-vfx-317";
+  const APP_VERSION = "20260718-pixel-vfx-318";
   const CHANGELOG_ENTRIES = [
     {
       version: APP_VERSION,
@@ -22297,31 +22297,39 @@
           this.addParticle(enemy.windupX + rand(-spread, spread), enemy.windupY + rand(-spread, spread), this.run.biome.accent, rand(8, 18), rand(0.25, 0.55), "spark");
         }
         if (type === "bombZone") {
-          const targetX = Number(enemy.windupX) || player.x;
-          const targetY = Number(enemy.windupY) || player.y;
+          const targetX = Number(player && Number.isFinite(player.x) ? player.x : (Number.isFinite(enemy.windupX) ? enemy.windupX : enemy.x));
+          const targetY = Number(player && Number.isFinite(player.y) ? player.y : (Number.isFinite(enemy.windupY) ? enemy.windupY : enemy.y));
           const dx = targetX - enemy.x;
           const dy = targetY - enemy.y;
           const dist = Math.max(1, Math.hypot(dx, dy));
           const dirX = dx / dist;
           const dirY = dy / dist;
           const bombSpeed = enemy.elite ? 540 : 420;
-          const travelTime = Math.max(0.55, dist / bombSpeed);
+          const travelTime = Math.min(1.15, Math.max(0.5, dist / bombSpeed));
+          const startX = enemy.x + dirX * enemy.radius;
+          const startY = enemy.y + dirY * enemy.radius - 6;
+          const gravity = 620;
+          const vx = (targetX - startX) / travelTime;
+          const vy = (targetY - startY - 0.5 * gravity * travelTime * travelTime) / travelTime;
           this.spawnProjectile({
             owner: "enemy",
-            x: enemy.x + dirX * enemy.radius,
-            y: enemy.y + dirY * enemy.radius - 6,
-            vx: dirX * bombSpeed,
-            vy: dirY * bombSpeed - 160,
+            x: startX,
+            y: startY,
+            vx,
+            vy,
             radius: enemy.elite ? 8 : 7,
             damage: 0,
-            life: travelTime + 0.25,
+            life: travelTime + 0.3,
             color: "#ff8d3d",
             kind: "enemyBomb",
             enemyFuse: travelTime,
+            bombGravity: gravity,
             bombTargetX: targetX,
             bombTargetY: targetY,
             bombDamage: enemy.damage * (enemy.elite ? 0.86 : 0.72),
             bombRadius: enemy.elite ? 96 : 76,
+            bombKind: "bombZone",
+            bombColor: "#ff8d3d",
             bossDebuff: Boolean(enemy.boss)
           });
           this.audio.combatHit?.({ crit: false, heavy: false, kind: "bombZone", enemyId: enemy.id, x: enemy.x, y: enemy.y });
@@ -22363,8 +22371,8 @@
           this.addShockwave(x, y, 52, "#a169ff", 0, { owner: "enemy" });
         }
       }
-      const lobTargetX = Number(enemy.windupX) || player.x;
-      const lobTargetY = Number(enemy.windupY) || player.y;
+      const lobTargetX = Number.isFinite(player?.x) ? player.x : (Number.isFinite(enemy.windupX) ? enemy.windupX : enemy.x);
+      const lobTargetY = Number.isFinite(player?.y) ? player.y : (Number.isFinite(enemy.windupY) ? enemy.windupY : enemy.y);
       const lobDx = lobTargetX - enemy.x;
       const lobDy = lobTargetY - enemy.y;
       const lobDist = Math.max(1, Math.hypot(lobDx, lobDy));
@@ -22372,21 +22380,27 @@
       const lobDirY = lobDy / lobDist;
       const throwLob = (cfg) => {
         const speed = enemy.elite ? cfg.speedElite : cfg.speed;
-        const travelTime = Math.max(0.45, lobDist / speed);
+        const travelTime = Math.min(1.15, Math.max(0.5, lobDist / speed));
         const dirX = cfg.dirx !== undefined ? cfg.dirx : lobDirX;
         const dirY = cfg.diry !== undefined ? cfg.diry : lobDirY;
+        const startX = enemy.x + dirX * enemy.radius;
+        const startY = enemy.y + dirY * enemy.radius - 6;
+        const gravity = cfg.gravity !== undefined ? cfg.gravity : 620;
+        const vx = (lobTargetX - startX) / travelTime;
+        const vy = (lobTargetY - startY - 0.5 * gravity * travelTime * travelTime) / travelTime;
         this.spawnProjectile({
           owner: "enemy",
-          x: enemy.x + dirX * enemy.radius,
-          y: enemy.y + dirY * enemy.radius - 6,
-          vx: dirX * speed,
-          vy: dirY * speed - 190,
+          x: startX,
+          y: startY,
+          vx,
+          vy,
           radius: enemy.elite ? cfg.radiusElite : cfg.radius,
           damage: 0,
           life: travelTime + 0.3,
           color: cfg.color,
           kind: "enemyBomb",
           enemyFuse: cfg.fuse > 0 ? cfg.fuse : travelTime,
+          bombGravity: gravity,
           bombTargetX: lobTargetX,
           bombTargetY: lobTargetY,
           bombDamage: enemy.damage * cfg.dmgMult,
@@ -23992,9 +24006,13 @@
           this.addParticle(projectile.x, projectile.y, projectile.color, projectile.radius * 0.9, 0.25, trailKind);
         }
         if (projectile.kind === "enemyBomb" && !this.isMultiplayerClient()) {
-          projectile.vy += 620 * dt;
+          const bombGravity = Number(projectile.bombGravity) || 620;
+          projectile.vy += bombGravity * dt;
           projectile.enemyFuse = Math.max(0, Number(projectile.enemyFuse || 0) - dt);
-          const nearTarget = Number.isFinite(projectile.bombTargetY) && Math.abs(projectile.y - projectile.bombTargetY) < 22 && projectile.vy > -60;
+          const nearTarget =
+            Number.isFinite(projectile.bombTargetX) && Number.isFinite(projectile.bombTargetY) &&
+            Math.hypot(projectile.x - projectile.bombTargetX, projectile.y - projectile.bombTargetY) < 26 &&
+            (Math.abs(projectile.vy) < 420 || projectile.enemyFuse <= 0.12);
           if (projectile.enemyFuse <= 0 || nearTarget) {
             this.detonateEnemyBomb(projectile);
             this.releasePooledObject("projectile", projectile);

@@ -4594,6 +4594,40 @@ body.pwa-landing-active .screen {
   font-size: 13px;
 }
 
+.item-stats {
+  list-style: none;
+  margin: 8px 0 6px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.item-stat {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 12px;
+  line-height: 1.25;
+}
+
+.item-stat span {
+  color: var(--muted);
+}
+
+.item-stat b {
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.item-stat-good b {
+  color: #8fe3a1;
+}
+
+.item-stat-bad b {
+  color: #ff8d8d;
+}
+
 .account-setting {
   align-items: center;
   min-height: 96px;

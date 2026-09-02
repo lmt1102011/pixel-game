@@ -10,7 +10,7 @@
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
   const SIGNAL_REALTIME_RELAY_LIMIT = 2;
   const SIGNAL_REALTIME_TYPES = new Set(["state", "snapshot", "attack", "skill", "collect", "openChest", "dropItem", "damage", "chooseDoor"]);
-  const APP_VERSION = "20260718-pixel-vfx-322";
+  const APP_VERSION = "20260718-pixel-vfx-323";
   const CHANGELOG_ENTRIES = [
     {
       version: APP_VERSION,
@@ -855,6 +855,62 @@
     { id: "idolGaze", name: "Áp Lực Tượng", text: "Sát thương gây ra bị giảm nhẹ.", color: "#f4d26f", icon: "MẮT", duration: 9, chance: 0.35, damageMult: 0.88 },
     { id: "voidHunger", name: "Đói Hư Không", text: "Hồi máu yếu hơn và khiên dễ vỡ hơn.", color: "#a169ff", icon: "HƯ", duration: 10, chance: 0.3, healMult: 0.62, shieldMult: 0.82 }
   ];
+
+  const BOSS_TELL_HEAVY = new Set([
+    "ring", "slam", "cross", "soulBox", "pillars", "petalTrap", "diceRows", "checkers",
+    "frostPrison", "neonScanner", "templeJudgment", "laneWalls", "bulletCurtain", "soulCage",
+    "grid", "meteors", "roots", "aegisSlam", "starfall", "tideSweep"
+  ]);
+
+  const BOSS_TELL_LIGHT = new Set([
+    "line", "splitFan", "needleMaze", "stairShots", "cornerBloom", "mirrorShots"
+  ]);
+
+  const STAT_INFO = {
+    damage: { label: "Sát thương", flat: true },
+    crit: { label: "Chí mạng", pct: true },
+    maxHp: { label: "Máu tối đa", flat: true },
+    maxEnergy: { label: "Năng lượng tối đa", flat: true },
+    speed: { label: "Tốc độ chạy", pct: true, mult: true },
+    basicAttackCd: { label: "Nhịp đánh", pct: true, mult: true },
+    lifeSteal: { label: "Hút máu", pct: true },
+    damageTakenMult: { label: "ST nhận vào", pct: true, mult: true },
+    energyRegenMult: { label: "Hồi năng lượng", pct: true, mult: true },
+    rewardLuck: { label: "May mắn thưởng", pct: true },
+    coinBonus: { label: "Tiền rơi", pct: true },
+    magnetBonus: { label: "Tầm hút rương", flat: true },
+    shield: { label: "Khiên khởi đầu", flat: true }
+  };
+
+  const ITEM_STATS = {
+    swiftBoots: [["speed", 1.18], ["maxEnergy", -12]],
+    focusGloves: [["damage", 3.2], ["basicAttackCd", 1.08]],
+    amberTonic: [["maxHp", 34], ["speed", 0.96]],
+    sparkNeedle: [["crit", 0.07]],
+    droneCore: [["energyRegenMult", 0.9]],
+    fractureBell: [],
+    bloodVial: [["lifeSteal", 0.045], ["maxHp", -10]],
+    gravityDice: [],
+    luckyCharm: [["damage", -1], ["magnetBonus", 160], ["rewardLuck", 0.15]],
+    guardPlate: [["shield", 46], ["damageTakenMult", 0.9], ["speed", 0.95]],
+    thornSoles: [["speed", 1.06], ["maxEnergy", -8]],
+    echoCharm: [["basicAttackCd", 1.06]],
+    glassFang: [["damage", 5.2], ["damageTakenMult", 1.1]],
+    marrowMagnet: [["magnetBonus", 240], ["maxHp", -8]],
+    pulseBattery: [["maxEnergy", 22], ["energyRegenMult", 1.16], ["maxHp", -8]],
+    merchantEdge: [["damage", 5], ["crit", 0.05]],
+    riftLedger: [["rewardLuck", 0.18], ["coinBonus", 0.28]],
+    azurePermit: [["maxEnergy", 24], ["energyRegenMult", 1.18], ["damage", 2]],
+    wardEngine: [["shield", 72], ["energyRegenMult", 1.12], ["speed", 0.94]],
+    curseCompass: [["damage", 4], ["rewardLuck", 0.24], ["damageTakenMult", 1.08]],
+    divineSigil: [],
+    cursedGauntlet: [["maxEnergy", -8]],
+    crushHammer: [["damage", 3.6], ["basicAttackCd", 1.22]],
+    demonEye: [["crit", 0.14]],
+    vampHeart: [["lifeSteal", 0.03], ["maxHp", -16]],
+    frostArrow: [],
+    boneShield: [["speed", 0.94]]
+  };
 
   const ITEMS = [
     {
@@ -8925,7 +8981,7 @@
 
     trimTelegraphEffects(limit) {
       if (!this.run?.effects?.length) return;
-      let count = this.run.effects.reduce((total, effect) => total + (effect.type === "danger" || effect.type === "lineTell" ? 1 : 0), 0);
+      let count = this.run.effects.reduce((total, effect) => total + (effect.type === "danger" || effect.type === "lineTell" || effect.type === "bossTell" ? 1 : 0), 0);
       while (count > limit) {
         let removeIndex = -1;
         let longestTime = -1;
@@ -13221,6 +13277,7 @@
           ${this.itemIllustration(item)}
           <h3>${item.name}</h3>
           <p>${entry.equipped ? "Đang trang bị" : "Trong túi"} - ${RARITY[item.rarity].label}</p>
+          ${this.itemStatLines(item).length ? `<ul class="item-stats">${this.itemStatLines(item).join("")}</ul>` : ""}
           <p class="small">${item.text}</p>
           <div class="item-actions">${actions}</div>
         </div>
@@ -14105,7 +14162,8 @@
         "launch", "flash", "stun", "domainFreeze", "domainBound", "burn", "chill", "mark", "bleed", "bleedTick", "bleedDamage",
         "poison", "poisonTick", "poisonDamage", "blind", "fear", "suspend", "suspendDamage", "crystalShards", "weighted",
         "fireStacks", "fireStackTime", "shockStacks", "shockTime", "voidDecay", "voidDecayTick", "voidDecayDamage", "timeStoredDamage", "timeStoredTime", "iceHailStay",
-        "phase", "phaseLock", "fatigueTime", "fatigueMax", "fatigueCounter", "bossDebuff", "aiTimer", "trainingDummy", "anchorX", "anchorY"
+        "phase", "phaseLock", "fatigueTime", "fatigueMax", "fatigueCounter", "bossDebuff", "aiTimer", "trainingDummy", "anchorX", "anchorY",
+        "bossWindup", "bossWindupAngle", "primedPattern"
       ]);
     }
 
@@ -15354,7 +15412,10 @@
         fatigueMax: 0,
         fatigueCounter: 0,
         bossDebuff: bossDebuff.id,
-        aiTimer: 0
+        aiTimer: 0,
+        bossWindup: 0,
+        bossWindupAngle: 0,
+        primedPattern: ""
       });
       this.camera.shake = 18;
       this.addShockwave(WORLD_W / 2, ROOM_PAD + 210, raid ? 280 : 220, raidPower?.color || this.run.biome.accent);
@@ -21063,6 +21124,32 @@
       `);
     }
 
+    itemStatLines(item) {
+      const list = ITEM_STATS[item?.id] || [];
+      if (!list.length) return [];
+      return list.map(([key, value]) => {
+        const meta = STAT_INFO[key];
+        if (!meta) return "";
+        let numeral = "+";
+        let preview = "";
+        if (meta.mult) {
+          const diff = (value - 1) * 100;
+          numeral = diff >= 0 ? "+" : "−";
+          preview = `${numeral}${Math.round(Math.abs(diff))}%`;
+        } else if (meta.pct) {
+          const scaled = value * 100;
+          numeral = scaled >= 0 ? "+" : "−";
+          preview = `${numeral}${Math.round(Math.abs(scaled))}%`;
+        } else {
+          numeral = value >= 0 ? "+" : "−";
+          preview = `${numeral}${Math.round(Math.abs(value))}`;
+        }
+        const good = numeral === "+";
+        const cls = good ? "item-stat-good" : "item-stat-bad";
+        return `<li class="item-stat ${cls}"><span>${meta.label}</span><b>${preview}</b></li>`;
+      }).filter(Boolean);
+    }
+
     rewardCard(reward, index) {
       if (reward.type === "item") {
         const item = reward.item;
@@ -21071,6 +21158,7 @@
             ${this.itemIllustration(item)}
             <h3>${item.name}</h3>
             <p>${slotLabel(item.slot)} - ${RARITY[item.rarity].label}</p>
+            ${this.itemStatLines(item).length ? `<ul class="item-stats">${this.itemStatLines(item).join("")}</ul>` : ""}
             <p class="small">${item.text}</p>
           </button>
         `;
@@ -21134,6 +21222,7 @@
           <div>
             <h3>${titleText}</h3>
             <p>${detail}</p>
+            ${reward.type === "item" && this.itemStatLines(reward.item).length ? `<ul class="item-stats">${this.itemStatLines(reward.item).join("")}</ul>` : ""}
             <p class="small">${reward.type === "item" ? reward.item.text : "Phụ trợ đặc biệt của thương nhân."}</p>
           </div>
           <div class="shop-price">
@@ -22700,12 +22789,12 @@
       const phase = enemy.phase || 1;
       const patterns = [
         "ring", "slam", "line", "splitFan", "needleMaze", "pincer", "stairShots",
-        "safeRing", "clockHands", "orbitKnives", "soulPulse"
+        "safeRing", "clockHands", "orbitKnives", "soulPulse", "tideSweep"
       ];
       if (phase >= 2) {
         patterns.push(
           "spiral", "rain", "mirrorShots", "snakeLane", "prismSplit", "cornerBloom",
-          "cometTwin", "crossRain", "diceRows"
+          "cometTwin", "crossRain", "diceRows", "aegisSlam", "starfall"
         );
       }
       if (phase >= 3) {
@@ -23224,6 +23313,18 @@
       if (pattern === "waveCurtain") {
         this.bossWaveCurtain(enemy);
         return 1.95;
+      }
+      if (pattern === "aegisSlam") {
+        this.bossAegisSlam(enemy, target);
+        return 2.2;
+      }
+      if (pattern === "starfall") {
+        this.bossStarfall(enemy, target);
+        return 2.12;
+      }
+      if (pattern === "tideSweep") {
+        this.bossTideSweep(enemy, target);
+        return 2.0;
       }
       this.bossLine(enemy, angle);
       return 1.55;
@@ -23842,6 +23943,9 @@
       const a = Math.atan2(dy, dx);
       enemy.facingDir = p.x >= enemy.x ? 1 : -1;
       if (this.updateBossFatigue(enemy, dt)) return;
+      if (enemy.bossWindup > 0) {
+        return this.updateBossTell(enemy, dt, p);
+      }
       const slow = enemy.chill > 0 ? 0.65 : 1;
       const desired = enemy.radius + p.radius + 150;
       if (d > desired + 20) {
@@ -23853,15 +23957,45 @@
       }
       enemy.attackCd -= dt;
       if (enemy.attackCd <= 0 && enemy.phaseLock <= 0) {
-        const cooldown = this.castBossPattern(enemy, this.pickBossPattern(enemy), a, p);
-        enemy.attackAnim = 0.42;
+        const pattern = this.pickBossPattern(enemy);
+        enemy.primedPattern = pattern;
+        enemy.bossWindupAngle = a;
+        enemy.bossWindup = this.bossTellDuration(pattern);
+        enemy.windupTotal = enemy.bossWindup;
+        enemy.windupTime = enemy.bossWindup;
+        enemy.attackAnim = enemy.bossWindup;
         enemy.attackDir = a;
-        this.audio.boss("attack", enemy);
-        enemy.fatigueCounter = (enemy.fatigueCounter || 0) + 1;
-        if (enemy.fatigueCounter >= this.bossFatigueThreshold(enemy)) this.startBossFatigue(enemy);
-        else enemy.attackCd = Math.max(0.85, (cooldown || 1.6) - enemy.phase * 0.08);
+        this.audio.enemy(enemy, "attack");
+        this.addEffect({ type: "bossTell", x: enemy.x, y: enemy.y, radius: enemy.radius + 34, time: enemy.bossWindup, maxTime: enemy.bossWindup, angle: a, color: this.run.biome.accent });
       }
       if (d < enemy.radius + p.radius + 8 && enemy.attackCd < 0.8) this.damageCombatTarget(p, enemy.damage * 0.75, enemy);
+    }
+
+    bossTellDuration(pattern) {
+      if (!pattern || pattern.startsWith("raid")) return 0.9;
+      if (BOSS_TELL_HEAVY.has(pattern)) return 1.35;
+      if (BOSS_TELL_LIGHT.has(pattern)) return 0.72;
+      return 0.95;
+    }
+
+    updateBossTell(enemy, dt, p) {
+      enemy.bossWindup -= dt;
+      enemy.windupTime = Math.max(0, enemy.bossWindup);
+      this.steerEnemy(enemy, 0, 0, dt, 7);
+      enemy.attackAnim = Math.max(enemy.attackAnim, 0.5);
+      enemy.attackDir = enemy.bossWindupAngle;
+      if (enemy.bossWindup > 0) return;
+      const pattern = enemy.primedPattern || "line";
+      enemy.bossWindup = 0;
+      enemy.primedPattern = "";
+      enemy.windupTime = 0;
+      enemy.attackAnim = 0.42;
+      enemy.attackDir = enemy.bossWindupAngle;
+      const cooldown = p ? this.castBossPattern(enemy, pattern, enemy.bossWindupAngle, p) : 1.6;
+      this.audio.boss("attack", enemy);
+      enemy.fatigueCounter = (enemy.fatigueCounter || 0) + 1;
+      if (enemy.fatigueCounter >= this.bossFatigueThreshold(enemy)) this.startBossFatigue(enemy);
+      else enemy.attackCd = Math.max(0.85, (cooldown || 1.6) - enemy.phase * 0.08);
     }
 
     checkBossPhase(enemy) {
@@ -23907,6 +24041,50 @@
       for (let i = -1; i <= 1; i++) {
         const a = angle + i * 0.22;
         this.spawnBossProjectile(enemy, a, 420, 1.15, 13, 2.7);
+      }
+    }
+
+    bossAegisSlam(enemy, target) {
+      const t = target || this.nearestCombatTarget(enemy.x, enemy.y);
+      if (!t) return;
+      const spikes = 8;
+      const open = Math.atan2(t.y - enemy.y, t.x - enemy.x);
+      const color = "#ffd26f";
+      for (let i = 0; i < spikes; i++) {
+        const a = (i / spikes) * TAU + this.menuTime * 0.1;
+        const isOpenGap = Math.abs(((a - open + Math.PI * 3) % TAU) - Math.PI) < 0.36;
+        if (isOpenGap) continue;
+        const cx = enemy.x + Math.cos(a) * (enemy.radius + 40);
+        const cy = enemy.y + Math.sin(a) * (enemy.radius + 40);
+        this.bossDanger(enemy, cx, cy, 30 + enemy.phase * 5, 1.05, 0.72, color);
+      }
+      this.bossDanger(enemy, t.x, t.y, 70 + enemy.phase * 12, 1.2, 1.15, "#ff6b6b");
+    }
+
+    bossStarfall(enemy, target) {
+      const t = target || this.nearestCombatTarget(enemy.x, enemy.y);
+      if (!t) return;
+      const count = 5 + enemy.phase * 2;
+      const spear = Math.atan2(t.y - enemy.y, t.x - enemy.x) + Math.PI / 2;
+      for (let i = 0; i < count; i++) {
+        const dist = 40 + i * 66;
+        const wobble = Math.sin(this.menuTime * 2 + i * 1.3) * 0.5;
+        const px = clamp(t.x + Math.cos(spear) * wobble + (i%2 ? -55 : 55), 90, WORLD_W - 90);
+        const py = clamp(t.y + Math.sin(spear) * (i % 2 ? -46 : 46) - dist * 0.25, 90, WORLD_H - 90);
+        this.bossDanger(enemy, px, py, 46 + enemy.phase * 6, 1.06 + i * 0.06, 0.8, "#b7e6ff");
+      }
+    }
+
+    bossTideSweep(enemy, target) {
+      const t = target || this.nearestCombatTarget(enemy.x, enemy.y);
+      const color = "#7fe6c8";
+      const rows = enemy.phase >= 3 ? 3 : 2;
+      const gap = t ? clamp((t.x - 180) / (WORLD_W - 360), 0.28, 0.72) : 0.5;
+      for (let r = 0; r < rows; r++) {
+        const y = ROOM_PAD + 130 + r * ((WORLD_H - ROOM_PAD * 2 - 260) / Math.max(1, rows - 1));
+        const gapX = gap + (r % 2 ? 0.14 : -0.1);
+        if (gapX > 0.12) this.bossLineDanger(enemy, 0, y, 0, WORLD_W * gapX - 20, 46, 0.95, 0.8, color);
+        if (gapX < 0.88) this.bossLineDanger(enemy, WORLD_W * Math.min(1, Math.max(0.2, gapX + 0.1)), y, 0, WORLD_W - WORLD_W * gapX - 40, 46, 0.95, 0.8, color);
       }
     }
 
@@ -31237,7 +31415,7 @@
         const combatFlash = effect.type === "attackBurst" || effect.type === "hitSpark" || actorOverlayVfx;
         if (foreground !== combatFlash) continue;
         if (Number.isFinite(effect.x) && Number.isFinite(effect.y) && !this.inView(effect.x, effect.y, (effect.radius || effect.reach || 180) + 80)) continue;
-        const telegraph = effect.type === "danger" || effect.type === "lineTell";
+        const telegraph = effect.type === "danger" || effect.type === "lineTell" || effect.type === "bossTell";
         const urgentTelegraph = telegraph && (!ultra || Number(effect.time || 0) < 0.55 || drawn < Math.max(2, budget * 0.45));
         const important = urgentTelegraph
           || effect.type === "ultimate"
@@ -31472,6 +31650,36 @@
             ctx.lineTo(32, -i * 10 + Math.sin(progress * Math.PI) * 6);
             ctx.stroke();
           }
+        }
+        if (effect.type === "bossTell") {
+          const progress = 1 - effect.time / Math.max(0.1, effect.maxTime || effect.time || 1);
+          const base = Math.max(8, effect.radius + Math.sin(this.menuTime * 10) * 6);
+          ctx.translate(effect.x, effect.y);
+          const turn = this.menuTime * 6 + progress * Math.PI;
+          ctx.globalAlpha = 0.5 + progress * 0.4;
+          ctx.strokeStyle = effect.color || "#ff4500";
+          ctx.lineWidth = 3 + progress * 3;
+          for (let i = 0; i < 4; i++) {
+            ctx.beginPath();
+            ctx.arc(0, 0, base + i * 7, turn, turn + 1.1);
+            ctx.stroke();
+          }
+          ctx.rotate(effect.angle || 0);
+          const arrowLen = 40 + progress * 26;
+          ctx.globalAlpha = 0.3 + progress * 0.5;
+          ctx.fillStyle = "#ffdd00";
+          ctx.beginPath();
+          ctx.moveTo(arrowLen, 0);
+          ctx.lineTo(base + 8, -14);
+          ctx.lineTo(base + 8, 14);
+          ctx.closePath();
+          ctx.fill();
+          ctx.beginPath();
+          ctx.moveTo(base + 16, 0);
+          ctx.lineTo(base + 16 + 10, -8);
+          ctx.lineTo(base + 16 + 10, 8);
+          ctx.closePath();
+          ctx.fill();
         }
         if (effect.type === "lineTell") {
           const progress = 1 - effect.time / effect.maxTime;

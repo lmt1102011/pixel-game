@@ -10,7 +10,7 @@
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
   const SIGNAL_REALTIME_RELAY_LIMIT = 2;
   const SIGNAL_REALTIME_TYPES = new Set(["state", "snapshot", "attack", "skill", "collect", "openChest", "dropItem", "damage", "chooseDoor"]);
-  const APP_VERSION = "20260718-pixel-vfx-325";
+  const APP_VERSION = "20260718-pixel-vfx-326";
   const CHANGELOG_ENTRIES = [
     {
       version: APP_VERSION,
@@ -6915,6 +6915,14 @@
       const runtimeScale = Math.max(0.2, scale / exportScale);
       const facing = Number.isFinite(actor.facing) ? actor.facing : 0;
       const flip = Math.cos(facing) < 0;
+      const awakenedActive = Boolean(actor.powerAwakened ?? (actor === this.run?.player && power?.id && this.powerAwakeningActive(power.id)));
+      if (awakenedActive) {
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.scale(scale, scale);
+        this.drawAwakenedPowerAura(ctx, power, this.menuTime, "back");
+        ctx.restore();
+      }
       ctx.save();
       ctx.translate(x, y);
       if (flip) ctx.scale(-1, 1);
@@ -6925,14 +6933,6 @@
       this.drawExportedDrawable(ctx, image, -120, -180, 256, 256);
       ctx.imageSmoothingEnabled = smoothing;
       ctx.restore();
-      const awakenedActive = Boolean(actor.powerAwakened ?? (actor === this.run?.player && power?.id && this.powerAwakeningActive(power.id)));
-      if (awakenedActive) {
-        ctx.save();
-        ctx.translate(x, y);
-        ctx.scale(scale, scale);
-        this.drawAwakenedPowerAura(ctx, power, this.menuTime, "front");
-        ctx.restore();
-      }
       return true;
     }
 
@@ -28317,6 +28317,7 @@
     }
 
     drawAwakenedPowerAura(ctx, power, t, layer = "back") {
+      if (layer !== "back") return;
       const kind = power?.id || "fire";
       const pal = this.powerDesignPalette ? this.powerDesignPalette(kind, true) : { color: "#ffffff", accent: "#00bfff", dark: "#000000" };
       const color = pal.color, accent = pal.accent, dark = pal.dark;
@@ -28327,83 +28328,30 @@
       ctx.shadowBlur = 0;
       ctx.lineCap = "round";
       ctx.lineJoin = "round";
-
-      if (layer === "back") {
-        this.drawAwakenedGroundAura(ctx, kind, color, accent, dark, t, 0);
-        ctx.restore();
-        return;
-      }
-      if (layer !== "front") {
-        ctx.restore();
-        return;
-      }
-
-      this.drawAwakenedGroundAura(ctx, kind, color, accent, dark, t, lowDetail, lowDetail ? 17 : 20);
-      const feetY = lowDetail ? 17 : 20;
-      const count = lowDetail ? 2 : (kind === "lightning" ? 3 : 3);
-      const drift = kind === "lightning" ? 4.8 : kind === "fire" ? 3.4 : kind === "time" ? 2.4 : 2.8;
-      for (let i = 0; i < count; i++) {
-        const seed = i * 1.731 + kind.length * 0.41;
-        const phase = (t * drift + seed) % 1;
-        const pop = Math.sin(phase * Math.PI);
-        if (pop <= 0.24) continue;
-        const angle = seed * 2.9 + Math.cos(t * 0.7 + seed) * 0.22;
-        const sideBias = i % 2 ? 1 : -1;
-        const rx = 8.5 + pop * 1.6;
-        const ry = 9 + pop * (kind === "lightning" ? 2 : 1.2);
-        const px = Math.cos(angle) * rx + Math.sin(t * 5.1 + seed) * 1.4;
-        const py = feetY - 2 + Math.sin(angle) * ry + Math.cos(t * 4.2 + seed) * 1.0;
-        const size = (lowDetail ? 4 : 4.6) + pop * 1.3;
-        ctx.save();
-        ctx.translate(px + sideBias * 1.5, py);
-        ctx.rotate(angle + (kind === "time" ? t * 1.2 : phase * 1.8));
-        ctx.globalAlpha = (lowDetail ? 0.4 : 0.5) * pop;
-        this.drawAwakenedAuraVfx(ctx, kind, size, color, accent, phase);
-        ctx.restore();
-      }
-
-      if (kind === "lightning" && !lowDetail) {
-        const seed = 0.77;
-        const phase = (t * 6.4 + seed) % 1;
-        const alpha = Math.sin(phase * Math.PI);
-        if (alpha > 0.24) {
-          const y = 7 + Math.sin(t * 7 + seed) * 2;
-          ctx.save();
-          ctx.globalAlpha = 0.5 * alpha;
-          ctx.strokeStyle = accent;
-          ctx.lineWidth = 2;
-          ctx.beginPath();
-          ctx.moveTo(0, y - 6);
-          ctx.lineTo(-3, y);
-          ctx.lineTo(2, y + 4);
-          ctx.lineTo(-1, y + 9);
-          ctx.stroke();
-          ctx.restore();
-        }
-      }
+      this.drawAwakenedGroundAura(ctx, kind, color, accent, dark, t, lowDetail);
       ctx.restore();
     }
 
-    drawAwakenedGroundAura(ctx, kind, color, accent, dark, t, lowDetail, feetY = 20) {
-      const r = lowDetail ? 9 : 11;
-      const wr = r + (kind === "fire" || kind === "shadow" ? 2 : 0);
+    drawAwakenedGroundAura(ctx, kind, color, accent, dark, t, lowDetail, feetY = 21) {
+      const wr = (lowDetail ? 16 : 20) + (kind === "fire" || kind === "shadow" ? 2 : 0);
+      const r = Math.round(wr * 0.82);
       ctx.save();
-      ctx.globalAlpha = lowDetail ? 0.55 : 0.7;
+      ctx.globalAlpha = lowDetail ? 0.55 : 0.72;
       ctx.fillStyle = dark;
       ctx.beginPath();
-      ctx.ellipse(0, feetY, wr + 1, wr * 0.52, 0, 0, TAU);
+      ctx.ellipse(0, feetY, wr + 2, wr * 0.56, 0, 0, TAU);
       ctx.fill();
       ctx.globalAlpha = lowDetail ? 0.5 : 0.66;
       ctx.strokeStyle = color;
       ctx.lineWidth = lowDetail ? 1.6 : 2;
       ctx.beginPath();
-      ctx.ellipse(0, feetY, wr + 0.5, wr * 0.5, 0, 0, TAU);
+      ctx.ellipse(0, feetY, wr + 0.5, wr * 0.52, 0, 0, TAU);
       ctx.stroke();
       ctx.globalAlpha = lowDetail ? 0.34 : 0.42;
       ctx.strokeStyle = accent;
       ctx.lineWidth = lowDetail ? 1 : 1.3;
       ctx.beginPath();
-      ctx.ellipse(0, feetY, wr * 0.66, wr * 0.34, 0, 0, TAU);
+      ctx.ellipse(0, feetY, wr * 0.72, wr * 0.38, 0, 0, TAU);
       ctx.stroke();
 
       if (kind === "gravity" || kind === "void") {
@@ -28806,7 +28754,7 @@
       if (actor.invuln > 0 && Math.floor(t * 16) % 2 === 0) ctx.globalAlpha = 0.55;
       block(-18, 18, 36, 5, "rgba(0,0,0,0.26)");
       if (awakened && death <= 0) {
-        this.drawAwakenedPowerAura(ctx, power, t, "front");
+        this.drawAwakenedPowerAura(ctx, power, t, "back");
       }
       const legOffset = moving ? (walk % 2 ? 2 : -2) : 0;
       block(-9 + legOffset, 7, 7, 13, dark);
@@ -29654,7 +29602,6 @@
         ctx.fill();
         ctx.restore();
       }
-      if (awakenedPowerActive && deathProgress <= 0) this.drawAwakenedPowerAura(ctx, power, t, "front");
       ctx.restore();
     }
 

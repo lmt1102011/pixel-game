@@ -10,7 +10,7 @@
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
   const SIGNAL_REALTIME_RELAY_LIMIT = 2;
   const SIGNAL_REALTIME_TYPES = new Set(["state", "snapshot", "attack", "skill", "collect", "openChest", "dropItem", "damage", "chooseDoor"]);
-  const APP_VERSION = "20260718-pixel-vfx-315";
+  const APP_VERSION = "20260718-pixel-vfx-316";
   const CHANGELOG_ENTRIES = [
     {
       version: APP_VERSION,
@@ -1030,6 +1030,60 @@
       icon: "ẤN",
       merchantOnly: true,
       text: "Hàng hiếm: dùng tuyệt kỹ sẽ kích hoạt nội tại bùng nổ trong mười giây."
+    },
+    {
+      id: "cursedGauntlet",
+      name: "Găng Tay Nguyền Rủa",
+      slot: "Assist",
+      rarity: "epic",
+      icon: "GĂNG",
+      shape: "gauntlet",
+      text: "Chiêu power tốn thêm năng lượng, đôi khi hút ít máu, nhưng 10% gây 2.5x sát thương."
+    },
+    {
+      id: "crushHammer",
+      name: "Búa Nghiền Nát",
+      slot: "Weapon",
+      rarity: "rare",
+      icon: "BÚA",
+      shape: "hammer",
+      text: "Đòn thường đau gấp rưỡi nhưng nhịp đánh chậm hơn rõ rệt."
+    },
+    {
+      id: "demonEye",
+      name: "Mắt Quỷ",
+      slot: "Relic 1",
+      rarity: "epic",
+      icon: "MẮT",
+      shape: "eye",
+      text: "Chí mạng tăng mạnh, nhưng mỗi lần chí mạng tự trầy một chút máu."
+    },
+    {
+      id: "vampHeart",
+      name: "Trái Tim Hút Máu",
+      slot: "Relic 2",
+      rarity: "rare",
+      icon: "TIM",
+      shape: "heart",
+      text: "Hút một phần máu khi đánh trúng, đổi lại máu tối đa giảm."
+    },
+    {
+      id: "frostArrow",
+      name: "Mũi Tên Băng",
+      slot: "Weapon",
+      rarity: "rare",
+      icon: "TÊN",
+      shape: "arrow",
+      text: "Đòn đánh xa làm quái nhiễm băng, chậm lại và dễ vỡ đòn."
+    },
+    {
+      id: "boneShield",
+      name: "Khiên Xương",
+      slot: "Armor",
+      rarity: "common",
+      icon: "KHIÊN",
+      shape: "shield",
+      text: "Nhận lá chắn mỗi khi vào ải mới, đổi lại hơi chậm chân."
     }
   ];
 
@@ -14261,7 +14315,13 @@
         magnetBonus: 0,
         damageTakenMult: 1,
         energyRegenMult: 1,
-        divineSigil: false
+        divineSigil: false,
+        cursedGauntlet: false,
+        crushHammer: false,
+        demonEye: false,
+        vampHeart: 0,
+        frostArrow: false,
+        boneShield: false
       };
     }
 
@@ -14438,6 +14498,50 @@
       });
     }
 
+    dropItemPickupAt(item, x, y, options = {}) {
+      if (!this.run || !item) return false;
+      const facing = Number.isFinite(Number(options.facing)) ? Number(options.facing) : rand(0, TAU);
+      const angle = facing + rand(-0.5, 0.5);
+      const burst = rand(300, 440);
+      this.run.pickups.push({
+        id: uid("drop"),
+        x,
+        y,
+        vx: Math.cos(angle) * burst,
+        vy: Math.sin(angle) * burst - 70,
+        type: "reward",
+        container: "looseItem",
+        ownerId: "",
+        ownerName: options.ownerName || this.save.account.username || "Người chơi",
+        dropperId: this.lobby.id,
+        reward: { type: "item", item },
+        countsForClaim: false,
+        radius: 17,
+        life: options.life || 60,
+        age: 0,
+        noMagnet: true,
+        dropGrace: 0.75,
+        settleTime: 0.55,
+        settleTotal: 0.55,
+        color: this.rewardColor({ type: "item", item })
+      });
+      return true;
+    }
+
+    maybeDropEnemyItem(enemy) {
+      if (!this.run) return;
+      if (this.isTrainingRun() && enemy?.trainingDummy) return;
+      if (enemy.boss) return;
+      const p = this.run.player;
+      const luck = p?.stats?.rewardLuck || 0;
+      const baseChance = enemy.elite ? 0.11 : 0.045;
+      if (!chance(baseChance + luck * 0.05)) return;
+      const dropPool = ITEMS.filter((item) => ["gauntlet", "hammer", "eye", "heart", "arrow", "shield"].includes(item.shape) && !item.merchantOnly);
+      if (!dropPool.length) return;
+      this.dropItemPickupAt(pick(dropPool), enemy.x, enemy.y, { ownerName: this.save.account.username || "Người chơi" });
+      this.toast("Vật phẩm rơi ra từ quái!");
+    }
+
     dropRunItem(uidValue) {
       const entry = this.removeRunItem(uidValue);
       if (!entry) return;
@@ -14541,6 +14645,31 @@
         player.stats.damageTakenMult *= 1.08;
       }
       if (item.id === "divineSigil") player.stats.divineSigil = true;
+      if (item.id === "cursedGauntlet") {
+        player.stats.cursedGauntlet = true;
+        player.maxEnergy = Math.max(40, player.maxEnergy - 8);
+        player.energy = Math.min(player.energy, player.maxEnergy);
+      }
+      if (item.id === "crushHammer") {
+        player.stats.crushHammer = true;
+        player.damage += 3.6;
+        player.basicAttackCd *= 1.22;
+      }
+      if (item.id === "demonEye") {
+        player.stats.demonEye = true;
+        player.crit += 0.14;
+      }
+      if (item.id === "vampHeart") {
+        player.stats.vampHeart += 0.06;
+        player.stats.lifeSteal += 0.03;
+        player.maxHp = Math.max(55, player.maxHp - 16);
+        player.hp = Math.min(player.hp, player.maxHp);
+      }
+      if (item.id === "frostArrow") player.stats.frostArrow = true;
+      if (item.id === "boneShield") {
+        player.stats.boneShield = true;
+        player.speed *= 0.94;
+      }
     }
 
     startRoom(room) {
@@ -14548,6 +14677,10 @@
       this.mode = "game";
       this.setScreen("");
       const type = room.type || room.id;
+      if (this.run.player?.stats?.boneShield && type !== "training") {
+        const shieldAmount = Math.round(38 + this.run.stage * 5);
+        this.run.player.shield = Math.max(this.run.player.shield || 0, shieldAmount);
+      }
       this.perf.warmupTime = Math.max(this.perf.warmupTime || 0, type === "boss" ? 1.45 : 1.05);
       this.perf.lagTime = Math.max(0, (this.perf.lagTime || 0) - 0.08);
       this.perf.panicHold = 0;
@@ -16899,6 +17032,14 @@
       if (!freeEnergy && key !== "f") p.energy -= cost;
       if (!freeEnergy && key === "f") p.energy = Math.max(0, p.energy - ultimateCost);
       if (!freeEnergy) p.energyRegenDelay = Math.max(p.energyRegenDelay || 0, key === "f" ? 2.15 : key === "r" ? 1.45 : key === "e" ? 1.25 : 1.05);
+      if (p.stats.cursedGauntlet && key !== "f" && !freeEnergy) {
+        const extra = Math.ceil(cost * 0.5);
+        p.energy = Math.max(0, p.energy - extra);
+        if (chance(0.22)) {
+          p.hp = Math.max(1, p.hp - Math.max(1, Math.round(p.maxHp * 0.03)));
+          this.addImpact(p.x, p.y, "#ff8d3d", 5, false);
+        }
+      }
       if (!noCooldown) p.cooldowns[key] = cooldown;
       p.animation = key === "f" ? "ultimate" : "skill";
       p.actionTotal = key === "f" ? DOMAIN_CUTIN_TIME + DOMAIN_GROW_TIME + 0.15 : key === "r" ? 0.48 : 0.38;
@@ -19664,6 +19805,11 @@
       if (enemy.boss && enemy.fatigueTime > 0) damage *= 1.16;
       if (this.run.curse?.id === "doubleDamage") damage *= 2;
       if (this.run.curse?.id === "glassMight") damage *= 1.22;
+      if (p.stats.cursedGauntlet && options.source === "skill" && chance(0.10)) damage *= 2.5;
+      if (p.stats.demonEye && crit) {
+        p.hp = Math.max(1, p.hp - Math.max(1, Math.round(p.maxHp * 0.02)));
+        this.addImpact(p.x, p.y, "#a169ff", 4, false);
+      }
       if (this.trainingDamageDisabled(enemy)) damage = 0;
       if (this.run.curse?.id === "explosive" && p.combo % 5 === 0) {
         this.addShockwave(enemy.x, enemy.y, 120, "#ff8d3d", 32);
@@ -19690,6 +19836,7 @@
         if (!["burn", "fireDetonate"].includes(options.source)) this.applyFireStacks(enemy, 1, 5.2, hitPower.color);
       }
       if (hitKind === "ice") enemy.chill = Math.max(enemy.chill, 2.4);
+      if (p.stats.frostArrow && hitKind !== "ice") enemy.chill = Math.max(enemy.chill, 1.6);
       if (hitKind === "lightning" && options.source !== "lightningCharge") this.applyLightningCharge(enemy, 1, 4.2, hitPower.color);
       if (hitKind === "shadow" || hitKind === "void") enemy.mark += 1;
       if (hitKind === "void" && options.source !== "voidDecay" && options.source !== "voidCollapse") this.applyVoidDecay(enemy, damage, 3.0, sourceId, hitPower.accent);
@@ -20096,6 +20243,7 @@
         this.onBossDefeated(enemy);
         return;
       }
+      this.maybeDropEnemyItem(enemy);
       if (this.run.enemies.length === 0 && !this.run.currentRoom?.cleared) {
         this.spawnRoomReward(enemy.x, enemy.y);
         this.run.roomClearTimer = 0.35;
@@ -21941,7 +22089,7 @@
       }
       if (type === "bombZone") {
         const radius = enemy.elite ? 84 : 68;
-        this.addEffect({ type: "danger", x: targetX, y: targetY, radius, time: time + 0.12, color: "#ff8d3d", damage: enemy.damage * 0.72 });
+        this.addEffect({ type: "danger", x: targetX, y: targetY, radius, time: time + 0.34, color: "#ff8d3d", damage: enemy.damage * 0.72, visualOnly: true });
       }
       if (type === "mineScatter") {
         for (let i = 0; i < 3; i++) {
@@ -22077,6 +22225,36 @@
         for (let i = 0; i < 8; i++) {
           const spread = type === "bombZone" ? 26 : 34;
           this.addParticle(enemy.windupX + rand(-spread, spread), enemy.windupY + rand(-spread, spread), this.run.biome.accent, rand(8, 18), rand(0.25, 0.55), "spark");
+        }
+        if (type === "bombZone") {
+          const targetX = Number(enemy.windupX) || player.x;
+          const targetY = Number(enemy.windupY) || player.y;
+          const dx = targetX - enemy.x;
+          const dy = targetY - enemy.y;
+          const dist = Math.max(1, Math.hypot(dx, dy));
+          const dirX = dx / dist;
+          const dirY = dy / dist;
+          const bombSpeed = enemy.elite ? 540 : 420;
+          const travelTime = Math.max(0.55, dist / bombSpeed);
+          this.spawnProjectile({
+            owner: "enemy",
+            x: enemy.x + dirX * enemy.radius,
+            y: enemy.y + dirY * enemy.radius - 6,
+            vx: dirX * bombSpeed,
+            vy: dirY * bombSpeed - 160,
+            radius: enemy.elite ? 8 : 7,
+            damage: 0,
+            life: travelTime + 0.25,
+            color: "#ff8d3d",
+            kind: "enemyBomb",
+            enemyFuse: travelTime,
+            bombTargetX: targetX,
+            bombTargetY: targetY,
+            bombDamage: enemy.damage * (enemy.elite ? 0.86 : 0.72),
+            bombRadius: enemy.elite ? 96 : 76,
+            bossDebuff: Boolean(enemy.boss)
+          });
+          this.audio.combatHit?.({ crit: false, heavy: false, kind: "bombZone", enemyId: enemy.id, x: enemy.x, y: enemy.y });
         }
       }
       if (type === "orbNova") {
@@ -23560,6 +23738,16 @@
           const trailKind = projectile.kind === "fireball" ? "flame" : projectile.kind === "ice" ? "snow" : projectile.kind === "shadow" ? "shade" : "dot";
           this.addParticle(projectile.x, projectile.y, projectile.color, projectile.radius * 0.9, 0.25, trailKind);
         }
+        if (projectile.kind === "enemyBomb" && !this.isMultiplayerClient()) {
+          projectile.vy += 620 * dt;
+          projectile.enemyFuse = Math.max(0, Number(projectile.enemyFuse || 0) - dt);
+          const nearTarget = Number.isFinite(projectile.bombTargetY) && Math.abs(projectile.y - projectile.bombTargetY) < 22 && projectile.vy > -60;
+          if (projectile.enemyFuse <= 0 || nearTarget) {
+            this.detonateEnemyBomb(projectile);
+            this.releasePooledObject("projectile", projectile);
+            continue;
+          }
+        }
         if (projectile.visualOnly || ((projectile.owner === "player" || projectile.owner === "ally") && this.isMultiplayerClient())) {
           this.stopVisualProjectileAtEnemy(projectile, fromX, fromY);
         } else if ((projectile.owner === "player" || projectile.owner === "ally") && !this.isMultiplayerClient()) {
@@ -23594,7 +23782,7 @@
             continue;
           }
           let reflected = false;
-          const hit = this.firstProjectileTargetHit(projectile, fromX, fromY);
+          const hit = projectile.kind === "enemyBomb" ? null : this.firstProjectileTargetHit(projectile, fromX, fromY);
           if (hit) {
             projectile.x = hit.x;
             projectile.y = hit.y;
@@ -24539,7 +24727,7 @@
         if (effect.type === "danger" && effect.time <= 0.05 && !effect.done) {
           effect.done = true;
           this.addShockwave(effect.x, effect.y, effect.radius + 30, effect.color, 0, { owner: "enemy" });
-          if (!this.isMultiplayerClient()) {
+          if (!this.isMultiplayerClient() && !effect.visualOnly) {
             for (const target of this.combatTargets()) {
               if (Math.hypot(target.x - effect.x, target.y - effect.y) < effect.radius + target.radius) {
                 if (!this.tryGuardianEffectReflect(target, effect)) this.damageCombatTarget(target, effect.damage, effect);
@@ -24634,6 +24822,32 @@
       const casterId = typeof options === "string" ? (this.currentDamageSourceId || "") : (options.casterId || this.currentDamageSourceId || "");
       this.run.shockwaves.push({ x, y, radius, color, life: 0.42, maxLife: 0.42, damage, owner, casterId, hit: new Set() });
       this.trimVisualList(this.run.shockwaves, this.isMobileDevice() ? 16 : 24);
+    }
+
+    detonateEnemyBomb(projectile) {
+      if (!this.run) return;
+      const x = Number.isFinite(projectile.x) ? projectile.x : 0;
+      const y = Number.isFinite(projectile.y) ? projectile.y : 0;
+      const radius = Number(projectile.bombRadius) || 76;
+      const damage = Number(projectile.bombDamage) || 10;
+      this.addEffect({
+        type: "danger",
+        x,
+        y,
+        radius,
+        time: 0.14,
+        color: "#ff8d3d",
+        damage
+      });
+      this.addShockwave(x, y, radius + 26, "#ff8d3d", 0, { owner: "enemy" });
+      for (let i = 0; i < 16; i++) {
+        const a = rand(0, TAU);
+        const d = rand(0, radius * 0.4);
+        this.addParticle(x + Math.cos(a) * d, y + Math.sin(a) * d, rand(0.5) ? "#ff8d3d" : "#ffd166", rand(6, 14), rand(0.2, 0.5), "spark", a, rand(120, 320));
+      }
+      if (!this.isMultiplayerClient() && this.run.player && Math.hypot(this.run.player.x - x, this.run.player.y - y) < radius) {
+        this.camera.shake = Math.max(this.camera.shake, 9);
+      }
     }
 
     updateShockwaves(dt) {
@@ -26363,6 +26577,140 @@
       }
     }
 
+    drawRunItemShape(ctx, item, color) {
+      if (!item) return false;
+      const s = ctx.fillRect.bind(ctx);
+      const mid = "#ffffff";
+      const dark = "#101521";
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = mid;
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      switch (item.shape) {
+        case "gauntlet": {
+          ctx.arc(0, 0, 15, 0, TAU);
+          ctx.fill();
+          ctx.stroke();
+          ctx.fillStyle = color;
+          s(-13, -8, 8, 18);
+          s(5, -8, 8, 18);
+          s(-8, -13, 16, 12);
+          ctx.fillStyle = dark;
+          s(-11, -6, 5, 8);
+          s(6, -6, 5, 8);
+          ctx.fillStyle = mid;
+          s(-3, 5, 6, 6);
+          break;
+        }
+        case "hammer": {
+          ctx.save();
+          ctx.rotate(-0.6);
+          ctx.fillStyle = "#8b5a2b";
+          s(-3, -20, 6, 30);
+          ctx.fillStyle = color;
+          s(-12, -22, 24, 11);
+          ctx.fillStyle = "#ffffff";
+          s(-9, -20, 18, 3);
+          ctx.fillStyle = mid;
+          s(-9, -13, 18, 3);
+          ctx.restore();
+          ctx.strokeStyle = mid;
+          ctx.globalAlpha = 0.9;
+          ctx.beginPath();
+          ctx.arc(0, 0, 16, 0, TAU);
+          ctx.stroke();
+          break;
+        }
+        case "eye": {
+          ctx.fillStyle = color;
+          ctx.beginPath();
+          ctx.ellipse(0, 0, 18, 12, 0, 0, TAU);
+          ctx.fill();
+          ctx.stroke();
+          ctx.fillStyle = "#ffffff";
+          ctx.beginPath();
+          ctx.ellipse(0, 0, 9, 7, 0, 0, TAU);
+          ctx.fill();
+          ctx.fillStyle = "#1a0f33";
+          ctx.beginPath();
+          ctx.arc(0, 0, 4.5, 0, TAU);
+          ctx.fill();
+          ctx.fillStyle = "#ffffff";
+          ctx.fillRect(-6, -5, 4, 3);
+          break;
+        }
+        case "heart": {
+          ctx.beginPath();
+          ctx.moveTo(0, 6);
+          ctx.bezierCurveTo(-2, 0, -8, -4, -10, -8);
+          ctx.bezierCurveTo(-12, -13, -4, -15, 0, -9);
+          ctx.bezierCurveTo(4, -15, 12, -13, 10, -8);
+          ctx.bezierCurveTo(8, -4, 2, 0, 0, 6);
+          ctx.closePath();
+          ctx.fill();
+          ctx.stroke();
+          ctx.fillStyle = "#ffffff";
+          ctx.globalAlpha = 0.6;
+          ctx.beginPath();
+          ctx.arc(-4, -9, 2.5, 0, TAU);
+          ctx.fill();
+          break;
+        }
+        case "arrow": {
+          ctx.save();
+          ctx.rotate(0.7);
+          ctx.fillStyle = color;
+          s(-16, -2, 24, 4);
+          ctx.fillStyle = "#8b5a2b";
+          s(-18, -2, 4, 4);
+          ctx.fillStyle = mid;
+          ctx.beginPath();
+          ctx.moveTo(10, -7);
+          ctx.lineTo(18, 0);
+          ctx.lineTo(10, 7);
+          ctx.closePath();
+          ctx.fill();
+          ctx.restore();
+          ctx.strokeStyle = mid;
+          ctx.globalAlpha = 0.9;
+          ctx.beginPath();
+          ctx.arc(0, 0, 16, 0, TAU);
+          ctx.stroke();
+          break;
+        }
+        case "shield": {
+          ctx.fillStyle = color;
+          ctx.beginPath();
+          ctx.moveTo(0, -16);
+          ctx.lineTo(12, -12);
+          ctx.lineTo(12, 2);
+          ctx.quadraticCurveTo(12, 12, 0, 16);
+          ctx.quadraticCurveTo(-12, 12, -12, 2);
+          ctx.lineTo(-12, -12);
+          ctx.closePath();
+          ctx.fill();
+          ctx.stroke();
+          ctx.fillStyle = "#ffffff";
+          ctx.globalAlpha = 0.85;
+          ctx.beginPath();
+          ctx.moveTo(0, -10);
+          ctx.lineTo(7, -7);
+          ctx.lineTo(7, 2);
+          ctx.quadraticCurveTo(7, 8, 0, 11);
+          ctx.quadraticCurveTo(-7, 8, -7, 2);
+          ctx.lineTo(-7, -7);
+          ctx.closePath();
+          ctx.fill();
+          break;
+        }
+        default:
+          ctx.globalAlpha = 1;
+          return false;
+      }
+      ctx.globalAlpha = 1;
+      return true;
+    }
+
     drawPickups(ctx) {
       for (const pickup of this.run.pickups) {
         if (!this.inView(pickup.x, pickup.y, pickup.radius + 90)) continue;
@@ -26494,18 +26842,20 @@
             }
           } else if (pickup.container === "looseItem" || pickup.reward?.type === "item") {
             const item = pickup.reward?.item;
-            ctx.fillStyle = color;
-            ctx.strokeStyle = "#ffffff";
-            ctx.lineWidth = 2;
-            ctx.beginPath();
-            ctx.roundRect?.(-14, -14, 28, 28, 4);
-            if (!ctx.roundRect) ctx.rect(-14, -14, 28, 28);
-            ctx.fill();
-            ctx.stroke();
-            ctx.fillStyle = "#101521";
-            ctx.font = "900 9px ui-sans-serif, system-ui";
-            ctx.textAlign = "center";
-            ctx.fillText(item?.icon?.slice(0, 2) || "PT", 0, 4);
+            if (!this.drawRunItemShape(ctx, item, color)) {
+              ctx.fillStyle = color;
+              ctx.strokeStyle = "#ffffff";
+              ctx.lineWidth = 2;
+              ctx.beginPath();
+              ctx.roundRect?.(-14, -14, 28, 28, 4);
+              if (!ctx.roundRect) ctx.rect(-14, -14, 28, 28);
+              ctx.fill();
+              ctx.stroke();
+              ctx.fillStyle = "#101521";
+              ctx.font = "900 9px ui-sans-serif, system-ui";
+              ctx.textAlign = "center";
+              ctx.fillText(item?.icon?.slice(0, 2) || "PT", 0, 4);
+            }
           } else {
             ctx.fillStyle = color;
             ctx.rotate(Math.PI / 4);
@@ -27138,6 +27488,27 @@
         ctx.lineTo(-projectile.radius * 0.1, projectile.radius * 0.5);
         ctx.lineTo(projectile.radius * 1.2, -projectile.radius * 0.1);
         ctx.stroke();
+      } else if (projectile.kind === "enemyBomb") {
+        const r = projectile.radius;
+        ctx.rotate(-Math.PI / 2);
+        ctx.shadowBlur = this.glow(9);
+        ctx.fillStyle = "#241a12";
+        ctx.beginPath();
+        ctx.arc(0, 0, r, 0, TAU);
+        ctx.fill();
+        ctx.strokeStyle = "#3a2f24";
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+        ctx.fillStyle = "#4b5260";
+        ctx.fillRect(-r * 0.6, r * 0.25, r * 1.2, r * 0.8);
+        ctx.fillStyle = "#8b5a2b";
+        ctx.fillRect(-1.5, -r * 2.1, 3, r * 1.2);
+        ctx.fillStyle = "#ff8d3d";
+        ctx.beginPath();
+        ctx.arc(0, -r * 2.3, r * 0.34, 0, TAU);
+        ctx.fill();
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(-r * 0.14, -r * 2.5, r * 0.28, r * 0.34);
       } else {
         ctx.beginPath();
         ctx.arc(0, 0, projectile.radius, 0, TAU);

@@ -10,7 +10,7 @@
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
   const SIGNAL_REALTIME_RELAY_LIMIT = 2;
   const SIGNAL_REALTIME_TYPES = new Set(["state", "snapshot", "attack", "skill", "collect", "openChest", "dropItem", "damage", "chooseDoor"]);
-  const APP_VERSION = "20260718-pixel-vfx-321";
+  const APP_VERSION = "20260718-pixel-vfx-322";
   const CHANGELOG_ENTRIES = [
     {
       version: APP_VERSION,
@@ -29702,6 +29702,8 @@
       if (kind === "skeletonArcher") {
         b(-12, -32, 24, 22, palette.outline);
         b(-9, -29, 18, 16, palette.bone);
+        b(-6, -21, 12, 12, palette.outline, 0.7);
+        b(-4, -19, 8, 8, "#0d0b10", 0.5);
         b(-6, -13, 12, 5, palette.bone);
         eyes(-7, 3, -23, palette.eye);
         b(-4, -19, 8, 3, palette.outline, 0.72);
@@ -29712,6 +29714,8 @@
         b(-10, 0, 20, 2, palette.bone);
         b(-9, 7, 18, 8, palette.outline);
         b(-6, 8, 12, 5, palette.bone);
+        b(-16, -6, 5, 4, palette.armor);
+        b(11, -6, 5, 4, palette.armor);
         b(-25, -11, 20, 5, palette.bone);
         b(-31, -14, 8, 9, palette.bone);
         b(5, -10, 23, 5, palette.bone);
@@ -29728,10 +29732,14 @@
       } else if (kind === "skeletonWarrior") {
         b(-14, -34, 28, 24, palette.outline);
         b(-10, -31, 20, 18, palette.bone);
+        b(-7, -21, 14, 12, palette.outline, 0.7);
+        b(-5, -19, 10, 8, "#0d0b10", 0.55);
         b(-7, -12, 14, 5, palette.bone);
         eyes(-8, 4, -24, palette.eye);
         b(-5, -19, 10, 3, palette.outline, 0.72);
         b(-2, -7, 4, 28, palette.bone);
+        b(-20, -22, 7, 17, palette.armor);
+        b(13, -22, 7, 17, palette.armor);
         b(-16, -4, 32, 5, palette.outline);
         b(-12, -3, 24, 2, palette.bone);
         b(-14, 5, 28, 5, palette.outline);
@@ -29748,13 +29756,15 @@
         b(3, 36, 15, 5, palette.bone);
         b(25, -8, 9, 8, palette.bone);
       } else if (kind === "slime" || kind === "fireSlime" || kind === "iceSlime") {
-        b(-19, -7, 38, 24, palette.outline, 0.88);
-        b(-15, -13, 30, 34, palette.baseDark, 0.82);
-        b(-18, -4, 36, 20, palette.base, kind === "slime" ? 0.72 : 0.9);
+        b(-19, -5, 38, 22, palette.outline, 0.88);
+        b(-14, -13, 28, 32, palette.baseDark, 0.82);
+        b(-17, -2, 34, 18, palette.base, kind === "slime" ? 0.72 : 0.9);
         b(-10, -2, 5, 5, palette.eye);
         b(5, -2, 5, 5, palette.eye);
-        b(-6, 8, 12, 2, palette.outline, 0.7);
-        b(-10, -9, 7, 4, "#ffffff", 0.38);
+        b(-5, 7, 4, 3, palette.outline, 0.9);
+        b(0, 8, 4, 3, palette.outline, 0.9);
+        b(-13, -9, 7, 4, "#ffffff", 0.4);
+        b(11, 3, 5, 3, "#ffffff", 0.28);
         if (kind === "fireSlime") {
           b(-5, -26, 10, 16, palette.outline);
           b(-3, -24, 7, 13, palette.accent);
@@ -29768,9 +29778,12 @@
       } else if (kind === "goblinScout") {
         b(-13, -24, 26, 23, palette.outline);
         b(-10, -21, 20, 19, palette.base);
-        b(-12, -25, 6, 8, palette.baseDark);
-        b(6, -25, 6, 8, palette.baseDark);
+        b(-17, -22, 5, 7, palette.base);
+        b(12, -22, 5, 7, palette.base);
+        b(-12, -26, 5, 9, palette.baseDark);
+        b(7, -26, 5, 9, palette.baseDark);
         eyes(-7, 3, -16);
+        b(-3, -17, 7, 4, palette.baseDark);
         b(-11, -2, 22, 21, palette.armor);
         b(6, -9, 15, 6, palette.base);
         b(17, -13, 9, 9, palette.base);
@@ -29778,7 +29791,12 @@
       } else if (kind === "goblinBomber") {
         b(-14, -23, 28, 22, palette.outline);
         b(-11, -20, 22, 18, palette.base);
+        b(-18, -21, 5, 7, palette.base);
+        b(13, -21, 5, 7, palette.base);
+        b(-13, -25, 5, 9, palette.baseDark);
+        b(8, -25, 5, 9, palette.baseDark);
         eyes(-7, 3, -15, palette.eye);
+        b(-3, -17, 7, 4, palette.baseDark);
         b(-12, -2, 24, 21, palette.armor);
         b(2, -10, 17, 6, palette.base);
         b(17, -13, 9, 9, palette.base);
@@ -29789,18 +29807,28 @@
         b(10, -15, 28, 26, palette.outline);
         b(-34, -10, 24, 18, palette.baseDark);
         b(10, -10, 24, 18, palette.baseDark);
+        b(-40, -21, 6, 16, palette.baseDark);
+        b(34, -21, 6, 16, palette.baseDark);
         b(-13, -22, 26, 32, palette.outline);
         b(-10, -19, 20, 26, palette.base);
         b(-9, -28, 6, 10, palette.outline);
         b(3, -28, 6, 10, palette.outline);
         eyes(-6, 2, -14);
-        b(-4, -5, 3, 7, palette.bone);
-        b(2, -5, 3, 7, palette.bone);
+        b(-4, -4, 3, 6, palette.bone);
+        b(2, -4, 3, 6, palette.bone);
+        b(15, -2, 3, 7, palette.bone);
+        b(19, 1, 4, 3, palette.bone);
       } else if (kind === "spiderMonster") {
         b(-20, -13, 40, 26, palette.outline);
         b(-16, -10, 32, 20, palette.baseDark);
+        b(-22, -4, 44, 20, palette.outline, 0.5);
+        b(-18, -2, 36, 14, palette.baseDark, 0.72);
         b(-10, -18, 20, 17, palette.base);
+        b(-14, -11, 7, 8, palette.eye);
+        b(-9, -11, 7, 8, palette.eye);
         eyes(-7, 3, -12);
+        b(-8, -5, 4, 6, palette.accent);
+        b(3, -5, 4, 6, palette.accent);
         for (const side of [-1, 1]) {
           for (let i = 0; i < 4; i++) {
             b(side * (14 + i * 5), -8 + i * 4, 10, 3, palette.outline);
@@ -29812,6 +29840,9 @@
         b(-21, -31, 42, 18, palette.outline);
         b(-18, -28, 36, 14, palette.accent);
         b(-12, -34, 24, 7, "#ffd6df");
+        b(-17, -28, 5, 5, "#fff3f8", 0.85);
+        b(-7, -25, 5, 5, "#fff3f8", 0.85);
+        b(5, -29, 6, 6, "#fff3f8", 0.85);
         b(-11, -14, 22, 31, palette.outline);
         b(-8, -12, 16, 27, palette.base);
         eyes(-6, 2, -5, palette.eye);
@@ -29825,10 +29856,13 @@
         b(-11, 8, 7, 12, palette.baseDark, 0.42);
         b(-1, 8, 7, 15, palette.base, 0.42);
         b(8, 7, 6, 10, palette.accent, 0.35);
+        b(14, 16, 10, 3, palette.base, 0.3);
+        b(20, 21, 7, 3, palette.base, 0.24);
       } else if (kind === "zombie") {
         b(-14, -28, 28, 24, palette.outline);
         b(-11, -25, 22, 20, palette.base);
         eyes(-7, 3, -17, palette.eye);
+        b(-4, -16, 9, 3, palette.accent, 0.6);
         b(-13, -5, 26, 27, palette.outline);
         b(-10, -3, 20, 24, palette.armor);
         b(-12, 3, 8, 4, palette.accent);
@@ -29840,6 +29874,7 @@
         b(-17, -34, 34, 33, palette.outline);
         b(-14, -31, 28, 28, palette.armor);
         b(-10, -21, 20, 6, palette.eye);
+        b(-6, -25, 12, 3, palette.accent, 0.7);
         b(-17, -3, 34, 27, palette.outline);
         b(-13, 0, 26, 22, palette.base);
         b(-2, 0, 4, 22, palette.accent);
@@ -29884,12 +29919,17 @@
         b(-10, -38, 5, 8, palette.accent);
         b(5, -38, 5, 8, palette.accent);
         eyes(-7, 3, -17, palette.eye);
+        b(-4, -20, 9, 4, palette.accent, 0.7);
         b(-13, 1, 26, 21, palette.baseDark);
         b(-4, -8, 8, 15, palette.accent, 0.8);
+        b(-6, -13, 12, 3, palette.bone);
+        b(-3, -11, 7, 2, palette.bone);
         legs(15);
       } else if (kind === "necromancer") {
         b(-18, -32, 36, 48, palette.outline);
         b(-14, -28, 28, 44, palette.baseDark);
+        b(-9, -41, 18, 12, palette.outline);
+        b(-6, -38, 12, 7, palette.accent, 0.6);
         b(-10, -21, 20, 12, palette.base);
         eyes(-6, 2, -16, palette.eye);
         b(-7, -4, 14, 22, palette.armor);
@@ -29900,6 +29940,8 @@
         b(5, -36, 8, 12, palette.outline);
         b(10, -20, 10, 9, palette.outline);
         eyes(-7, 3, -19, palette.eye);
+        b(-5, -25, 3, 5, palette.bone);
+        b(3, -25, 3, 5, palette.bone);
         b(-5, -11, 10, 4, palette.bone);
         b(-15, -4, 30, 25, palette.baseDark);
         b(-22, -3, 12, 19, palette.outline);
@@ -29912,6 +29954,8 @@
         b(-19, -16, 38, 28, palette.baseDark);
         b(-12, -29, 9, 15, palette.accent);
         b(3, -31, 10, 17, palette.armor);
+        b(-6, -36, 5, 9, palette.accent);
+        b(9, -40, 5, 12, "#ffffff", 0.8);
         b(-27, -9, 10, 13, palette.outline);
         b(17, -9, 10, 13, palette.outline);
         eyes(-7, 3, -8, palette.eye);
@@ -30803,23 +30847,36 @@
         ctx.globalAlpha = 1;
       }
       if (enemy.attackAnim > 0) {
-        const attackAlpha = clamp(enemy.attackAnim / (enemy.boss ? 0.42 : 0.32), 0, 1);
+        const total = enemy.boss ? 0.42 : 0.32;
+        const p = clamp(enemy.attackAnim / total, 0, 1);
+        const swingPhase = clamp((1 - p) * 2, 0, 1);
+        const attackAlpha = Math.sin(p * Math.PI);
         ctx.save();
         ctx.rotate(enemy.attackDir || 0);
         ctx.globalAlpha = attackAlpha;
         ctx.strokeStyle = enemy.ranged ? this.run.biome.accent : "#f3ead7";
-        ctx.fillStyle = enemy.ranged ? this.run.biome.accent : "#c9d0db";
+        ctx.fillStyle = enemy.ranged ? this.run.biome.accent : "#e8e2d0";
         ctx.shadowColor = ctx.strokeStyle;
-        ctx.shadowBlur = this.glow(10);
+        ctx.shadowBlur = this.glow(14);
         if (enemy.ranged) {
-          ctx.fillRect(enemy.radius * 0.45, -5, 18 + enemy.phase * 4, 10);
-          ctx.fillRect(enemy.radius * 0.95, -2, 12, 4);
+          const shot = Math.max(0, p * 3 - 0.5);
+          ctx.fillRect(enemy.radius * 0.45 + shot * 6, -2, 16 + shot * 7, 6);
+          ctx.fillStyle = "#ffffff";
+          ctx.fillRect(enemy.radius * 0.55 + shot * 6, -5, 5, 3);
         } else {
-          ctx.lineWidth = enemy.boss ? 5 : 3;
+          const sweepStart = -0.85 + swingPhase * 1.5;
+          ctx.lineWidth = enemy.boss ? 6 : 4;
           ctx.beginPath();
-          ctx.arc(0, 0, enemy.radius * 0.9 + 18, -0.42, 0.42);
+          ctx.arc(0, 0, enemy.radius * 0.95 + 16, sweepStart, sweepStart + 1.05);
           ctx.stroke();
-          ctx.fillRect(enemy.radius * 0.35, -3, enemy.radius * 0.62, 6);
+          ctx.lineWidth = enemy.boss ? 3 : 2;
+          ctx.beginPath();
+          ctx.arc(0, 0, enemy.radius * 0.75 + 12, sweepStart + 0.1, sweepStart + 0.55);
+          ctx.strokeStyle = "#ffffff";
+          ctx.stroke();
+          ctx.fillStyle = "#ffffff";
+          ctx.globalAlpha = attackAlpha * 0.9;
+          ctx.fillRect(Math.cos(sweepStart + 0.5) * (enemy.radius + 26), Math.sin(sweepStart + 0.5) * (enemy.radius + 26) - 2, 12, 4);
         }
         ctx.restore();
       }

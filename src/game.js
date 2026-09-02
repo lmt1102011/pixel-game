@@ -10,7 +10,7 @@
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
   const SIGNAL_REALTIME_RELAY_LIMIT = 2;
   const SIGNAL_REALTIME_TYPES = new Set(["state", "snapshot", "attack", "skill", "collect", "openChest", "dropItem", "damage", "chooseDoor"]);
-  const APP_VERSION = "20260718-pixel-vfx-320";
+  const APP_VERSION = "20260718-pixel-vfx-321";
   const CHANGELOG_ENTRIES = [
     {
       version: APP_VERSION,
@@ -116,7 +116,7 @@
   const POWERS = [
     {
       id: "fire",
-      name: "Xích Viêm",
+      name: "Thiên Hỏa Thánh Lẫm",
       icon: "LỬA",
       color: "#ff6b3a",
       accent: "#ffd166",
@@ -125,11 +125,11 @@
       playstyle: "Chất đống Than Hồng rồi đốt pháo cả cụm theo nhịp.",
       passive: "Mọi đòn đánh đặt 1 Than Hồng (tối đa 5, 4s). Kẻ đang cháy chịu thêm 6% sát thương. Nổ Than Hồng còn làm chậm 20% trong 1.5s.",
       skills: {
-        basic: "Xích Viêm Chú",
-        q: "Liệt Hỏa Trận",
-        e: "Hỏa Luyện Ngục",
-        r: "Lưu Tinh Vẫn Thạch",
-        f: "Tro Tàn Viễn Cổ"
+        basic: "Niệm Hỏa Nhất Kích",
+        q: "Cửu Thiên Liệt Hỏa",
+        e: "Hỏa Ngục Luyện Tâm",
+        r: "Thiên Tinh Vẫn Thạch",
+        f: "Tẫn Hỏa Liêu Nguyên"
       },
       skillDetails: {
         basic: "Quét nón lửa, đặt 1 Than Hồng lên mọi mục tiêu trúng; combo thứ 3 nổ ngay 1 tầng.",
@@ -141,7 +141,7 @@
     },
     {
       id: "ice",
-      name: "Hàn Băng",
+      name: "Huyền Băng Kiếm Niệm",
       icon: "BĂNG",
       color: "#83e8ff",
       accent: "#d9fbff",
@@ -150,11 +150,11 @@
       playstyle: "Khống chế chính xác, thưởng lớn khi phá băng đúng lúc.",
       passive: "Mỗi đòn tích 1 Ấn Sương (tối đa 3). Đủ 3 ấn Đóng băng mục tiêu; mục tiêu bị đóng băng chịu thêm 15% sát thương.",
       skills: {
-        basic: "Tuyết Nhai Ấn",
-        q: "Hàn Băng Xung",
-        e: "Tuyết Tinh Kết Giới",
-        r: "Lãnh Cực Tam Tuyến",
-        f: "Kỷ Băng Hà Thức"
+        basic: "Hàn Sương Nhất Chỉ",
+        q: "Cửu Âm Huyền Băng",
+        e: "Vạn Lý Băng Phong",
+        r: "Tam Tuyến Băng Phách",
+        f: "Vạn Cổ Hàn Triều"
       },
       skillDetails: {
         basic: "Khối băng xuyên hàng, tích 1 Ấn Sương; đánh lên mục tiêu đang Đóng băng sẽ vỡ tan gây thêm sát thương.",
@@ -166,7 +166,7 @@
     },
     {
       id: "lightning",
-      name: "Lôi Đình",
+      name: "Cửu Thiên Lôi Quân",
       icon: "SÉT",
       color: "#ffe45e",
       accent: "#70f6ff",
@@ -175,11 +175,11 @@
       playstyle: "Tăng tốc, tích điện trên người rồi trút cơn bão vào điểm đáp.",
       passive: "Đòn đánh tích 1 Điện Tích trên người (tối đa 10); mỗi tích tăng 3% tốc độ đánh & chạy. Đủ 10 tự xả sét quanh người.",
       skills: {
-        basic: "Tịch Lôi Kích",
+        basic: "Tịch Diệt Lôi Kích",
         q: "Thiên Lôi Cửu Chuyển",
-        e: "Lôi Độn Ảnh",
-        r: "Cửu Tiên Lôi Phạt",
-        f: "Hỗn Nguyên Lôi Kiếp"
+        e: "Thiên Di Lôi Độn",
+        r: "Cửu Trọng Lôi Phạt",
+        f: "Lôi Kiếp Diệt Thế"
       },
       skillDetails: {
         basic: "Tia điện xuyên đội hình, tích 1 Điện Tích; có thể nối sang kẻ địch gần.",
@@ -191,7 +191,7 @@
     },
     {
       id: "shadow",
-      name: "Ám Ảnh",
+      name: "U Minh Ám Sát",
       icon: "BÓNG",
       color: "#8f72ff",
       accent: "#202335",
@@ -200,11 +200,11 @@
       playstyle: "Ám sát kẻ bị đánh dấu, di chuyển khó đoán, cắt tầm nhìn.",
       passive: "Đòn đánh và lướt đặt Dấu Săn (tối đa 3, 4s). Đánh sau lưng hoặc kẻ bị mù gây +50% và đặt 2 dấu.",
       skills: {
-        basic: "Ám Sát Thức",
+        basic: "U Minh Nhất Thức",
         q: "Huyễn Ảnh Bộ",
-        e: "Vô Minh Tỏa",
-        r: "Dạ Hành Quyết",
-        f: "Vô Tận Hắc Dạ"
+        e: "Nguyệt Tỏa Vô Minh",
+        r: "Dạ Hành Thiên Quyết",
+        f: "Vô Tận Hắc Ám"
       },
       skillDetails: {
         basic: "Nhát cắt ngắn hiểm; đánh sau lưng hoặc kẻ bị mù gây +50% và đặt 2 Dấu Săn.",
@@ -216,7 +216,7 @@
     },
     {
       id: "blood",
-      name: "Huyết Hồn",
+      name: "Huyết Tế Ma Thần",
       icon: "MÁU",
       color: "#ff3f5f",
       accent: "#ffc0c8",
@@ -225,11 +225,11 @@
       playstyle: "Đánh đổi máu ở ngưỡng nguy hiểm để quật ngã đám đông, rồi cướp lại từ kẻ địch.",
       passive: "Kỹ năng hiến máu; càng thấp máu sát thương càng cao (tối đa +30%). Gây Chảy Máu và hút ngược 8% sát thương.",
       skills: {
-        basic: "Huyết Nguyệt Trảm",
-        q: "Tế Huyết Vũ",
-        e: "Huyết Khấp Tỏa",
-        r: "Luyện Huyết Trận",
-        f: "Huyết Hải Hàng Lâm"
+        basic: "Huyết Nguyệt Mãn Cung",
+        q: "Tế Huyết Huyễn Vũ",
+        e: "Huyết Khấp Tỏa Hồn",
+        r: "Huyết Long Trấn Giới",
+        f: "Huyết Hải Cuồng Tế"
       },
       skillDetails: {
         basic: "Vòng cung máu quét quanh, gây Chảy Máu và hồi máu theo số mục tiêu trúng.",
@@ -241,7 +241,7 @@
     },
     {
       id: "gravity",
-      name: "Vạn Môn",
+      name: "Thiên Địa Vạn Trọng",
       icon: "LỰC",
       color: "#b28dff",
       accent: "#59ffd4",
@@ -250,11 +250,11 @@
       playstyle: "Điều khiển thế trận, gom hết quái rồi bóp nát ở tâm điểm.",
       passive: "Đòn đánh gắn Trọng Áp (tối đa 4). Mục tiêu càng nặng càng bị hút mạnh vào tâm và chịu khống chế lâu hơn.",
       skills: {
-        basic: "Trầm Địa Ấn",
-        q: "Vạn Dẫn Điểm",
-        e: "Phá Cực Thức",
-        r: "Thiên Địa Nghịch Chuyển",
-        f: "Hỗn Độn Điểm"
+        basic: "Côn Lôn Trầm Ấn",
+        q: "Thiên Địa Vạn Dẫn",
+        e: "Âm Dương Nghịch Cực",
+        r: "Khai Thiên Liệt Địa",
+        f: "Hỗn Độn Tâm Điểm"
       },
       skillDetails: {
         basic: "Sóng nặng đẩy nhẹ, gắn 1 Trọng Áp lên mục tiêu trúng.",
@@ -266,7 +266,7 @@
     },
     {
       id: "crystal",
-      name: "Lưu Ly",
+      name: "Lưu Ly Vạn Tượng",
       icon: "PHA",
       color: "#76ffd8",
       accent: "#ffc4f5",
@@ -275,11 +275,11 @@
       playstyle: "Xây thế trận gương & mảnh rồi đập vỡ cả bàn cờ bằng phản ứng dây chuyền.",
       passive: "Đòn đánh gắn Mảnh Vỡ Pha Lê (tối đa 6, mỗi mảnh +8% sát thương). Mục tiêu chết mang mảnh vỡ bắn sang kẻ lân cận.",
       skills: {
-        basic: "Lưu Ly Thứ",
-        q: "Tam Cực Tinh Thương",
-        e: "Huyễn Cảnh Kính",
-        r: "Vẫn Lưu Ly Bạo",
-        f: "Lưu Ly Cung Thức"
+        basic: "Lưu Ly Đồng Thiên Thứ",
+        q: "Tam Tinh Liệt Trận",
+        e: "Huyễn Cảnh Vạn Hư",
+        r: "Lưu Ly Hồng Trần Phá",
+        f: "Lưu Ly Cung Điện"
       },
       skillDetails: {
         basic: "Lăng kính xuyên hàng, để lại bẫy mảnh tại điểm cuối và gắn 1 Mảnh Vỡ.",
@@ -291,7 +291,7 @@
     },
     {
       id: "nature",
-      name: "Vạn Tượng",
+      name: "Mộc Linh Đại Sư",
       icon: "CÂY",
       color: "#75e66e",
       accent: "#ffe082",
@@ -300,11 +300,11 @@
       playstyle: "Biến chiến trường thành khu vườn ăn thịt: độc, trói rễ và hồi phục theo vùng.",
       passive: "Đòn đánh gieo 1 Mầm Độc (tối đa 3). Đủ 3 mầm trói rễ 1.5s và nở hoa tại chân mục tiêu.",
       skills: {
-        basic: "Khô Mộc Thứ",
-        q: "Phệ Huyết Chủng",
-        e: "Bách Trảo Mộc",
-        r: "Vạn Tượng Sinh Mầm",
-        f: "Thần Thụ Tế Lễ"
+        basic: "Khô Mộc Xuân Phong Thứ",
+        q: "Phệ Huyết Cổ Chủng",
+        e: "Vạn Thúy Bách Trảo",
+        r: "Vạn Tượng Xuân Mầm",
+        f: "Cổ Thụ Vạn Linh Tế"
       },
       skillDetails: {
         basic: "Mũi gai xuyên hàng gieo độc, 1 Mầm Độc và để bụi mầm làm chậm.",
@@ -316,7 +316,7 @@
     },
     {
       id: "void",
-      name: "Thái Hư",
+      name: "Thái Hư Vô Đạo",
       icon: "HƯ",
       color: "#6a8dff",
       accent: "#f2f6ff",
@@ -325,11 +325,11 @@
       playstyle: "Đánh sập cấu trúc thế trận địch từ bên trong: xóa khiên, khóa kỹ năng, trừng phạt kẻ chạy.",
       passive: "Đòn đánh xóa khiên, đặt Vết Rạn (tối đa 4) và Bào Mòn. Mục tiêu di chuyển càng xa càng mất máu.",
       skills: {
-        basic: "Thái Hư Rạn",
-        q: "Hư Vô Tỏa",
-        e: "Đoạt Mệnh Quyết",
-        r: "Vô Ngôn Cảnh",
-        f: "Thái Hư Diệt Thế"
+        basic: "Thái Hư Vô Tận Rạn",
+        q: "Hư Vô Hỗn Độn Tỏa",
+        e: "Đoạt Mệnh Hồi Quy",
+        r: "Vô Ngôn Diệt Thế Cảnh",
+        f: "Đại Đạo Thái Hư Kiếp"
       },
       skillDetails: {
         basic: "Vết rạn xuyên hàng, xóa khiên, đặt 1 Vết Rạn và Bào Mòn lên mục tiêu trúng.",
@@ -341,7 +341,7 @@
     },
     {
       id: "time",
-      name: "Quang Âm",
+      name: "Vũ Trụ Quang Âm",
       icon: "GIỜ",
       color: "#e8d17d",
       accent: "#8ff7ff",
@@ -350,11 +350,11 @@
       playstyle: "Canh nhịp, dừng giây để tích sát thương rồi thả một nhịp bùng nổ gấp bội.",
       passive: "Mỗi nhát tạo Hồi Âm (bản phản chiếu) sau 0.5s đánh lại 40%. Đánh mục tiêu đang bị dừng thời gian sẽ tích sát thương để bùng khi hết.",
       skills: {
-        basic: "Quang Âm Trảm",
-        q: "Thời Cực Ấn",
-        e: "Nghịch Chuyển Mệnh",
-        r: "Vĩnh Hằng Cấm Địa",
-        f: "Vô Chung Luân Hồi"
+        basic: "Quang Âm Ngự Kiếm Trảm",
+        q: "Vạn Cổ Thời Ấn",
+        e: "Nghịch Lai Thuận Thụ",
+        r: "Vĩnh Hằng Thời Gian Cảnh",
+        f: "Luân Hồi Vô Chung Kiếp"
       },
       skillDetails: {
         basic: "Chém hình cung tạo Hồi Âm; đánh mục tiêu đang bị dừng giây sẽ ghi nhận sát thương.",
@@ -9634,18 +9634,57 @@
       return number.toLocaleString("vi-VN");
     }
 
-    mainMenuRank(score = 0, level = 1) {
-      const tier = [
-        { min: 0, name: "IRON", short: "IR", color: "#9aa1aa" },
-        { min: 1200, name: "BRONZE", short: "BR", color: "#bd8157" },
-        { min: 2200, name: "SILVER", short: "SV", color: "#d8e3ec" },
-        { min: 3400, name: "GOLD", short: "GD", color: "#f2bf63" },
-        { min: 4800, name: "PLATINUM", short: "PL", color: "#35d6c9" },
-        { min: 6600, name: "DIAMOND", short: "DM", color: "#a169ff" },
-        { min: 8600, name: "IMMORTAL", short: "IM", color: "#ff4655" }
+    realmForLevel(level = 1) {
+      const realms = [
+        { min: 1, max: 9, name: "Phàm Nhân", short: "PHÀM", color: "#9aa1aa" },
+        { min: 10, max: 19, name: "Luyện Khí", short: "KHÍ", color: "#bd8157" },
+        { min: 20, max: 29, name: "Trúc Cơ", short: "CƠ", color: "#d8e3ec" },
+        { min: 30, max: 44, name: "Kim Đan", short: "KĐ", color: "#f2bf63" },
+        { min: 45, max: 59, name: "Nguyên Anh", short: "NA", color: "#35d6c9" },
+        { min: 60, max: 79, name: "Hóa Thần", short: "HT", color: "#a169ff" },
+        { min: 80, max: 99, name: "Độ Kiếp", short: "ĐK", color: "#ff4655" },
+        { min: 100, max: Infinity, name: "Phá Hư", short: "PH", color: "#ffd166" }
       ];
-      const value = Math.max(score, level * 120);
-      return [...tier].reverse().find((rank) => value >= rank.min) || tier[0];
+      return realms.find((r) => level >= r.min && level <= r.max) || realms[realms.length - 1];
+    }
+
+    realmStage(level = 1) {
+      const realm = this.realmForLevel(level);
+      const span = Math.max(1, realm.max - realm.min + 1) || 1;
+      const p = Math.max(0, Math.min(1, (level - realm.min) / span));
+      const tier = p < 0.34 ? 1 : p < 0.67 ? 2 : 3;
+      return { label: ["Sơ Kỳ", "Trung Kỳ", "Hậu Kỳ"][tier - 1], tier };
+    }
+
+    powerScore(level, powerLevel, stats, awakened = false) {
+      return Math.round(
+        Math.max(1, level) * 86
+        + Math.max(1, powerLevel) * 120
+        + (stats.hp || 0) * 2.05
+        + (stats.energy || 0) * 1.38
+        + (stats.speed || 0) * 1.08
+        + (stats.damage || 0) * 42
+        + (stats.crit || 0) * 980
+        + (awakened ? 520 : 0)
+        + Math.round((stats.khiHuyet || 0))
+      );
+    }
+
+    mainMenuRank(score = 0, level = 1) {
+      const realm = this.realmForLevel(level || 1);
+      const stage = this.realmStage(level || 1);
+      const value = Math.max(score, (level || 1) * 120);
+      return {
+        ...realm,
+        stage: stage.label,
+        tier: stage.tier,
+        value,
+        detail: `${realm.name} · ${stage.label}`
+      };
+    }
+
+    formatKhiHuyet(value = 0) {
+      return Number(value || 0).toLocaleString("en-US");
     }
 
     mainMenuProfile() {
@@ -9657,16 +9696,7 @@
       const level = Math.max(1, Math.floor(Number(this.save.progression?.level || 1)));
       const powerLevel = Math.max(1, Math.floor(Number(powerMeta.level || 1)));
       const awakened = selectedPowerId ? this.powerAwakeningActive(power.id) : false;
-      const score = Math.round(
-        level * 86
-        + powerLevel * 120
-        + stats.hp * 2.05
-        + stats.energy * 1.38
-        + stats.speed * 1.08
-        + stats.damage * 42
-        + (stats.crit || 0) * 980
-        + (awakened ? 520 : 0)
-      );
+      const score = this.powerScore(level, powerLevel, stats, awakened);
       const rank = this.mainMenuRank(score, level);
       const tagSeed = hashText(`${this.save.auth?.currentUser || this.save.account.username || "soulrift"}:${level}`);
       const gemCount = Object.entries(this.save.materials || {})
@@ -9681,6 +9711,7 @@
         level,
         rank,
         score,
+        khiHuyet: score,
         stats,
         awakened,
         gold: Math.max(0, Math.floor(Number(this.save.materials?.gold || 0))),
@@ -9716,7 +9747,8 @@
           </div>
           <div class="aaa-account-meta">
             <b>LV ${profile.level}</b>
-            <span>${profile.rank.name}</span>
+            <span>${escapeHtml(profile.rank.detail || profile.rank.name)}</span>
+            <b class="aaa-khi-huyet">KHÍ HUYẾT ${this.formatKhiHuyet(profile.khiHuyet)}</b>
           </div>
         </aside>
       `;
@@ -9795,8 +9827,9 @@
             </div>
           </div>
           <div class="aaa-power-score">
-            <small>POWER SCORE</small>
-            <b>${this.shortNumber(profile.score)}</b>
+            <small>KHÍ HUYẾT</small>
+            <b>${this.formatKhiHuyet(profile.khiHuyet)}</b>
+            <i>${escapeHtml(profile.rank.detail)}</i>
           </div>
         </section>
       `;
@@ -10451,6 +10484,27 @@
       `;
     }
 
+    squadKhiHuyet(slot, self = false) {
+      const character = characterById(slot?.characterId || this.save.account.selectedCharacter || "swordsman");
+      const powerId = slot?.powerId || this.save.account.selectedPower || "fire";
+      const powerMeta = self ? (this.save.powers?.[powerId] || {}) : {};
+      const level = this.squadSlotLevel(slot, self);
+      const powerLevel = self ? Math.max(1, Math.floor(Number(powerMeta.level || 1))) : 1 + Math.floor(level / 25);
+      const awakened = self ? this.powerAwakeningActive(powerId) : Boolean(slot?.powerAwakened);
+      const stats = self ? this.effectiveCharacterStats(character) : this.mockMemberStats(level, powerLevel);
+      return this.powerScore(level, powerLevel, stats, awakened);
+    }
+
+    mockMemberStats(level = 1, powerLevel = 1) {
+      const base = powerById(this.save.account.selectedPower || "fire");
+      const hp = 160 + level * 18 + powerLevel * 9;
+      const energy = 100 + level * 5 + powerLevel * 3;
+      const speed = 230 + level * 2;
+      const damage = 26 + level * 1.4 + powerLevel * 1.2;
+      const crit = Math.min(0.42, 0.06 + level * 0.002 + powerLevel * 0.004);
+      return { hp, energy, speed, damage, crit, khiHuyet: 0 };
+    }
+
     squadMemberCardHtml(slot, options = {}) {
       const empty = !slot;
       const self = Boolean(options.self);
@@ -10459,8 +10513,9 @@
       const power = powerById(slot?.powerId || this.save.account.selectedPower || "fire");
       const custom = this.squadSlotCustomization(slot, self);
       const heroColor = normalizeHeroColor(custom.color, character.color);
-      const stats = this.squadMockStats(slot, options.index || 0);
       const level = this.squadSlotLevel(slot, self);
+      const khiHuyet = this.squadKhiHuyet(slot, self);
+      const realm = this.mainMenuRank(khiHuyet, level);
       const ready = this.squadReady(slot);
       const inviteAction = "open-lobby-invites";
       if (empty) {
@@ -10473,7 +10528,7 @@
         `;
       }
       return `
-        <article class="valorant-member ${options.key || ""} ${self ? "self" : ""} ${leader ? "leader" : ""} ${ready ? "ready" : "not-ready"} ${empty ? "empty" : "filled"}" style="--hero:${heroColor}; --power:${power.color}; --rank:${stats.rank.color}; --char:${character.color}">
+        <article class="valorant-member ${options.key || ""} ${self ? "self" : ""} ${leader ? "leader" : ""} ${ready ? "ready" : "not-ready"} ${empty ? "empty" : "filled"}" style="--hero:${heroColor}; --power:${power.color}; --rank:${realm.color}; --char:${character.color}">
           ${leader && !empty ? `<div class="leader-crown">♛</div>` : ""}
           ${ready && !empty ? `<div class="ready-check">✓</div>` : ""}
           <div class="member-frame">
@@ -10504,6 +10559,8 @@
           <div class="member-info">
             <div class="member-loadout">
               <span class="member-loadout-chip level"><b>LV</b><small>${level}</small></span>
+              <span class="member-loadout-chip realm"><b>${escapeHtml(realm.short)}</b><small>${escapeHtml(realm.detail)}</small></span>
+              <span class="member-loadout-chip khi-huyet" style="--rank:${realm.color}"><b>KHÍ HUYẾT</b><small>${this.formatKhiHuyet(khiHuyet)}</small></span>
               <span class="member-loadout-chip power"><b>POWER</b><small>${empty ? "--" : escapeHtml(power.name)}</small></span>
               <span class="member-loadout-chip character"><b>NHÂN VẬT</b><small>${empty ? "--" : escapeHtml(character.name)}</small></span>
             </div>

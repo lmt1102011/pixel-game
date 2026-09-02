@@ -2097,6 +2097,16 @@ body.pwa-landing-active .screen {
   font-weight: 950;
 }
 
+.aaa-power-score i {
+  display: block;
+  margin-top: 5px;
+  color: color-mix(in srgb, var(--rank), #ece8e1 25%);
+  font-size: 10px;
+  font-style: normal;
+  font-weight: 850;
+  letter-spacing: 0.4px;
+}
+
 .aaa-quick-friends {
   position: relative;
   z-index: 5;
@@ -8448,6 +8458,29 @@ body.is-mobile-ui .touch-actions [data-touch="f"] {
 
 .member-loadout-chip.character small {
   color: color-mix(in srgb, var(--char), #ece8e1 32%);
+}
+
+.member-loadout-chip.realm {
+  border-color: color-mix(in srgb, var(--rank), transparent 46%);
+  background: linear-gradient(135deg, color-mix(in srgb, var(--rank), rgba(15, 25, 35, 0.5)), rgba(15, 25, 35, 0.5));
+}
+
+.member-loadout-chip.realm small {
+  color: var(--rank);
+  font-size: 11px;
+}
+
+.member-loadout-chip.khi-huyet small {
+  color: var(--rank);
+  font-variant-numeric: tabular-nums;
+}
+
+.aaa-account-meta b.aaa-khi-huyet {
+  color: var(--rank);
+  font-size: 10px;
+  font-weight: 950;
+  letter-spacing: 0.4px;
+  font-variant-numeric: tabular-nums;
 }
 
 @keyframes squadJoin {

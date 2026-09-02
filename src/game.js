@@ -10,7 +10,7 @@
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
   const SIGNAL_REALTIME_RELAY_LIMIT = 2;
   const SIGNAL_REALTIME_TYPES = new Set(["state", "snapshot", "attack", "skill", "collect", "openChest", "dropItem", "damage", "chooseDoor"]);
-  const APP_VERSION = "20260718-pixel-vfx-328";
+  const APP_VERSION = "20260718-pixel-vfx-329";
   const CHANGELOG_ENTRIES = [
     {
       version: APP_VERSION,
@@ -879,7 +879,9 @@
     rewardLuck: { label: "May mắn thưởng", pct: true },
     coinBonus: { label: "Tiền rơi", pct: true },
     magnetBonus: { label: "Tầm hút rương", flat: true },
-    shield: { label: "Khiên khởi đầu", flat: true }
+    shield: { label: "Khiên khởi đầu", flat: true },
+    critSelfHp: { label: "Máu mất / chí mạng", pct: true },
+    skillSelfHp: { label: "Máu mất / chiêu (22%)", pct: true }
   };
 
   const ITEM_STATS = {
@@ -904,9 +906,9 @@
     wardEngine: [["shield", 72], ["energyRegenMult", 1.12], ["speed", 0.94]],
     curseCompass: [["damage", 4], ["rewardLuck", 0.24], ["damageTakenMult", 1.08]],
     divineSigil: [],
-    cursedGauntlet: [["maxEnergy", -8]],
+    cursedGauntlet: [["maxEnergy", -8], ["skillSelfHp", -0.03]],
     crushHammer: [["damage", 3.6], ["basicAttackCd", 1.22]],
-    demonEye: [["crit", 0.14]],
+    demonEye: [["crit", 0.14], ["critSelfHp", -0.02]],
     vampHeart: [["lifeSteal", 0.03], ["maxHp", -16]],
     frostArrow: [],
     boneShield: [["speed", 0.94]]
@@ -974,7 +976,7 @@
       rarity: "epic",
       icon: "HÚT",
       shape: "vial",
-      text: "Hút máu nhẹ theo sát thương, nhưng giảm một phần máu tối đa."
+      text: "Hút 4.5% sát thương thành máu, nhưng mất −10 máu tối đa."
     },
     {
       id: "gravityDice",
@@ -1115,7 +1117,7 @@
       rarity: "epic",
       icon: "GĂNG",
       shape: "gauntlet",
-      text: "Chiêu power tốn thêm năng lượng, đôi khi hút ít máu, nhưng 10% gây 2.5x sát thương."
+      text: "Chiêu power tốn thêm năng lượng. 22% p bỏ 3% máu khi dùng chiêu, nhưng 10% gây 2.5x sát thương."
     },
     {
       id: "crushHammer",
@@ -1133,7 +1135,7 @@
       rarity: "epic",
       icon: "MẮT",
       shape: "eye",
-      text: "Chí mạng tăng mạnh, nhưng mỗi lần chí mạng tự trầy một chút máu."
+      text: "Chí mạng tăng mạnh, nhưng mỗi chí mạng mất 2% máu tối đa."
     },
     {
       id: "vampHeart",
@@ -1142,7 +1144,7 @@
       rarity: "rare",
       icon: "TIM",
       shape: "heart",
-      text: "Hút một phần máu khi đánh trúng, đổi lại máu tối đa giảm."
+      text: "Hút 3% sát thương thành máu, nhưng mất −16 máu tối đa."
     },
     {
       id: "frostArrow",
@@ -9575,6 +9577,7 @@
       this.screen.classList.toggle("valorant-screen", html.includes("valorant-lobby"));
       this.screen.classList.toggle("aaa-menu-screen", html.includes("aaa-main-menu"));
       this.screen.classList.toggle("friends-screen", html.includes("friends-arena"));
+      if (html) this.drawItemCanvases();
     }
 
     updateAccountCloudCheck(dt) {
@@ -13017,14 +13020,43 @@
     }
 
     itemIllustration(item) {
-      const kind = item.shape || (item.slot === "Assist" ? "assist" : item.slot === "Weapon" ? "weapon" : item.slot === "Armor" ? "armor" : "relic");
+      const color = RARITY[item.rarity]?.color || "#f2bf63";
       return `
-        <div class="mini-ill item-ill item-${kind}" style="--ill:${RARITY[item.rarity].color}">
-          <span class="item-shape main"></span>
-          <span class="item-shape sub"></span>
-          <span class="item-shape gem"></span>
+        <div class="mini-ill item-ill-canvas-wrap">
+          <canvas class="item-ill-canvas" data-shape="${item.shape || ""}" data-color="${color}" width="128" height="104"></canvas>
         </div>
       `;
+    }
+
+    drawItemCanvases(root = this.screen) {
+      const list = (root.querySelectorAll ? root : document).querySelectorAll?.("canvas.item-ill-canvas") || [];
+      for (const cv of list) {
+        if (cv.dataset.painted) continue;
+        const ctx = cv.getContext?.("2d");
+        if (!ctx) continue;
+        const color = cv.dataset.color || "#f2bf63";
+        const shape = cv.dataset.shape || "";
+        const cssW = 72, cssH = 58, dpr = Math.min(3, window.devicePixelRatio || 1);
+        cv.width = Math.round(cssW * dpr);
+        cv.height = Math.round(cssH * dpr);
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        ctx.clearRect(0, 0, cssW, cssH);
+        ctx.globalCompositeOperation = "source-over";
+        ctx.globalAlpha = 1;
+        ctx.beginPath();
+        ctx.roundRect?.(0.5, 0.5, cssW - 1, cssH - 1, 6) || ctx.rect(0.5, 0.5, cssW, cssH);
+        ctx.fillStyle = "rgba(8,10,16,0.5)";
+        ctx.fill();
+        ctx.strokeStyle = "rgba(255,255,255,0.14)";
+        ctx.lineWidth = 1;
+        ctx.stroke();
+        ctx.save();
+        ctx.translate(cssW / 2, cssH / 2 + 1);
+        ctx.scale(1.3, 1.3);
+        this.drawRunItemShape(ctx, { shape }, color);
+        ctx.restore();
+        cv.dataset.painted = "1";
+      }
     }
 
     characterTabs(active = "character") {

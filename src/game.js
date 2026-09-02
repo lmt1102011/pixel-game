@@ -10,7 +10,7 @@
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
   const SIGNAL_REALTIME_RELAY_LIMIT = 2;
   const SIGNAL_REALTIME_TYPES = new Set(["state", "snapshot", "attack", "skill", "collect", "openChest", "dropItem", "damage", "chooseDoor"]);
-  const APP_VERSION = "20260718-pixel-vfx-318";
+  const APP_VERSION = "20260718-pixel-vfx-319";
   const CHANGELOG_ENTRIES = [
     {
       version: APP_VERSION,
@@ -2047,24 +2047,36 @@
     updateAmbience(dt) {
       this.ambientTimer -= dt;
       if (this.ambientTimer > 0) return;
-      this.ambientTimer = rand(1.4, 3.2);
+      this.ambientTimer = rand(1.05, 2.6);
       const now = this.ctx.currentTime;
       const id = this.biome?.id || "forest";
+      const detail = this.audioDetailScale();
+      const layerGain = (g) => Math.max(0.008, g * (0.78 + 0.44 * detail));
+      const nearPan = () => rand(-0.55, 0.55);
       if (id === "forest") {
-        this.noiseBurst(now, 0.42, 0.018, { bus: this.ambienceMaster, filterType: "bandpass", frequency: 840, q: 0.18, pan: rand(-0.6, 0.6) });
-        if (chance(0.42)) this.tone(rand(1150, 1740), "sine", 0.08, 0.018, now + 0.05, { bus: this.ambienceMaster, slideTo: rand(1320, 1920), pan: rand(-0.75, 0.75) });
+        this.noiseBurst(now, 0.5, layerGain(0.02), { bus: this.ambienceMaster, filterType: "bandpass", frequency: rand(620, 980), q: 0.16, pan: nearPan() });
+        if (chance(0.4)) this.noiseBurst(now + 0.03, 0.4, layerGain(0.014), { bus: this.ambienceMaster, filterType: "bandpass", frequency: rand(1500, 2400), q: 0.3, pan: nearPan(), decay: 1.7 });
+        if (chance(0.5)) this.tone(rand(1150, 1780), "sine", 0.085, layerGain(0.02), now + 0.05, { bus: this.ambienceMaster, slideTo: rand(1360, 1980), pan: rand(-0.76, 0.76), reverb: 0.12 });
+        if (chance(0.24)) { const c = rand(900, 1500); this.tone(c, "triangle", 0.05, layerGain(0.012), now + 0.1, { bus: this.ambienceMaster, slideTo: c * 1.32, pan: rand(-0.7, 0.7), reverb: 0.16 }); }
       } else if (id === "frozen") {
-        this.noiseBurst(now, 0.7, 0.022, { bus: this.ambienceMaster, filterType: "highpass", frequency: 620, q: 0.24, pan: rand(-0.5, 0.5) });
-        if (chance(0.34)) this.tone(rand(620, 980), "triangle", 0.12, 0.014, now + 0.04, { bus: this.ambienceMaster, slideTo: rand(760, 1320), pan: rand(-0.55, 0.55), reverb: 0.18 });
+        this.noiseBurst(now, 0.8, layerGain(0.024), { bus: this.ambienceMaster, filterType: "highpass", frequency: rand(520, 700), q: 0.2, pan: nearPan(), decay: 1.6 });
+        if (chance(0.5)) this.tone(rand(620, 1020), "triangle", 0.13, layerGain(0.016), now + 0.04, { bus: this.ambienceMaster, slideTo: rand(780, 1360), pan: nearPan(), reverb: 0.2, warm: 0.3 });
+        if (chance(0.32)) this.tone(rand(1320, 2100), "sine", 0.05, layerGain(0.012), now + 0.06, { bus: this.ambienceMaster, slideTo: rand(1680, 2400), pan: rand(-0.6, 0.6), reverb: 0.22 });
+        if (chance(0.16)) this.tone(rand(460, 700), "triangle", 0.06, layerGain(0.01), now + 0.02, { bus: this.ambienceMaster, slideTo: rand(520, 860), pan: nearPan(), reverb: 0.2 });
       } else if (id === "lava") {
-        this.noiseBurst(now, 0.32, 0.03, { bus: this.ambienceMaster, filterType: "lowpass", frequency: 260, q: 0.5, pan: rand(-0.35, 0.35) });
-        if (chance(0.5)) this.tone(rand(72, 118), "sawtooth", 0.16, 0.018, now + 0.03, { bus: this.ambienceMaster, slideTo: rand(48, 82), pan: rand(-0.4, 0.4) });
+        this.noiseBurst(now, 0.36, layerGain(0.034), { bus: this.ambienceMaster, filterType: "lowpass", frequency: rand(180, 320), q: 0.45, pan: nearPan(), decay: 1.9 });
+        if (chance(0.55)) this.tone(rand(64, 124), "sawtooth", 0.18, layerGain(0.02), now + 0.03, { bus: this.ambienceMaster, slideTo: rand(42, 86), pan: nearPan(), warm: 0.4 });
+        if (chance(0.34)) this.noiseBurst(now + 0.05, 0.18, layerGain(0.016), { bus: this.ambienceMaster, filterType: "bandpass", frequency: rand(320, 560), q: 0.8, pan: nearPan(), decay: 2.2 });
+        if (chance(0.22)) this.tone(rand(220, 420), "triangle", 0.09, layerGain(0.014), now + 0.09, { bus: this.ambienceMaster, slideTo: rand(140, 300), pan: nearPan(), reverb: 0.14 });
       } else if (id === "neon") {
-        this.tone(rand(420, 780), "triangle", 0.055, 0.018, now, { bus: this.ambienceMaster, slideTo: rand(760, 1280), pan: rand(-0.72, 0.72), reverb: 0.1 });
-        if (chance(0.3)) this.noiseBurst(now + 0.04, 0.05, 0.012, { bus: this.ambienceMaster, filterType: "bandpass", frequency: 1800, q: 2.2, pan: rand(-0.6, 0.6) });
+        this.tone(rand(420, 800), "triangle", 0.06, layerGain(0.02), now, { bus: this.ambienceMaster, slideTo: rand(780, 1320), pan: rand(-0.72, 0.72), reverb: 0.1, warm: 0.3 });
+        if (chance(0.32)) this.tone(rand(1680, 2600), "sine", 0.045, layerGain(0.014), now + 0.03, { bus: this.ambienceMaster, slideTo: rand(2100, 3000), pan: rand(-0.65, 0.65), reverb: 0.14 });
+        if (chance(0.34)) this.noiseBurst(now + 0.04, 0.055, layerGain(0.013), { bus: this.ambienceMaster, filterType: "bandpass", frequency: rand(1700, 2400), q: 2.4, pan: nearPan(), decay: 0.8 });
+        if (chance(0.2)) this.noiseBurst(now + 0.02, 0.09, layerGain(0.011), { bus: this.ambienceMaster, filterType: "bandpass", frequency: rand(700, 1100), q: 3.6, pan: nearPan(), decay: 1.2 });
       } else {
-        this.tone(rand(82, 126), "sine", 0.55, 0.018, now, { bus: this.ambienceMaster, slideTo: rand(70, 110), pan: rand(-0.35, 0.35), reverb: 0.22 });
-        if (chance(0.35)) this.noiseBurst(now, 0.24, 0.014, { bus: this.ambienceMaster, filterType: "bandpass", frequency: 420, q: 0.35, pan: rand(-0.55, 0.55) });
+        this.tone(rand(78, 130), "sine", 0.6, layerGain(0.02), now, { bus: this.ambienceMaster, slideTo: rand(64, 108), pan: nearPan(), reverb: 0.24, warm: 0.25 });
+        if (chance(0.4)) this.noiseBurst(now, 0.3, layerGain(0.016), { bus: this.ambienceMaster, filterType: "bandpass", frequency: rand(380, 520), q: 0.32, pan: nearPan(), decay: 1.8 });
+        if (chance(0.2)) this.tone(rand(180, 300), "triangle", 0.22, layerGain(0.012), now + 0.1, { bus: this.ambienceMaster, slideTo: rand(120, 200), pan: nearPan(), reverb: 0.26 });
       }
     }
 
@@ -2159,9 +2171,9 @@
         this.tone(780, "sine", 0.05, 0.026, now + 0.026, { bus: this.uiMaster, slide: false });
         return;
       }
-      this.tone(360, "square", 0.04, 0.07, now, { bus: this.uiMaster, slideTo: 330 });
-      this.tone(910, "triangle", 0.075, 0.038, now + 0.026, { bus: this.uiMaster, slide: false });
-      this.noiseBurst(now, 0.016, 0.012, { bus: this.uiMaster, filterType: "bandpass", frequency: 1800, q: 0.8 });
+      this.tone(360, "square", 0.045, 0.062, now, { bus: this.uiMaster, slideTo: 330, attack: 0.006, warm: 0.5 });
+      this.tone(910, "triangle", 0.08, 0.034, now + 0.028, { bus: this.uiMaster, slide: false, warm: 0.35 });
+      this.noiseBurst(now, 0.012, 0.009, { bus: this.uiMaster, filterType: "bandpass", frequency: 1800, q: 0.8, attack: 0.002 });
     }
 
     attack(weapon = "swordsman", options = {}) {
@@ -2199,8 +2211,8 @@
         this.tone(390, "triangle", 0.04, 0.058 * vol, now, { pan, slideTo: 640 });
         this.bladeEdge(now + 0.004, 0.037 * vol, { pan, sharp: 1.16, length: 0.036, frequency: 3300, frequencyEnd: 780 });
       } else {
-        this.tone(520, "sawtooth", 0.043, 0.066 * vol, now, { pan, slideTo: 330 });
-        this.bladeEdge(now + 0.004, 0.046 * vol, { pan, sharp: 1.1, length: 0.04, frequency: 3000, frequencyEnd: 720 });
+        this.tone(520, "sawtooth", 0.05, 0.058 * vol, now, { pan, slideTo: 330, attack: 0.006, warm: 0.4 });
+        this.bladeEdge(now + 0.004, 0.04 * vol, { pan, sharp: 1.05, length: 0.038, frequency: 2900, frequencyEnd: 700 });
       }
       this.weaponFoley(weapon, now + 0.002, 0.055 * vol, { pan, combo: options.combo });
     }
@@ -2243,8 +2255,8 @@
       const vol = spatial.gain;
       const crit = Boolean(options.crit);
       const heavy = Boolean(options.heavy);
-      this.tone(crit ? 820 : heavy ? 150 : 260, crit ? "triangle" : "sine", crit ? 0.052 : 0.038, (crit ? 0.07 : heavy ? 0.052 : 0.032) * vol, now, { pan, slideTo: crit ? 1320 : heavy ? 92 : 190, reverb: crit ? 0.08 : 0.03 });
-      this.noiseBurst(now, crit ? 0.052 : 0.032, (crit ? 0.078 : 0.048) * vol, { filterType: crit ? "highpass" : "bandpass", frequency: crit ? 3800 : 1250, frequencyEnd: crit ? 1500 : 520, q: crit ? 1.9 : 0.95, pan, decay: crit ? 0.8 : 1.45 });
+      this.tone(crit ? 820 : heavy ? 150 : 260, crit ? "triangle" : "sine", crit ? 0.052 : 0.038, (crit ? 0.07 : heavy ? 0.052 : 0.032) * vol, now, { pan, slideTo: crit ? 1320 : heavy ? 92 : 190, reverb: crit ? 0.08 : 0.03, warm: crit ? 0.3 : 0.22 });
+      this.noiseBurst(now, crit ? 0.052 : 0.032, (crit ? 0.078 : 0.048) * vol, { filterType: crit ? "highpass" : "bandpass", frequency: crit ? 3800 : 1250, frequencyEnd: crit ? 1500 : 520, q: crit ? 1.9 : 0.95, pan, decay: crit ? 0.8 : 1.45, attack: crit ? 0 : 0.0018 });
       this.impactBoom(now + 0.006, (heavy ? 0.06 : crit ? 0.04 : 0.026) * vol, { pan, freq: heavy ? 74 : 105, slideTo: heavy ? 46 : 72, length: heavy ? 0.14 : 0.08 });
       this.materialHitLayer(options.kind || "basic", now + 0.006, (heavy ? 0.072 : crit ? 0.062 : 0.04) * vol, { pan, heavy, crit });
       if (crit) this.transientSnap(now + 0.004, 0.052 * vol, { pan, frequency: 7600, frequencyEnd: 2400, q: 4.4, reverb: 0.05, essential: true });
@@ -2356,8 +2368,8 @@
         return;
       }
       if (action === "attack") {
-        this.tone(demon ? 128 : golem ? 92 : skeleton ? 540 : slime ? 210 : 330, demon || golem ? "sawtooth" : "triangle", 0.07, (demon ? 0.11 : 0.07) * vol, now, { pan, slideTo: demon ? 86 : golem ? 62 : 260, reverb: 0.05 });
-        this.noiseBurst(now, 0.035, 0.034 * vol, { filterType: "bandpass", frequency: skeleton ? 1750 : slime ? 420 : 980, frequencyEnd: skeleton ? 920 : slime ? 220 : 420, q: 0.75, pan, decay: slime ? 2.4 : 1.1 });
+        this.tone(demon ? 128 : golem ? 92 : skeleton ? 540 : slime ? 210 : 330, demon || golem ? "sawtooth" : "triangle", 0.07, (demon ? 0.11 : 0.07) * vol, now, { pan, slideTo: demon ? 86 : golem ? 62 : 260, reverb: 0.05, warm: demon ? 0.28 : 0.2 });
+        this.noiseBurst(now, 0.035, 0.034 * vol, { filterType: "bandpass", frequency: skeleton ? 1750 : slime ? 420 : 980, frequencyEnd: skeleton ? 920 : slime ? 220 : 420, q: 0.75, pan, decay: slime ? 2.4 : 1.1, attack: 0.0015 });
         this.enemyMaterialLayer(enemy, action, now + 0.006, vol, pan, materialFlags);
         if (skeleton) this.materialCrackle(now + 0.012, 2, 0.015 * vol, { pan, duration: 0.055, low: 1200, high: 2800, filterType: "bandpass" });
         else if (golem) this.impactBoom(now + 0.01, 0.052 * vol, { pan, freq: 72, slideTo: 44, length: 0.11 });
@@ -2471,15 +2483,15 @@
       const variedFreq = freq * rand(0.96, 1.04);
       const punch = clamp(volume * 1.45 * rand(0.92, 1.06), 0.015, 0.28);
       const mainLength = Math.max(0.018, length);
-      this.tone(variedFreq, type, mainLength, punch, now, { slide: type !== "sine" || volume >= 0.09 });
+      this.tone(variedFreq, type, mainLength, punch, now, { slide: type !== "sine" || volume >= 0.09, attack: Math.min(0.008, mainLength * 0.22), warm: 0.3 });
       if (volume >= 0.045) {
         const snapFreq = clamp(variedFreq * 2.15, 280, 1320);
-        this.tone(snapFreq, type === "sine" ? "triangle" : "square", Math.min(0.028, mainLength * 0.42), punch * 0.26, now, { slide: false });
+        this.tone(snapFreq, type === "sine" ? "triangle" : "square", Math.min(0.028, mainLength * 0.42), punch * 0.26, now, { slide: false, attack: 0.004, warm: 0.22 });
       }
       if (volume >= 0.07 || length >= 0.07) {
         const bodyFreq = clamp(variedFreq * 0.48, 54, 210);
-        this.tone(bodyFreq, "sine", Math.min(0.16, mainLength * 0.9 + 0.025), punch * 0.42, now + 0.004, { slide: true });
-        this.noiseBurst(now, Math.min(0.036, mainLength * 0.46), punch * 0.24);
+        this.tone(bodyFreq, "sine", Math.min(0.16, mainLength * 0.9 + 0.025), punch * 0.42, now + 0.004, { slide: true, warm: 0.2 });
+        this.noiseBurst(now, Math.min(0.036, mainLength * 0.46), punch * 0.24, { attack: 0.0018 });
       }
     }
 
@@ -2492,10 +2504,10 @@
       this.lastCoinAt = now;
       const step = this.coinStep++ % 7;
       const gain = clamp(0.09 + Math.min(4, amount) * 0.012, 0.09, 0.15);
-      this.tone(1120 + step * 42, "triangle", 0.095, gain, now, { slide: false });
-      this.tone(1980 + step * 74, "sine", 0.13, gain * 0.52, now + 0.014, { slide: false });
-      this.tone(760 + step * 28, "triangle", 0.07, gain * 0.42, now + 0.004, { slide: false });
-      this.noiseBurst(now, 0.016, gain * 0.18);
+      this.tone(1120 + step * 42, "triangle", 0.095, gain, now, { slide: false, warm: 0.28 });
+      this.tone(1980 + step * 74, "sine", 0.13, gain * 0.52, now + 0.014, { slide: false, warm: 0.2 });
+      this.tone(760 + step * 28, "triangle", 0.07, gain * 0.42, now + 0.004, { slide: false, warm: 0.25 });
+      this.noiseBurst(now, 0.014, gain * 0.16, { attack: 0.002 });
     }
 
     materialWhoosh(now, length, volume, options = {}) {
@@ -3575,9 +3587,9 @@
       this.skillPhase(kind, "impact", key, now, volume, pitch, awakened);
       const legacyToneGain = 0.38;
       const play = (freq, type = "triangle", gain = 1, offset = 0, length = baseLength, slide = true) => {
-        this.tone(freq, type, length, volume * gain * legacyToneGain, now + offset, { slide });
+        this.tone(freq, type, length, volume * gain * legacyToneGain, now + offset, { slide, warm: type === "sawtooth" || type === "square" ? 0.34 : 0.24 });
       };
-      const burst = (gain = 0.18, length = 0.035, offset = 0) => this.noiseBurst(now + offset, length, volume * gain * 0.72);
+      const burst = (gain = 0.18, length = 0.035, offset = 0) => this.noiseBurst(now + offset, length, volume * gain * 0.72, { attack: 0.0016 });
       const taps = (base, count, gap, type = "triangle", gain = 0.4, length = 0.035) => {
         for (let i = 0; i < count; i++) play(base * (1 + i * 0.045), type, gain * (1 - i * 0.05), i * gap, length, false);
       };
@@ -3686,7 +3698,21 @@
         osc.frequency.exponentialRampToValueAtTime(Math.max(32, safeFreq * 0.82), start + Math.max(0.012, duration * 0.75));
       }
       env.gain.value = 0;
+      const warm = Number(options.warm || 0);
       let node = osc;
+      let wantShimmer = false;
+      try { wantShimmer = warm > 0 && this.audioDetailScale() >= 0.5; } catch (e) { wantShimmer = false; }
+      if (wantShimmer) {
+        const shimmer = this.ctx.createOscillator();
+        shimmer.type = "triangle";
+        shimmer.frequency.value = clamp(safeFreq * 2.001, 40, 10000);
+        const shimmerGain = this.ctx.createGain();
+        shimmerGain.gain.value = 0.22 * warm;
+        shimmer.connect(shimmerGain);
+        shimmerGain.connect(env);
+        shimmer.start(start);
+        shimmer.stop(start + duration + 0.05);
+      }
       if (options.filterType || options.filterFreq || options.frequency) {
         const filter = this.ctx.createBiquadFilter();
         filter.type = options.filterType || "lowpass";
@@ -3702,11 +3728,16 @@
       }
       node.connect(env);
       this.connectWithPan(env, options.bus || this.sfxMaster || this.ctx.destination, Number(options.pan || 0), Number(options.reverb || 0));
+      const peakGain = Math.max(0.0001, volume);
       env.gain.setValueAtTime(0, start);
-      env.gain.linearRampToValueAtTime(Math.max(0.0001, volume), start + attack);
-      env.gain.exponentialRampToValueAtTime(0.001, start + duration);
+      env.gain.exponentialRampToValueAtTime(Math.max(0.0004, peakGain * 0.12), start + attack * 0.5);
+      env.gain.setTargetAtTime(peakGain, start + attack * 0.5, Math.max(0.002, attack * 0.42));
+      const relTime = Math.max(0.02, duration * 0.9);
+      env.gain.setValueAtTime(peakGain, start + attack * 0.5 + Math.max(0.005, attack * 0.45));
+      env.gain.exponentialRampToValueAtTime(0.0004, start + relTime);
+      env.gain.setValueAtTime(0, start + relTime + 0.008);
       osc.start(start);
-      osc.stop(start + duration + 0.03);
+      osc.stop(start + relTime + 0.02);
     }
 
     normalizeNoiseColor(color = "white") {
@@ -3787,22 +3818,24 @@
       }
       filter.Q.value = clamp(Number(options.q || 0.65), 0.05, 12);
       const peak = Math.max(0.001, volume);
-      const attack = clamp(Number(options.attack ?? 0), 0, Math.max(0, duration * 0.45));
-      env.gain.setValueAtTime(0.001, start);
-      if (attack > 0) {
-        env.gain.linearRampToValueAtTime(peak, start + attack);
-      } else {
-        env.gain.setValueAtTime(peak, start + 0.001);
-      }
+      const attack = clamp(Number(options.attack ?? 0.0008), 0, Math.max(0, duration * 0.45));
+      env.gain.setValueAtTime(0, start);
+      const attackEnd = start + (attack > 0 ? attack : 0.0012);
+      env.gain.exponentialRampToValueAtTime(Math.max(0.0004, peak * 0.35), attackEnd);
+      env.gain.setTargetAtTime(peak, attackEnd, Math.max(0.0015, attack * 0.4));
       const releasePower = clamp(decay / 1.5, 0.25, 2.5);
       const releaseAt = start + Math.max(0.004, duration * (0.72 - Math.min(0.32, releasePower * 0.08)));
-      env.gain.setTargetAtTime(0.001, releaseAt, Math.max(0.006, duration / (6 + releasePower * 4)));
+      const relTC = Math.max(0.004, duration / (8 + releasePower * 5));
+      env.gain.setValueAtTime(peak, attackEnd + Math.max(0.004, attack * 0.45));
+      env.gain.exponentialRampToValueAtTime(1e-4, releaseAt);
+      env.gain.setTargetAtTime(0, releaseAt, relTC);
+      env.gain.setValueAtTime(0, start + duration + 0.01);
       src.connect(filter);
       filter.connect(env);
       this.connectWithPan(env, options.bus || this.sfxMaster || this.ctx.destination, Number(options.pan || 0), Number(options.reverb || 0));
       const maxOffset = Math.max(0, buffer.duration - Math.min(buffer.duration * 0.25, duration));
       src.start(start, rand(0, maxOffset));
-      src.stop(start + duration + 0.01);
+      src.stop(start + duration + 0.012);
       this.noiseBufferUses += 1;
     }
   }

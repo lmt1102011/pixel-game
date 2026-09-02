@@ -10,7 +10,7 @@
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
   const SIGNAL_REALTIME_RELAY_LIMIT = 2;
   const SIGNAL_REALTIME_TYPES = new Set(["state", "snapshot", "attack", "skill", "collect", "openChest", "dropItem", "damage", "chooseDoor"]);
-  const APP_VERSION = "20260718-pixel-vfx-323";
+  const APP_VERSION = "20260718-pixel-vfx-324";
   const CHANGELOG_ENTRIES = [
     {
       version: APP_VERSION,
@@ -28317,66 +28317,239 @@
     }
 
     drawAwakenedPowerAura(ctx, power, t, layer = "back") {
-      if (layer !== "front") return;
       const kind = power?.id || "fire";
-      const color = power?.color || "#f2bf63";
-      const accent = power?.accent || "#ffffff";
+      const pal = this.powerDesignPalette ? this.powerDesignPalette(kind, true) : { color: "#ffffff", accent: "#00bfff", dark: "#000000" };
+      const color = pal.color, accent = pal.accent, dark = pal.dark;
       const quality = this.effectQuality();
       const lowDetail = this.performancePanic() || quality < 0.58;
-      const count = lowDetail ? 2 : (kind === "lightning" ? 4 : 3);
-      const drift = kind === "lightning" ? 4.3 : kind === "fire" ? 3.1 : kind === "time" ? 2.0 : 2.5;
       ctx.save();
       ctx.globalCompositeOperation = "source-over";
       ctx.shadowBlur = 0;
       ctx.lineCap = "round";
       ctx.lineJoin = "round";
 
+      if (layer === "back") {
+        this.drawAwakenedGroundAura(ctx, kind, color, accent, dark, t, 0);
+        ctx.restore();
+        return;
+      }
+      if (layer !== "front") {
+        ctx.restore();
+        return;
+      }
+
+      this.drawAwakenedGroundAura(ctx, kind, color, accent, dark, t, lowDetail);
+      const count = lowDetail ? 2 : (kind === "lightning" ? 3 : 3);
+      const drift = kind === "lightning" ? 4.8 : kind === "fire" ? 3.4 : kind === "time" ? 2.4 : 2.8;
       for (let i = 0; i < count; i++) {
         const seed = i * 1.731 + kind.length * 0.41;
         const phase = (t * drift + seed) % 1;
         const pop = Math.sin(phase * Math.PI);
-        if (pop <= 0.22) continue;
-        const angle = seed * 2.9 + Math.sin(t * 0.9 + seed) * 0.28;
+        if (pop <= 0.24) continue;
+        const angle = seed * 2.9 + Math.cos(t * 0.7 + seed) * 0.22;
         const sideBias = i % 2 ? 1 : -1;
-        const rx = 9 + (i % 2) * 3 + pop * (kind === "lightning" ? 3.4 : 2.2);
-        const ry = 13 + (i % 2) * 3;
-        const px = Math.cos(angle) * rx + Math.sin(t * 5.1 + seed) * 1.8;
-        const py = -6 + Math.sin(angle) * ry + Math.cos(t * 4.2 + seed) * 1.2;
-        const size = (lowDetail ? 4.2 : 5.2) + pop * (kind === "lightning" ? 2.8 : 1.9);
+        const rx = 8.5 + pop * 1.6;
+        const ry = 11 + pop * (kind === "lightning" ? 2.4 : 1.4);
+        const px = Math.cos(angle) * rx + Math.sin(t * 5.1 + seed) * 1.4;
+        const py = -5 + Math.sin(angle) * ry + Math.cos(t * 4.2 + seed) * 1.0;
+        const size = (lowDetail ? 4 : 4.8) + pop * 1.4;
         ctx.save();
         ctx.translate(px + sideBias * 1.5, py);
         ctx.rotate(angle + (kind === "time" ? t * 1.2 : phase * 1.8));
-        ctx.globalAlpha = (lowDetail ? 0.5 : 0.62) * pop;
+        ctx.globalAlpha = (lowDetail ? 0.4 : 0.5) * pop;
         this.drawAwakenedAuraVfx(ctx, kind, size, color, accent, phase);
         ctx.restore();
       }
 
-      if (kind === "lightning") {
-        const bolts = lowDetail ? 1 : 2;
-        for (let i = 0; i < bolts; i++) {
-          const seed = i * 2.17 + 0.33;
-          const phase = (t * 5.8 + seed) % 1;
-          const alpha = Math.sin(phase * Math.PI);
-          if (alpha <= 0.22) continue;
-          const side = i % 2 ? 1 : -1;
-          const y = -19 + i * 14 + Math.sin(t * 7 + seed) * 2;
-          const x = side * (7 + i * 1.5);
+      if (kind === "lightning" && !lowDetail) {
+        const seed = 0.77;
+        const phase = (t * 6.4 + seed) % 1;
+        const alpha = Math.sin(phase * Math.PI);
+        if (alpha > 0.24) {
+          const y = -20 + Math.sin(t * 7 + seed) * 2;
           ctx.save();
-          ctx.globalAlpha = (lowDetail ? 0.56 : 0.72) * alpha;
+          ctx.globalAlpha = 0.5 * alpha;
           ctx.strokeStyle = accent;
-          ctx.lineWidth = lowDetail ? 1.8 : 2.2;
-          ctx.shadowColor = color;
-          ctx.shadowBlur = 0;
+          ctx.lineWidth = 2;
           ctx.beginPath();
-          ctx.moveTo(x - side * 14, y - 7);
-          ctx.lineTo(x - side * 4, y - 1);
-          ctx.lineTo(x - side * 9, y + 5);
-          ctx.lineTo(x + side * 13, y + 8);
+          ctx.moveTo(0, y - 6);
+          ctx.lineTo(-3, y);
+          ctx.lineTo(2, y + 4);
+          ctx.lineTo(-1, y + 9);
           ctx.stroke();
           ctx.restore();
         }
       }
       ctx.restore();
+    }
+
+    drawAwakenedGroundAura(ctx, kind, color, accent, dark, t, lowDetail) {
+      const r = lowDetail ? 9 : 11;
+      const wr = r + (kind === "fire" || kind === "shadow" ? 2 : 0);
+      ctx.save();
+      ctx.globalAlpha = lowDetail ? 0.55 : 0.7;
+      ctx.fillStyle = dark;
+      ctx.beginPath();
+      ctx.ellipse(0, 4, wr + 1, wr * 0.52, 0, 0, TAU);
+      ctx.fill();
+      ctx.globalAlpha = lowDetail ? 0.5 : 0.66;
+      ctx.strokeStyle = color;
+      ctx.lineWidth = lowDetail ? 1.6 : 2;
+      ctx.beginPath();
+      ctx.ellipse(0, 4, wr + 0.5, wr * 0.5, 0, 0, TAU);
+      ctx.stroke();
+      ctx.globalAlpha = lowDetail ? 0.34 : 0.42;
+      ctx.strokeStyle = accent;
+      ctx.lineWidth = lowDetail ? 1 : 1.3;
+      ctx.beginPath();
+      ctx.ellipse(0, 4, wr * 0.66, wr * 0.34, 0, 0, TAU);
+      ctx.stroke();
+
+      if (kind === "gravity" || kind === "void") {
+        const pulse = 0.5 + 0.5 * Math.sin(t * 3.2);
+        const rr = wr * (0.78 + pulse * 0.22);
+        ctx.globalAlpha = lowDetail ? 0.3 : 0.42;
+        ctx.strokeStyle = accent;
+        ctx.lineWidth = lowDetail ? 1 : 1.3;
+        ctx.beginPath();
+        ctx.ellipse(0, 4, rr, rr * 0.48, 0, 0, TAU);
+        ctx.stroke();
+      } else if (kind === "time") {
+        const ticks = lowDetail ? 4 : 8;
+        ctx.globalAlpha = lowDetail ? 0.34 : 0.44;
+        ctx.strokeStyle = accent;
+        ctx.lineWidth = 1.2;
+        for (let i = 0; i < ticks; i++) {
+          const a = i / ticks * TAU + t * 0.5;
+          const cx = Math.cos(a), sy = Math.sin(a);
+          ctx.beginPath();
+          ctx.moveTo(cx * (wr - 2.6), 4 + sy * (wr - 4.4) * 0.5);
+          ctx.lineTo(cx * (wr + 1.6), 4 + sy * (wr + 3) * 0.5);
+          ctx.stroke();
+        }
+      } else if (kind === "ice") {
+        const n = lowDetail ? 3 : 5;
+        ctx.globalAlpha = lowDetail ? 0.3 : 0.4;
+        ctx.strokeStyle = accent;
+        ctx.lineWidth = 1.2;
+        for (let i = 0; i < n; i++) {
+          const a = i / n * TAU + t * 0.22 + 0.2;
+          const rr2 = wr * (0.6 + 0.5 * Math.abs(Math.sin(t * 2.1 + i)));
+          ctx.beginPath();
+          ctx.moveTo(Math.cos(a) * (rr2 - 1.4), 4 + Math.sin(a) * (rr2 - 1.4) * 0.5);
+          ctx.lineTo(Math.cos(a) * (rr2 + 1.6), 4 + Math.sin(a) * (rr2 + 1.6) * 0.5);
+          ctx.stroke();
+        }
+      } else if (kind === "lightning" || kind === "fire") {
+        const n = lowDetail ? 2 : 3;
+        ctx.globalAlpha = lowDetail ? 0.36 : 0.46;
+        ctx.strokeStyle = accent;
+        ctx.lineWidth = 1.4;
+        for (let i = 0; i < n; i++) {
+          const a = i / n * TAU + t * 1.8;
+          const bx = Math.cos(a) * wr * 0.9;
+          const by = 4 + Math.sin(a) * wr * 0.45;
+          ctx.beginPath();
+          ctx.moveTo(bx - 2.2, by);
+          ctx.lineTo(bx + 2.2, by - (kind === "fire" ? 2.6 : 3.4) * (0.6 + 0.5 * Math.sin(t * 5 + i)));
+          ctx.stroke();
+        }
+      }
+
+      const n = lowDetail ? 2 : 3;
+      const sway = Math.sin(t * 6) * 1;
+      for (let i = 0; i < n; i++) {
+        const a = i / n * TAU + t * (kind === "lightning" ? 2.6 : 0.35);
+        const bx = Math.cos(a) * (r * 0.9);
+        ctx.save();
+        ctx.globalAlpha = lowDetail ? 0.34 : 0.44;
+        ctx.translate(bx, 2 + Math.sin(a) * (r * 0.46));
+        ctx.rotate(0);
+        ctx.lineWidth = 1.4;
+        ctx.strokeStyle = accent;
+        this.drawAwakenedAuraVfx(ctx, kind, 4 + sway, accent, color, a);
+        ctx.restore();
+      }
+
+      const plumes = lowDetail ? 1 : 2;
+      for (let i = 0; i < plumes; i++) {
+        const s = i * 2.1 + 0.5;
+        const ph = (t * 0.85 + s) % 1;
+        const a = Math.sin(ph * Math.PI);
+        if (a <= 0.3) continue;
+        const ux = -r + ph * r * 2 + Math.sin(t * 3 + s) * 1.2;
+        const uy = 5 + ph * -1 - Math.abs(Math.cos(ph * Math.PI)) * (r * 0.5);
+        ctx.save();
+        ctx.translate(ux, uy);
+        ctx.globalAlpha = (lowDetail ? 0.3 : 0.38) * a;
+        ctx.rotate(ph * 2.2);
+        ctx.lineWidth = 1.3;
+        ctx.strokeStyle = accent;
+        ctx.fillStyle = accent;
+        this.drawAwakenedPlume(ctx, kind, 3.4 + a * 1.4, accent);
+        ctx.restore();
+      }
+      ctx.restore();
+    }
+
+    drawAwakenedPlume(ctx, kind, size, accent) {
+      ctx.strokeStyle = accent || "#ffffff";
+      if (kind === "blood") {
+        ctx.beginPath();
+        ctx.moveTo(0, -size);
+        ctx.bezierCurveTo(size * 0.55, -size * 0.1, size * 0.4, size, 0, size);
+        ctx.bezierCurveTo(-size * 0.4, size, -size * 0.55, -size * 0.1, 0, -size);
+        ctx.fill();
+      } else if (kind === "shadow") {
+        ctx.fillStyle = "rgba(0,0,0,0.9)";
+        ctx.strokeStyle = accent;
+        ctx.beginPath();
+        ctx.arc(0, 0, size * 0.55, 0, TAU);
+        ctx.fill();
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(-size * 0.5, -size);
+        ctx.quadraticCurveTo(0, -size * 1.6, size * 0.5, -size);
+        ctx.quadraticCurveTo(0, -size * 1.1, -size * 0.5, -size);
+        ctx.closePath();
+        ctx.stroke();
+      } else if (kind === "nature") {
+        ctx.beginPath();
+        ctx.ellipse(0, 0, size * 0.42, size * 0.9, 0.7, 0, TAU);
+        ctx.fill();
+      } else if (kind === "crystal") {
+        ctx.beginPath();
+        ctx.moveTo(0, -size);
+        ctx.lineTo(size * 0.62, -size * 0.16);
+        ctx.lineTo(size * 0.2, size);
+        ctx.lineTo(-size * 0.55, size * 0.4);
+        ctx.closePath();
+        ctx.fill();
+      } else if (kind === "fire") {
+        ctx.beginPath();
+        ctx.moveTo(0, -size);
+        ctx.bezierCurveTo(size * 0.7, -size * 0.22, size * 0.42, size * 0.7, 0, size);
+        ctx.bezierCurveTo(-size * 0.4, size * 0.52, -size * 0.52, -size * 0.14, 0, -size);
+        ctx.fill();
+      } else if (kind === "ice") {
+        ctx.beginPath();
+        ctx.moveTo(-size * 0.5, -size * 0.6);
+        ctx.lineTo(0, -size);
+        ctx.lineTo(size * 0.5, -size * 0.6);
+        ctx.lineTo(size * 0.5, size * 0.4);
+        ctx.lineTo(0, size);
+        ctx.lineTo(-size * 0.5, size * 0.4);
+        ctx.closePath();
+        ctx.stroke();
+      } else if (kind === "void") {
+        ctx.beginPath();
+        ctx.arc(0, 0, size * 0.6, 0, TAU);
+        ctx.stroke();
+      } else {
+        ctx.beginPath();
+        ctx.arc(0, 0, size * 0.34, 0, TAU);
+        ctx.fill();
+      }
     }
 
     drawAwakenedAuraVfx(ctx, kind, size, color, accent, phase = 0) {

@@ -10,7 +10,7 @@
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
   const SIGNAL_REALTIME_RELAY_LIMIT = 2;
   const SIGNAL_REALTIME_TYPES = new Set(["state", "snapshot", "attack", "skill", "collect", "openChest", "dropItem", "damage", "chooseDoor"]);
-  const APP_VERSION = "20260718-pixel-vfx-316";
+  const APP_VERSION = "20260718-pixel-vfx-317";
   const CHANGELOG_ENTRIES = [
     {
       version: APP_VERSION,
@@ -544,15 +544,15 @@
   const MONSTER_TYPES = {
     skeletonArcher: {
       name: "Skeleton Archer", role: "marksman", ranged: true, bulky: false, hp: 58, size: 20, speed: 74, damage: 16,
-      specialSkill: "lineShot", range: 370, palette: { base: "#e8ddc6", baseDark: "#948978", accent: "#7ddcff", eye: "#7ddcff", armor: "#6a4b2a", metal: "#8b5a33", bone: "#f3ead7" }
+      specialSkill: "boneArrow", range: 370, palette: { base: "#e8ddc6", baseDark: "#948978", accent: "#7ddcff", eye: "#7ddcff", armor: "#6a4b2a", metal: "#8b5a33", bone: "#f3ead7" }
     },
     skeletonWarrior: {
       name: "Skeleton Warrior", role: "guard", ranged: false, bulky: true, hp: 108, size: 28, speed: 58, damage: 23,
-      specialSkill: "guardSlam", reach: 34, palette: { base: "#dccfb6", baseDark: "#7f7466", accent: "#ff4058", eye: "#ff263a", armor: "#7b3f2c", metal: "#9aa0a8", bone: "#f3ead7" }
+      specialSkill: "boneSlam", reach: 34, palette: { base: "#dccfb6", baseDark: "#7f7466", accent: "#ff4058", eye: "#ff263a", armor: "#7b3f2c", metal: "#9aa0a8", bone: "#f3ead7" }
     },
     slime: {
       name: "Slime", role: "stalker", ranged: false, bulky: false, hp: 72, size: 22, speed: 82, damage: 15,
-      specialSkill: "melee", reach: 30, palette: { base: "#62e6a7", baseDark: "#26945e", accent: "#c8ffe2", eye: "#23313d", armor: "#49bf82", metal: "#d8fff0", bone: "#e8fff5" }
+      specialSkill: "spittle", reach: 30, palette: { base: "#62e6a7", baseDark: "#26945e", accent: "#c8ffe2", eye: "#23313d", armor: "#49bf82", metal: "#d8fff0", bone: "#e8fff5" }
     },
     fireSlime: {
       name: "Fire Slime", role: "bomber", ranged: true, bulky: false, hp: 76, size: 22, speed: 68, damage: 18,
@@ -560,15 +560,15 @@
     },
     iceSlime: {
       name: "Ice Slime", role: "caster", ranged: true, bulky: false, hp: 74, size: 22, speed: 66, damage: 16,
-      specialSkill: "orbNova", range: 300, palette: { base: "#8feaff", baseDark: "#2e7ea1", accent: "#ffffff", eye: "#17344c", armor: "#bff8ff", metal: "#eaffff", bone: "#ffffff" }
+      specialSkill: "frostShards", range: 300, palette: { base: "#8feaff", baseDark: "#2e7ea1", accent: "#ffffff", eye: "#17344c", armor: "#bff8ff", metal: "#eaffff", bone: "#ffffff" }
     },
     goblinScout: {
       name: "Goblin Scout", role: "skirmisher", ranged: false, bulky: false, hp: 64, size: 21, speed: 110, damage: 17,
-      specialSkill: "skirmisherDash", reach: 32, palette: { base: "#6ad65f", baseDark: "#2e7c38", accent: "#d7b56d", eye: "#ffef70", armor: "#6b4a2d", metal: "#dfe6ef", bone: "#f3ead7" }
+      specialSkill: "knifeFan", reach: 32, palette: { base: "#6ad65f", baseDark: "#2e7c38", accent: "#d7b56d", eye: "#ffef70", armor: "#6b4a2d", metal: "#dfe6ef", bone: "#f3ead7" }
     },
     goblinBomber: {
       name: "Goblin Bomber", role: "bomber", ranged: true, bulky: false, hp: 70, size: 23, speed: 60, damage: 19,
-      specialSkill: "bombZone", range: 280, palette: { base: "#79bd4d", baseDark: "#3f6c27", accent: "#ff8d3d", eye: "#fff16a", armor: "#4f3324", metal: "#2b303a", bone: "#f3ead7" }
+      specialSkill: "flashBomb", range: 280, palette: { base: "#79bd4d", baseDark: "#3f6c27", accent: "#ff8d3d", eye: "#fff16a", armor: "#4f3324", metal: "#2b303a", bone: "#f3ead7" }
     },
     batDemon: {
       name: "Bat Demon", role: "skirmisher", ranged: false, bulky: false, hp: 60, size: 21, speed: 118, damage: 16,
@@ -576,35 +576,35 @@
     },
     spiderMonster: {
       name: "Spider Monster", role: "skirmisher", ranged: false, bulky: false, hp: 82, size: 24, speed: 92, damage: 18,
-      specialSkill: "skirmisherDash", reach: 36, palette: { base: "#25212d", baseDark: "#09080d", accent: "#b8ff64", eye: "#ff2338", armor: "#3d3946", metal: "#d7ffc0", bone: "#f3ead7" }
+      specialSkill: "webSpit", reach: 36, palette: { base: "#25212d", baseDark: "#09080d", accent: "#b8ff64", eye: "#ff2338", armor: "#3d3946", metal: "#d7ffc0", bone: "#f3ead7" }
     },
     mushroomMonster: {
       name: "Mushroom Monster", role: "caster", ranged: true, bulky: false, hp: 78, size: 23, speed: 58, damage: 15,
-      specialSkill: "casterZone", range: 290, palette: { base: "#f0e7cf", baseDark: "#8f6a3f", accent: "#ff5f79", eye: "#4b1622", armor: "#c8334a", metal: "#f8d8a8", bone: "#fff0d0" }
+      specialSkill: "sporeBurst", range: 290, palette: { base: "#f0e7cf", baseDark: "#8f6a3f", accent: "#ff5f79", eye: "#4b1622", armor: "#c8334a", metal: "#f8d8a8", bone: "#fff0d0" }
     },
     shadowSpirit: {
       name: "Shadow Spirit", role: "caster", ranged: true, bulky: false, hp: 66, size: 21, speed: 82, damage: 17,
-      specialSkill: "orbNova", range: 310, flying: true, palette: { base: "#6b45d9", baseDark: "#160826", accent: "#d7c4ff", eye: "#f2f6ff", armor: "#3b1d63", metal: "#bca8ff", bone: "#ffffff" }
+      specialSkill: "shadowBlast", range: 310, flying: true, palette: { base: "#6b45d9", baseDark: "#160826", accent: "#d7c4ff", eye: "#f2f6ff", armor: "#3b1d63", metal: "#bca8ff", bone: "#ffffff" }
     },
     zombie: {
       name: "Zombie", role: "brute", ranged: false, bulky: true, hp: 124, size: 27, speed: 50, damage: 21,
-      specialSkill: "melee", reach: 32, palette: { base: "#79a860", baseDark: "#3d5c34", accent: "#8b4a6b", eye: "#fff0a8", armor: "#5c4b48", metal: "#b3a193", bone: "#d7c8aa" }
+      specialSkill: "rotLauncher", reach: 32, palette: { base: "#79a860", baseDark: "#3d5c34", accent: "#8b4a6b", eye: "#fff0a8", armor: "#5c4b48", metal: "#b3a193", bone: "#d7c8aa" }
     },
     darkKnight: {
       name: "Dark Knight", role: "duelist", ranged: false, bulky: true, hp: 142, size: 30, speed: 70, damage: 26,
-      specialSkill: "crossSlash", reach: 42, palette: { base: "#161923", baseDark: "#05070c", accent: "#ff2338", eye: "#ff2338", armor: "#272d3a", metal: "#9aa0aa", bone: "#f3ead7" }
+      specialSkill: "darkLance", reach: 42, palette: { base: "#161923", baseDark: "#05070c", accent: "#ff2338", eye: "#ff2338", armor: "#272d3a", metal: "#9aa0aa", bone: "#f3ead7" }
     },
     stoneGolem: {
       name: "Stone Golem", role: "brute", ranged: false, bulky: true, hp: 158, size: 32, speed: 42, damage: 27,
-      specialSkill: "quake", reach: 38, palette: { base: "#7b8790", baseDark: "#39424a", accent: "#76ffd8", eye: "#76ffd8", armor: "#5e6870", metal: "#b5c0c8", bone: "#dfe8ef" }
+      specialSkill: "boulder", reach: 38, palette: { base: "#7b8790", baseDark: "#39424a", accent: "#76ffd8", eye: "#76ffd8", armor: "#5e6870", metal: "#b5c0c8", bone: "#dfe8ef" }
     },
     fireDemon: {
       name: "Fire Demon", role: "caster", ranged: true, bulky: false, hp: 84, size: 24, speed: 78, damage: 20,
-      specialSkill: "orbNova", range: 310, palette: { base: "#d83224", baseDark: "#4a0d0a", accent: "#ffd166", eye: "#fff0a8", armor: "#7c1412", metal: "#ff944d", bone: "#ffe0a3" }
+      specialSkill: "fireVolley", range: 310, palette: { base: "#d83224", baseDark: "#4a0d0a", accent: "#ffd166", eye: "#fff0a8", armor: "#7c1412", metal: "#ff944d", bone: "#ffe0a3" }
     },
     iceGolem: {
       name: "Ice Golem", role: "guard", ranged: false, bulky: true, hp: 150, size: 32, speed: 46, damage: 25,
-      specialSkill: "guardSlam", reach: 38, palette: { base: "#a7f3ff", baseDark: "#2a6680", accent: "#ffffff", eye: "#eaffff", armor: "#6ec8df", metal: "#dffaff", bone: "#ffffff" }
+      specialSkill: "iceSlam", reach: 38, palette: { base: "#a7f3ff", baseDark: "#2a6680", accent: "#ffffff", eye: "#eaffff", armor: "#6ec8df", metal: "#dffaff", bone: "#ffffff" }
     },
     necromancer: {
       name: "Necromancer", role: "caster", ranged: true, bulky: false, hp: 88, size: 23, speed: 58, damage: 17,
@@ -612,15 +612,15 @@
     },
     werewolf: {
       name: "Werewolf", role: "duelist", ranged: false, bulky: false, hp: 96, size: 26, speed: 112, damage: 22,
-      specialSkill: "crossSlash", reach: 40, palette: { base: "#6e4b35", baseDark: "#2a180f", accent: "#ffef70", eye: "#ffdf73", armor: "#3a2a20", metal: "#f3ead7", bone: "#f3ead7" }
+      specialSkill: "clawRage", reach: 40, palette: { base: "#6e4b35", baseDark: "#2a180f", accent: "#ffef70", eye: "#ffdf73", armor: "#3a2a20", metal: "#f3ead7", bone: "#f3ead7" }
     },
     crystalBeast: {
       name: "Crystal Beast", role: "skirmisher", ranged: false, bulky: true, hp: 118, size: 28, speed: 86, damage: 23,
-      specialSkill: "skirmisherDash", reach: 38, palette: { base: "#6f8dff", baseDark: "#273164", accent: "#ffc4f5", eye: "#ffffff", armor: "#76ffd8", metal: "#d8fbff", bone: "#ffffff" }
+      specialSkill: "crystalBurst", reach: 38, palette: { base: "#6f8dff", baseDark: "#273164", accent: "#ffc4f5", eye: "#ffffff", armor: "#76ffd8", metal: "#d8fbff", bone: "#ffffff" }
     },
     shadowGoblin: {
       name: "Shadow Goblin", role: "stalker", ranged: false, bulky: false, hp: 82, size: 23, speed: 88, damage: 22,
-      specialSkill: "melee", reach: 38, palette: { base: "#3d1c62", baseDark: "#201038", accent: "#ff2338", eye: "#ff2338", armor: "#5d36a0", metal: "#e7d7ff", bone: "#ead7ff" }
+      specialSkill: "shadowDagger", reach: 38, palette: { base: "#3d1c62", baseDark: "#201038", accent: "#ff2338", eye: "#ff2338", armor: "#5d36a0", metal: "#e7d7ff", bone: "#ead7ff" }
     }
   };
 
@@ -14814,6 +14814,8 @@
         if (data.shieldMult) mods.shieldMult *= data.shieldMult;
         if (data.damageTakenMult) mods.damageTakenMult *= data.damageTakenMult;
       }
+      const player = this.run?.player;
+      if (player && player.webBind > 0) mods.speedMult *= 0.55;
       return mods;
     }
 
@@ -15962,6 +15964,7 @@
       this.updatePendingBasicAttack(p, dt);
       p.dashCd = Math.max(0, p.dashCd - dt);
       p.energyRegenDelay = Math.max(0, (p.energyRegenDelay || 0) - dt);
+      if (p.webBind > 0) p.webBind = Math.max(0, p.webBind - dt);
       const debuffMods = this.bossDebuffModifiers();
       const powerMods = this.powerStatusModifiers();
       const regenRate = ((this.run.curse?.id === "manaDebt" ? 5.9 : 8.6) + (this.run.power.id === "time" ? 1.35 : 0)) * (p.stats.energyRegenMult || 1) * (debuffMods.energyRegenMult || 1) * (powerMods.energyRegenMult || 1);
@@ -21970,6 +21973,11 @@
             this.startEnemyWindup(enemy, special, enemy.elite ? 0.24 : 0.32, a);
             return;
           }
+          if (enemy.role === "stalker" && d > contact + 30 && d < contact + 190) {
+            enemy.skillCd = enemy.elite ? 1.7 : 2.2;
+            this.startEnemyWindup(enemy, special, enemy.elite ? 0.34 : 0.42, a, p.x, p.y);
+            return;
+          }
           if (enemy.role === "brute" && d > contact + 55 && d < 360) {
             enemy.skillCd = enemy.elite ? 2.45 : 3.1;
             this.startEnemyWindup(enemy, special, enemy.elite ? 0.44 : 0.58, a, p.x, p.y);
@@ -21977,7 +21985,7 @@
           }
           if (enemy.role === "guard" && d < contact + 115) {
             enemy.skillCd = enemy.elite ? 2.15 : 2.75;
-            this.startEnemyWindup(enemy, "guardSlam", enemy.elite ? 0.42 : 0.5, a);
+            this.startEnemyWindup(enemy, special, enemy.elite ? 0.42 : 0.5, a);
             return;
           }
           if (enemy.role === "duelist" && d < contact + 135) {
@@ -22123,6 +22131,68 @@
       }
       if (type === "feintDash") {
         this.addEffect({ type: "lineTell", x: enemy.x, y: enemy.y, angle, length: enemy.elite ? 230 : 190, width: enemy.elite ? 34 : 28, time, maxTime: time, color: "#dfe6ef" });
+      }
+      if (type === "boneArrow") {
+        this.addEffect({ type: "lineTell", x: enemy.x, y: enemy.y, angle, length: enemy.elite ? 600 : 520, width: enemy.elite ? 32 : 25, time, maxTime: time, color: "#dcd0c0" });
+      }
+      if (type === "boneSlam") {
+        const px = enemy.x + Math.cos(angle) * (enemy.radius + 34);
+        const py = enemy.y + Math.sin(angle) * (enemy.radius + 34);
+        this.addEffect({ type: "danger", x: px, y: py, radius: enemy.elite ? 104 : 82, time, color: "#e8ddc6", damage: enemy.damage * 0.6 });
+      }
+      if (type === "spittle" || type === "rotLauncher" || type === "sporeBurst") {
+        this.addEffect({ type: "danger", x: targetX || enemy.x, y: targetY || enemy.y, radius: type === "rotLauncher" ? (enemy.elite ? 66 : 54) : (enemy.elite ? 56 : 46), time: time + 0.12, color: type === "rotLauncher" ? "#9abf6b" : type === "sporeBurst" ? "#ff5f79" : "#c8ffe2", visualOnly: true });
+      }
+      if (type === "frostShards") {
+        for (const offset of [-0.26, 0, 0.26]) {
+          this.addEffect({ type: "lineTell", x: enemy.x, y: enemy.y, angle: angle + offset, length: enemy.elite ? 420 : 360, width: enemy.elite ? 26 : 21, time, maxTime: time, color: "#bfeeff" });
+        }
+      }
+      if (type === "knifeFan" || type === "fireVolley") {
+        const count = type === "fireVolley" ? 3 : 3;
+        const spread = type === "fireVolley" ? 0.22 : 0.24;
+        for (let i = 0; i < count; i++) {
+          const aOff = angle + (i - (count - 1) / 2) * spread;
+          this.addEffect({ type: "lineTell", x: enemy.x, y: enemy.y, angle: aOff, length: enemy.elite ? 420 : 360, width: enemy.elite ? 26 : 20, time, maxTime: time, color: type === "fireVolley" ? "#ffb066" : "#dfe6ef" });
+        }
+      }
+      if (type === "flashBomb") {
+        const radius = enemy.elite ? 92 : 72;
+        this.addEffect({ type: "danger", x: targetX, y: targetY, radius, time: time + 0.3, color: "#ffd166", damage: 0, visualOnly: true });
+      }
+      if (type === "webSpit") {
+        this.addEffect({ type: "lineTell", x: enemy.x, y: enemy.y, angle, length: enemy.elite ? 340 : 290, width: enemy.elite ? 40 : 32, time, maxTime: time, color: "#c8ffe0" });
+      }
+      if (type === "shadowBlast") {
+        this.addEffect({ type: "lineTell", x: enemy.x, y: enemy.y, angle, length: enemy.elite ? 460 : 400, width: enemy.elite ? 34 : 26, time, maxTime: time, color: "#d7c4ff" });
+      }
+      if (type === "darkLance") {
+        this.addEffect({ type: "lineTell", x: enemy.x, y: enemy.y, angle, length: enemy.elite ? 320 : 260, width: enemy.elite ? 54 : 42, time, maxTime: time, color: "#ff4058" });
+        this.addShockwave(enemy.x, enemy.y, enemy.radius + 6, "#3a1220", 0);
+      }
+      if (type === "boulder") {
+        this.addEffect({ type: "danger", x: targetX || enemy.x, y: targetY || enemy.y, radius: enemy.elite ? 78 : 62, time: time + 0.14, color: "#b5c0c8", visualOnly: true });
+      }
+      if (type === "iceSlam") {
+        const px = enemy.x + Math.cos(angle) * (enemy.radius + 36);
+        const py = enemy.y + Math.sin(angle) * (enemy.radius + 36);
+        this.addEffect({ type: "danger", x: px, y: py, radius: enemy.elite ? 104 : 82, time, color: "#bfeeff", damage: enemy.damage * 0.58 });
+      }
+      if (type === "clawRage") {
+        for (const offset of [-0.5, 0, 0.5]) {
+          this.addEffect({ type: "lineTell", x: enemy.x, y: enemy.y, angle: angle + offset, length: enemy.elite ? 200 : 165, width: enemy.elite ? 46 : 36, time: time * 0.7, maxTime: time, color: "#f3ead7" });
+        }
+      }
+      if (type === "crystalBurst") {
+        const count = enemy.elite ? 7 : 5;
+        const spread = enemy.elite ? 0.3 : 0.24;
+        for (let i = 0; i < count; i++) {
+          const aOff = angle + (i - (count - 1) / 2) * spread;
+          this.addEffect({ type: "lineTell", x: enemy.x, y: enemy.y, angle: aOff, length: enemy.elite ? 360 : 300, width: enemy.elite ? 18 : 14, time, maxTime: time, color: "#cfe3ff" });
+        }
+      }
+      if (type === "shadowDagger") {
+        this.addEffect({ type: "lineTell", x: enemy.x, y: enemy.y, angle, length: enemy.elite ? 380 : 320, width: enemy.elite ? 22 : 17, time, maxTime: time, color: "#ead7ff" });
       }
     }
 
@@ -22291,6 +22361,189 @@
           this.run.enemies.push(minion);
           this.audio.enemy(minion, "spawn");
           this.addShockwave(x, y, 52, "#a169ff", 0, { owner: "enemy" });
+        }
+      }
+      const lobTargetX = Number(enemy.windupX) || player.x;
+      const lobTargetY = Number(enemy.windupY) || player.y;
+      const lobDx = lobTargetX - enemy.x;
+      const lobDy = lobTargetY - enemy.y;
+      const lobDist = Math.max(1, Math.hypot(lobDx, lobDy));
+      const lobDirX = lobDx / lobDist;
+      const lobDirY = lobDy / lobDist;
+      const throwLob = (cfg) => {
+        const speed = enemy.elite ? cfg.speedElite : cfg.speed;
+        const travelTime = Math.max(0.45, lobDist / speed);
+        const dirX = cfg.dirx !== undefined ? cfg.dirx : lobDirX;
+        const dirY = cfg.diry !== undefined ? cfg.diry : lobDirY;
+        this.spawnProjectile({
+          owner: "enemy",
+          x: enemy.x + dirX * enemy.radius,
+          y: enemy.y + dirY * enemy.radius - 6,
+          vx: dirX * speed,
+          vy: dirY * speed - 190,
+          radius: enemy.elite ? cfg.radiusElite : cfg.radius,
+          damage: 0,
+          life: travelTime + 0.3,
+          color: cfg.color,
+          kind: "enemyBomb",
+          enemyFuse: cfg.fuse > 0 ? cfg.fuse : travelTime,
+          bombTargetX: lobTargetX,
+          bombTargetY: lobTargetY,
+          bombDamage: enemy.damage * cfg.dmgMult,
+          bombRadius: enemy.elite ? cfg.boomElite : cfg.boom,
+          bombColor: cfg.explodeColor,
+          bombKind: cfg.kind,
+          bossDebuff: Boolean(enemy.boss)
+        });
+      };
+      if (type === "boneArrow") {
+        this.spawnProjectile({
+          owner: "enemy",
+          x: enemy.x + Math.cos(angle) * enemy.radius,
+          y: enemy.y + Math.sin(angle) * enemy.radius,
+          vx: Math.cos(angle) * (enemy.elite ? 510 : 460),
+          vy: Math.sin(angle) * (enemy.elite ? 510 : 460),
+          radius: enemy.elite ? 8 : 7,
+          damage: enemy.damage * 0.8,
+          life: 2.3,
+          color: "#e8ddc6",
+          pierce: 0,
+          kind: "enemyBoneArrow"
+        });
+      }
+      if (type === "boneSlam") {
+        const px = enemy.x + Math.cos(angle) * (enemy.radius + 34);
+        const py = enemy.y + Math.sin(angle) * (enemy.radius + 34);
+        this.addShockwave(px, py, enemy.elite ? 120 : 96, "#e8ddc6", 0, { owner: "enemy" });
+        this.camera.shake = Math.max(this.camera.shake, enemy.elite ? 9 : 6);
+        for (let i = 0; i < 6; i++) {
+          const a = TAU * (i / 6) + rand(-0.2, 0.2);
+          const d = rand(enemy.radius + 6, enemy.radius + 52);
+          this.addParticle(px, py, "#dccfb6", rand(4, 8), rand(0.3, 0.6), "shard", a, rand(90, 220));
+        }
+        if (Math.hypot(player.x - px, player.y - py) < (enemy.elite ? 120 : 96) + player.radius) {
+          this.damageCombatTarget(player, enemy.damage * 0.6, enemy);
+        }
+      }
+      if (type === "spittle") {
+        throwLob({ kind: "spittle", color: "#62e6a7", explodeColor: "#c8ffe2", speed: 360, speedElite: 430, radius: 5, radiusElite: 6, boom: 58, boomElite: 70, dmgMult: 0.6, fuse: 0 });
+      }
+      if (type === "rotLauncher") {
+        throwLob({ kind: "rotLauncher", color: "#79a860", explodeColor: "#9abf6b", speed: 300, speedElite: 360, radius: 8, radiusElite: 10, boom: 66, boomElite: 80, dmgMult: 0.56, fuse: 0 });
+      }
+      if (type === "boulder") {
+        throwLob({ kind: "boulder", color: "#7b8790", explodeColor: "#b5c0c8", speed: 250, speedElite: 300, radius: 12, radiusElite: 15, boom: 86, boomElite: 104, dmgMult: 0.72, fuse: 0 });
+      }
+      if (type === "sporeBurst") {
+        throwLob({ kind: "sporeBurst", color: "#f0e7cf", explodeColor: "#ff5f79", speed: 300, speedElite: 350, radius: 7, radiusElite: 8, boom: 74, boomElite: 90, dmgMult: 0.5, fuse: 0 });
+      }
+      if (type === "shadowDagger") {
+        for (const off of [-0.18, 0.18]) {
+          throwLob({ kind: "shadowDagger", color: "#6b45d9", explodeColor: "#d7c4ff", speed: 340, speedElite: 400, radius: 4, radiusElite: 5, boom: 46, boomElite: 56, dmgMult: 0.5, fuse: 0, dirx: Math.cos(angle + off), diry: Math.sin(angle + off) });
+        }
+      }
+      if (type === "flashBomb") {
+        throwLob({ kind: "flashBomb", color: "#ffd166", explodeColor: "#fff3c0", speed: 420, speedElite: 500, radius: 7, radiusElite: 8, boom: 88, boomElite: 104, dmgMult: 0.62, fuse: 0 });
+      }
+      if (type === "frostShards") {
+        const count = enemy.elite ? 5 : 3;
+        for (let i = 0; i < count; i++) {
+          const a = angle + (i - (count - 1) / 2) * 0.24;
+          this.spawnProjectile({
+            owner: "enemy",
+            x: enemy.x + Math.cos(a) * enemy.radius,
+            y: enemy.y + Math.sin(a) * enemy.radius,
+            vx: Math.cos(a) * (enemy.elite ? 340 : 300),
+            vy: Math.sin(a) * (enemy.elite ? 340 : 300),
+            radius: enemy.elite ? 6 : 5,
+            damage: enemy.damage * 0.52,
+            life: 2.2,
+            color: "#bfeeff",
+            pierce: 0,
+            kind: "enemyFrost"
+          });
+        }
+      }
+      if (type === "knifeFan") {
+        const count = 3;
+        for (let i = 0; i < count; i++) {
+          const a = angle + (i - (count - 1) / 2) * 0.24;
+          this.spawnProjectile({
+            owner: "enemy", x: enemy.x + Math.cos(a) * enemy.radius, y: enemy.y + Math.sin(a) * enemy.radius,
+            vx: Math.cos(a) * 380, vy: Math.sin(a) * 380, radius: enemy.elite ? 6 : 5,
+            damage: enemy.damage * 0.5, life: 1.8, color: "#dfe6ef", pierce: 0, kind: "enemyKnife"
+          });
+        }
+      }
+      if (type === "webSpit") {
+        throwLob({ kind: "webSpit", color: "#c8ffe0", explodeColor: "#c8ffe0", speed: 300, speedElite: 340, radius: 7, radiusElite: 8, boom: 62, boomElite: 74, dmgMult: 0.4, fuse: 0 });
+      }
+      if (type === "shadowBlast") {
+        this.spawnProjectile({
+          owner: "enemy", x: enemy.x + Math.cos(angle) * enemy.radius, y: enemy.y + Math.sin(angle) * enemy.radius,
+          vx: Math.cos(angle) * (enemy.elite ? 460 : 410), vy: Math.sin(angle) * (enemy.elite ? 460 : 410),
+          radius: enemy.elite ? 11 : 9, damage: enemy.damage * 0.7, life: 2.4, color: "#6b45d9", pierce: 1, kind: "enemyShadowBolt"
+        });
+      }
+      if (type === "darkLance") {
+        this.spawnProjectile({
+          owner: "enemy", x: enemy.x + Math.cos(angle) * (enemy.radius + 10), y: enemy.y + Math.sin(angle) * (enemy.radius + 10),
+          vx: Math.cos(angle) * (enemy.elite ? 320 : 275), vy: Math.sin(angle) * (enemy.elite ? 320 : 275),
+          radius: enemy.elite ? 9 : 7, damage: enemy.damage * 0.66, life: 2.0, color: "#ff4058", pierce: 0, kind: "enemyLance"
+        });
+        this.addShockwave(enemy.x, enemy.y, enemy.radius + 12, "#3a1220", 0);
+        enemy.vx -= Math.cos(angle) * 60;
+        enemy.vy -= Math.sin(angle) * 60;
+      }
+      if (type === "fireVolley") {
+        const count = enemy.elite ? 5 : 3;
+        for (let i = 0; i < count; i++) {
+          const a = angle + (i - (count - 1) / 2) * 0.22;
+          this.spawnProjectile({
+            owner: "enemy", x: enemy.x + Math.cos(a) * enemy.radius, y: enemy.y + Math.sin(a) * enemy.radius,
+            vx: Math.cos(a) * (enemy.elite ? 360 : 320), vy: Math.sin(a) * (enemy.elite ? 360 : 320),
+            radius: enemy.elite ? 9 : 8, damage: enemy.damage * 0.5, life: 2.2, color: "#ff944d", pierce: 0, kind: "enemyFireball"
+          });
+        }
+      }
+      if (type === "iceSlam") {
+        const px = enemy.x + Math.cos(angle) * (enemy.radius + 36);
+        const py = enemy.y + Math.sin(angle) * (enemy.radius + 36);
+        this.addShockwave(px, py, enemy.elite ? 120 : 96, "#bfeeff", 0, { owner: "enemy" });
+        this.camera.shake = Math.max(this.camera.shake, enemy.elite ? 8 : 5);
+        for (let i = 0; i < 8; i++) {
+          const a = TAU * (i / 8) + rand(-0.18, 0.18);
+          this.addParticle(px, py, "#ffffff", rand(4, 8), rand(0.3, 0.55), "shard", a, rand(100, 240));
+        }
+        if (Math.hypot(player.x - px, player.y - py) < (enemy.elite ? 120 : 96) + player.radius) {
+          this.damageCombatTarget(player, enemy.damage * 0.58, enemy);
+        }
+      }
+      if (type === "clawRage") {
+        const dx = player.x - enemy.x;
+        const dy = player.y - enemy.y;
+        const d = Math.hypot(dx, dy);
+        const targetAngle = Math.atan2(dy, dx);
+        for (const offset of [-0.5, 0, 0.5]) {
+          if (d < enemy.radius + player.radius + 104 && Math.abs(angleDelta(targetAngle, angle + offset)) < Math.PI * 0.4) {
+            this.damageCombatTarget(player, enemy.damage * 0.4, enemy);
+          }
+          this.addParticle(enemy.x, enemy.y, "#f3ead7", rand(5, 9), 0.24, "shard", angle + offset + Math.PI * 0.15, rand(140, 240));
+        }
+        const lungeSpeed = enemy.elite ? 150 : 110;
+        enemy.vx += Math.cos(angle) * lungeSpeed;
+        enemy.vy += Math.sin(angle) * lungeSpeed;
+      }
+      if (type === "crystalBurst") {
+        const count = enemy.elite ? 7 : 5;
+        const spread = enemy.elite ? 0.3 : 0.24;
+        for (let i = 0; i < count; i++) {
+          const a = angle + (i - (count - 1) / 2) * spread;
+          this.spawnProjectile({
+            owner: "enemy", x: enemy.x + Math.cos(a) * enemy.radius, y: enemy.y + Math.sin(a) * enemy.radius,
+            vx: Math.cos(a) * (enemy.elite ? 320 : 285), vy: Math.sin(a) * (enemy.elite ? 320 : 285),
+            radius: enemy.elite ? 6 : 5, damage: enemy.damage * 0.42, life: 2.0, color: "#cfe3ff", pierce: 0, kind: "enemyCrystal"
+          });
         }
       }
     }
@@ -24830,20 +25083,39 @@
       const y = Number.isFinite(projectile.y) ? projectile.y : 0;
       const radius = Number(projectile.bombRadius) || 76;
       const damage = Number(projectile.bombDamage) || 10;
+      const boomColor = projectile.bombColor || "#ff8d3d";
+      const kind = projectile.bombKind || "bombZone";
       this.addEffect({
         type: "danger",
         x,
         y,
         radius,
         time: 0.14,
-        color: "#ff8d3d",
+        color: boomColor,
         damage
       });
-      this.addShockwave(x, y, radius + 26, "#ff8d3d", 0, { owner: "enemy" });
+      this.addShockwave(x, y, radius + 26, boomColor, 0, { owner: "enemy" });
+      const particleA = kind === "boulder" ? "#b5c0c8" : kind === "spittle" ? "#a0f0c8" : kind === "rotLauncher" ? "#9abf6b" : kind === "sporeBurst" ? "#ff8fa6" : kind === "shadowDagger" ? "#d7c4ff" : kind === "flashBomb" ? "#fff3c0" : "#ffd166";
+      const particleB = kind === "boulder" ? "#6a737c" : kind === "spittle" ? "#62e6a7" : kind === "rotLauncher" ? "#6f8a4e" : kind === "sporeBurst" ? "#ff5f79" : kind === "shadowDagger" ? "#6b45d9" : kind === "flashBomb" ? "#ffd166" : "#ff8d3d";
       for (let i = 0; i < 16; i++) {
         const a = rand(0, TAU);
         const d = rand(0, radius * 0.4);
-        this.addParticle(x + Math.cos(a) * d, y + Math.sin(a) * d, rand(0.5) ? "#ff8d3d" : "#ffd166", rand(6, 14), rand(0.2, 0.5), "spark", a, rand(120, 320));
+        this.addParticle(x + Math.cos(a) * d, y + Math.sin(a) * d, rand(0.5) ? particleA : particleB, rand(6, 14), rand(0.2, 0.5), kind === "boulder" ? "shard" : "spark", a, rand(120, 320));
+      }
+      if (kind === "sporeBurst") {
+        for (let i = 0; i < 4; i++) {
+          const a = (i / 4) * TAU;
+          this.spawnProjectile({
+            owner: "enemy", x, y,
+            vx: Math.cos(a) * 120, vy: Math.sin(a) * 120,
+            radius: 4, damage: Math.max(1, Math.round(damage * 0.4)),
+            life: 1.2, color: "#ffb6c4", pierce: 0, kind: "enemySpore"
+          });
+        }
+      }
+      if (kind === "webSpit" && !this.isMultiplayerClient() && this.run.player && Math.hypot(this.run.player.x - x, this.run.player.y - y) < radius) {
+        const wp = this.run.player;
+        wp.webBind = Math.max(wp.webBind || 0, 2.2);
       }
       if (!this.isMultiplayerClient() && this.run.player && Math.hypot(this.run.player.x - x, this.run.player.y - y) < radius) {
         this.camera.shake = Math.max(this.camera.shake, 9);
@@ -27488,27 +27760,165 @@
         ctx.lineTo(-projectile.radius * 0.1, projectile.radius * 0.5);
         ctx.lineTo(projectile.radius * 1.2, -projectile.radius * 0.1);
         ctx.stroke();
-      } else if (projectile.kind === "enemyBomb") {
+      } else if (projectile.kind === "enemyBoneArrow") {
         const r = projectile.radius;
-        ctx.rotate(-Math.PI / 2);
+        ctx.shadowBlur = this.glow(8);
+        ctx.fillStyle = "#e8ddc6";
+        ctx.fillRect(-r * 3.1, -r * 0.3, r * 4.6, r * 0.6);
+        ctx.fillStyle = "#7ddcff";
+        ctx.beginPath();
+        ctx.moveTo(r * 2.3, 0);
+        ctx.lineTo(r * 1.1, -r * 0.9);
+        ctx.lineTo(r * 1.1, r * 0.9);
+        ctx.closePath();
+        ctx.fill();
+        ctx.fillStyle = "#948978";
+        ctx.fillRect(-r * 3.6, -r * 0.55, r * 0.5, r * 1.1);
+      } else if (projectile.kind === "enemyFrost") {
+        const r = projectile.radius;
         ctx.shadowBlur = this.glow(9);
-        ctx.fillStyle = "#241a12";
+        ctx.fillStyle = "#bfeeff";
+        ctx.beginPath();
+        ctx.moveTo(r * 2.1, 0);
+        ctx.lineTo(-r * 1.3, -r * 0.85);
+        ctx.lineTo(-r * 0.4, 0);
+        ctx.lineTo(-r * 1.3, r * 0.85);
+        ctx.closePath();
+        ctx.fill();
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(-r * 0.6, -1, r * 2.2, 2);
+      } else if (projectile.kind === "enemyKnife") {
+        const r = projectile.radius;
+        ctx.shadowBlur = this.glow(8);
+        ctx.fillStyle = "#dfe6ef";
+        ctx.beginPath();
+        ctx.moveTo(r * 2.2, 0);
+        ctx.lineTo(-r * 1.3, -r * 0.6);
+        ctx.lineTo(-r * 0.5, 0);
+        ctx.lineTo(-r * 1.3, r * 0.6);
+        ctx.closePath();
+        ctx.fill();
+        ctx.fillStyle = "#6b4a2d";
+        ctx.fillRect(-r * 2.6, -r * 0.4, r * 1.5, r * 0.8);
+      } else if (projectile.kind === "enemyShadowBolt") {
+        const r = projectile.radius;
+        ctx.shadowBlur = this.glow(12);
+        ctx.fillStyle = "#6b45d9";
         ctx.beginPath();
         ctx.arc(0, 0, r, 0, TAU);
         ctx.fill();
-        ctx.strokeStyle = "#3a2f24";
-        ctx.lineWidth = 1.5;
-        ctx.stroke();
-        ctx.fillStyle = "#4b5260";
-        ctx.fillRect(-r * 0.6, r * 0.25, r * 1.2, r * 0.8);
-        ctx.fillStyle = "#8b5a2b";
-        ctx.fillRect(-1.5, -r * 2.1, 3, r * 1.2);
-        ctx.fillStyle = "#ff8d3d";
+        ctx.fillStyle = "#d7c4ff";
         ctx.beginPath();
-        ctx.arc(0, -r * 2.3, r * 0.34, 0, TAU);
+        ctx.arc(r * 0.4, 0, r * 0.45, 0, TAU);
+        ctx.fill();
+        ctx.fillStyle = "#160826";
+        for (let i = 0; i < 3; i++) {
+          ctx.beginPath();
+          ctx.arc(-r * 0.6 - i * r * 0.35, 0, r * 0.2, 0, TAU);
+          ctx.fill();
+        }
+      } else if (projectile.kind === "enemyLance") {
+        const r = projectile.radius;
+        ctx.shadowBlur = this.glow(12);
+        ctx.fillStyle = "#3a1220";
+        ctx.fillRect(-r * 4, -r * 0.32, r * 7, r * 0.64);
+        ctx.fillStyle = "#ff4058";
+        ctx.beginPath();
+        ctx.moveTo(r * 3.2, 0);
+        ctx.lineTo(r * 1.2, -r * 1.1);
+        ctx.lineTo(r * 1.2, r * 1.1);
+        ctx.closePath();
+        ctx.fill();
+        ctx.fillStyle = "#9aa0a8";
+        ctx.fillRect(-r * 4.4, -r * 0.6, r * 0.6, r * 1.2);
+      } else if (projectile.kind === "enemyFireball") {
+        const r = projectile.radius;
+        ctx.shadowBlur = this.glow(13);
+        const flick = 1 + Math.sin(this.menuTime * 30 + projectile.age * 18) * 0.12;
+        ctx.fillStyle = "#ff944d";
+        ctx.beginPath();
+        ctx.arc(0, 0, r * flick, 0, TAU);
+        ctx.fill();
+        ctx.fillStyle = "#ffd166";
+        ctx.beginPath();
+        ctx.arc(r * 0.25, 0, r * 0.5, 0, TAU);
+        ctx.fill();
+        ctx.fillStyle = "#fff0a8";
+        ctx.beginPath();
+        ctx.arc(r * 0.4, 0, r * 0.22, 0, TAU);
+        ctx.fill();
+      } else if (projectile.kind === "enemyCrystal" || projectile.kind === "enemySpore") {
+        const r = projectile.radius;
+        ctx.shadowBlur = this.glow(9);
+        ctx.fillStyle = projectile.kind === "enemyCrystal" ? "#cfe3ff" : "#ffb6c4";
+        ctx.beginPath();
+        ctx.moveTo(0, -r * 1.4);
+        ctx.lineTo(r * 0.8, 0);
+        ctx.lineTo(0, r * 1.4);
+        ctx.lineTo(-r * 0.8, 0);
+        ctx.closePath();
         ctx.fill();
         ctx.fillStyle = "#ffffff";
-        ctx.fillRect(-r * 0.14, -r * 2.5, r * 0.28, r * 0.34);
+        ctx.fillRect(0, -2, r * 0.55, 4);
+      } else if (projectile.kind === "enemyBomb") {
+        const r = projectile.radius;
+        const bk = projectile.bombKind || "bombZone";
+        if (bk === "boulder") {
+          ctx.shadowBlur = this.glow(10);
+          ctx.fillStyle = "#7b8790";
+          ctx.beginPath();
+          ctx.arc(0, 0, r * 1.1, 0, TAU);
+          ctx.fill();
+          ctx.fillStyle = "#39424a";
+          ctx.beginPath();
+          ctx.arc(r * 0.45, -r * 0.35, r * 0.35, 0, TAU);
+          ctx.fill();
+          ctx.strokeStyle = "#5e6870";
+          ctx.lineWidth = 1.2;
+          ctx.stroke();
+        } else if (bk === "spittle" || bk === "sporeBurst" || bk === "rotLauncher") {
+          const wob = 1 + Math.sin(this.menuTime * 24 + projectile.age * 14) * 0.1;
+          ctx.shadowBlur = this.glow(10);
+          ctx.fillStyle = bk === "spittle" ? "#62e6a7" : bk === "sporeBurst" ? "#ff9fb4" : "#9abf6b";
+          ctx.beginPath();
+          ctx.arc(0, 0, r * wob, 0, TAU);
+          ctx.fill();
+          ctx.fillStyle = bk === "spittle" ? "#c8ffe2" : bk === "sporeBurst" ? "#ffd1dc" : "#d7c8aa";
+          ctx.beginPath();
+          ctx.arc(r * 0.3, -r * 0.3, r * 0.4, 0, TAU);
+          ctx.fill();
+        } else if (bk === "shadowDagger") {
+          ctx.shadowBlur = this.glow(10);
+          ctx.fillStyle = "#6b45d9";
+          ctx.fillRect(-r * 1.1, -r * 0.35, r * 2.2, r * 0.7);
+          ctx.fillStyle = "#d7c4ff";
+          ctx.beginPath();
+          ctx.moveTo(r * 1.3, 0);
+          ctx.lineTo(r * 0.1, -r * 0.8);
+          ctx.lineTo(r * 0.1, r * 0.8);
+          ctx.closePath();
+          ctx.fill();
+        } else {
+          ctx.rotate(-Math.PI / 2);
+          ctx.shadowBlur = this.glow(9);
+          ctx.fillStyle = bk === "flashBomb" ? "#3a3a2a" : "#241a12";
+          ctx.beginPath();
+          ctx.arc(0, 0, r, 0, TAU);
+          ctx.fill();
+          ctx.strokeStyle = "#3a2f24";
+          ctx.lineWidth = 1.5;
+          ctx.stroke();
+          ctx.fillStyle = "#4b5260";
+          ctx.fillRect(-r * 0.6, r * 0.25, r * 1.2, r * 0.8);
+          ctx.fillStyle = "#8b5a2b";
+          ctx.fillRect(-1.5, -r * 2.1, 3, r * 1.2);
+          ctx.fillStyle = bk === "flashBomb" ? "#ffd166" : "#ff8d3d";
+          ctx.beginPath();
+          ctx.arc(0, -r * 2.3, r * 0.34, 0, TAU);
+          ctx.fill();
+          ctx.fillStyle = "#ffffff";
+          ctx.fillRect(-r * 0.14, -r * 2.5, r * 0.28, r * 0.34);
+        }
       } else {
         ctx.beginPath();
         ctx.arc(0, 0, projectile.radius, 0, TAU);

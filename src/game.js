@@ -10,7 +10,7 @@
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
   const SIGNAL_REALTIME_RELAY_LIMIT = 2;
   const SIGNAL_REALTIME_TYPES = new Set(["state", "snapshot", "attack", "skill", "collect", "openChest", "dropItem", "damage", "chooseDoor"]);
-  const APP_VERSION = "20260718-pixel-vfx-324";
+  const APP_VERSION = "20260718-pixel-vfx-325";
   const CHANGELOG_ENTRIES = [
     {
       version: APP_VERSION,
@@ -28338,7 +28338,8 @@
         return;
       }
 
-      this.drawAwakenedGroundAura(ctx, kind, color, accent, dark, t, lowDetail);
+      this.drawAwakenedGroundAura(ctx, kind, color, accent, dark, t, lowDetail, lowDetail ? 17 : 20);
+      const feetY = lowDetail ? 17 : 20;
       const count = lowDetail ? 2 : (kind === "lightning" ? 3 : 3);
       const drift = kind === "lightning" ? 4.8 : kind === "fire" ? 3.4 : kind === "time" ? 2.4 : 2.8;
       for (let i = 0; i < count; i++) {
@@ -28349,10 +28350,10 @@
         const angle = seed * 2.9 + Math.cos(t * 0.7 + seed) * 0.22;
         const sideBias = i % 2 ? 1 : -1;
         const rx = 8.5 + pop * 1.6;
-        const ry = 11 + pop * (kind === "lightning" ? 2.4 : 1.4);
+        const ry = 9 + pop * (kind === "lightning" ? 2 : 1.2);
         const px = Math.cos(angle) * rx + Math.sin(t * 5.1 + seed) * 1.4;
-        const py = -5 + Math.sin(angle) * ry + Math.cos(t * 4.2 + seed) * 1.0;
-        const size = (lowDetail ? 4 : 4.8) + pop * 1.4;
+        const py = feetY - 2 + Math.sin(angle) * ry + Math.cos(t * 4.2 + seed) * 1.0;
+        const size = (lowDetail ? 4 : 4.6) + pop * 1.3;
         ctx.save();
         ctx.translate(px + sideBias * 1.5, py);
         ctx.rotate(angle + (kind === "time" ? t * 1.2 : phase * 1.8));
@@ -28366,7 +28367,7 @@
         const phase = (t * 6.4 + seed) % 1;
         const alpha = Math.sin(phase * Math.PI);
         if (alpha > 0.24) {
-          const y = -20 + Math.sin(t * 7 + seed) * 2;
+          const y = 7 + Math.sin(t * 7 + seed) * 2;
           ctx.save();
           ctx.globalAlpha = 0.5 * alpha;
           ctx.strokeStyle = accent;
@@ -28383,26 +28384,26 @@
       ctx.restore();
     }
 
-    drawAwakenedGroundAura(ctx, kind, color, accent, dark, t, lowDetail) {
+    drawAwakenedGroundAura(ctx, kind, color, accent, dark, t, lowDetail, feetY = 20) {
       const r = lowDetail ? 9 : 11;
       const wr = r + (kind === "fire" || kind === "shadow" ? 2 : 0);
       ctx.save();
       ctx.globalAlpha = lowDetail ? 0.55 : 0.7;
       ctx.fillStyle = dark;
       ctx.beginPath();
-      ctx.ellipse(0, 4, wr + 1, wr * 0.52, 0, 0, TAU);
+      ctx.ellipse(0, feetY, wr + 1, wr * 0.52, 0, 0, TAU);
       ctx.fill();
       ctx.globalAlpha = lowDetail ? 0.5 : 0.66;
       ctx.strokeStyle = color;
       ctx.lineWidth = lowDetail ? 1.6 : 2;
       ctx.beginPath();
-      ctx.ellipse(0, 4, wr + 0.5, wr * 0.5, 0, 0, TAU);
+      ctx.ellipse(0, feetY, wr + 0.5, wr * 0.5, 0, 0, TAU);
       ctx.stroke();
       ctx.globalAlpha = lowDetail ? 0.34 : 0.42;
       ctx.strokeStyle = accent;
       ctx.lineWidth = lowDetail ? 1 : 1.3;
       ctx.beginPath();
-      ctx.ellipse(0, 4, wr * 0.66, wr * 0.34, 0, 0, TAU);
+      ctx.ellipse(0, feetY, wr * 0.66, wr * 0.34, 0, 0, TAU);
       ctx.stroke();
 
       if (kind === "gravity" || kind === "void") {
@@ -28412,7 +28413,7 @@
         ctx.strokeStyle = accent;
         ctx.lineWidth = lowDetail ? 1 : 1.3;
         ctx.beginPath();
-        ctx.ellipse(0, 4, rr, rr * 0.48, 0, 0, TAU);
+        ctx.ellipse(0, feetY, rr, rr * 0.48, 0, 0, TAU);
         ctx.stroke();
       } else if (kind === "time") {
         const ticks = lowDetail ? 4 : 8;
@@ -28423,8 +28424,8 @@
           const a = i / ticks * TAU + t * 0.5;
           const cx = Math.cos(a), sy = Math.sin(a);
           ctx.beginPath();
-          ctx.moveTo(cx * (wr - 2.6), 4 + sy * (wr - 4.4) * 0.5);
-          ctx.lineTo(cx * (wr + 1.6), 4 + sy * (wr + 3) * 0.5);
+          ctx.moveTo(cx * (wr - 2.6), feetY + sy * (wr - 4.4) * 0.5);
+          ctx.lineTo(cx * (wr + 1.6), feetY + sy * (wr + 3) * 0.5);
           ctx.stroke();
         }
       } else if (kind === "ice") {
@@ -28436,8 +28437,8 @@
           const a = i / n * TAU + t * 0.22 + 0.2;
           const rr2 = wr * (0.6 + 0.5 * Math.abs(Math.sin(t * 2.1 + i)));
           ctx.beginPath();
-          ctx.moveTo(Math.cos(a) * (rr2 - 1.4), 4 + Math.sin(a) * (rr2 - 1.4) * 0.5);
-          ctx.lineTo(Math.cos(a) * (rr2 + 1.6), 4 + Math.sin(a) * (rr2 + 1.6) * 0.5);
+          ctx.moveTo(Math.cos(a) * (rr2 - 1.4), feetY + Math.sin(a) * (rr2 - 1.4) * 0.5);
+          ctx.lineTo(Math.cos(a) * (rr2 + 1.6), feetY + Math.sin(a) * (rr2 + 1.6) * 0.5);
           ctx.stroke();
         }
       } else if (kind === "lightning" || kind === "fire") {
@@ -28448,7 +28449,7 @@
         for (let i = 0; i < n; i++) {
           const a = i / n * TAU + t * 1.8;
           const bx = Math.cos(a) * wr * 0.9;
-          const by = 4 + Math.sin(a) * wr * 0.45;
+          const by = feetY + Math.sin(a) * wr * 0.45;
           ctx.beginPath();
           ctx.moveTo(bx - 2.2, by);
           ctx.lineTo(bx + 2.2, by - (kind === "fire" ? 2.6 : 3.4) * (0.6 + 0.5 * Math.sin(t * 5 + i)));
@@ -28463,7 +28464,7 @@
         const bx = Math.cos(a) * (r * 0.9);
         ctx.save();
         ctx.globalAlpha = lowDetail ? 0.34 : 0.44;
-        ctx.translate(bx, 2 + Math.sin(a) * (r * 0.46));
+        ctx.translate(bx, feetY - 2 + Math.sin(a) * (r * 0.46));
         ctx.rotate(0);
         ctx.lineWidth = 1.4;
         ctx.strokeStyle = accent;
@@ -28478,7 +28479,7 @@
         const a = Math.sin(ph * Math.PI);
         if (a <= 0.3) continue;
         const ux = -r + ph * r * 2 + Math.sin(t * 3 + s) * 1.2;
-        const uy = 5 + ph * -1 - Math.abs(Math.cos(ph * Math.PI)) * (r * 0.5);
+        const uy = feetY + 2 + ph * -1 - Math.abs(Math.cos(ph * Math.PI)) * (r * 0.5);
         ctx.save();
         ctx.translate(ux, uy);
         ctx.globalAlpha = (lowDetail ? 0.3 : 0.38) * a;
@@ -28486,7 +28487,7 @@
         ctx.lineWidth = 1.3;
         ctx.strokeStyle = accent;
         ctx.fillStyle = accent;
-        this.drawAwakenedPlume(ctx, kind, 3.4 + a * 1.4, accent);
+        this.drawAwakenedPlume(ctx, kind, 3.2 + a * 1.2, accent);
         ctx.restore();
       }
       ctx.restore();

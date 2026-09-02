@@ -10,7 +10,7 @@
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
   const SIGNAL_REALTIME_RELAY_LIMIT = 2;
   const SIGNAL_REALTIME_TYPES = new Set(["state", "snapshot", "attack", "skill", "collect", "openChest", "dropItem", "damage", "chooseDoor"]);
-  const APP_VERSION = "20260718-pixel-vfx-326";
+  const APP_VERSION = "20260718-pixel-vfx-327";
   const CHANGELOG_ENTRIES = [
     {
       version: APP_VERSION,
@@ -28336,11 +28336,6 @@
       const wr = (lowDetail ? 16 : 20) + (kind === "fire" || kind === "shadow" ? 2 : 0);
       const r = Math.round(wr * 0.82);
       ctx.save();
-      ctx.globalAlpha = lowDetail ? 0.55 : 0.72;
-      ctx.fillStyle = dark;
-      ctx.beginPath();
-      ctx.ellipse(0, feetY, wr + 2, wr * 0.56, 0, 0, TAU);
-      ctx.fill();
       ctx.globalAlpha = lowDetail ? 0.5 : 0.66;
       ctx.strokeStyle = color;
       ctx.lineWidth = lowDetail ? 1.6 : 2;

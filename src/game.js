@@ -10,7 +10,7 @@
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
   const SIGNAL_REALTIME_RELAY_LIMIT = 2;
   const SIGNAL_REALTIME_TYPES = new Set(["state", "snapshot", "attack", "skill", "collect", "openChest", "dropItem", "damage", "chooseDoor"]);
-  const APP_VERSION = "20260718-pixel-vfx-327";
+  const APP_VERSION = "20260718-pixel-vfx-328";
   const CHANGELOG_ENTRIES = [
     {
       version: APP_VERSION,
@@ -919,6 +919,7 @@
       slot: "Assist",
       rarity: "rare",
       icon: "GIÀY",
+      shape: "boot",
       text: "Tăng mạnh tốc độ chạy nhưng giảm năng lượng tối đa trong lượt."
     },
     {
@@ -927,6 +928,7 @@
       slot: "Assist",
       rarity: "rare",
       icon: "GĂNG",
+      shape: "glove",
       text: "Đòn thường đau hơn nhưng nhịp đánh chậm hơn một chút."
     },
     {
@@ -935,6 +937,7 @@
       slot: "Assist",
       rarity: "rare",
       icon: "MÁU",
+      shape: "jar",
       text: "Tăng máu tối đa, đổi lại di chuyển nặng hơn nhẹ."
     },
     {
@@ -943,6 +946,7 @@
       slot: "Assist",
       rarity: "epic",
       icon: "SÉT",
+      shape: "needle",
       text: "Tăng chí mạng, thỉnh thoảng chí mạng lan sét sang mục tiêu gần."
     },
     {
@@ -951,6 +955,7 @@
       slot: "Assist",
       rarity: "epic",
       icon: "DR",
+      shape: "core",
       text: "Gọi một drone bắn hỗ trợ, nhưng hồi năng lượng chậm hơn."
     },
     {
@@ -959,6 +964,7 @@
       slot: "Assist",
       rarity: "legendary",
       icon: "BĂNG",
+      shape: "bell",
       text: "Kẻ địch đang lạnh vỡ thành mảnh xuyên thấu khi bị hạ."
     },
     {
@@ -967,6 +973,7 @@
       slot: "Assist",
       rarity: "epic",
       icon: "HÚT",
+      shape: "vial",
       text: "Hút máu nhẹ theo sát thương, nhưng giảm một phần máu tối đa."
     },
     {
@@ -975,6 +982,7 @@
       slot: "Assist",
       rarity: "mythic",
       icon: "LỰC",
+      shape: "dice",
       text: "Tạo dị thường trọng lực trong trận, có lợi khi kéo quái tụ lại."
     },
     {
@@ -983,6 +991,7 @@
       slot: "Assist",
       rarity: "rare",
       icon: "MAY",
+      shape: "clover",
       text: "Tăng may mắn phần thưởng và phạm vi hút rương, nhưng giảm sát thương nhẹ."
     },
     {
@@ -991,6 +1000,7 @@
       slot: "Assist",
       rarity: "epic",
       icon: "ĐỠ",
+      shape: "chest",
       text: "Có thêm khiên và giảm sát thương nhận vào, đổi lại chạy chậm hơn."
     },
     {
@@ -999,6 +1009,7 @@
       slot: "Assist",
       rarity: "rare",
       icon: "GAI",
+      shape: "sole",
       text: "Lướt để lại vệt sát thương, đổi lại mất một ít năng lượng tối đa."
     },
     {
@@ -1007,6 +1018,7 @@
       slot: "Assist",
       rarity: "epic",
       icon: "DỘI",
+      shape: "ring",
       text: "Mỗi ba đòn thường tạo sóng xung kích, nhưng nhịp đánh nặng hơn chút."
     },
     {
@@ -1015,6 +1027,7 @@
       slot: "Assist",
       rarity: "epic",
       icon: "NANH",
+      shape: "fang",
       text: "Tăng mạnh sát thương, nhưng nhận thêm một ít sát thương."
     },
     {
@@ -1023,6 +1036,7 @@
       slot: "Assist",
       rarity: "rare",
       icon: "HÚT",
+      shape: "magnet",
       text: "Tăng tầm hút rương và vật phẩm, đổi lại giảm nhẹ máu tối đa."
     },
     {
@@ -1031,6 +1045,7 @@
       slot: "Assist",
       rarity: "legendary",
       icon: "XUNG",
+      shape: "battery",
       text: "Tăng năng lượng tối đa và hồi năng lượng, đổi lại cơ thể mỏng hơn."
     },
     {
@@ -1039,6 +1054,7 @@
       slot: "Assist",
       rarity: "epic",
       icon: "DẦU",
+      shape: "jar",
       merchantOnly: true,
       text: "Hàng thương nhân: tăng sát thương và chí mạng trong lượt."
     },
@@ -1048,6 +1064,7 @@
       slot: "Assist",
       rarity: "legendary",
       icon: "LA",
+      shape: "compass",
       merchantOnly: true,
       text: "Hàng thương nhân: tăng tiền rơi và độ hiếm phần thưởng."
     },
@@ -1057,6 +1074,7 @@
       slot: "Assist",
       rarity: "mythic",
       icon: "PIN",
+      shape: "battery",
       merchantOnly: true,
       text: "Hàng thương nhân: tăng năng lượng tối đa và tốc độ hồi năng lượng."
     },
@@ -1066,6 +1084,7 @@
       slot: "Assist",
       rarity: "legendary",
       icon: "MÁY",
+      shape: "gear",
       merchantOnly: true,
       text: "Hàng thương nhân: nhận khiên lớn và hồi năng lượng tốt hơn, nhưng chạy nặng hơn."
     },
@@ -1075,6 +1094,7 @@
       slot: "Assist",
       rarity: "mythic",
       icon: "NGUYỀN",
+      shape: "compass",
       merchantOnly: true,
       text: "Hàng thương nhân: tăng may mắn và sát thương, đổi lại phòng thủ mỏng hơn."
     },
@@ -1084,6 +1104,7 @@
       slot: "Assist",
       rarity: "divine",
       icon: "ẤN",
+      shape: "sigil",
       merchantOnly: true,
       text: "Hàng hiếm: dùng tuyệt kỹ sẽ kích hoạt nội tại bùng nổ trong mười giây."
     },
@@ -12996,11 +13017,11 @@
     }
 
     itemIllustration(item) {
-      const kind = item.slot === "Assist" ? "assist" : item.slot === "Weapon" ? "weapon" : item.slot === "Armor" ? "armor" : item.slot === "Charm" ? "charm" : "relic";
+      const kind = item.shape || (item.slot === "Assist" ? "assist" : item.slot === "Weapon" ? "weapon" : item.slot === "Armor" ? "armor" : "relic");
       return `
         <div class="mini-ill item-ill item-${kind}" style="--ill:${RARITY[item.rarity].color}">
           <span class="item-shape main"></span>
-          <span class="item-shape cross"></span>
+          <span class="item-shape sub"></span>
           <span class="item-shape gem"></span>
         </div>
       `;
@@ -20626,15 +20647,15 @@
         return this.rollMaterialReward(["emberGlass", "frostCore", "stormThread", "bloodAmber"], difficulty + 0.16, luck, 5, 8);
       }
       if (room === "treasure") {
-        if (chance(clamp(0.88 + luck * 0.16, 0.88, 0.98))) return { type: "item", item: this.rollItemForRoom(difficulty + 0.36, luck + 0.12), difficulty };
-        return this.rollMaterialReward(["emberGlass", "frostCore", "stormThread", "bloodAmber"], difficulty + 0.28, luck, 8, 12);
+        if (chance(clamp(0.72 + luck * 0.18, 0.72, 0.9))) return { type: "item", item: this.rollItemForRoom(difficulty + 0.36, luck + 0.12), difficulty };
+        return this.rollMaterialReward(["emberGlass", "frostCore", "stormThread", "bloodAmber"], difficulty + 0.28, luck, 7, 10);
       }
       if (room === "curse") {
         if (chance(0.72)) return this.rollUpgradeReward(difficulty + 0.34, luck + 0.08, ["damage", "crit", "skill"]);
         return { type: "item", item: this.rollItemForRoom(difficulty + 0.22, luck), difficulty };
       }
       if (room === "boss") {
-        if (chance(clamp(0.9 + luck * 0.14, 0.9, 0.99))) return { type: "item", item: this.rollItemForRoom(difficulty + 0.42, luck + 0.08), difficulty };
+        if (chance(clamp(0.8 + luck * 0.12, 0.8, 0.92))) return { type: "item", item: this.rollItemForRoom(difficulty + 0.42, luck + 0.08), difficulty };
         return this.rollMaterialReward(["bossCore", "divineSpark"], difficulty + 0.25, luck, 1, 2);
       }
       return chance(clamp(0.16 + difficulty * 0.2 + luck * 0.28, 0.14, 0.42))
@@ -27259,6 +27280,356 @@
           ctx.lineTo(-7, -7);
           ctx.closePath();
           ctx.fill();
+          break;
+        }
+        case "boot": {
+          ctx.save();
+          ctx.translate(0, 1);
+          ctx.fillStyle = color;
+          ctx.beginPath();
+          ctx.moveTo(-12, 10);
+          ctx.lineTo(-16, -4);
+          ctx.quadraticCurveTo(-16, -12, -7, -14);
+          ctx.lineTo(8, -14);
+          ctx.lineTo(14, -9);
+          ctx.lineTo(14, 6);
+          ctx.quadraticCurveTo(14, 10, 9, 10);
+          ctx.closePath();
+          ctx.fill();
+          ctx.stroke();
+          ctx.fillStyle = dark;
+          ctx.fillRect(-9, -10, 13, 5);
+          ctx.fillStyle = mid;
+          ctx.globalAlpha = 0.9;
+          ctx.fillRect(-15, 4, 18, 5);
+          ctx.restore();
+          break;
+        }
+        case "glove": {
+          ctx.fillStyle = color;
+          ctx.beginPath();
+          ctx.arc(-2, 8, 7, 0, TAU);
+          ctx.arc(5, -2, 5, 0, TAU);
+          ctx.arc(-2, -6, 4, 0, TAU);
+          ctx.arc(-9, -3, 4, 0, TAU);
+          ctx.fill();
+          ctx.stroke();
+          ctx.fillStyle = dark;
+          ctx.fillRect(-6, -2, 6, 7);
+          ctx.restore();
+          break;
+        }
+        case "jar": {
+          ctx.save();
+          ctx.fillStyle = color;
+          ctx.beginPath();
+          ctx.roundRect?.(-9, -8, 18, 18, 5) || ctx.rect(-9, -8, 18, 18);
+          ctx.fill();
+          ctx.stroke();
+          ctx.fillStyle = dark;
+          ctx.beginPath();
+          ctx.roundRect?.(-9, -10, 18, 4, 2) || ctx.rect(-9, -10, 18, 4);
+          ctx.fill();
+          ctx.fillStyle = mid;
+          ctx.globalAlpha = 0.7;
+          ctx.fillRect(-5, -6, 3, 12);
+          ctx.restore();
+          break;
+        }
+        case "needle": {
+          ctx.save();
+          ctx.rotate(-0.28);
+          ctx.fillStyle = color;
+          ctx.beginPath();
+          ctx.moveTo(-2, -16);
+          ctx.quadraticCurveTo(-6, -12, -2, -6);
+          ctx.lineTo(-2, 16);
+          ctx.lineTo(2, 16);
+          ctx.lineTo(2, -6);
+          ctx.quadraticCurveTo(6, -12, 2, -16);
+          ctx.closePath();
+          ctx.fill();
+          ctx.stroke();
+          ctx.fillStyle = mid;
+          ctx.beginPath();
+          ctx.arc(0, -14, 3.2, 0, TAU);
+          ctx.fill();
+          ctx.restore();
+          break;
+        }
+        case "core": {
+          ctx.fillStyle = color;
+          ctx.beginPath();
+          ctx.arc(0, 0, 13, 0, TAU);
+          ctx.fill();
+          ctx.stroke();
+          ctx.strokeStyle = mid;
+          ctx.globalAlpha = 0.9;
+          ctx.beginPath();
+          ctx.arc(0, 0, 7, 0, TAU);
+          ctx.stroke();
+          ctx.beginPath();
+          ctx.arc(0, 0, 18, 0, TAU);
+          ctx.stroke();
+          ctx.globalAlpha = 1;
+          ctx.strokeStyle = mid;
+          ctx.fillStyle = color;
+          ctx.fillRect(-2, -15, 4, 4);
+          ctx.fillRect(-2, 11, 4, 4);
+          ctx.fillRect(-15, -2, 4, 4);
+          ctx.fillRect(11, -2, 4, 4);
+          ctx.fillStyle = mid;
+          ctx.beginPath();
+          ctx.arc(0, 0, 3, 0, TAU);
+          ctx.fill();
+          break;
+        }
+        case "bell": {
+          ctx.fillStyle = color;
+          ctx.beginPath();
+          ctx.moveTo(-8, 6);
+          ctx.quadraticCurveTo(-12, -12, 0, -13);
+          ctx.quadraticCurveTo(12, -12, 8, 6);
+          ctx.closePath();
+          ctx.fill();
+          ctx.stroke();
+          ctx.fillStyle = mid;
+          ctx.globalAlpha = 0.8;
+          ctx.beginPath();
+          ctx.arc(0, 3, 3, 0, TAU);
+          ctx.fill();
+          ctx.restore();
+          break;
+        }
+        case "vial": {
+          ctx.save();
+          ctx.fillStyle = color;
+          ctx.beginPath();
+          ctx.moveTo(-5, -12);
+          ctx.lineTo(-3, -16);
+          ctx.lineTo(3, -16);
+          ctx.lineTo(5, -12);
+          ctx.lineTo(5, 8);
+          ctx.quadraticCurveTo(5, 14, 0, 14);
+          ctx.quadraticCurveTo(-5, 14, -5, 8);
+          ctx.closePath();
+          ctx.fill();
+          ctx.stroke();
+          ctx.fillStyle = dark;
+          ctx.fillRect(-5, -2, 10, 8);
+          ctx.fillStyle = mid;
+          ctx.beginPath();
+          ctx.arc(0, 8, 2, 0, TAU);
+          ctx.fill();
+          ctx.restore();
+          break;
+        }
+        case "dice": {
+          ctx.save();
+          ctx.rotate(0.06);
+          ctx.fillStyle = color;
+          ctx.beginPath();
+          ctx.roundRect?.(-11, -11, 22, 22, 5) || ctx.rect(-11, -11, 22, 22);
+          ctx.fill();
+          ctx.stroke();
+          ctx.fillStyle = mid;
+          ctx.globalAlpha = 0.92;
+          ctx.beginPath();
+          ctx.arc(-4, -4, 2.4, 0, TAU);
+          ctx.arc(4, 4, 2.4, 0, TAU);
+          ctx.fill();
+          ctx.restore();
+          break;
+        }
+        case "clover": {
+          ctx.save();
+          ctx.strokeStyle = "#ffffff";
+          ctx.fillStyle = color;
+          ctx.beginPath();
+          ctx.arc(0, -5, 6, 0, Math.PI * 2);
+          ctx.arc(0, 5, 6, 0, Math.PI * 2);
+          ctx.arc(-5, 0, 6, 0, Math.PI * 2);
+          ctx.arc(5, 0, 6, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.stroke();
+          ctx.restore();
+          break;
+        }
+        case "chest": {
+          ctx.save();
+          ctx.translate(0, 0);
+          ctx.fillStyle = color;
+          ctx.beginPath();
+          ctx.moveTo(0, -13);
+          ctx.lineTo(11, -8);
+          ctx.lineTo(11, 3);
+          ctx.quadraticCurveTo(11, 12, 0, 14);
+          ctx.quadraticCurveTo(-11, 12, -11, 3);
+          ctx.lineTo(-11, -8);
+          ctx.closePath();
+          ctx.fill();
+          ctx.stroke();
+          ctx.fillStyle = dark;
+          ctx.fillRect(-11, -3, 22, 4);
+          ctx.fillStyle = mid;
+          ctx.fillRect(-2, -4, 4, 5);
+          ctx.restore();
+          break;
+        }
+        case "sole": {
+          ctx.save();
+          ctx.fillStyle = color;
+          ctx.beginPath();
+          ctx.roundRect?.(-12, -6, 24, 13, 4) || ctx.rect(-12, -6, 24, 13);
+          ctx.fill();
+          ctx.stroke();
+          ctx.fillStyle = mid;
+          for (let i = -3; i <= 3; i++) {
+            ctx.beginPath();
+            ctx.arc(i * 5, -9, 1.6, 0, TAU);
+            ctx.fill();
+          }
+          ctx.restore();
+          break;
+        }
+        case "ring": {
+          ctx.strokeStyle = mid;
+          ctx.fillStyle = color;
+          ctx.beginPath();
+          ctx.arc(0, 0, 11, 0, TAU);
+          ctx.fill();
+          ctx.beginPath();
+          ctx.arc(0, 0, 6, 0, TAU);
+          ctx.fillStyle = "#101521";
+          ctx.fill();
+          ctx.strokeStyle = mid;
+          ctx.beginPath();
+          ctx.moveTo(0, -12);
+          ctx.lineTo(-4, -17);
+          ctx.lineTo(4, -17);
+          ctx.lineTo(0, -12);
+          ctx.closePath();
+          ctx.fillStyle = mid;
+          ctx.fill();
+          break;
+        }
+        case "fang": {
+          ctx.save();
+          ctx.translate(2, 1);
+          ctx.fillStyle = color;
+          ctx.beginPath();
+          ctx.moveTo(-4, -14);
+          ctx.quadraticCurveTo(-10, 2, -4, 14);
+          ctx.quadraticCurveTo(2, 2, -4, -14);
+          ctx.closePath();
+          ctx.fill();
+          ctx.stroke();
+          ctx.fillStyle = mid;
+          ctx.beginPath();
+          ctx.arc(-5, 0, 1.6, 0, TAU);
+          ctx.arc(-5, -6, 1.6, 0, TAU);
+          ctx.fill();
+          ctx.restore();
+          break;
+        }
+        case "magnet": {
+          ctx.save();
+          ctx.fillStyle = color;
+          ctx.beginPath();
+          ctx.roundRect?.(-9, -14, 6, 18, 2) || ctx.rect(-9, -14, 6, 18);
+          ctx.roundRect?.(3, -14, 6, 18, 2) || ctx.rect(3, -14, 6, 18);
+          ctx.fill();
+          ctx.stroke();
+          ctx.strokeStyle = mid;
+          ctx.globalAlpha = 0.9;
+          ctx.beginPath();
+          ctx.arc(-6, -14, 9, 0, TAU);
+          ctx.stroke();
+          ctx.restore();
+          break;
+        }
+        case "battery": {
+          ctx.save();
+          ctx.fillStyle = color;
+          ctx.beginPath();
+          ctx.roundRect?.(-11, -13, 22, 24, 4) || ctx.rect(-11, -13, 22, 24);
+          ctx.fill();
+          ctx.stroke();
+          ctx.fillStyle = dark;
+          ctx.fillRect(-2, -17, 4, 4);
+          ctx.fillStyle = mid;
+          ctx.fillRect(-8, -8, 16, 5);
+          ctx.fillRect(-8, 0, 10, 5);
+          ctx.restore();
+          break;
+        }
+        case "compass": {
+          ctx.fillStyle = color;
+          ctx.beginPath();
+          ctx.arc(0, 0, 12, 0, TAU);
+          ctx.fill();
+          ctx.stroke();
+          ctx.fillStyle = "#f3ead7";
+          ctx.beginPath();
+          ctx.moveTo(0, -6);
+          ctx.lineTo(8, 0);
+          ctx.lineTo(0, 8);
+          ctx.closePath();
+          ctx.fill();
+          ctx.fillStyle = "#c22a3a";
+          ctx.beginPath();
+          ctx.moveTo(0, 8);
+          ctx.lineTo(-8, 0);
+          ctx.lineTo(0, -6);
+          ctx.closePath();
+          ctx.fill();
+          ctx.strokeStyle = mid;
+          ctx.beginPath();
+          ctx.arc(0, 0, 12, 0, TAU);
+          ctx.stroke();
+          break;
+        }
+        case "gear": {
+          ctx.fillStyle = color;
+          for (let i = 0; i < 8; i++) {
+            const a = i / 8 * Math.PI * 2;
+            ctx.save();
+            ctx.translate(Math.cos(a) * 9, Math.sin(a) * 9);
+            ctx.rotate(a);
+            ctx.fillRect(-2.4, -3.2, 4.8, 6.4);
+            ctx.restore();
+          }
+          ctx.beginPath();
+          ctx.arc(0, 0, 9, 0, TAU);
+          ctx.fill();
+          ctx.stroke();
+          ctx.strokeStyle = mid;
+          ctx.beginPath();
+          ctx.arc(0, 0, 4, 0, TAU);
+          ctx.stroke();
+          ctx.fillStyle = mid;
+          ctx.beginPath();
+          ctx.arc(0, 0, 2, 0, TAU);
+          ctx.fill();
+          break;
+        }
+        case "sigil": {
+          ctx.save();
+          ctx.fillStyle = color;
+          ctx.rotate(Math.PI / 4);
+          ctx.beginPath();
+          ctx.roundRect?.(-10, -10, 20, 20, 3) || ctx.rect(-10, -10, 20, 20);
+          ctx.fill();
+          ctx.stroke();
+          ctx.fillStyle = dark;
+          ctx.beginPath();
+          ctx.roundRect?.(-6, -6, 12, 12, 2) || ctx.rect(-6, -6, 12, 12);
+          ctx.fill();
+          ctx.fillStyle = mid;
+          ctx.beginPath();
+          ctx.roundRect?.(-2, -2, 4, 4, 1) || ctx.rect(-2, -2, 4, 4);
+          ctx.fill();
+          ctx.restore();
           break;
         }
         default:

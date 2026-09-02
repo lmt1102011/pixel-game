@@ -10,7 +10,7 @@
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
   const SIGNAL_REALTIME_RELAY_LIMIT = 2;
   const SIGNAL_REALTIME_TYPES = new Set(["state", "snapshot", "attack", "skill", "collect", "openChest", "dropItem", "damage", "chooseDoor"]);
-  const APP_VERSION = "20260718-pixel-vfx-319";
+  const APP_VERSION = "20260718-pixel-vfx-320";
   const CHANGELOG_ENTRIES = [
     {
       version: APP_VERSION,
@@ -8472,7 +8472,7 @@
     }
 
     shouldRenderMenuHero(time = 0) {
-      const interval = this.isMobileDevice() ? 100 : 66;
+      const interval = this.isMobileDevice() ? 58 : 38;
       if (time - this.lastMenuHeroRenderAt < interval) return false;
       this.lastMenuHeroRenderAt = time;
       return true;
@@ -9836,7 +9836,7 @@
       if (!canvas) return;
       const rect = canvas.getBoundingClientRect();
       if (rect.width < 8 || rect.height < 8) return;
-      const ratio = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
+      const ratio = Math.max(1, Math.min(1.5, window.devicePixelRatio || 1));
       const targetW = Math.round(rect.width * ratio);
       const targetH = Math.round(rect.height * ratio);
       if (canvas.width !== targetW || canvas.height !== targetH) {
@@ -9848,7 +9848,7 @@
       ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
       ctx.clearRect(0, 0, rect.width, rect.height);
       ctx.imageSmoothingEnabled = true;
-      ctx.imageSmoothingQuality = "high";
+      ctx.imageSmoothingQuality = "medium";
       const character = characterById(canvas.dataset.character || "swordsman");
       const power = powerById(canvas.dataset.power || this.save.account.selectedPower || "fire");
       const custom = {
@@ -11018,7 +11018,7 @@
     renderSquadHeroCanvases() {
       const canvases = this.screen?.querySelectorAll(".squad-hero-canvas");
       if (!canvases?.length) return;
-      const ratio = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
+      const ratio = Math.max(1, Math.min(1.5, window.devicePixelRatio || 1));
       for (const canvas of canvases) {
         const rect = canvas.getBoundingClientRect();
         if (rect.width < 8 || rect.height < 8) continue;
@@ -11033,7 +11033,7 @@
         ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
         ctx.clearRect(0, 0, rect.width, rect.height);
         ctx.imageSmoothingEnabled = true;
-        ctx.imageSmoothingQuality = "high";
+        ctx.imageSmoothingQuality = "medium";
         const character = characterById(canvas.dataset.character || "swordsman");
         const power = powerById(canvas.dataset.power || this.save.account.selectedPower || "fire");
         const custom = {

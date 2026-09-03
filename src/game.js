@@ -15707,28 +15707,28 @@
       const centerX = WORLD_W / 2;
       const centerY = WORLD_H / 2;
       const pedestals = [
-        { x: centerX - 280, y: centerY + 170 },
-        { x: centerX, y: centerY + 185 },
-        { x: centerX + 280, y: centerY + 170 }
+        { x: centerX - 390, y: centerY + 212 },
+        { x: centerX, y: centerY + 232 },
+        { x: centerX + 390, y: centerY + 212 }
       ];
+      const reroll = { x: centerX + 400, y: centerY - 42 };
       return this.addRoomObject("merchantStall", {
         x: centerX,
-        y: centerY - 90,
-        radius: 90,
+        y: centerY - 95,
+        radius: 95,
         color: "#35d6c9",
         label: "Thương Nhân Khe Nứt",
         effect: "merchant",
         pedestals,
-        reroll: { x: centerX + 400, y: centerY + 120 },
+        reroll,
         colliders: [
-          { x: centerX - 220, y: centerY + 20, r: 95 },
-          { x: centerX, y: centerY + 20, r: 95 },
-          { x: centerX + 220, y: centerY + 20, r: 95 },
-          { x: centerX - 220, y: centerY - 150, r: 34 },
-          { x: centerX, y: centerY - 170, r: 34 },
-          { x: centerX + 220, y: centerY - 150, r: 34 },
-          { x: centerX - 380, y: centerY + 215, r: 38 },
-          { x: centerX + 380, y: centerY + 215, r: 38 }
+          { x: centerX - 220, y: centerY + 40, r: 92 },
+          { x: centerX, y: centerY + 40, r: 92 },
+          { x: centerX + 220, y: centerY + 40, r: 92 },
+          { x: centerX - 390, y: centerY + 212, r: 52 },
+          { x: centerX, y: centerY + 232, r: 52 },
+          { x: centerX + 390, y: centerY + 212, r: 52 },
+          { x: reroll.x, y: reroll.y, r: 50 }
         ]
       });
     }
@@ -22228,17 +22228,17 @@
     positionMerchantPopup(anchor) {
       if (!this.inworldPanel) return;
       this.inworldPanel.classList.add("floating");
-      const w = this.inworldPanel.offsetWidth || 280;
-      const h = this.inworldPanel.offsetHeight || 220;
-      let left = anchor.x + 14;
-      let top = anchor.y - h * 0.3;
-      if (left + w > window.innerWidth - 8) left = anchor.x - w - 14;
-      if (top < 8) top = 8;
-      if (top + h > window.innerHeight - 8) top = window.innerHeight - h - 8;
-      this.inworldPanel.style.left = `${Math.max(8, left)}px`;
-      this.inworldPanel.style.top = `${Math.max(8, top)}px`;
+      const w = this.inworldPanel.offsetWidth || 320;
+      const h = this.inworldPanel.offsetHeight || 280;
+      const margin = 14;
+      let left = anchor.x - w / 2;
+      let top = anchor.y - h - 26;
+      left = clamp(left, margin, window.innerWidth - w - margin);
+      if (top < margin) top = Math.max(margin, anchor.y + 26);
+      if (top + h > window.innerHeight - margin) top = window.innerHeight - h - margin;
+      this.inworldPanel.style.left = left + "px";
+      this.inworldPanel.style.top = top + "px";
       this.inworldPanel.style.transform = "none";
-      this.inworldPanel.classList.add("floating");
     }
 
     renderMerchantItemPopup(index) {
@@ -22251,22 +22251,28 @@
       const owned = Math.floor(this.run.runGold || 0);
       const canBuy = owned >= offer.price && !offer.bought;
       const stats = item && this.itemStatLines(item).length ? `<ul class="item-stats popup">${this.itemStatLines(item).join("")}</ul>` : "";
+      const art = item
+        ? `<canvas class="item-ill-canvas pup-art" data-shape="${item.shape || ""}" data-color="${color}" width="256" height="208"></canvas>`
+        : `<div class="pup-art placeholder">?</div>`;
       this.inworldPanelBody.innerHTML = `
-        <div class="pup-item rarity-${item ? item.rarity : "common"}" style="--mc:${color}">
-          <div class="pup-item-head">
-            <span class="pup-item-ill">${item ? this.itemIllustration(item) : ""}</span>
-            <div class="pup-item-title">
-              <span class="pup-item-tag">VẬT PHẨM ${index + 1}/3</span>
+        <div class="pup-card rarity-${item ? item.rarity : "common"}" style="--mc:${color}">
+          <div class="pup-card-head">
+            <span class="pup-card-tag">VẬT PHẨM ${index + 1} / 3</span>
+            <span class="pup-card-rarity">${item ? RARITY[item.rarity].label : RARITY[reward.rarity].label}</span>
+          </div>
+          <div class="pup-card-body">
+            <div class="pup-card-art">${art}</div>
+            <div class="pup-card-info">
               <h3>${this.rewardLabel(reward)}</h3>
-              <p>${item ? `${slotLabel(item.slot)} - ${RARITY[item.rarity].label}` : RARITY[reward.rarity].label}</p>
+              <div class="pup-card-line">${item ? `${slotLabel(item.slot)}` : "Phụ trợ đặc biệt"}</div>
+              ${stats}
             </div>
           </div>
-          ${stats}
-          <p class="pup-item-desc">${item ? item.text : "Phụ trợ đặc biệt của thương nhân."}</p>
-          <div class="pup-item-buy">
-            <span class="merchant-price pup-price">◆ ${offer.price}</span>
-            <span class="merchant-gold pup-gold">Có ${owned}</span>
-            <button class="btn primary small pup-btn" data-action="buy-merchant-offer" data-offer="${index}" ${canBuy ? "" : "disabled"}>${offer.bought ? "ĐÃ MUA" : "MUA"}</button>
+          <p class="pup-card-desc">${item ? item.text : "Vật phẩm đặc biệt của thương nhân Khe Nứt."}</p>
+          <div class="pup-card-buy">
+            <span class="pup-card-price">◆ ${offer.price}</span>
+            <span class="pup-card-gold">Tiền: ${owned}</span>
+            <button class="btn primary small pup-card-btn" data-action="buy-merchant-offer" data-offer="${index}" ${canBuy && !offer.bought ? "" : "disabled"}>${offer.bought ? "ĐÃ MUA" : "MUA"}</button>
           </div>
         </div>`;
       this.drawItemCanvases(this.inworldPanelBody);
@@ -22279,20 +22285,23 @@
       const owned = Math.floor(this.run.runGold || 0);
       const canReroll = rr.uses < 5 && owned >= cost;
       this.inworldPanelBody.innerHTML = `
-        <div class="pup-reroll">
-          <div class="pup-item-head">
-            <span class="pup-item-ill mini"><span class="reroll-spinner">?</span></span>
-            <div class="pup-item-title">
-              <span class="pup-item-tag">MÁY NHẪN</span>
+        <div class="pup-card" style="--mc:#f2bf63">
+          <div class="pup-card-head">
+            <span class="pup-card-tag">MÁY NHẪN</span>
+            <span class="pup-card-rarity">${rr.uses}/5 lượt</span>
+          </div>
+          <div class="pup-card-body">
+            <div class="pup-card-art placeholder"><span class="reroll-spinner">?</span></div>
+            <div class="pup-card-info">
               <h3>Random Lại</h3>
-              <p>Đổi cả 3 vật phẩm (${rr.uses}/5 lượt)</p>
+              <div class="pup-card-line">Đổi cả 3 vật phẩm đang trưng bày</div>
             </div>
           </div>
-          <p class="pup-item-desc">Càng dùng nhiều, giá càng tăng. Hãy cân nhắc trước khi quay!</p>
-          <div class="pup-item-buy">
-            <span class="merchant-price pup-price">◆ ${cost}</span>
-            <span class="merchant-gold pup-gold">Có ${owned}</span>
-            <button class="btn ${canReroll ? "primary" : ""} small pup-btn" data-action="merchant-reroll" ${canReroll ? "" : "disabled"}>${rr.uses >= 5 ? "HẾT LƯỢT" : "QUAY"}</button>
+          <p class="pup-card-desc">Càng dùng nhiều, giá càng tăng. Hãy cân nhắc trước khi quay!</p>
+          <div class="pup-card-buy">
+            <span class="pup-card-price">◆ ${cost}</span>
+            <span class="pup-card-gold">Tiền: ${owned}</span>
+            <button class="btn ${canReroll ? "primary" : ""} small pup-card-btn" data-action="merchant-reroll" ${canReroll ? "" : "disabled"}>${rr.uses >= 5 ? "HẾT LƯỢT" : "QUAY"}</button>
           </div>
         </div>`;
     }
@@ -22357,7 +22366,7 @@
         return;
       }
       const pset = stall.pedestals || [];
-      const pTouch = (player.radius || 22) + 54;
+      const pTouch = (player.radius || 22) + 74;
       let nearest = -1;
       let nearestD = Infinity;
       for (let i = 0; i < pset.length; i++) {
@@ -22368,8 +22377,8 @@
         }
       }
       const reroll = stall.reroll;
-      const rerollRange = reroll && Math.hypot(player.x - reroll.x, player.y - reroll.y) <= (player.radius || 22) + 66;
-      const counterRange = Math.hypot(player.x - stall.x, player.y - stall.y) <= (player.radius || 22) + 150;
+      const rerollRange = reroll && Math.hypot(player.x - reroll.x, player.y - reroll.y) <= (player.radius || 22) + 78;
+      const counterRange = Math.hypot(player.x - stall.x, player.y - stall.y) <= (player.radius || 22) + 155;
 
       let key = "";
       let kind = "none";
@@ -22399,11 +22408,11 @@
         else this.renderMerchantPanel();
       }
       if (kind === "item" && anchor) {
-        const screen = this.worldToScreen(anchor.x, anchor.y - 70);
+        const screen = this.worldToScreen(anchor.x, anchor.y - 55);
         this.inworldPanel.classList.remove("hidden");
         this.positionMerchantPopup(screen);
       } else if (kind === "reroll" && anchor) {
-        const screen = this.worldToScreen(anchor.x, anchor.y - 60);
+        const screen = this.worldToScreen(anchor.x, anchor.y - 40);
         this.inworldPanel.classList.remove("hidden");
         this.positionMerchantPopup(screen);
       } else {
@@ -29261,10 +29270,7 @@
       const reroll = object.reroll || { x: object.x + 322, y: object.y - 14 };
       const rerollX = this.run?.merchantReroll ? reroll.x : -9999;
       const rerollOn = Boolean(this.run?.merchantReroll && (this.run.merchantReroll.uses || 0) < 5);
-      for (const col of (object.colliders || [])) {
-        if (col.r <= 46) this.drawMerchantColumn(ctx, col.x, col.y + (1 - (object.grow || 0)) * 6);
-      }
-      this.drawMerchantCounter(ctx, object.x, object.y + 112);
+      this.drawMerchantCounter(ctx, object.x, object.y + 116);
       for (let i = 0; i < pedestals.length; i++) {
         const p = pedestals[i];
         this.drawMerchantPedestal(ctx, p.x, p.y, offers[i], i);
@@ -29483,90 +29489,111 @@
       const color = offer ? this.rewardColor(offer.reward) : "#35d6c9";
       const player = this.run?.player;
       const playerNear = Boolean(player && this.aliveActor(player)
-        && Math.hypot(player.x - x, player.y - y) <= (player.radius || 22) + 60);
+        && Math.hypot(player.x - x, player.y - y) <= (player.radius || 22) + 66);
       const pulse = Math.sin(this.menuTime * 3) * 0.5 + 0.5;
+      const item = offer?.reward?.type === "item" ? offer.reward.item : null;
       ctx.save();
       ctx.translate(x, y);
       ctx.beginPath();
-      ctx.ellipse(0, 30, 40, 11, 0, 0, TAU);
-      ctx.fillStyle = "rgba(0,0,0,0.38)";
+      ctx.ellipse(0, 50, 54, 14, 0, 0, TAU);
+      ctx.fillStyle = "rgba(0,0,0,0.42)";
       ctx.fill();
-      const baseGrad = ctx.createLinearGradient(0, -18, 0, 34);
-      baseGrad.addColorStop(0, "#202b40");
-      baseGrad.addColorStop(1, "#0d1420");
-      ctx.fillStyle = baseGrad;
-      ctx.fillRect(-26, -14, 52, 50);
-      ctx.strokeStyle = "rgba(255,255,255,0.16)";
-      ctx.lineWidth = 2;
-      ctx.strokeRect(-26, -14, 52, 50);
-      ctx.fillStyle = "#1e2939";
-      ctx.fillRect(-30, 36, 60, 8);
-      ctx.fillStyle = "#2b3a52";
+      const grad = ctx.createLinearGradient(0, -58, 0, 52);
+      grad.addColorStop(0, "#273650");
+      grad.addColorStop(0.5, "#18233a");
+      grad.addColorStop(1, "#0c1320");
+      ctx.fillStyle = grad;
       ctx.beginPath();
-      ctx.ellipse(0, -12, 24, 8, 0, 0, TAU);
+      ctx.moveTo(-34, -56);
+      ctx.lineTo(-26, 48);
+      ctx.lineTo(26, 48);
+      ctx.lineTo(34, -56);
+      ctx.closePath();
       ctx.fill();
+      ctx.strokeStyle = "rgba(255,255,255,0.18)";
+      ctx.lineWidth = 2.5;
+      ctx.stroke();
+      ctx.fillStyle = "#0c1320";
+      ctx.fillRect(-28, 44, 56, 10);
+      ctx.fillStyle = color;
+      ctx.fillRect(-20, 50, 40, 4);
+      const dishGrad = ctx.createLinearGradient(0, -12, 0, -58);
+      dishGrad.addColorStop(0, "#35d6c9");
+      dishGrad.addColorStop(1, "#12222e");
+      ctx.strokeStyle = "rgba(159,252,241,0.6)";
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.ellipse(0, -20, 30, 9, 0, 0, TAU);
+      ctx.stroke();
       if (playerNear) {
+        ctx.globalAlpha = 0.5 + pulse * 0.4;
         ctx.strokeStyle = color;
         ctx.lineWidth = 3 + pulse * 2;
-        ctx.globalAlpha = 0.5 + pulse * 0.4;
         ctx.shadowColor = color;
-        ctx.shadowBlur = this.glow(22);
+        ctx.shadowBlur = this.glow(24);
         ctx.beginPath();
-        ctx.ellipse(0, -12, 32 + pulse * 6, 15 + pulse * 4, 0, 0, TAU);
+        ctx.ellipse(0, -22, 38 + pulse * 8, 16 + pulse * 6, 0, 0, TAU);
         ctx.stroke();
         ctx.globalAlpha = 1;
         ctx.shadowBlur = 0;
       }
-      ctx.shadowColor = color;
-      ctx.shadowBlur = this.glow(18);
-      ctx.fillStyle = color;
-      ctx.beginPath();
-      ctx.ellipse(0, -10 - bob, 15, 15, 0, 0, TAU);
-      ctx.fill();
-      ctx.fillStyle = "rgba(255,255,255,0.35)";
-      ctx.beginPath();
-      ctx.ellipse(0, -13 - bob, 8, 8, 0, 0, TAU);
-      ctx.fill();
-      if (offer?.reward?.type === "item") {
-        const item = offer.reward.item;
+      if (item) {
+        const glowBg = Math.sin(this.menuTime * 2.2 + index) * 0.5 + 0.5;
+        ctx.fillStyle = color;
+        ctx.globalAlpha = 0.16 + glowBg * 0.16;
+        ctx.beginPath();
+        ctx.arc(0, -26 - bob, 40 + glowBg * 10, 0, TAU);
+        ctx.fill();
+        ctx.globalAlpha = 1;
         ctx.save();
-        ctx.translate(0, -26 - bob);
-        ctx.scale(0.66, 0.66);
+        ctx.shadowColor = color;
+        ctx.shadowBlur = this.glow(22);
+        ctx.translate(0, -30 - bob);
+        ctx.scale(1.45, 1.45);
         this.drawRunItemShape(ctx, item, color);
         ctx.restore();
       } else {
         ctx.fillStyle = "#0b111c";
-        ctx.font = "800 12px ui-sans-serif, system-ui";
+        ctx.font = "800 20px ui-sans-serif, system-ui";
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
-        ctx.fillText("?", 0, -10 - bob);
+        ctx.fillText("?", 0, -28 - bob);
       }
       ctx.restore();
       if (offer) {
+        const label = offer.bought ? "ĐÃ MUA" : item ? item.name : "Vật Phẩm";
         ctx.save();
-        ctx.translate(x, y + 42);
-        ctx.font = "800 11px ui-sans-serif, system-ui";
+        ctx.translate(x, y + 66);
+        ctx.font = "800 12px ui-sans-serif, system-ui";
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
-        ctx.fillStyle = "#0b111c";
-        ctx.fillRect(-26, -11, 52, 18);
+        ctx.fillStyle = "rgba(8,12,20,0.92)";
+        ctx.fillRect(-64, -12, 128, 22);
         ctx.strokeStyle = offer.bought ? "#70e083" : "#f2bf63";
         ctx.lineWidth = 2;
-        ctx.strokeRect(-26, -11, 52, 18);
+        ctx.strokeRect(-64, -12, 128, 22);
+        ctx.fillStyle = offer.bought ? "#70e083" : "#f3ead7";
+        ctx.fillText(label, 0, -1);
+        ctx.fillStyle = "#0b111c";
+        ctx.fillRect(-30, 12, 60, 18);
+        ctx.strokeStyle = offer.bought ? "#70e083" : "#ffd84d";
+        ctx.lineWidth = 2;
+        ctx.strokeRect(-30, 12, 60, 18);
         ctx.fillStyle = offer.bought ? "#70e083" : "#ffd84d";
-        ctx.fillText(offer.bought ? "ĐÃ MUA" : `◆ ${offer.price}`, 0, 0);
+        ctx.font = "800 12px ui-sans-serif, system-ui";
+        ctx.fillText(offer.bought ? "ĐÃ MUA" : `◆ ${offer.price}`, 0, 21);
         ctx.restore();
         if (playerNear && !offer.bought) {
           ctx.save();
-          ctx.translate(x, y - 66 - pulse * 2);
+          ctx.translate(x, y - 64 - pulse * 2);
           ctx.fillStyle = "#35d6c9";
           ctx.shadowColor = "#35d6c9";
-          ctx.shadowBlur = this.glow(14);
+          ctx.shadowBlur = this.glow(16);
           ctx.beginPath();
-          ctx.arc(0, 0, 7 + pulse * 2, 0, TAU);
+          ctx.arc(0, 0, 9 + pulse * 2, 0, TAU);
           ctx.fill();
           ctx.fillStyle = "#08121a";
-          ctx.font = "900 10px ui-sans-serif, system-ui";
+          ctx.font = "900 11px ui-sans-serif, system-ui";
           ctx.textAlign = "center";
           ctx.textBaseline = "middle";
           ctx.fillText("…", 0, 0);
@@ -29579,38 +29606,52 @@
       const spin = Math.sin(this.menuTime * 3.2) * 0.18;
       const uses = this.run?.merchantReroll?.uses || 0;
       const left = Math.max(0, 5 - uses);
+      const outOfUses = uses >= 5;
       ctx.save();
       ctx.translate(x, y + Math.sin(this.menuTime * 2.6) * 2);
       ctx.beginPath();
-      ctx.ellipse(0, 46, 44, 11, 0, 0, TAU);
-      ctx.fillStyle = "rgba(0,0,0,0.34)";
+      ctx.ellipse(0, 62, 52, 13, 0, 0, TAU);
+      ctx.fillStyle = "rgba(0,0,0,0.42)";
       ctx.fill();
       ctx.shadowColor = "#35d6c9";
-      ctx.shadowBlur = this.glow(16);
-      ctx.fillStyle = "#1b2434";
-      ctx.fillRect(-26, -14, 52, 58);
+      ctx.shadowBlur = this.glow(18);
+      const bodyGrad = ctx.createLinearGradient(-30, -30, 30, 58);
+      bodyGrad.addColorStop(0, "#223349");
+      bodyGrad.addColorStop(0.6, "#141d30");
+      bodyGrad.addColorStop(1, "#0b111c");
+      ctx.fillStyle = bodyGrad;
+      ctx.fillRect(-30, -30, 60, 88);
       ctx.strokeStyle = "#9ffcf1";
       ctx.lineWidth = 3;
-      ctx.strokeRect(-26, -14, 52, 58);
-      ctx.fillStyle = "#2a3548";
-      ctx.fillRect(-20, 20, 40, 14);
+      ctx.strokeRect(-30, -30, 60, 88);
+      ctx.fillStyle = "#0c1320";
+      ctx.fillRect(-22, 40, 44, 14);
       ctx.fillStyle = "#f2bf63";
       ctx.beginPath();
-      ctx.arc(0, 0, 15, 0, TAU);
+      ctx.arc(0, -6, 17, 0, TAU);
       ctx.fill();
-      ctx.strokeStyle = "#0b111c";
-      ctx.lineWidth = 3;
+      ctx.strokeStyle = outOfUses ? "#5a4530" : "#0b111c";
+      ctx.lineWidth = 3.5;
       ctx.beginPath();
-      ctx.arc(0, 0, 15, spin, spin + Math.PI * 1.35);
+      ctx.arc(0, -6, 17, spin, spin + Math.PI * 1.35);
       ctx.stroke();
       ctx.fillStyle = "#0b111c";
-      ctx.font = "800 13px ui-sans-serif, system-ui";
+      ctx.font = "900 16px ui-sans-serif, system-ui";
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
-      ctx.fillText("?", 0, 0);
-      ctx.fillStyle = "#2a3548";
-      ctx.font = "800 9px ui-sans-serif, system-ui";
-      ctx.fillText(`${uses}/5`, 0, 28);
+      ctx.fillText("?", 0, -6);
+      ctx.fillStyle = outOfUses ? "#ff6b6b" : "#2a3548";
+      ctx.font = "800 12px ui-sans-serif, system-ui";
+      ctx.fillText(outOfUses ? "HẾT" : `${uses}/5`, 0, 49);
+      if (outOfUses) {
+        ctx.fillStyle = "rgba(255,107,107,0.85)";
+        ctx.beginPath();
+        ctx.arc(0, -44, 11, 0, TAU);
+        ctx.fill();
+        ctx.fillStyle = "#0b111c";
+        ctx.font = "900 12px ui-sans-serif, system-ui";
+        ctx.fillText("✕", 0, -44);
+      }
       ctx.restore();
     }
 

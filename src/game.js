@@ -22243,17 +22243,22 @@
     positionMerchantPopup(anchor) {
       if (!this.inworldPanel) return;
       this.inworldPanel.classList.add("floating");
-      const w = this.inworldPanel.offsetWidth || 320;
-      const h = this.inworldPanel.offsetHeight || 280;
-      const margin = 14;
-      let left = anchor.x - w / 2;
-      let top = anchor.y - h - 26;
-      left = clamp(left, margin, window.innerWidth - w - margin);
-      if (top < margin) top = Math.max(margin, anchor.y + 26);
-      if (top + h > window.innerHeight - margin) top = window.innerHeight - h - margin;
-      this.inworldPanel.style.left = left + "px";
-      this.inworldPanel.style.top = top + "px";
-      this.inworldPanel.style.transform = "none";
+      this.inworldPanel.classList.remove("hidden");
+      // Force layout after content is rendered and panel is visible
+      requestAnimationFrame(() => {
+        if (!this.inworldPanel) return;
+        const w = this.inworldPanel.offsetWidth || 320;
+        const h = this.inworldPanel.offsetHeight || 280;
+        const margin = 14;
+        let left = anchor.x - w / 2;
+        let top = anchor.y - h - 26;
+        left = clamp(left, margin, window.innerWidth - w - margin);
+        if (top < margin) top = Math.max(margin, anchor.y + 26);
+        if (top + h > window.innerHeight - margin) top = window.innerHeight - h - margin;
+        this.inworldPanel.style.left = left + "px";
+        this.inworldPanel.style.top = top + "px";
+        this.inworldPanel.style.transform = "none";
+      });
     }
 
     renderMerchantItemPopup(index) {
@@ -22423,12 +22428,10 @@
         else this.renderMerchantPanel();
       }
       if (kind === "item" && anchor) {
-        const screen = this.worldToScreen(anchor.x, anchor.y - 55);
-        this.inworldPanel.classList.remove("hidden");
+        const screen = this.worldToScreen(anchor.x, anchor.y - 60);
         this.positionMerchantPopup(screen);
       } else if (kind === "reroll" && anchor) {
         const screen = this.worldToScreen(anchor.x, anchor.y - 40);
-        this.inworldPanel.classList.remove("hidden");
         this.positionMerchantPopup(screen);
       } else {
         this.inworldPanel.classList.remove("hidden");

@@ -6742,6 +6742,8 @@ body.is-mobile-ui .toast.combat-toast {
 
 .pup-card {
   padding: 12px;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .pup-card-head {
@@ -6843,6 +6845,7 @@ ul.item-stats.popup {
 .pup-card-buy {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 12px;
   margin-top: 12px;
   padding: 10px 2px 0;
@@ -6863,7 +6866,6 @@ ul.item-stats.popup {
 }
 
 .pup-card-btn {
-  margin-left: auto;
   min-width: 88px;
   min-height: 34px;
   font-size: 13px;

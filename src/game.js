@@ -15722,13 +15722,11 @@
         pedestals,
         reroll,
         colliders: [
-          { x: centerX - 220, y: centerY + 40, r: 92 },
-          { x: centerX, y: centerY + 40, r: 92 },
-          { x: centerX + 220, y: centerY + 40, r: 92 },
-          { x: centerX - 390, y: centerY + 212, r: 52 },
-          { x: centerX, y: centerY + 232, r: 52 },
-          { x: centerX + 390, y: centerY + 212, r: 52 },
-          { x: reroll.x, y: reroll.y, r: 50 }
+          { x: centerX, y: centerY + 26, r: 100 },
+          { x: centerX - 390, y: centerY + 212, r: 42 },
+          { x: centerX, y: centerY + 232, r: 42 },
+          { x: centerX + 390, y: centerY + 212, r: 42 },
+          { x: reroll.x, y: reroll.y, r: 40 }
         ]
       });
     }
@@ -22366,7 +22364,7 @@
         return;
       }
       const pset = stall.pedestals || [];
-      const pTouch = (player.radius || 22) + 74;
+      const pTouch = (player.radius || 22) + 60;
       let nearest = -1;
       let nearestD = Infinity;
       for (let i = 0; i < pset.length; i++) {
@@ -22377,8 +22375,8 @@
         }
       }
       const reroll = stall.reroll;
-      const rerollRange = reroll && Math.hypot(player.x - reroll.x, player.y - reroll.y) <= (player.radius || 22) + 78;
-      const counterRange = Math.hypot(player.x - stall.x, player.y - stall.y) <= (player.radius || 22) + 155;
+      const rerollRange = reroll && Math.hypot(player.x - reroll.x, player.y - reroll.y) <= (player.radius || 22) + 64;
+      const counterRange = Math.hypot(player.x - stall.x, player.y - stall.y) <= (player.radius || 22) + 145;
 
       let key = "";
       let kind = "none";
@@ -29270,7 +29268,7 @@
       const reroll = object.reroll || { x: object.x + 322, y: object.y - 14 };
       const rerollX = this.run?.merchantReroll ? reroll.x : -9999;
       const rerollOn = Boolean(this.run?.merchantReroll && (this.run.merchantReroll.uses || 0) < 5);
-      this.drawMerchantCounter(ctx, object.x, object.y + 116);
+      this.drawMerchantCounter(ctx, object.x, object.y + 93);
       for (let i = 0; i < pedestals.length; i++) {
         const p = pedestals[i];
         this.drawMerchantPedestal(ctx, p.x, p.y, offers[i], i);

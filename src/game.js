@@ -15033,7 +15033,14 @@
         return false;
       }
       const equipped = autoEquip && this.equippedRunItems().length < RUN_EQUIP_LIMIT;
-      this.run.runItems.push({ uid: uid("runitem"), id: item.id, equipped });
+      const entry = { uid: uid("runitem"), id: item.id, equipped };
+      if (equipped) {
+        const used = new Set(this.equippedRunItems().filter((e) => Number.isInteger(e.slot)).map((e) => e.slot));
+        let slotIndex = 0;
+        while (used.has(slotIndex)) slotIndex += 1;
+        entry.slot = slotIndex;
+      }
+      this.run.runItems.push(entry);
       this.reapplyRunEquipment();
       this.toast(equipped ? `Đã trang bị ${item.name}` : `Đã cất ${item.name} vào túi`);
       return true;

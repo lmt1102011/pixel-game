@@ -10,7 +10,7 @@
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
   const SIGNAL_REALTIME_RELAY_LIMIT = 2;
   const SIGNAL_REALTIME_TYPES = new Set(["state", "snapshot", "attack", "skill", "collect", "openChest", "dropItem", "damage", "chooseDoor"]);
-  const APP_VERSION = "20260718-pixel-vfx-333";
+  const APP_VERSION = "20260718-pixel-vfx-334";
   const CHANGELOG_ENTRIES = [
     {
       version: APP_VERSION,
@@ -26518,7 +26518,7 @@
       ctx.clearRect(0, 0, this.width, this.height);
       if (this.run) this.drawGame(ctx);
       else this.drawMenuBackdrop(ctx);
-      if (this.run && this.mode !== "game") this.drawMenuBackdrop(ctx, true);
+      if (this.run && this.mode !== "game" && this.mode !== "runInventory") this.drawMenuBackdrop(ctx, true);
     }
 
     drawMenuBackdrop(ctx, overlay = false) {

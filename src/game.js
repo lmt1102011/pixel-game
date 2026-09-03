@@ -10,7 +10,7 @@
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
   const SIGNAL_REALTIME_RELAY_LIMIT = 2;
   const SIGNAL_REALTIME_TYPES = new Set(["state", "snapshot", "attack", "skill", "collect", "openChest", "dropItem", "damage", "chooseDoor"]);
-  const APP_VERSION = "20260718-pixel-vfx-329";
+  const APP_VERSION = "20260718-pixel-vfx-330";
   const CHANGELOG_ENTRIES = [
     {
       version: APP_VERSION,
@@ -54,7 +54,7 @@
   const LOBBY_MAX_PLAYERS = 5;
   const SIGNAL_HISTORY = "2m";
   const DIRECTORY_HISTORY = "75s";
-  const RUN_ITEM_LIMIT = 10;
+  const RUN_ITEM_LIMIT = 20;
   const RUN_EQUIP_LIMIT = 6;
   const NET_STATE_PEER_INTERVAL = 1 / 36;
   const NET_STATE_RELAY_INTERVAL = 0.095;
@@ -9540,7 +9540,8 @@
         this.updateQuickActions();
         this.updateAssetMemoryBudget(dt);
         const updateStart = performance.now();
-        if (this.mode === "game" && this.run) this.update(dt);
+        const liveOverlay = (this.mode === "runInventory" || this.mode === "reward") && !!this.run && !this.run.spectating;
+        if (this.run && (this.mode === "game" || liveOverlay)) this.update(dt);
         const updateMs = performance.now() - updateStart;
         this.perf.updateMs = updateMs;
         this.perf.avgUpdateMs = this.perf.avgUpdateMs
@@ -9572,12 +9573,17 @@
     }
 
     setScreen(html = "") {
+      if (this._bagDragCleanup) { try { this._bagDragCleanup(); } catch (_e) {} this._bagDragCleanup = null; }
+      this._bagDrag = null;
       this.screen.innerHTML = html;
       this.screen.classList.toggle("hidden", !html);
       this.screen.classList.toggle("valorant-screen", html.includes("valorant-lobby"));
       this.screen.classList.toggle("aaa-menu-screen", html.includes("aaa-main-menu"));
       this.screen.classList.toggle("friends-screen", html.includes("friends-arena"));
-      if (html) this.drawItemCanvases();
+      if (html) {
+        this.drawItemCanvases();
+        this.bagDragInit();
+      }
     }
 
     updateAccountCloudCheck(dt) {
@@ -13029,14 +13035,16 @@
     }
 
     drawItemCanvases(root = this.screen) {
-      const list = (root.querySelectorAll ? root : document).querySelectorAll?.("canvas.item-ill-canvas") || [];
+      const list = (root.querySelectorAll ? root : document).querySelectorAll?.("canvas.item-ill-canvas, canvas.bag-item-canvas") || [];
       for (const cv of list) {
         if (cv.dataset.painted) continue;
         const ctx = cv.getContext?.("2d");
         if (!ctx) continue;
         const color = cv.dataset.color || "#f2bf63";
         const shape = cv.dataset.shape || "";
-        const cssW = 72, cssH = 58, dpr = Math.min(3, window.devicePixelRatio || 1);
+        const small = cv.classList.contains("bag-item-canvas");
+        const cssW = small ? 46 : 72, cssH = small ? 46 : 58;
+        const dpr = Math.min(3, window.devicePixelRatio || 1);
         cv.width = Math.round(cssW * dpr);
         cv.height = Math.round(cssH * dpr);
         ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -13044,15 +13052,15 @@
         ctx.globalCompositeOperation = "source-over";
         ctx.globalAlpha = 1;
         ctx.beginPath();
-        ctx.roundRect?.(0.5, 0.5, cssW - 1, cssH - 1, 6) || ctx.rect(0.5, 0.5, cssW, cssH);
-        ctx.fillStyle = "rgba(8,10,16,0.5)";
+        ctx.roundRect?.(0.5, 0.5, cssW - 1, cssH - 1, small ? 7 : 6) || ctx.rect(0.5, 0.5, cssW, cssH);
+        ctx.fillStyle = "rgba(8,10,16,0.55)";
         ctx.fill();
-        ctx.strokeStyle = "rgba(255,255,255,0.14)";
+        ctx.strokeStyle = "rgba(255,255,255,0.15)";
         ctx.lineWidth = 1;
         ctx.stroke();
         ctx.save();
-        ctx.translate(cssW / 2, cssH / 2 + 1);
-        ctx.scale(1.3, 1.3);
+        ctx.translate(cssW / 2, cssH / 2 + (small ? 0 : 1));
+        ctx.scale(small ? 0.85 : 1.3, small ? 0.85 : 1.3);
         this.drawRunItemShape(ctx, { shape }, color);
         ctx.restore();
         cv.dataset.painted = "1";
@@ -13337,6 +13345,52 @@
       `;
     }
 
+    bagEquippedArrangement() {
+      const items = this.run?.runItems || [];
+      const equipped = items.filter((entry) => entry.equipped);
+      const used = new Set((equipped || []).filter((e) => Number.isInteger(e.slot)).map((e) => e.slot));
+      for (let s = 0; s < RUN_EQUIP_LIMIT; s++) {
+        if (!used.has(s)) {
+          const e = (equipped || []).find((x) => !Number.isInteger(x.slot));
+          if (e) { e.slot = s; used.add(s); }
+        }
+      }
+      return equipped;
+    }
+
+    bagCellIcon(item) {
+      const color = RARITY[item.rarity]?.color || "#f2bf63";
+      return `<canvas class="bag-item-canvas" data-shape="${item.shape || ""}" data-color="${color}" width="64" height="64"></canvas>`;
+    }
+
+    bagSlotCell(entry, slot) {
+      if (!entry) {
+        return `<div class="bag-slot bag-empty" data-kind="equip" data-slot="${slot}"><span class="bag-slot-num">${slot + 1}</span></div>`;
+      }
+      const item = itemById(entry.id);
+      if (!item) return `<div class="bag-slot bag-empty" data-kind="equip" data-slot="${slot}"><span class="bag-slot-num">${slot + 1}</span></div>`;
+      return `
+        <div class="bag-slot" data-kind="equip" data-slot="${slot}" data-uid="${entry.uid}" data-pos="${slot}">
+          ${this.bagCellIcon(item)}
+        </div>
+      `;
+    }
+
+    bagItemCell(entry, i) {
+      if (!entry) return this.bagEmptyCell(i);
+      const item = itemById(entry.id);
+      if (!item) return this.bagEmptyCell(i);
+      return `
+        <div class="bag-cell" data-kind="bag" data-uid="${entry.uid}" data-pos="${i}">
+          ${this.bagCellIcon(item)}
+        </div>
+      `;
+    }
+
+    bagEmptyCell(i) {
+      return `<div class="bag-cell bag-cell-empty" data-kind="bag" data-pos="${i}"></div>`;
+    }
+
     showRunInventory(context = "bag") {
       if (!this.run) {
         this.showInventory();
@@ -13344,25 +13398,196 @@
       }
       this.mode = "runInventory";
       const items = this.run.runItems || [];
-      const equipped = items.filter((entry) => entry.equipped);
+      const equipped = this.bagEquippedArrangement();
       const bag = items.filter((entry) => !entry.equipped);
-      const cards = [
-        ...equipped.map((entry) => this.runItemCard(entry, context)),
-        ...bag.map((entry) => this.runItemCard(entry, context))
-      ].join("");
-      const subtitle = `Trang bị ${equipped.length}/${RUN_EQUIP_LIMIT} - Mang ${items.length}/${RUN_ITEM_LIMIT} - Tiền trong ải ${Math.floor(this.run.runGold || 0)}`;
+      let slotCells = "";
+      for (let s = 0; s < RUN_EQUIP_LIMIT; s++) {
+        slotCells += this.bagSlotCell(equipped.find((e) => e.slot === s), s);
+      }
+      let bagCells = "";
+      for (let i = 0; i < RUN_ITEM_LIMIT; i++) {
+        bagCells += this.bagItemCell(bag[i], i);
+      }
+      const characterId = this.run.player?.characterId || this.save.account.selectedCharacter;
+      const character = characterById(characterId);
+      const figure = this.characterPreviewImage(characterId, this.run.power?.id || "fire");
+      const subtitle = `Trang bị ${equipped.length}/${RUN_EQUIP_LIMIT} · Kho ${bag.length}/${RUN_ITEM_LIMIT} · Tiền ${Math.floor(this.run.runGold || 0)}`;
       this.setScreen(`
-        <section class="wide-panel">
-          <div class="panel-header">
+        <section class="bag-screen" data-bag-root data-multiplayer="${this.isMultiplayerRun() ? "1" : "0"}">
+          <div class="bag-head">
             <div>
-              <h2 class="panel-title">Kho Trong Ải</h2>
+              <h2 class="panel-title">Balo</h2>
               <p class="panel-subtitle">${subtitle}</p>
             </div>
-            <button class="btn" data-action="resume">ĐÓNG</button>
+            <button class="btn primary" data-action="resume">ĐÓNG</button>
           </div>
-          <div class="inventory-list">${cards || `<div class="empty-state">Chưa có phụ trợ nào. Rương sẽ thêm đồ vào đây.</div>`}</div>
+          <div class="bag-body">
+            <div class="bag-left">
+              <div class="bag-figure">
+                ${figure}
+                <div class="bag-figure-name">${character?.name || ""}</div>
+              </div>
+              <div class="bag-discard" data-kind="discard" title="Kéo đồ vào đây để vứt">
+                <span class="bag-discard-icon">🗑</span>
+                <span class="bag-discard-label">VỨT</span>
+              </div>
+            </div>
+            <div class="bag-main">
+              <div class="bag-section-label">Trang bị (${equipped.length}/${RUN_EQUIP_LIMIT})</div>
+              <div class="bag-equip-row">${slotCells}</div>
+              <div class="bag-section-label">Trong kho (${bag.length}/${RUN_ITEM_LIMIT})</div>
+              <div class="bag-grid">${bagCells}</div>
+            </div>
+          </div>
+          <div class="bag-tip">Kéo đồ vào 6 ô để trang bị · kéo trong kho để xếp · kéo vào ô VỨT để bỏ · di chuột/chạm để xem chỉ số</div>
         </section>
       `);
+    }
+
+    bagDragInit() {
+      this._bagDrag = null;
+      const root = this.screen?.querySelector("[data-bag-root]");
+      if (!root) return;
+      const moveCls = document.createElement("div");
+      moveCls.className = "bag-drag-clone";
+      document.body.appendChild(moveCls);
+      this._bagDragEl = moveCls;
+      const onDown = (ev) => {
+        const cell = ev.target.closest(".bag-slot, .bag-cell");
+        if (!cell || !cell.dataset.uid) return;
+        const kind = cell.dataset.kind;
+        ev.preventDefault();
+        const item = itemById(this.runItemByUid(cell.dataset.uid)?.id);
+        if (!item) return;
+        const color = RARITY[item.rarity]?.color || "#f2bf63";
+        moveCls.innerHTML = `<canvas class="bag-item-canvas" data-shape="${item.shape || ""}" data-color="${color}" width="46" height="46"></canvas>`;
+        moveCls.classList.add("active");
+        const cv = moveCls.querySelector("canvas");
+        cv.width = 46; cv.height = 46;
+        const c2 = cv.getContext("2d");
+        c2.setTransform(1.5, 0, 0, 1.5, 0, 0);
+        this.drawRunItemShape(c2, { shape: item.shape }, color);
+        this._bagDrag = { uid: cell.dataset.uid, kind, x: ev.clientX, y: ev.clientY };
+        this.positionDragClone(ev);
+        root.querySelectorAll(".bag-slot.drop-hint, .bag-cell.drop-hint, .bag-discard.drop-hint").forEach((n) => n.classList.remove("drop-hint"));
+        cell.classList.add("dragging");
+        this.closeBagTooltip();
+      };
+      const onMove = (ev) => {
+        if (!this._bagDrag) return;
+        ev.preventDefault();
+        this.positionDragClone(ev);
+        const target = this.bagDropTarget(ev);
+        root.querySelectorAll(".bag-slot.drop-hint, .bag-cell.drop-hint, .bag-discard.drop-hint").forEach((n) => n.classList.remove("drop-hint"));
+        if (target) target.classList.add("drop-hint");
+      };
+      const onUp = (ev) => {
+        if (!this._bagDrag) return;
+        const drag = this._bagDrag;
+        this._bagDrag = null;
+        moveCls.classList.remove("active");
+        root.querySelectorAll(".dragging, .drop-hint").forEach((n) => n.classList.remove("dragging", "drop-hint"));
+        const target = this.bagDropTarget(ev);
+        if (!target) return;
+        if (target.dataset.kind === "discard") { this.dropRunItem(drag.uid); return; }
+        this.bagApplyDrop(drag, target);
+      };
+      root.addEventListener("pointerdown", onDown);
+      window.addEventListener("pointermove", onMove);
+      window.addEventListener("pointerup", onUp);
+      root.addEventListener("pointerover", onMove);
+      this._bagDragCleanup = () => {
+        window.removeEventListener("pointermove", onMove);
+        window.removeEventListener("pointerup", onUp);
+        if (moveCls.parentNode) moveCls.parentNode.removeChild(moveCls);
+      };
+      this.closeBagTooltip();
+      this.attachBagTooltip(root);
+    }
+
+    positionDragClone(ev) {
+      const el = this._bagDragEl;
+      if (!el) return;
+      el.style.left = (ev.clientX + 14) + "px";
+      el.style.top = (ev.clientY + 12) + "px";
+    }
+
+    bagDropTarget(ev) {
+      const root = this.screen?.querySelector("[data-bag-root]");
+      if (!root) return null;
+      const el = document.elementFromPoint(ev.clientX, ev.clientY);
+      if (!el) return null;
+      const cell = el.closest(".bag-slot, .bag-cell, .bag-discard");
+      if (cell && root.contains(cell)) return cell;
+      return null;
+    }
+
+    bagApplyDrop(drag, target) {
+      if (target.dataset.kind === "equip") {
+        const slot = Number(target.dataset.slot);
+        this.moveRunItemToSlot(drag.uid, slot);
+        return;
+      }
+      if (target.dataset.kind === "bag") {
+        if (drag.kind === "equip") { this.unequipRunItem(drag.uid); return; }
+        const pos = Number(target.dataset.pos);
+        this.reorderBagItems(drag.uid, pos);
+      }
+    }
+
+    closeBagTooltip() {
+      const tip = this.screen?.querySelector(".bag-tooltip");
+      if (tip) tip.remove();
+    }
+
+    attachBagTooltip(root) {
+      let hoverTimer = null;
+      const showFor = (cell) => {
+        if (this._bagDrag || !cell?.dataset.uid) return;
+        this.closeBagTooltip();
+        const item = itemById(this.runItemByUid(cell.dataset.uid)?.id);
+        if (!item) return;
+        const stats = this.itemStatLines(item).length
+          ? `<ul class="item-stats">${this.itemStatLines(item).join("")}</ul>` : "";
+        const tip = document.createElement("div");
+        tip.className = "bag-tooltip";
+        tip.innerHTML = `
+          <div class="bag-tooltip-head rarity-${item.rarity}">
+            <b>${item.name}</b><span>${RARITY[item.rarity].label}</span>
+          </div>
+          <div class="bag-tooltip-line">${slotLabel(item.slot)}</div>
+          ${stats}
+          <div class="bag-tooltip-text">${item.text}</div>
+        `;
+        const rect = cell.getBoundingClientRect();
+        const vw = window.innerWidth, vh = window.innerHeight;
+        document.body.appendChild(tip);
+        const tw = tip.offsetWidth, th = tip.offsetHeight;
+        let left = rect.right + 10;
+        if (left + tw > vw - 8) left = Math.max(8, rect.left - tw - 10);
+        let top = rect.top;
+        if (top + th > vh - 8) top = Math.max(8, vh - th - 8);
+        tip.style.left = left + "px";
+        tip.style.top = top + "px";
+        root.__bagTip = tip;
+      };
+      root.addEventListener("pointerover", (ev) => {
+        const cell = ev.target.closest(".bag-slot, .bag-cell");
+        if (!cell || !cell.dataset.uid) { this.closeBagTooltip(); return; }
+        clearTimeout(hoverTimer);
+        hoverTimer = setTimeout(() => showFor(cell), 220);
+      });
+      root.addEventListener("pointerout", (ev) => {
+        const stillInside = ev.relatedTarget && ev.relatedTarget.closest && ev.relatedTarget.closest(".bag-slot, .bag-cell");
+        if (!stillInside) { clearTimeout(hoverTimer); this.closeBagTooltip(); }
+      });
+      root.addEventListener("pointerdown", (ev) => {
+        const cell = ev.target.closest(".bag-slot, .bag-cell");
+        if (!cell || !cell.dataset.uid) { if (!ev.target.closest(".bag-tooltip")) this.closeBagTooltip(); return; }
+        if (window.matchMedia("(hover: none), (pointer: coarse)").matches) {
+          showFor(cell);
+        }
+      });
     }
 
     showPowers() {
@@ -14637,15 +14862,22 @@
       return true;
     }
 
-    equipRunItem(uidValue) {
+    equipRunItem(uidValue, slotIndex = -1) {
       const entry = this.runItemByUid(uidValue);
       if (!entry) return;
       if (entry.equipped) return;
-      if (this.equippedRunItems().length >= RUN_EQUIP_LIMIT) {
+      const equipped = this.equippedRunItems();
+      if (equipped.length >= RUN_EQUIP_LIMIT) {
         this.toast("Đã trang bị tối đa 6 món");
         return;
       }
+      if (slotIndex < 0 || slotIndex >= RUN_EQUIP_LIMIT) {
+        const used = new Set((equipped || []).filter((e) => Number.isInteger(e.slot)).map((e) => e.slot));
+        slotIndex = 0;
+        while (used.has(slotIndex)) slotIndex += 1;
+      }
       entry.equipped = true;
+      entry.slot = slotIndex;
       this.reapplyRunEquipment();
       this.showRunInventory();
     }
@@ -14654,7 +14886,47 @@
       const entry = this.runItemByUid(uidValue);
       if (!entry) return;
       entry.equipped = false;
+      delete entry.slot;
       this.reapplyRunEquipment();
+      this.showRunInventory();
+    }
+
+    moveRunItemToSlot(uidValue, slotIndex) {
+      const entry = this.runItemByUid(uidValue);
+      if (!entry) return;
+      if (!entry.equipped) {
+        const other = (this.equippedRunItems() || []).find((e) => e.slot === slotIndex);
+        if (other && other.uid !== uidValue) {
+          other.equipped = false;
+          delete other.slot;
+        }
+        entry.equipped = true;
+        entry.slot = slotIndex;
+      } else {
+        const other = (this.equippedRunItems() || []).find((e) => e.slot === slotIndex && e.uid !== uidValue);
+        if (other) {
+          const temp = entry.slot;
+          entry.slot = slotIndex;
+          other.slot = temp;
+        } else {
+          entry.slot = slotIndex;
+        }
+      }
+      this.reapplyRunEquipment();
+      this.showRunInventory();
+    }
+
+    reorderBagItems(uidValue, toIndex) {
+      const items = this.run?.runItems || [];
+      const from = items.findIndex((e) => e.uid === uidValue);
+      if (from < 0) return;
+      const [entry] = items.splice(from, 1);
+      const bagIdx = [];
+      items.forEach((e, i) => { if (e && !e.equipped) bagIdx.push(i); });
+      const pos = Math.max(0, Math.min(toIndex, bagIdx.length));
+      let insert = bagIdx.length ? bagIdx[Math.min(pos, bagIdx.length - 1)] : items.length;
+      if (pos === bagIdx.length) insert = bagIdx.length ? bagIdx[bagIdx.length - 1] + 1 : items.length;
+      items.splice(insert, 0, entry);
       this.showRunInventory();
     }
 

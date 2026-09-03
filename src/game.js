@@ -15015,7 +15015,17 @@
       player.stats = this.defaultCombatStats();
       player.shield = 0;
       this.run.drones = [];
-      for (const entry of this.equippedRunItems()) {
+      const equipped = this.equippedRunItems();
+      const used = new Set(equipped.filter((e) => Number.isInteger(e.slot)).map((e) => e.slot));
+      for (const entry of equipped) {
+        if (!Number.isInteger(entry.slot)) {
+          let slotIndex = 0;
+          while (used.has(slotIndex)) slotIndex += 1;
+          entry.slot = slotIndex;
+          used.add(slotIndex);
+        }
+      }
+      for (const entry of equipped) {
         const item = itemById(entry.id);
         if (item) this.applyItemEffect(item, player, { rebuild: true });
       }

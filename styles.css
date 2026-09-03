@@ -5936,163 +5936,255 @@ body.is-mobile-ui .toast.combat-toast {
   font-weight: 850;
 }
 
-.secret-puzzle-board {
-  width: min(100%, 292px);
-  margin: 2px auto;
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
-}
-
-.secret-puzzle-tile {
-  position: relative;
-  aspect-ratio: 1;
-  min-width: 0;
-  padding: 0;
-  border: 1px solid color-mix(in srgb, var(--secret), transparent 45%);
-  border-radius: 8px;
-  background:
-    radial-gradient(circle at 50% 42%, color-mix(in srgb, var(--secret), transparent 78%), transparent 58%),
-    linear-gradient(145deg, rgba(255, 255, 255, 0.08), rgba(0, 0, 0, 0.34));
-  color: #f7fffb;
-  font: inherit;
-  cursor: pointer;
-  overflow: hidden;
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06), 0 10px 22px rgba(0, 0, 0, 0.26);
-  touch-action: manipulation;
-}
-
-.secret-puzzle-tile::before {
-  content: "";
-  position: absolute;
-  inset: 7px;
-  border: 1px dashed color-mix(in srgb, var(--secret), transparent 60%);
-  opacity: 0.7;
-}
-
-.secret-puzzle-tile:active {
-  transform: translateY(1px) scale(0.98);
-}
-
-.secret-puzzle-shape {
-  position: absolute;
-  inset: 12px;
-  display: grid;
-  place-items: center;
-  transform: rotate(calc(var(--turn) * 90deg));
-  transition: transform 140ms ease-out;
-}
-
-.secret-puzzle-stroke,
-.secret-puzzle-node {
-  position: absolute;
-  display: block;
-  left: 50%;
-  top: 50%;
-  background: var(--secret);
-  box-shadow: 0 0 12px color-mix(in srgb, var(--secret), transparent 32%);
-}
-
-.secret-puzzle-stroke {
-  border-radius: 999px;
-  transform: translate(-50%, -50%);
-}
-
-.secret-puzzle-tile-0 .stroke-a {
-  width: 9px;
-  height: 74%;
-}
-
-.secret-puzzle-tile-0 .stroke-b {
-  display: none;
-}
-
-.secret-puzzle-tile-1 .stroke-a,
-.secret-puzzle-tile-2 .stroke-a,
-.secret-puzzle-tile-3 .stroke-a {
-  width: 9px;
-  height: 72%;
-}
-
-.secret-puzzle-tile-1 .stroke-b {
-  width: 54%;
-  height: 9px;
-  left: 50%;
-  top: 50%;
-}
-
-.secret-puzzle-tile-2 .stroke-b {
-  width: 72%;
-  height: 9px;
-}
-
-.secret-puzzle-tile-3 .stroke-b {
-  width: 60%;
-  height: 9px;
-  transform: translate(-50%, -50%) rotate(-38deg);
-}
-
-.secret-puzzle-node {
-  width: 13px;
-  height: 13px;
-  border-radius: 50%;
-  transform: translate(-50%, -50%);
-}
-
-.secret-puzzle-tile-0 .node-a,
-.secret-puzzle-tile-1 .node-a {
-  top: 7%;
-  left: 50%;
-}
-
-.secret-puzzle-tile-0 .node-b,
-.secret-puzzle-tile-2 .node-b {
-  top: auto;
-  bottom: 7%;
-  left: 50%;
-}
-
-.secret-puzzle-tile-1 .node-b {
-  left: auto;
-  right: 8%;
-  top: 50%;
-}
-
-.secret-puzzle-tile-2 .node-a {
-  left: 8%;
-  top: 50%;
-}
-
-.secret-puzzle-tile-3 .node-a {
-  left: 13%;
-  top: 22%;
-}
-
-.secret-puzzle-tile-3 .node-b {
-  left: auto;
-  top: auto;
-  right: 13%;
-  bottom: 22%;
-}
-
-.secret-puzzle-shape b {
-  position: relative;
-  z-index: 1;
-  padding: 3px 5px;
-  border: 1px solid color-mix(in srgb, var(--secret), transparent 36%);
-  background: rgba(3, 8, 14, 0.72);
-  color: #f7fffb;
-  font-size: clamp(10px, 2.4vw, 12px);
-  line-height: 1;
-  letter-spacing: 0;
-  text-align: center;
-}
 
 .secret-puzzle-actions {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 10px;
+}
+
+/* ===== Secret room upgraded puzzle UI ===== */
+.secret-riddle-panel {
+  position: relative;
+  overflow: hidden;
+}
+.secret-riddle-panel::before {
+  content: "";
+  position: absolute;
+  inset: -40%;
+  background:
+    radial-gradient(circle at 30% 20%, color-mix(in srgb, var(--secret), transparent 86%), transparent 45%),
+    radial-gradient(circle at 75% 85%, color-mix(in srgb, var(--secret), transparent 88%), transparent 45%);
+  animation: secret-panel-drift 9s ease-in-out infinite alternate;
+  pointer-events: none;
+}
+@keyframes secret-panel-drift {
+  from { transform: translate3d(-6%, -4%, 0) rotate(-2deg); }
+  to { transform: translate3d(6%, 5%, 0) rotate(2deg); }
+}
+.secret-riddle-card {
+  position: relative;
+}
+.secret-riddle-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.secret-riddle-badge {
+  padding: 4px 9px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--secret), transparent 42%);
+  background: color-mix(in srgb, var(--secret), transparent 86%);
+  color: var(--secret);
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.secret-puzzle-stage {
+  margin-top: 4px;
+}
+.secret-puzzle-status {
+  font-variant-numeric: tabular-nums;
+  color: var(--secret);
+  font-weight: 800;
+}
+
+/* --- Circuit (Mạch Sáng) --- */
+.secret-circuit-legend {
+  display: flex;
+  justify-content: center;
+  gap: 22px;
+  margin-bottom: 8px;
+  color: var(--muted);
+  font-size: 12px;
+}
+.secret-circuit-legend b {
+  margin-right: 5px;
+  font-weight: 900;
+}
+.secret-circuit-legend .src { color: var(--secret); }
+.secret-circuit-legend .dst { color: #f4d26f; }
+.secret-circuit-board {
+  display: grid;
+  grid-template-columns: repeat(var(--cols), minmax(0, 1fr));
+  gap: 8px;
+  max-width: 430px;
+  margin: 0 auto;
+  padding: 4px;
+}
+.secret-circuit-tile {
+  position: relative;
+  aspect-ratio: 1;
+  min-width: 0;
+  padding: 0;
+  border: 1px solid color-mix(in srgb, var(--secret), transparent 52%);
+  border-radius: 10px;
+  background:
+    radial-gradient(circle at 50% 42%, color-mix(in srgb, var(--secret), transparent 80%), transparent 62%),
+    linear-gradient(145deg, rgba(255, 255, 255, 0.09), rgba(0, 0, 0, 0.36));
+  cursor: pointer;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.07), 0 8px 20px rgba(0, 0, 0, 0.28);
+  touch-action: manipulation;
+  transition: transform 120ms ease, filter 160ms ease;
+}
+.secret-circuit-tile:hover { filter: brightness(1.15); }
+.secret-circuit-tile:active { transform: scale(0.92); }
+.secret-circuit-tile.is-fixed {
+  cursor: default;
+  border-color: color-mix(in srgb, var(--secret), transparent 26%);
+}
+.secret-circuit-tile.is-fixed:active { transform: none; }
+.spc-cell {
+  position: absolute;
+  inset: 7px;
+  display: block;
+}
+.spc-arm {
+  position: absolute;
+  display: block;
+  background: linear-gradient(in oklab, var(--secret), color-mix(in srgb, var(--secret), #ffffff 18%));
+  box-shadow: 0 0 10px color-mix(in srgb, var(--secret), transparent 30%);
+  border-radius: 999px;
+}
+.spc-arm-n { top: 0; left: 50%; width: 9px; height: 50%; transform: translateX(-50%); }
+.spc-arm-s { bottom: 0; left: 50%; width: 9px; height: 50%; transform: translateX(-50%); }
+.spc-arm-e { right: 0; top: 50%; height: 9px; width: 50%; transform: translateY(-50%); }
+.spc-arm-w { left: 0; top: 50%; height: 9px; width: 50%; transform: translateY(-50%); }
+.spc-dot {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 11px;
+  height: 11px;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: var(--secret);
+  box-shadow: 0 0 14px color-mix(in srgb, var(--secret), transparent 20%);
+}
+.secret-circuit-tile.is-fixed .spc-dot {
+  border-radius: 4px;
+}
+
+/* --- Sequence (Chuỗi Ấn) --- */
+.secret-seq-pad {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(86px, 1fr));
+  gap: 10px;
+  max-width: 430px;
+  margin: 0 auto;
+}
+.secret-seq-pad.is-shaking { animation: secret-shake 0.3s ease; }
+.secret-seq-sigil {
+  position: relative;
+  aspect-ratio: 1;
+  padding: 0;
+  border: 2px solid color-mix(in srgb, var(--sg), transparent 55%);
+  border-radius: 16px;
+  background:
+    radial-gradient(circle at 50% 40%, color-mix(in srgb, var(--sg), transparent 78%), transparent 64%),
+    linear-gradient(150deg, rgba(255, 255, 255, 0.08), rgba(0, 0, 0, 0.34));
+  color: #f7fffb;
+  cursor: pointer;
+  font: inherit;
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.3);
+  touch-action: manipulation;
+  transition: transform 120ms ease, box-shadow 200ms ease;
+}
+.secret-seq-sigil:active { transform: scale(0.9); }
+.secret-seq-sigil.is-active {
+  transform: scale(1.1);
+  box-shadow: 0 0 26px color-mix(in srgb, var(--sg), transparent 8%), inset 0 0 18px color-mix(in srgb, var(--sg), transparent 40%);
+  z-index: 2;
+}
+.secret-seq-glyph {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-size: clamp(22px, 5vw, 34px);
+  font-weight: 950;
+  color: color-mix(in srgb, var(--sg), #ffffff 28%);
+  text-shadow: 0 3px 10px rgba(0, 0, 0, 0.5);
+}
+.secret-seq-wait {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 16px;
+  background: rgba(6, 10, 18, 0.62);
+  color: var(--secret);
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  backdrop-filter: blur(2px);
+  z-index: 3;
+  pointer-events: none;
+  animation: secret-blink 1s ease-in-out infinite;
+}
+@keyframes secret-blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.55; } }
+@keyframes secret-shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-6px); }
+  75% { transform: translateX(6px); }
+}
+
+/* --- Memory (Ghép Cặp) --- */
+.secret-mem-board {
+  display: grid;
+  grid-template-columns: repeat(var(--cols), minmax(0, 1fr));
+  gap: 8px;
+  max-width: 430px;
+  margin: 0 auto;
+}
+.secret-mem-card {
+  position: relative;
+  aspect-ratio: 1;
+  min-width: 0;
+  padding: 0;
+  border: 1px solid color-mix(in srgb, var(--sg), transparent 52%);
+  border-radius: 12px;
+  background: linear-gradient(150deg, rgba(255, 255, 255, 0.09), rgba(0, 0, 0, 0.36));
+  color: #f7fffb;
+  font: inherit;
+  cursor: pointer;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.28);
+  touch-action: manipulation;
+  transition: transform 160ms ease;
+}
+.secret-mem-card:active { transform: scale(0.9); }
+.secret-mem-card span {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  backface-visibility: hidden;
+}
+.secret-mem-back {
+  font-size: clamp(20px, 4vw, 30px);
+  font-weight: 950;
+  color: color-mix(in srgb, var(--sg), transparent 30%);
+}
+.secret-mem-front {
+  font-size: clamp(20px, 4vw, 30px);
+  font-weight: 950;
+  color: color-mix(in srgb, var(--sg), #ffffff 22%);
+  text-shadow: 0 3px 10px rgba(0, 0, 0, 0.5);
+}
+.secret-mem-card.is-flipped,
+.secret-mem-card.is-matched {
+  box-shadow: inset 0 0 18px color-mix(in srgb, var(--sg), transparent 52%);
+}
+.secret-mem-card.is-matched {
+  cursor: default;
+  opacity: 0.94;
+  transform: scale(0.96);
 }
 
 .room-choice-grid {

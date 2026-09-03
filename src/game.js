@@ -10,7 +10,7 @@
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
   const SIGNAL_REALTIME_RELAY_LIMIT = 2;
   const SIGNAL_REALTIME_TYPES = new Set(["state", "snapshot", "attack", "skill", "collect", "openChest", "dropItem", "damage", "chooseDoor"]);
-  const APP_VERSION = "20260718-pixel-vfx-334";
+  const APP_VERSION = "20260718-pixel-vfx-335";
   const CHANGELOG_ENTRIES = [
     {
       version: APP_VERSION,
@@ -829,6 +829,30 @@
     }
   ];
 
+  const SECRET_PUZZLE_TYPES = [
+    { id: "circuit", title: "Mạch Sáng", hint: "Xoay các mảnh nối để dẫn năng lượng từ nguồn tới đích." },
+    { id: "sequence", title: "Chuỗi Ấn", hint: "Quan sát thứ tự các ấn bừng sáng, rồi bấm lại đúng thứ tự." },
+    { id: "memory", title: "Ghép Cặp", hint: "Lật các thẻ để ghép đúng cặp ấn giống nhau." }
+  ];
+
+  const SECRET_PUZZLE_SHAPES = [
+    { mask: 0b1001, label: "Góc", a: "N-W" },
+    { mask: 0b1010, label: "Góc", a: "N-E" },
+    { mask: 0b0110, label: "Góc", a: "E-S" },
+    { mask: 0b0101, label: "Góc", a: "S-W" },
+    { mask: 0b1100, label: "Thẳng", a: "N-S" },
+    { mask: 0b0011, label: "Thẳng", a: "E-W" },
+    { mask: 0b1110, label: "Chữ T", a: "N-E-S" },
+    { mask: 0b1101, label: "Chữ T", a: "N-E-W" },
+    { mask: 0b1011, label: "Chữ T", a: "N-S-W" },
+    { mask: 0b0111, label: "Chữ T", a: "E-S-W" },
+    { mask: 0b1111, label: "Cộng" },
+    { mask: 0b0100, label: "Đầu", a: "E" },
+    { mask: 0b1000, label: "Đầu", a: "N" },
+    { mask: 0b0001, label: "Đầu", a: "W" },
+    { mask: 0b0010, label: "Đầu", a: "S" }
+  ];
+
   const DIFFICULTIES = [
     { id: "easy", label: "Dễ", text: "Quái yếu hơn, phù hợp để thử nhân vật và power.", enemyHp: 0.74, enemyDamage: 0.7, countBonus: -1, rewardBonus: -0.08 },
     { id: "normal", label: "Thường", text: "Nhịp chuẩn của Soulrift.", enemyHp: 1.06, enemyDamage: 0.94, countBonus: 0, rewardBonus: 0 },
@@ -1316,6 +1340,15 @@
     return list[Math.floor(Math.random() * list.length)];
   }
 
+  function shuffle(list) {
+    const arr = list.slice();
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr;
+  }
+
   function chance(value) {
     return Math.random() < value;
   }
@@ -1424,6 +1457,67 @@
       bossCore: ["TRÙM", "LÕI", "ẤN", "VƯƠNG"]
     };
     return glyphs[riddle?.material] || ["ẤN", "MẢNH", "KHÓA", "MỞ"];
+  }
+
+  const SECRET_EDGE_BITS = [0b1000, 0b0010, 0b0001, 0b0100]; // N, E, S, W
+
+  function rotateMaskBits(mask, rot) {
+    const moves = ((rot % 4) + 4) % 4;
+    let out = mask;
+    for (let k = 0; k < moves; k++) {
+      out = ((out << 1) | (out >> 3)) & 0b1111;
+    }
+    return out;
+  }
+
+  function maskEdgeOpen(mask, rot, edge) {
+    const r = ((rot % 4) + 4) % 4;
+    const rotated = rotateMaskBits(mask, r + 4);
+    let bit;
+    if (edge === 0) bit = 0b1000;       // N
+    else if (edge === 1) bit = 0b0010;  // E
+    else if (edge === 2) bit = 0b0001;  // S
+    else bit = 0b0100;                  // W
+    return (rotated & bit) !== 0;
+  }
+
+  function secretCircuitSolved(grid, rows, cols, source, target) {
+    if (!Array.isArray(grid) || grid.length < rows * cols) return false;
+    const dir = [[-1, 0, 0, 2], [0, 1, 1, 3], [1, 0, 2, 0], [0, -1, 3, 1]];
+    const idx = (r, c) => r * cols + c;
+    const visited = new Set();
+    const stack = [source];
+    visited.add(idx(source[0], source[1]));
+    while (stack.length) {
+      const [r, c] = stack.pop();
+      if (r === target[0] && c === target[1]) return true;
+      const cell = grid[idx(r, c)] || { mask: 0, rot: 0 };
+      for (const [dr, dc, fromEdge, toEdge] of dir) {
+        const nr = r + dr, nc = c + dc;
+        if (nr < 0 || nr >= rows || nc < 0 || nc >= cols) continue;
+        const key = idx(nr, nc);
+        if (visited.has(key)) continue;
+        const ncell = grid[key] || { mask: 0, rot: 0 };
+        if (maskEdgeOpen(cell.mask, cell.rot, fromEdge) && maskEdgeOpen(ncell.mask, ncell.rot, toEdge)) {
+          visited.add(key);
+          stack.push([nr, nc]);
+        }
+      }
+    }
+    return false;
+  }
+
+  function pickSecretPuzzleType(stage, fallback) {
+    const pool = SECRET_PUZZLE_TYPES.filter((entry) => entry.id !== fallback);
+    const options = (pool.length ? pool : SECRET_PUZZLE_TYPES).slice();
+    if (fallback && SECRET_PUZZLE_TYPES.some((entry) => entry.id === fallback)) options.push(pick(SECRET_PUZZLE_TYPES));
+    return pick(options).id;
+  }
+
+  function secretPuzzleShapeGlyphs(riddle) {
+    const base = secretPuzzleGlyphs(riddle);
+    const shapes = ["▲", "◆", "●", "■", "✦", "✚"];
+    return base.slice(0, 6).map((g, i) => g).length >= 4 ? [...base.slice(0, 4), ...shapes] : [...shapes, ...base.slice(0, 2)];
   }
 
   function accountKey(username) {
@@ -10352,8 +10446,8 @@
       if (action === "merchant-tab") this.showMerchantShop(target.dataset.tab || "buy");
       if (action === "sell-run-item") this.sellRunItem(target.dataset.uid);
       if (action === "leave-merchant") this.completeMerchantRoom();
-      if (action === "rotate-secret-puzzle") this.rotateSecretPuzzleTile(target.dataset.index, target.dataset.object);
-      if (action === "shuffle-secret-puzzle") this.shuffleSecretPuzzle(target.dataset.object);
+      if (action === "secret-puzzle-tap") this.tapSecretPuzzle(target.dataset.pz, target.dataset.idx, target.dataset.object);
+      if (action === "shuffle-secret-puzzle") this.scrambleSecretPuzzle(target.dataset.object);
       if (action === "skip-secret-riddle") this.skipSecretRiddle(target.dataset.object);
       if (action === "select-character") this.selectCharacter(target.dataset.character);
       if (action === "upgrade-stat") this.upgradeStatPoint(target.dataset.stat);
@@ -14650,7 +14744,9 @@
           secretSolved: Boolean(this.run.currentRoom.secretSolved),
           secretAttempts: Number(this.run.currentRoom.secretAttempts || 0),
           secretMoves: Number(this.run.currentRoom.secretMoves || 0),
+          secretPuzzleType: this.run.currentRoom.secretPuzzleType || "",
           secretPuzzle: Array.isArray(this.run.currentRoom.secretPuzzle) ? this.run.currentRoom.secretPuzzle.slice(0, 4) : [],
+          secretPuzzleState: this.run.currentRoom.secretPuzzleState ? JSON.parse(JSON.stringify(this.run.currentRoom.secretPuzzleState)) : null,
           playerBossResult: this.run.currentRoom.playerBossResult || "",
           playerBossName: this.run.currentRoom.playerBossName || "",
           playerBossElapsed: this.run.currentRoom.playerBossElapsed || 0,
@@ -15241,6 +15337,8 @@
         secretAttempts: 0,
         secretMoves: 0,
         secretPuzzle: [],
+        secretPuzzleType: type === "secret" ? (room.secretPuzzleType || this.rollSecretPuzzleType()) : "",
+        secretPuzzleState: null,
         rewardClaims: {},
         rewardOwners: []
       };
@@ -15616,6 +15714,10 @@
       return pick(SECRET_RIDDLES);
     }
 
+    rollSecretPuzzleType() {
+      return pickSecretPuzzleType(this.run?.stage || 0, this.run?.currentRoom?.secretPuzzleType || "");
+    }
+
     currentSecretRiddle() {
       return secretRiddleById(this.run?.currentRoom?.secretRiddle);
     }
@@ -15632,6 +15734,383 @@
         riddleId: riddle.id
       });
       this.addShockwave(WORLD_W / 2, WORLD_H / 2 - 22, 170, riddle.color || "#82ffd3", 0);
+    }
+
+    secretPuzzleType() {
+      const room = this.run?.currentRoom;
+      let type = room?.secretPuzzleType || "";
+      if (!type) {
+        type = this.rollSecretPuzzleType();
+        if (room) room.secretPuzzleType = type;
+      }
+      return type;
+    }
+
+    secretPuzzleState() {
+      const room = this.run?.currentRoom;
+      if (!room) return null;
+      if (!room.secretPuzzleType) room.secretPuzzleType = this.rollSecretPuzzleType();
+      if (!room.secretPuzzleState) {
+        const type = room.secretPuzzleType;
+        const riddle = this.currentSecretRiddle();
+        if (type === "circuit") room.secretPuzzleState = this.generateCircuitState(riddle);
+        else if (type === "sequence") room.secretPuzzleState = this.generateSequenceState(riddle);
+        else if (type === "memory") room.secretPuzzleState = this.generateMemoryState(riddle);
+        else room.secretPuzzleState = { solved: false, moves: 0 };
+      }
+      return room.secretPuzzleState;
+    }
+
+    secretPuzzleSolved() {
+      const room = this.run?.currentRoom;
+      if (!room || !room.secretPuzzleState) return false;
+      if (room.secretSolved) return true;
+      const st = room.secretPuzzleState;
+      if (room.secretPuzzleType === "circuit") {
+        return secretCircuitSolved(st.grid, st.rows, st.cols, st.source, st.target);
+      }
+      if (room.secretPuzzleType === "sequence") return st.done === true;
+      if (room.secretPuzzleType === "memory") return st.matched === st.pairs;
+      return Boolean(st.solved);
+    }
+
+    circuitEdgeFor(r, c, nextR, nextC) {
+      const dr = nextR - r, dc = nextC - c;
+      if (dr === -1) return 0;
+      if (dc === 1) return 1;
+      if (dr === 1) return 2;
+      if (dc === -1) return 3;
+      return -1;
+    }
+
+    generateCircuitState(riddle, attempts = 0) {
+      const stage = this.run?.stage || 0;
+      const rows = stage >= 7 ? 4 : stage >= 4 ? 3 : 2;
+      const cols = stage >= 7 ? 4 : stage >= 4 ? 4 : 3;
+      const total = rows * cols;
+      const grid = Array.from({ length: total }, () => ({ mask: 0, rot: 0, fixed: false }));
+      const source = [0, 0];
+      const target = [rows - 1, cols - 1];
+      // build a random path from source to target (solvable by construction)
+      const path = [[0, 0]];
+      let [r, c] = [0, 0];
+      let guard = 0;
+      while ((r !== rows - 1 || c !== cols - 1) && guard++ < 60) {
+        const choices = [];
+        if (r < rows - 1) choices.push([1, 0]);
+        if (c < cols - 1) choices.push([0, 1]);
+        if (r > 0) choices.push([-1, 0]);
+        if (c > 0) choices.push([0, -1]);
+        const last = path[path.length - 2];
+        const fwd = choices.filter(([dr, dc]) => r + dr !== last?.[0] || c + dc !== last?.[1]);
+        const from = (fwd.length ? fwd : choices)[randi(0, (fwd.length ? fwd : choices).length - 1)];
+        r += from[0]; c += from[1];
+        path.push([r, c]);
+        if (path.length > total * 2) break;
+      }
+      // endpoint tiles
+      const autoEdge = (fr, fc, tr, tc) => SECRET_EDGE_BITS[this.circuitEdgeFor(fr, fc, tr, tc)];
+      const sMask = () => {
+        const nr = path[1]?.[0] ?? source[0], nc = path[1]?.[1] ?? source[1];
+        return autoEdge(source[0], source[1], nr, nc);
+      };
+      grid[0] = { mask: sMask(), rot: 0, fixed: true };
+      const prevT = path[path.length - 2] || target;
+      grid[(target[0] * cols) + target[1]] = { mask: autoEdge(target[0], target[1], prevT[0], prevT[1]), rot: 0, fixed: true };
+      // intermediate path tiles: both edges
+      for (let i = 1; i < path.length - 1; i++) {
+        const [pr, pc] = path[i - 1];
+        const [cr, cc] = path[i];
+        const [nrr, ncc] = path[i + 1];
+        const inEdge = this.circuitEdgeFor(cr, cc, pr, pc);
+        const outEdge = this.circuitEdgeFor(cr, cc, nrr, ncc);
+        let mask = SECRET_EDGE_BITS[inEdge] | SECRET_EDGE_BITS[outEdge];
+        if (Math.random() < 0.12) mask |= SECRET_EDGE_BITS[randi(0, 3)];
+        const cellIdx = cr * cols + cc;
+        grid[cellIdx] = { mask, rot: 0, fixed: false };
+      }
+      // fill empty cells with random tiles
+      const shapes = SECRET_PUZZLE_SHAPES.slice();
+      for (let i = 0; i < total; i++) {
+        if (!grid[i].mask) {
+          const sh = pick(shapes);
+          grid[i] = { mask: sh.mask, rot: randi(0, 3), fixed: false };
+        }
+      }
+      // scramble rotations so the board is not pre-solved; endpoints stay fixed
+      for (let i = 0; i < total; i++) {
+        if (grid[i].fixed) continue;
+        grid[i].rot = randi(0, 3);
+      }
+      // guarantee a solution exists: reconstruct by setting all rot 0 and verify
+      const feasible = ((g) => {
+        const probe = g.map((cell) => ({ mask: cell.mask, rot: 0, fixed: cell.fixed }));
+        return secretCircuitSolved(probe, rows, cols, source, target);
+      })(grid);
+      if (!feasible && attempts < 12) return this.generateCircuitState(riddle, attempts + 1);
+      return { rows, cols, grid, source, target, solved: false };
+    }
+
+    generateSequenceState(riddle) {
+      const stage = this.run?.stage || 0;
+      const padCount = Math.min(6, 4 + Math.floor(stage / 2));
+      const length = Math.min(7, 4 + Math.floor(stage / 2));
+      const glyphs = secretPuzzleShapeGlyphs(riddle);
+      const pad = Array.from({ length: padCount }, (_, i) => ({ glyph: glyphs[i % glyphs.length], color: SECRET_RIDDLES[i % SECRET_RIDDLES.length]?.color || riddle.color }));
+      const solution = Array.from({ length }, () => randi(0, padCount - 1));
+      return {
+        pad, solution, input: [], phase: "show", showIndex: 0, showTimer: 0,
+        done: false, paused: false
+      };
+    }
+
+    generateMemoryState(riddle) {
+      const stage = this.run?.stage || 0;
+      const pairs = Math.min(8, 4 + Math.floor(stage / 2));
+      const glyphs = secretPuzzleShapeGlyphs(riddle);
+      const deck = [];
+      for (let i = 0; i < pairs; i++) deck.push(i, i);
+      const shuffled = shuffle(deck);
+      const cards = shuffled.map((pair, idx) => ({ pair, glyph: glyphs[pair % glyphs.length], flipped: false, matched: false }));
+      return { cards, pairs, first: -1, busy: false, matched: 0, moves: 0, done: false };
+    }
+
+    puzzleTypeMeta(type) {
+      return SECRET_PUZZLE_TYPES.find((entry) => entry.id === type) || SECRET_PUZZLE_TYPES[0];
+    }
+
+    updateSecretPuzzle(dt) {
+      const room = this.run?.currentRoom;
+      if (!room || room.type !== "secret") return;
+      if (room.secretPuzzleType !== "sequence") return;
+      const st = this.run?.currentRoom?.secretPuzzleState;
+      if (!st || st.done || st.phase !== "show") return;
+      st.showTimer -= dt;
+      if (st.showTimer > 0) {
+        this.toggleSequenceShowIndex(st, true);
+        return;
+      }
+      this.toggleSequenceShowIndex(st, false);
+      st.showIndex += 1;
+      if (st.showIndex >= st.solution.length) {
+        st.phase = "input";
+        st.input = [];
+        st.showIndex = 0;
+        this.renderSecretPuzzleFrame();
+        this.flashSecretHint(null, "Bấm theo thứ tự");
+        return;
+      }
+      st.showTimer = Math.max(0.34, 0.66 - st.showIndex * 0.03);
+      this.toggleSequenceShowIndex(st, true);
+      this.audio.sfx(430 + st.solution[st.showIndex] * 70, "triangle", 0.06, 0.07);
+    }
+
+    toggleSequenceShowIndex(st, on) {
+      const idx = st.solution[st.showIndex];
+      const pad = this.screen?.querySelector(".secret-seq-pad");
+      pad?.querySelectorAll(".secret-seq-sigil")?.forEach((el, i) => {
+        el.classList.toggle("is-active", on && i === idx);
+      });
+    }
+
+    updateSecretPuzzleStatusLine() {
+      const st = this.run?.currentRoom?.secretPuzzleState;
+      const el = this.screen?.querySelector("[data-pz-status]");
+      if (!el || !st) return;
+      if (this.run?.currentRoom?.secretPuzzleType === "sequence") {
+        let label = st.phase === "show" ? "Đang quan sát…" : `Nhập ${st.input.length}/${st.solution.length}`;
+        if (st.done) label = "Đã khớp";
+        el.textContent = label;
+      } else if (this.run?.currentRoom?.secretPuzzleType === "memory") {
+        el.textContent = `Đã ghép ${st.matched}/${st.pairs} cặp`;
+      } else {
+        el.textContent = `Lần xoay: ${this.run?.currentRoom?.secretMoves || 0}`;
+      }
+    }
+
+    circuitTileHTML(tile, idx, color, fixed) {
+      const rot = ((tile.rot % 4) + 4) % 4;
+      const m = rotateMaskBits(tile.mask, 4 + rot);
+      const arms = [];
+      const bits = [["n", 0b1000], ["e", 0b0010], ["s", 0b0001], ["w", 0b0100]];
+      for (const [dir, bit] of bits) {
+        if (m & bit) arms.push(`<i class="spc-arm spc-arm-${dir}"></i>`);
+      }
+      const cls = fixed ? " is-fixed" : "";
+      return `<button class="secret-circuit-tile${cls}" style="--secret:${color}" data-action="secret-puzzle-tap" data-pz="circuit" data-idx="${idx}" ${fixed ? "disabled" : ""} aria-label="Mảnh mạch ${idx + 1}"><span class="spc-cell">${arms.join("")}<i class="spc-dot"></i></span></button>`;
+    }
+
+    sequenceSigilHTML(sigil, idx, color, riddleColor) {
+      return `<button class="secret-seq-sigil" style="--sg:${sigil.color || riddleColor}" data-action="secret-puzzle-tap" data-pz="sequence" data-idx="${idx}" aria-label="Ấn ${idx + 1}"><span class="secret-seq-glyph">${escapeHtml(sigil.glyph)}</span></button>`;
+    }
+
+    renderSecretPuzzleFrame() {
+      const room = this.run?.currentRoom;
+      if (!room || room.type !== "secret") return;
+      const type = room.secretPuzzleType;
+      const riddle = this.currentSecretRiddle();
+      const st = room.secretPuzzleState;
+      const meta = this.puzzleTypeMeta(type);
+      const color = riddle.color || "#82ffd3";
+      let board = "";
+      if (type === "circuit") {
+        const grid = st.grid, total = st.rows * st.cols;
+        const cells = [];
+        for (let i = 0; i < total; i++) cells.push(this.circuitTileHTML(grid[i], i, color, grid[i].fixed));
+        board = `<div class="secret-circuit-legend"><span><b class="src">⚡</b> Nguồn</span><span><b class="dst">◈</b> Đích</span></div><div class="secret-circuit-board" style="--rows:${st.rows};--cols:${st.cols}">${cells.join("")}</div>`;
+      } else if (type === "sequence") {
+        const pad = st.pad.map((s, i) => this.sequenceSigilHTML(s, i, s.color, color)).join("");
+        const wait = st.phase === "show" ? `<div class="secret-seq-wait">Quan sát…</div>` : "";
+        board = `<div class="secret-seq-pad" style="--secret:${color}">${pad}${wait}</div>`;
+      } else if (type === "memory") {
+        const cols = st.pairs <= 5 ? 4 : 5;
+        const cards = st.cards.map((cd, i) => {
+          const shown = cd.flipped || cd.matched;
+          const inner = shown ? `<span class="secret-mem-front">${escapeHtml(cd.glyph)}</span>` : `<span class="secret-mem-back">?</span>`;
+          return `<button class="secret-mem-card${cd.matched ? " is-matched" : ""}${cd.flipped ? " is-flipped" : ""}" style="--sg:${SECRET_RIDDLES[cd.pair % SECRET_RIDDLES.length]?.color || color}" data-action="secret-puzzle-tap" data-pz="memory" data-idx="${i}">${inner}</button>`;
+        }).join("");
+        board = `<div class="secret-mem-board" style="--cols:${cols}">${cards}</div>`;
+      }
+      const statusLine = type === "circuit" ? `Lần xoay: ${room.secretMoves || 0}` : type === "sequence" ? (st.phase === "show" ? "Đang quan sát…" : `Nhập ${st.input.length}/${st.solution.length}`) : `Đã ghép ${st.matched}/${st.pairs} cặp`;
+      const boardZone = this.screen?.querySelector("[data-pz-board]");
+      if (boardZone) {
+        boardZone.innerHTML = board;
+        const status = this.screen?.querySelector("[data-pz-status]");
+        if (status) status.textContent = statusLine;
+      }
+    }
+
+    tapSecretPuzzle(type, index, objectId = "") {
+      if (this.isMultiplayerClient()) return;
+      if (this.run?.currentRoom?.type !== "secret" || this.run?.currentRoom?.secretPuzzleType !== type) return;
+      if (type === "circuit") this.tapSecretCircuit(Number(index), objectId);
+      else if (type === "sequence") this.tapSecretSequence(Number(index), objectId);
+      else if (type === "memory") this.tapSecretMemory(Number(index), objectId);
+    }
+
+    tapSecretCircuit(index, objectId = "") {
+      const room = this.run?.currentRoom;
+      const st = this.run?.currentRoom?.secretPuzzleState;
+      if (!room || !st) return;
+      const object = this.run.roomObjects.find((entry) => entry.id === (objectId || this.activeSecretObjectId)) || this.run.roomObjects.find((entry) => entry.type === "secretAltar");
+      const tile = st.grid[index];
+      if (!tile || tile.fixed) return;
+      tile.rot = (tile.rot + 1) % 4;
+      room.secretMoves = Number(room.secretMoves || 0) + 1;
+      room.secretAttempts = room.secretMoves;
+      this.audio.sfx(320 + (index % 8) * 55, "sine", 0.07, 0.06);
+      if (this.secretPuzzleSolved()) this.completeSecretRiddle(true, this.currentSecretRiddle(), object);
+      else {
+        this.renderSecretPuzzleFrame();
+        if (this.isMultiplayerHost()) this.broadcastFastSnapshot(0.08);
+      }
+    }
+
+    tapSecretSequence(index, objectId = "") {
+      const room = this.run?.currentRoom;
+      const st = this.run?.currentRoom?.secretPuzzleState;
+      if (!room || !st || st.done || st.phase !== "input") return;
+      const object = this.run.roomObjects.find((entry) => entry.id === (objectId || this.activeSecretObjectId)) || this.run.roomObjects.find((entry) => entry.type === "secretAltar");
+      const expected = st.solution[st.input.length];
+      this.audio.sfx(430 + index * 70, "triangle", 0.08, 0.08);
+      if (index === expected) {
+        st.input.push(index);
+        room.secretMoves = Number(room.secretMoves || 0) + 1;
+        room.secretAttempts = room.secretMoves;
+        this.flashSecretHint(index, null);
+        if (st.input.length === st.solution.length) {
+          st.done = true;
+          this.completeSecretRiddle(true, this.currentSecretRiddle(), object);
+          return;
+        }
+        this.renderSecretPuzzleFrame();
+      } else {
+        room.secretMoves = Number(room.secretMoves || 0) + 1;
+        room.secretAttempts = room.secretMoves;
+        this.audio.sfx(120, "square", 0.14, 0.11);
+        this.flashSecretHint(null, "Sai! Xem lại");
+        this.shakeElement(this.screen?.querySelector(".secret-seq-pad"));
+        st.phase = "show";
+        st.showIndex = 0;
+        st.showTimer = 0.55;
+        st.input = [];
+        this.renderSecretPuzzleFrame();
+      }
+      if (this.isMultiplayerHost()) this.broadcastFastSnapshot(0.08);
+    }
+
+    tapSecretMemory(index, objectId = "") {
+      const room = this.run?.currentRoom;
+      const st = this.run?.currentRoom?.secretPuzzleState;
+      if (!room || !st || st.done || st.busy) return;
+      const object = this.run.roomObjects.find((entry) => entry.id === (objectId || this.activeSecretObjectId)) || this.run.roomObjects.find((entry) => entry.type === "secretAltar");
+      const card = st.cards[index];
+      if (!card || card.flipped || card.matched) return;
+      this.audio.sfx(260, "triangle", 0.07, 0.07);
+      room.secretMoves = Number(room.secretMoves || 0) + 1;
+      st.moves += 1;
+      card.flipped = true;
+      if (st.first === -1) {
+        st.first = index;
+      } else {
+        const firstCard = st.cards[st.first];
+        st.busy = true;
+        if (firstCard.pair === card.pair) {
+          firstCard.matched = true;
+          card.matched = true;
+          st.matched += 1;
+          st.first = -1;
+          st.busy = false;
+          this.audio.sfx(720, "triangle", 0.14, 0.12);
+          if (st.matched === st.pairs) {
+            st.done = true;
+            this.completeSecretRiddle(true, this.currentSecretRiddle(), object);
+            return;
+          }
+        } else {
+          const a = st.first, b = index;
+          st.first = -1;
+          setTimeout(() => {
+            if (this.run?.currentRoom?.secretPuzzleState === st) {
+              st.cards[a].flipped = false;
+              st.cards[b].flipped = false;
+              st.busy = false;
+              this.renderSecretPuzzleFrame();
+            }
+          }, 560);
+        }
+      }
+      room.secretAttempts = room.secretMoves;
+      this.renderSecretPuzzleFrame();
+      if (this.isMultiplayerHost()) this.broadcastFastSnapshot(0.08);
+    }
+
+    flashSecretHint(index, message) {
+      const st = this.run?.currentRoom?.secretPuzzleState;
+      const status = this.screen?.querySelector("[data-pz-status]");
+      if (status) status.textContent = message || (index != null ? `Nhập ${st.input.length}/${st.solution.length}` : status.textContent);
+    }
+
+    shakeElement(el) {
+      if (!el) return;
+      el.classList.remove("is-shaking");
+      void el.offsetWidth;
+      el.classList.add("is-shaking");
+      setTimeout(() => el.classList.remove("is-shaking"), 320);
+    }
+
+    scrambleSecretPuzzle(objectId = "") {
+      const room = this.run?.currentRoom;
+      if (!room || room.type !== "secret") return;
+      room.secretMoves = Number(room.secretMoves || 0) + 1;
+      room.secretAttempts = room.secretMoves;
+      if (room.secretPuzzleType === "circuit") {
+        const st = room.secretPuzzleState;
+        for (let i = 0; i < st.grid.length; i++) if (!st.grid[i].fixed) st.grid[i].rot = randi(0, 3);
+        this.audio.sfx(190, "sawtooth", 0.07, 0.09);
+        this.renderSecretPuzzleFrame();
+        if (this.isMultiplayerHost()) this.broadcastFastSnapshot(0.08);
+      }
     }
 
     edgePosition(edge) {
@@ -15931,6 +16410,7 @@
       this.updateEffects(dt);
       this.updateParticles(dt);
       this.updateDamageTexts(dt);
+      this.updateSecretPuzzle(dt);
       this.applyEmergencyVisualBudget();
       this.updateStatusEffects(dt);
       this.applyTrainingRules();
@@ -16018,25 +16498,21 @@
       const room = this.run?.currentRoom;
       if (!room || room.type !== "secret") return;
       if (this.isMultiplayerClient()) {
-        this.toast("Chờ host xoay ấn bí mật");
+        this.toast("Chờ host giải ấn bí mật");
         return;
       }
       const riddle = this.currentSecretRiddle();
+      const color = riddle.color || "#82ffd3";
       this.activeSecretObjectId = object?.id || this.run.roomObjects.find((entry) => entry.type === "secretAltar" && !entry.opened)?.id || "";
-      const puzzle = this.ensureSecretPuzzleState();
-      const moves = Number(room.secretMoves || 0);
-      const glyphs = secretPuzzleGlyphs(riddle);
-      const tiles = puzzle.map((turn, index) => `
-        <button class="secret-puzzle-tile secret-puzzle-tile-${index}" style="--turn:${turn}; --secret:${riddle.color || "#82ffd3"}" data-action="rotate-secret-puzzle" data-index="${index}" data-object="${escapeHtml(this.activeSecretObjectId)}" aria-label="Xoay mảnh ${index + 1}">
-          <span class="secret-puzzle-shape">
-            <i class="secret-puzzle-stroke stroke-a"></i>
-            <i class="secret-puzzle-stroke stroke-b"></i>
-            <i class="secret-puzzle-node node-a"></i>
-            <i class="secret-puzzle-node node-b"></i>
-            <b>${escapeHtml(glyphs[index] || "ẤN")}</b>
-          </span>
-        </button>
-      `).join("");
+      const type = this.secretPuzzleType();
+      const st = this.secretPuzzleState();
+      const meta = this.puzzleTypeMeta(type);
+      if (type === "sequence") {
+        st.phase = "show";
+        st.showIndex = 0;
+        st.showTimer = 0.7;
+        st.input = [];
+      }
       this.pauseOverlay = true;
       this.mode = "game";
       this.input.keys.clear();
@@ -16046,79 +16522,54 @@
       this.input.touch.rawX = 0;
       this.input.touch.rawY = 0;
       this.input.touch.active = false;
+      const typeMeta = SECRET_PUZZLE_TYPES.map((t) => t).filter((t) => t.id !== type);
       this.setScreen(`
-        <section class="wide-panel secret-riddle-panel" style="--secret:${riddle.color || "#82ffd3"}">
+        <section class="wide-panel secret-riddle-panel" style="--secret:${color}" data-pz-root>
           <div class="panel-header">
             <div>
               <h2 class="panel-title">Cổng Bí Mật</h2>
-              <p class="panel-subtitle">Xoay các mảnh để đường sáng khớp về đúng hướng. Khớp đủ 4 mảnh sẽ mở rương ${materialLabel(riddle.material)}.</p>
+              <p class="panel-subtitle">${escapeHtml(meta.hint)} Mở rương ${materialLabel(riddle.material)} nếu giải thành công.</p>
             </div>
             <button class="btn" data-action="skip-secret-riddle" data-object="${escapeHtml(this.activeSecretObjectId)}">BỎ QUA</button>
           </div>
           <div class="secret-riddle-card">
-            <div class="secret-riddle-mark">${escapeHtml(riddle.title)}</div>
-            <h3>Ấn xoay cổ</h3>
-            <p>Bấm từng mảnh để xoay 90 độ. Khi tất cả ký hiệu đứng thẳng, cổng sẽ tự mở.</p>
+            <div class="secret-riddle-top">
+              <div class="secret-riddle-mark">${escapeHtml(riddle.title)}</div>
+              <span class="secret-riddle-badge">CÂU ĐỐ · ${escapeHtml(meta.title)}</span>
+            </div>
+            <h3>${escapeHtml(meta.title)}</h3>
+            <p>${escapeHtml(meta.hint)}</p>
             ${message ? `<p class="secret-riddle-warning">${escapeHtml(message)}</p>` : ""}
-            <div class="secret-puzzle-board">
-              ${tiles}
+            <div class="secret-puzzle-stage">
+              <div data-pz-board></div>
             </div>
             <div class="secret-puzzle-actions">
-              <button class="btn" data-action="shuffle-secret-puzzle" data-object="${escapeHtml(this.activeSecretObjectId)}">ĐẢO LẠI</button>
-              <span class="small">Số lần xoay: ${moves}</span>
+              ${type === "circuit" ? `<button class="btn" data-action="shuffle-secret-puzzle" data-object="${escapeHtml(this.activeSecretObjectId)}">ĐẢO LẠI</button>` : `<span></span>`}
+              <span class="small secret-puzzle-status" data-pz-status></span>
             </div>
           </div>
         </section>
       `);
+      this.renderSecretPuzzleFrame();
     }
 
-    ensureSecretPuzzleState() {
+    secretPuzzleStateLazy() {
       const room = this.run?.currentRoom;
-      if (!room) return [1, 2, 3, 1];
-      const source = Array.isArray(room.secretPuzzle) ? room.secretPuzzle.slice(0, 4) : [];
-      const valid = source.length === 4 && source.every((value) => Number.isFinite(Number(value)));
-      if (!valid || source.every((value) => (Number(value) % 4 + 4) % 4 === 0)) {
-        room.secretPuzzle = Array.from({ length: 4 }, () => randi(1, 3));
-      } else {
-        room.secretPuzzle = source.map((value) => (Math.round(Number(value)) % 4 + 4) % 4);
-      }
-      return room.secretPuzzle;
+      if (!room || room.type !== "secret") return null;
+      return this.secretPuzzleState();
     }
 
     secretPuzzleSolved() {
       const room = this.run?.currentRoom;
-      return Array.isArray(room?.secretPuzzle) && room.secretPuzzle.length === 4 && room.secretPuzzle.every((value) => (Number(value) % 4 + 4) % 4 === 0);
-    }
-
-    rotateSecretPuzzleTile(index = 0, objectId = "") {
-      const room = this.run?.currentRoom;
-      if (!room || room.type !== "secret" || this.isMultiplayerClient()) return;
-      const object = this.run.roomObjects.find((entry) => entry.id === (objectId || this.activeSecretObjectId)) || this.run.roomObjects.find((entry) => entry.type === "secretAltar");
-      const riddle = this.currentSecretRiddle();
-      const puzzle = this.ensureSecretPuzzleState();
-      const tileIndex = clamp(Math.round(Number(index) || 0), 0, puzzle.length - 1);
-      puzzle[tileIndex] = (puzzle[tileIndex] + 1) % 4;
-      room.secretMoves = Number(room.secretMoves || 0) + 1;
-      room.secretAttempts = room.secretMoves;
-      this.audio.sfx(this.secretPuzzleSolved() ? 760 : 360 + tileIndex * 70, "triangle", 0.08, 0.08);
-      if (this.secretPuzzleSolved()) {
-        this.completeSecretRiddle(true, riddle, object);
-        return;
+      if (!room || !room.secretPuzzleState) return false;
+      if (room.secretSolved) return true;
+      const st = room.secretPuzzleState;
+      if (room.secretPuzzleType === "circuit") {
+        return secretCircuitSolved(st.grid, st.rows, st.cols, st.source, st.target);
       }
-      this.showSecretRiddle(object);
-      if (this.isMultiplayerHost()) this.broadcastFastSnapshot(0.08);
-    }
-
-    shuffleSecretPuzzle(objectId = "") {
-      const room = this.run?.currentRoom;
-      if (!room || room.type !== "secret" || this.isMultiplayerClient()) return;
-      const object = this.run.roomObjects.find((entry) => entry.id === (objectId || this.activeSecretObjectId)) || this.run.roomObjects.find((entry) => entry.type === "secretAltar");
-      room.secretPuzzle = Array.from({ length: 4 }, () => randi(1, 3));
-      room.secretMoves = Number(room.secretMoves || 0) + 1;
-      room.secretAttempts = room.secretMoves;
-      this.audio.sfx(190, "sawtooth", 0.07, 0.09);
-      this.showSecretRiddle(object, "Ấn đã đảo lại.");
-      if (this.isMultiplayerHost()) this.broadcastFastSnapshot(0.08);
+      if (room.secretPuzzleType === "sequence") return st.done === true;
+      if (room.secretPuzzleType === "memory") return st.matched === st.pairs;
+      return Boolean(st.solved);
     }
 
     skipSecretRiddle(objectId = "") {

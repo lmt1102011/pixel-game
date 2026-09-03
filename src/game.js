@@ -10,7 +10,7 @@
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
   const SIGNAL_REALTIME_RELAY_LIMIT = 2;
   const SIGNAL_REALTIME_TYPES = new Set(["state", "snapshot", "attack", "skill", "collect", "openChest", "dropItem", "damage", "chooseDoor"]);
-  const APP_VERSION = "20260718-pixel-vfx-346";
+  const APP_VERSION = "20260718-pixel-vfx-347";
   const CHANGELOG_ENTRIES = [
     {
       version: APP_VERSION,
@@ -22258,7 +22258,9 @@
 
     worldToScreen(wx, wy) {
       const scale = this.worldViewScale();
-      const rect = this.canvasRectCache || this.canvas?.getBoundingClientRect?.() || { left: 0, top: 0 };
+      // Luôn lấy rect mới (canvasClientRect làm mới cache) để tọa độ popup
+      // khớp đúng vị trí vật phẩm đang vẽ trên canvas, tránh bị lệch khi màn hình đổi cỡ.
+      const rect = this.canvasClientRect();
       const camX = this.camera.x - (this.camera.shakeX || 0);
       const camY = this.camera.y - (this.camera.shakeY || 0);
       return { x: (rect.left || 0) + (wx - camX) * scale, y: (rect.top || 0) + (wy - camY) * scale, scale };

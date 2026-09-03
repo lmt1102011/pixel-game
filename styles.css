@@ -6833,8 +6833,9 @@ body.is-mobile-ui .toast.combat-toast {
 
 ul.item-stats.popup {
   margin: 8px 0 0;
-  padding: 7px 10px;
-  background: rgba(0, 0, 0, 0.25);
+  padding: 8px 10px;
+  background: rgba(0, 0, 0, 0.5);
+  border: 1px solid color-mix(in srgb, var(--mc, #35d6c9), transparent 55%);
   border-radius: 8px;
 }
 

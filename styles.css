@@ -6735,6 +6735,121 @@ body.is-mobile-ui .toast.combat-toast {
   flex: 0 0 auto;
 }
 
+.inworld-panel.floating {
+  width: min(320px, calc(100vw - 24px));
+  bottom: auto;
+}
+
+.pup-item,
+.pup-reroll {
+  padding: 14px 16px;
+}
+
+.pup-item-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.pup-item-ill {
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--mc), transparent 62%);
+  border: 1px solid color-mix(in srgb, var(--mc), transparent 40%);
+}
+
+.pup-item-ill.mini {
+  width: 48px;
+  height: 48px;
+}
+
+.pup-item-ill .reroll-spinner {
+  font-size: 26px;
+  font-weight: 900;
+  color: #f2bf63;
+  animation: spin 1.6s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.pup-item-title {
+  min-width: 0;
+}
+
+.pup-item-tag {
+  display: inline-block;
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: 1px;
+  color: var(--mc, #76ffd8);
+  opacity: 0.85;
+  margin-bottom: 2px;
+}
+
+.pup-item-title h3 {
+  margin: 0;
+  font-size: 15px;
+  color: var(--ink);
+  line-height: 1.15;
+}
+
+.pup-item-title p {
+  margin: 2px 0 0;
+  font-size: 11px;
+  font-weight: 750;
+  color: color-mix(in srgb, var(--mc), #ffffff 18%);
+}
+
+ul.item-stats.popup {
+  margin: 10px 0 0;
+  padding: 8px 10px;
+  background: rgba(0, 0, 0, 0.25);
+  border-radius: 8px;
+}
+
+.pup-item-desc {
+  margin: 10px 0 0;
+  font-size: 12px;
+  line-height: 1.45;
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.pup-item-buy {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.pup-price {
+  font-size: 15px;
+  font-weight: 900;
+  color: #ffd84d;
+}
+
+.pup-gold {
+  font-size: 11px;
+  font-weight: 700;
+  color: #ffd84d;
+  opacity: 0.85;
+}
+
+.pup-btn {
+  margin-left: auto;
+  min-width: 84px;
+  min-height: 34px;
+  font-size: 13px;
+}
+
+
 .toast {
     bottom: calc(12px + env(safe-area-inset-bottom));
     min-width: calc(100vw - 20px);

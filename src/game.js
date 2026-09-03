@@ -15706,19 +15706,30 @@
       this.run.merchantReroll = { uses: 0 };
       const centerX = WORLD_W / 2;
       const centerY = WORLD_H / 2;
+      const pedestals = [
+        { x: centerX - 280, y: centerY + 170 },
+        { x: centerX, y: centerY + 185 },
+        { x: centerX + 280, y: centerY + 170 }
+      ];
       return this.addRoomObject("merchantStall", {
         x: centerX,
-        y: centerY - 20,
-        radius: 80,
+        y: centerY - 90,
+        radius: 90,
         color: "#35d6c9",
         label: "Thương Nhân Khe Nứt",
         effect: "merchant",
-        pedestals: [
-          { x: centerX - 186, y: centerY + 86 },
-          { x: centerX, y: centerY + 72 },
-          { x: centerX + 186, y: centerY + 86 }
-        ],
-        reroll: { x: centerX + 322, y: centerY - 34 }
+        pedestals,
+        reroll: { x: centerX + 400, y: centerY + 120 },
+        colliders: [
+          { x: centerX - 220, y: centerY + 20, r: 95 },
+          { x: centerX, y: centerY + 20, r: 95 },
+          { x: centerX + 220, y: centerY + 20, r: 95 },
+          { x: centerX - 220, y: centerY - 150, r: 34 },
+          { x: centerX, y: centerY - 170, r: 34 },
+          { x: centerX + 220, y: centerY - 150, r: 34 },
+          { x: centerX - 380, y: centerY + 215, r: 38 },
+          { x: centerX + 380, y: centerY + 215, r: 38 }
+        ]
       });
     }
 
@@ -17047,6 +17058,7 @@
       p.vy = my * speed * movePower;
       p.x = clamp(p.x + p.vx * dt, ROOM_PAD + p.radius, WORLD_W - ROOM_PAD - p.radius);
       p.y = clamp(p.y + p.vy * dt, ROOM_PAD + p.radius, WORLD_H - ROOM_PAD - p.radius);
+      this.resolveMerchantCollision(p);
       this.applyCasterDomainContainment(p, this.lobby.id);
 
       if (this.run.power.id === "nature" && this.powerHealingAvailable() && Math.floor(this.menuTime * 2) % 7 === 0 && chance(dt * 0.5)) {
@@ -22146,7 +22158,8 @@
         return;
       }
       this.persist();
-      this.renderMerchantPanel();
+      this._merchantPopupKey = "";
+      this.updateMerchantProximity();
     }
 
     merchantRerollPrice() {
@@ -22175,7 +22188,113 @@
       this.addShockwave(this.run.player.x, this.run.player.y, 130, "#35d6c9", 0);
       this.toast(`Đã random vật phẩm mới (-${cost})`);
       this.persist();
-      this.renderMerchantPanel();
+      this._merchantPopupKey = "";
+      this.updateMerchantProximity();
+    }
+
+    merchantColliders() {
+      const stall = this.run?.roomObjects?.find((object) => object.type === "merchantStall");
+      return (stall && stall.colliders) || [];
+    }
+
+    resolveMerchantCollision(actor) {
+      if (!actor || actor.dead || !this.run) return;
+      for (const col of this.merchantColliders()) {
+        const dx = actor.x - col.x;
+        const dy = actor.y - col.y;
+        const min = col.r + (actor.radius || 22);
+        const d = Math.hypot(dx, dy);
+        let push;
+        if (d > 0.0001 && d < min) {
+          push = min - d;
+          actor.x += (dx / d) * push;
+          actor.y += (dy / d) * push;
+        } else if (d <= 0.0001) {
+          actor.y += min + 1;
+        }
+      }
+      actor.x = clamp(actor.x, ROOM_PAD + (actor.radius || 22), WORLD_W - ROOM_PAD - (actor.radius || 22));
+      actor.y = clamp(actor.y, ROOM_PAD + (actor.radius || 22), WORLD_H - ROOM_PAD - (actor.radius || 22));
+    }
+
+    worldToScreen(wx, wy) {
+      const scale = this.worldViewScale();
+      const rect = this.canvasRectCache || this.canvas?.getBoundingClientRect?.() || { left: 0, top: 0 };
+      const camX = this.camera.x - (this.camera.shakeX || 0);
+      const camY = this.camera.y - (this.camera.shakeY || 0);
+      return { x: (rect.left || 0) + (wx - camX) * scale, y: (rect.top || 0) + (wy - camY) * scale, scale };
+    }
+
+    positionMerchantPopup(anchor) {
+      if (!this.inworldPanel) return;
+      this.inworldPanel.classList.add("floating");
+      const w = this.inworldPanel.offsetWidth || 280;
+      const h = this.inworldPanel.offsetHeight || 220;
+      let left = anchor.x + 14;
+      let top = anchor.y - h * 0.3;
+      if (left + w > window.innerWidth - 8) left = anchor.x - w - 14;
+      if (top < 8) top = 8;
+      if (top + h > window.innerHeight - 8) top = window.innerHeight - h - 8;
+      this.inworldPanel.style.left = `${Math.max(8, left)}px`;
+      this.inworldPanel.style.top = `${Math.max(8, top)}px`;
+      this.inworldPanel.style.transform = "none";
+      this.inworldPanel.classList.add("floating");
+    }
+
+    renderMerchantItemPopup(index) {
+      if (!this.inworldPanelBody || !this.run) return;
+      const offer = this.run.merchantOffers?.[index];
+      if (!offer) return;
+      const reward = offer.reward;
+      const item = reward.type === "item" ? reward.item : null;
+      const color = this.rewardColor(reward);
+      const owned = Math.floor(this.run.runGold || 0);
+      const canBuy = owned >= offer.price && !offer.bought;
+      const stats = item && this.itemStatLines(item).length ? `<ul class="item-stats popup">${this.itemStatLines(item).join("")}</ul>` : "";
+      this.inworldPanelBody.innerHTML = `
+        <div class="pup-item rarity-${item ? item.rarity : "common"}" style="--mc:${color}">
+          <div class="pup-item-head">
+            <span class="pup-item-ill">${item ? this.itemIllustration(item) : ""}</span>
+            <div class="pup-item-title">
+              <span class="pup-item-tag">VẬT PHẨM ${index + 1}/3</span>
+              <h3>${this.rewardLabel(reward)}</h3>
+              <p>${item ? `${slotLabel(item.slot)} - ${RARITY[item.rarity].label}` : RARITY[reward.rarity].label}</p>
+            </div>
+          </div>
+          ${stats}
+          <p class="pup-item-desc">${item ? item.text : "Phụ trợ đặc biệt của thương nhân."}</p>
+          <div class="pup-item-buy">
+            <span class="merchant-price pup-price">◆ ${offer.price}</span>
+            <span class="merchant-gold pup-gold">Có ${owned}</span>
+            <button class="btn primary small pup-btn" data-action="buy-merchant-offer" data-offer="${index}" ${canBuy ? "" : "disabled"}>${offer.bought ? "ĐÃ MUA" : "MUA"}</button>
+          </div>
+        </div>`;
+      this.drawItemCanvases(this.inworldPanelBody);
+    }
+
+    renderMerchantRerollPopup() {
+      if (!this.inworldPanelBody || !this.run) return;
+      const rr = this.run.merchantReroll || { uses: 0 };
+      const cost = 20 + rr.uses * 20;
+      const owned = Math.floor(this.run.runGold || 0);
+      const canReroll = rr.uses < 5 && owned >= cost;
+      this.inworldPanelBody.innerHTML = `
+        <div class="pup-reroll">
+          <div class="pup-item-head">
+            <span class="pup-item-ill mini"><span class="reroll-spinner">?</span></span>
+            <div class="pup-item-title">
+              <span class="pup-item-tag">MÁY NHẪN</span>
+              <h3>Random Lại</h3>
+              <p>Đổi cả 3 vật phẩm (${rr.uses}/5 lượt)</p>
+            </div>
+          </div>
+          <p class="pup-item-desc">Càng dùng nhiều, giá càng tăng. Hãy cân nhắc trước khi quay!</p>
+          <div class="pup-item-buy">
+            <span class="merchant-price pup-price">◆ ${cost}</span>
+            <span class="merchant-gold pup-gold">Có ${owned}</span>
+            <button class="btn ${canReroll ? "primary" : ""} small pup-btn" data-action="merchant-reroll" ${canReroll ? "" : "disabled"}>${rr.uses >= 5 ? "HẾT LƯỢT" : "QUAY"}</button>
+          </div>
+        </div>`;
     }
 
     renderMerchantPanel() {
@@ -22225,26 +22344,74 @@
             <button class="btn small merchant-leave" data-action="leave-merchant">RỜI KHU</button>
           </div>
         </div>`;
+      this.drawItemCanvases(this.inworldPanelBody);
     }
 
     updateMerchantProximity() {
       if (!this.run || !this.inworldPanel) return;
       const stall = (this.run.roomObjects || []).find((object) => object.type === "merchantStall");
       const player = this.run.player;
-      let close = false;
-      if (stall && this.aliveActor(player)) {
-        const zones = [{ x: stall.x, y: stall.y, r: 170 }];
-        if (stall.reroll) zones.push({ x: stall.reroll.x, y: stall.reroll.y, r: 120 });
-        close = zones.some((zone) => Math.hypot(player.x - zone.x, player.y - zone.y) <= zone.r + (player.radius || 22));
+      const show = this.aliveActor(player) && this.mode === "game" && !this.pauseOverlay;
+      if (!stall || !show) {
+        if (!this.inworldPanel.classList.contains("hidden")) this.inworldPanel.classList.add("hidden");
+        return;
       }
-      const shouldShow = close && this.mode === "game" && !this.pauseOverlay;
-      if (shouldShow) {
-        if (this.inworldPanel.classList.contains("hidden")) {
-          this.renderMerchantPanel();
-          this.inworldPanel.classList.remove("hidden");
+      const pset = stall.pedestals || [];
+      const pTouch = (player.radius || 22) + 54;
+      let nearest = -1;
+      let nearestD = Infinity;
+      for (let i = 0; i < pset.length; i++) {
+        const d = Math.hypot(player.x - pset[i].x, player.y - pset[i].y);
+        if (d < pTouch && d < nearestD) {
+          nearestD = d;
+          nearest = i;
         }
-      } else if (!this.inworldPanel.classList.contains("hidden")) {
-        this.inworldPanel.classList.add("hidden");
+      }
+      const reroll = stall.reroll;
+      const rerollRange = reroll && Math.hypot(player.x - reroll.x, player.y - reroll.y) <= (player.radius || 22) + 66;
+      const counterRange = Math.hypot(player.x - stall.x, player.y - stall.y) <= (player.radius || 22) + 150;
+
+      let key = "";
+      let kind = "none";
+      let anchor = null;
+      if (nearest >= 0) {
+        kind = "item";
+        key = "item:" + nearest;
+        anchor = pset[nearest];
+      } else if (rerollRange && reroll) {
+        kind = "reroll";
+        key = "reroll";
+        anchor = reroll;
+      } else if (counterRange) {
+        kind = "counter";
+        key = "counter";
+      }
+      const rerender = kind !== "none" && this._merchantPopupKey !== key;
+      if (kind === "none") {
+        this._merchantPopupKey = "";
+        if (!this.inworldPanel.classList.contains("hidden")) this.inworldPanel.classList.add("hidden");
+        return;
+      }
+      if (rerender) {
+        this._merchantPopupKey = key;
+        if (kind === "item") this.renderMerchantItemPopup(nearest);
+        else if (kind === "reroll") this.renderMerchantRerollPopup();
+        else this.renderMerchantPanel();
+      }
+      if (kind === "item" && anchor) {
+        const screen = this.worldToScreen(anchor.x, anchor.y - 70);
+        this.inworldPanel.classList.remove("hidden");
+        this.positionMerchantPopup(screen);
+      } else if (kind === "reroll" && anchor) {
+        const screen = this.worldToScreen(anchor.x, anchor.y - 60);
+        this.inworldPanel.classList.remove("hidden");
+        this.positionMerchantPopup(screen);
+      } else {
+        this.inworldPanel.classList.remove("hidden");
+        this.inworldPanel.classList.remove("floating");
+        this.inworldPanel.style.left = "50%";
+        this.inworldPanel.style.top = "";
+        this.inworldPanel.style.transform = "translateX(-50%)";
       }
     }
 
@@ -25554,7 +25721,7 @@
       }
       if (object.type === "merchantStall") {
         this.renderMerchantPanel();
-        this.toast("Chạm vật phẩm để xem chỉ số và mua, máy bên phải để random lại");
+        this.toast("Lại gần từng vật phẩm để xem chỉ số và mua");
         return;
       }
       if (object.type === "secretAltar") {
@@ -29094,6 +29261,10 @@
       const reroll = object.reroll || { x: object.x + 322, y: object.y - 14 };
       const rerollX = this.run?.merchantReroll ? reroll.x : -9999;
       const rerollOn = Boolean(this.run?.merchantReroll && (this.run.merchantReroll.uses || 0) < 5);
+      for (const col of (object.colliders || [])) {
+        if (col.r <= 46) this.drawMerchantColumn(ctx, col.x, col.y + (1 - (object.grow || 0)) * 6);
+      }
+      this.drawMerchantCounter(ctx, object.x, object.y + 112);
       for (let i = 0; i < pedestals.length; i++) {
         const p = pedestals[i];
         this.drawMerchantPedestal(ctx, p.x, p.y, offers[i], i);
@@ -29102,129 +29273,265 @@
       if (this.run?.merchantReroll) this.drawMerchantReroll(ctx, rerollX, reroll.y, rerollOn);
     }
 
+    drawMerchantColumn(ctx, x, y) {
+      ctx.save();
+      ctx.translate(x, y);
+      const capGlow = Math.sin(this.menuTime * 2) * 0.5 + 0.5;
+      ctx.globalAlpha = 0.28;
+      ctx.beginPath();
+      ctx.ellipse(0, 20, 40, 10, 0, 0, TAU);
+      ctx.fillStyle = "rgba(0,0,0,0.5)";
+      ctx.fill();
+      ctx.globalAlpha = 1;
+      const colGrad = ctx.createLinearGradient(-16, -40, 16, 40);
+      colGrad.addColorStop(0, "#2c3a52");
+      colGrad.addColorStop(0.5, "#1b2536");
+      colGrad.addColorStop(1, "#101720");
+      ctx.fillStyle = colGrad;
+      ctx.fillRect(-16, -36, 32, 58);
+      ctx.strokeStyle = "rgba(159,252,241,0.5)";
+      ctx.lineWidth = 2;
+      ctx.strokeRect(-16, -36, 32, 58);
+      ctx.fillStyle = "#202c40";
+      ctx.fillRect(-18, -44, 36, 10);
+      ctx.fillStyle = "#0f1522";
+      ctx.fillRect(-18, 20, 36, 10);
+      ctx.fillStyle = "#35d6c9";
+      ctx.shadowColor = "#35d6c9";
+      ctx.shadowBlur = this.glow(14 + capGlow * 8);
+      ctx.fillRect(-12, -52, 24, 6);
+      ctx.fillRect(10, -49, 6, 12);
+      ctx.restore();
+    }
+
+    drawMerchantCounter(ctx, x, y) {
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.beginPath();
+      ctx.ellipse(0, 26, 150, 16, 0, 0, TAU);
+      ctx.fillStyle = "rgba(0,0,0,0.38)";
+      ctx.fill();
+      const top = ctx.createLinearGradient(0, -24, 0, 2);
+      top.addColorStop(0, "#2c3a52");
+      top.addColorStop(1, "#1a2434");
+      ctx.fillStyle = top;
+      ctx.fillRect(-150, -22, 300, 22);
+      ctx.fillStyle = "#101720";
+      ctx.fillRect(-146, 0, 292, 26);
+      ctx.strokeStyle = "rgba(159,252,241,0.35)";
+      ctx.lineWidth = 2.5;
+      ctx.strokeRect(-150, -22, 300, 48);
+      ctx.strokeStyle = "#35d6c9";
+      ctx.lineWidth = 3;
+      ctx.strokeRect(-150, -10, 300, 4);
+      ctx.fillStyle = "rgba(53,214,201,0.18)";
+      for (let i = -6; i <= 6; i++) {
+        ctx.fillRect(i * 26 - 6, -18, 10, 14);
+      }
+      const glow = Math.sin(this.menuTime * 2.4) * 0.5 + 0.5;
+      ctx.fillStyle = "#35d6c9";
+      ctx.shadowColor = "#35d6c9";
+      ctx.shadowBlur = this.glow(10);
+      ctx.beginPath();
+      ctx.arc(0, -38, 5 + glow * 2, 0, TAU);
+      ctx.fill();
+      ctx.restore();
+    }
+
     drawMerchantNpc(ctx, x, y) {
       const bob = Math.sin(this.menuTime * 2.1) * 2;
       const yb = y + bob;
-      const shadow = "rgba(0,0,0,0.34)";
+      const faceGlow = Math.sin(this.menuTime * 2.1) * 0.5 + 0.5;
       ctx.save();
       ctx.translate(x, yb);
       ctx.beginPath();
-      ctx.ellipse(0, 60, 62, 14, 0, 0, TAU);
-      ctx.fillStyle = shadow;
+      ctx.ellipse(0, 58, 58, 13, 0, 0, TAU);
+      ctx.fillStyle = "rgba(0,0,0,0.38)";
       ctx.fill();
-      ctx.shadowColor = "#35d6c9";
-      ctx.shadowBlur = this.glow(18);
-      ctx.strokeStyle = "#9ffcf1";
-      ctx.lineWidth = 2.5;
-      ctx.strokeRect(-26, 8, 52, 2);
-      ctx.fillStyle = "#1d2230";
-      ctx.fillRect(-24, 10, 48, 14);
-      ctx.fillStyle = "#9ffcf1";
-      ctx.font = "800 10px ui-sans-serif, system-ui";
+      const robeGrad = ctx.createLinearGradient(-26, -16, 26, 60);
+      robeGrad.addColorStop(0, "#2b3b57");
+      robeGrad.addColorStop(0.6, "#172233");
+      robeGrad.addColorStop(1, "#0c1420");
+      ctx.fillStyle = robeGrad;
+      ctx.beginPath();
+      ctx.moveTo(-26, -12);
+      ctx.lineTo(-24, 58);
+      ctx.quadraticCurveTo(0, 66, 24, 58);
+      ctx.lineTo(26, -12);
+      ctx.quadraticCurveTo(0, -2, -26, -12);
+      ctx.closePath();
+      ctx.fill();
+      ctx.strokeStyle = "#35d6c9";
+      ctx.lineWidth = 3;
+      ctx.stroke();
+      ctx.fillStyle = "#243349";
+      ctx.beginPath();
+      ctx.moveTo(-24, 8);
+      ctx.lineTo(-12, 22);
+      ctx.lineTo(12, 22);
+      ctx.lineTo(24, 8);
+      ctx.lineTo(20, 34);
+      ctx.lineTo(-20, 34);
+      ctx.closePath();
+      ctx.fill();
+      ctx.strokeStyle = "rgba(255,255,255,0.15)";
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      ctx.fillStyle = "#0e1622";
+      ctx.fillRect(-18, 34, 36, 18);
+      ctx.fillStyle = "rgba(240,220,180,0.9)";
+      ctx.font = "700 10px ui-sans-serif, system-ui";
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
-      ctx.fillText("KHE NỨT", 0, 17);
-      ctx.strokeStyle = "#2f3546";
+      ctx.fillText("◆", 0, 56);
+      const shoulder = "#26344a";
+      ctx.fillStyle = shoulder;
+      ctx.beginPath();
+      ctx.ellipse(-26, -12, 12, 14, 0.3, 0, TAU);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.ellipse(26, -12, 12, 14, -0.3, 0, TAU);
+      ctx.fill();
+      const hoodGrad = ctx.createRadialGradient(0, -34, 4, 0, -58, 46);
+      hoodGrad.addColorStop(0, "#3c5470");
+      hoodGrad.addColorStop(0.55, "#263448");
+      hoodGrad.addColorStop(1, "#131b2a");
+      ctx.fillStyle = hoodGrad;
+      ctx.beginPath();
+      ctx.arc(0, -40, 30, 0, TAU);
+      ctx.fill();
+      ctx.strokeStyle = "#35d6c9";
       ctx.lineWidth = 3;
       ctx.beginPath();
-      ctx.moveTo(-20, 28);
-      ctx.lineTo(-20, 74);
-      ctx.lineTo(20, 74);
-      ctx.lineTo(20, 28);
-      ctx.closePath();
+      ctx.arc(0, -40, 30, Math.PI * 1.15, Math.PI * 1.85);
       ctx.stroke();
-      const robegrad = ctx.createLinearGradient(-20, 28, 20, 74);
-      robegrad.addColorStop(0, "#1a2333");
-      robegrad.addColorStop(1, "#0f1522");
-      ctx.fillStyle = robegrad;
-      ctx.fill();
-      ctx.fillStyle = "#35d6c9";
-      ctx.fillRect(-20, 30, 6, 8);
-      ctx.fillRect(14, 30, 6, 8);
+      const headGrad = ctx.createRadialGradient(-4, -52, 2, 0, -48, 22);
+      headGrad.addColorStop(0, "#4a6384");
+      headGrad.addColorStop(1, "#1c2940");
+      ctx.fillStyle = headGrad;
       ctx.beginPath();
-      ctx.moveTo(-24, 34);
-      ctx.lineTo(0, 56);
-      ctx.lineTo(24, 34);
-      ctx.lineTo(20, 40);
-      ctx.lineTo(0, 62);
-      ctx.lineTo(-20, 40);
+      ctx.ellipse(0, -48, 20, 22, 0, 0, TAU);
+      ctx.fill();
+      ctx.fillStyle = "#0a1018";
+      ctx.fillRect(-4, -36, 8, 7);
+      ctx.fillStyle = "#5d7a9e";
+      ctx.beginPath();
+      ctx.arc(0, -30, 12, 0, TAU);
+      ctx.fill();
+      ctx.strokeStyle = "rgba(240,220,180,0.6)";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(-9, -30);
+      ctx.quadraticCurveTo(0, -24, 9, -30);
+      ctx.stroke();
+      ctx.shadowColor = "#9ffcf1";
+      ctx.shadowBlur = this.glow(20);
+      ctx.fillStyle = `rgba(160,255,240,${0.75 + faceGlow * 0.25})`;
+      ctx.beginPath();
+      ctx.ellipse(-6, -52, 3, 4, 0, 0, TAU);
+      ctx.ellipse(6, -52, 3, 4, 0, 0, TAU);
+      ctx.fill();
+      ctx.shadowBlur = 0;
+      ctx.strokeStyle = "#9ffcf1";
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      ctx.arc(0, -46, 9, Math.PI * 0.1, Math.PI * 0.9);
+      ctx.stroke();
+      const hatGrad = ctx.createLinearGradient(0, -128, 0, -34);
+      hatGrad.addColorStop(0, "#26a89c");
+      hatGrad.addColorStop(1, "#0e3f42");
+      ctx.fillStyle = hatGrad;
+      ctx.beginPath();
+      ctx.moveTo(-16, -52);
+      ctx.quadraticCurveTo(-4, -96, 3, -122);
+      ctx.quadraticCurveTo(9, -100, 16, -52);
       ctx.closePath();
-      ctx.fillStyle = "#2a3a52";
-      ctx.fill();
-      const hood = ctx.createRadialGradient(0, -4, 4, 0, -38, 34);
-      hood.addColorStop(0, "#3b526f");
-      hood.addColorStop(0.55, "#263448");
-      hood.addColorStop(1, "#141c2c");
-      ctx.fillStyle = hood;
-      ctx.beginPath();
-      ctx.arc(0, -34, 26, 0, TAU);
-      ctx.fill();
-      ctx.fillStyle = "#0b111c";
-      ctx.beginPath();
-      ctx.arc(0, -26, 18, 0, TAU);
-      ctx.fill();
-      ctx.fillRect(-6, -14, 12, 4);
-      const faceGlow = Math.sin(this.menuTime * 2.1) * 0.5 + 0.5;
-      ctx.fillStyle = `rgba(212,234,240,${0.4 + faceGlow * 0.5})`;
-      ctx.beginPath();
-      ctx.arc(-5, -29, 2, 0, TAU);
-      ctx.arc(5, -29, 2, 0, TAU);
-      ctx.fill();
-      ctx.fillStyle = "#9ffcf1";
-      ctx.beginPath();
-      ctx.arc(0, -20, 3, 0, TAU);
       ctx.fill();
       ctx.strokeStyle = "#9ffcf1";
-      ctx.lineWidth = 3;
-      ctx.beginPath();
-      ctx.moveTo(34, -16);
-      ctx.lineTo(38, 34);
-      ctx.lineTo(42, 34);
-      ctx.lineTo(40, -18);
-      ctx.closePath();
+      ctx.lineWidth = 2.5;
       ctx.stroke();
-      ctx.fillStyle = "#35d6c9";
+      ctx.fillStyle = "#f2bf63";
+      ctx.fillRect(-16, -68, 32, 5);
+      ctx.fillStyle = "#0c2f33";
       ctx.beginPath();
-      ctx.arc(39, 4, 6, 0, TAU);
+      ctx.arc(-6, -116, 5, 0, TAU);
       ctx.fill();
+      ctx.strokeStyle = "rgba(255,255,255,0.6)";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(-6, -116, 5, 0.4, 2.4);
+      ctx.stroke();
+      const orbGlow = Math.sin(this.menuTime * 2.6) * 0.5 + 0.5;
+      const orbX = 40;
+      const orbY = -18;
+      ctx.shadowColor = "#9ffcf1";
+      ctx.shadowBlur = this.glow(16 + orbGlow * 14);
+      const orbGrad = ctx.createRadialGradient(orbX - 4, orbY - 4, 1, orbX, orbY, 10);
+      orbGrad.addColorStop(0, "#eaffff");
+      orbGrad.addColorStop(0.5, "#35d6c9");
+      orbGrad.addColorStop(1, "#0f4a52");
+      ctx.fillStyle = orbGrad;
+      ctx.beginPath();
+      ctx.arc(orbX, orbY, 10, 0, TAU);
+      ctx.fill();
+      ctx.shadowBlur = 0;
       ctx.restore();
     }
 
     drawMerchantPedestal(ctx, x, y, offer, index) {
       const bob = Math.sin(this.menuTime * 2.4 + index * 1.1) * 4;
       const color = offer ? this.rewardColor(offer.reward) : "#35d6c9";
+      const player = this.run?.player;
+      const playerNear = Boolean(player && this.aliveActor(player)
+        && Math.hypot(player.x - x, player.y - y) <= (player.radius || 22) + 60);
+      const pulse = Math.sin(this.menuTime * 3) * 0.5 + 0.5;
       ctx.save();
       ctx.translate(x, y);
       ctx.beginPath();
-      ctx.ellipse(0, 26, 36, 9, 0, 0, TAU);
-      ctx.fillStyle = "rgba(0,0,0,0.34)";
+      ctx.ellipse(0, 30, 40, 11, 0, 0, TAU);
+      ctx.fillStyle = "rgba(0,0,0,0.38)";
       ctx.fill();
-      ctx.fillStyle = "#141a28";
-      ctx.fillRect(-22, -6, 44, 32);
-      ctx.strokeStyle = "rgba(255,255,255,0.14)";
+      const baseGrad = ctx.createLinearGradient(0, -18, 0, 34);
+      baseGrad.addColorStop(0, "#202b40");
+      baseGrad.addColorStop(1, "#0d1420");
+      ctx.fillStyle = baseGrad;
+      ctx.fillRect(-26, -14, 52, 50);
+      ctx.strokeStyle = "rgba(255,255,255,0.16)";
       ctx.lineWidth = 2;
-      ctx.strokeRect(-22, -6, 44, 32);
-      ctx.fillStyle = "#1e2638";
-      ctx.fillRect(-16, 0, 32, 8);
-      ctx.fillStyle = "#2a3548";
+      ctx.strokeRect(-26, -14, 52, 50);
+      ctx.fillStyle = "#1e2939";
+      ctx.fillRect(-30, 36, 60, 8);
+      ctx.fillStyle = "#2b3a52";
       ctx.beginPath();
-      ctx.ellipse(0, -6, 20, 6, 0, 0, TAU);
+      ctx.ellipse(0, -12, 24, 8, 0, 0, TAU);
       ctx.fill();
+      if (playerNear) {
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 3 + pulse * 2;
+        ctx.globalAlpha = 0.5 + pulse * 0.4;
+        ctx.shadowColor = color;
+        ctx.shadowBlur = this.glow(22);
+        ctx.beginPath();
+        ctx.ellipse(0, -12, 32 + pulse * 6, 15 + pulse * 4, 0, 0, TAU);
+        ctx.stroke();
+        ctx.globalAlpha = 1;
+        ctx.shadowBlur = 0;
+      }
       ctx.shadowColor = color;
       ctx.shadowBlur = this.glow(18);
       ctx.fillStyle = color;
       ctx.beginPath();
-      ctx.ellipse(0, -10 - bob, 14, 14, 0, 0, TAU);
+      ctx.ellipse(0, -10 - bob, 15, 15, 0, 0, TAU);
       ctx.fill();
       ctx.fillStyle = "rgba(255,255,255,0.35)";
       ctx.beginPath();
-      ctx.ellipse(0, -13 - bob, 7, 7, 0, 0, TAU);
+      ctx.ellipse(0, -13 - bob, 8, 8, 0, 0, TAU);
       ctx.fill();
       if (offer?.reward?.type === "item") {
         const item = offer.reward.item;
         ctx.save();
         ctx.translate(0, -26 - bob);
-        ctx.scale(0.62, 0.62);
+        ctx.scale(0.66, 0.66);
         this.drawRunItemShape(ctx, item, color);
         ctx.restore();
       } else {
@@ -29237,7 +29544,7 @@
       ctx.restore();
       if (offer) {
         ctx.save();
-        ctx.translate(x, y + 36);
+        ctx.translate(x, y + 42);
         ctx.font = "800 11px ui-sans-serif, system-ui";
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
@@ -29249,6 +29556,22 @@
         ctx.fillStyle = offer.bought ? "#70e083" : "#ffd84d";
         ctx.fillText(offer.bought ? "ĐÃ MUA" : `◆ ${offer.price}`, 0, 0);
         ctx.restore();
+        if (playerNear && !offer.bought) {
+          ctx.save();
+          ctx.translate(x, y - 66 - pulse * 2);
+          ctx.fillStyle = "#35d6c9";
+          ctx.shadowColor = "#35d6c9";
+          ctx.shadowBlur = this.glow(14);
+          ctx.beginPath();
+          ctx.arc(0, 0, 7 + pulse * 2, 0, TAU);
+          ctx.fill();
+          ctx.fillStyle = "#08121a";
+          ctx.font = "900 10px ui-sans-serif, system-ui";
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          ctx.fillText("…", 0, 0);
+          ctx.restore();
+        }
       }
     }
 

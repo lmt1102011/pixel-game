@@ -10,7 +10,7 @@
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
   const SIGNAL_REALTIME_RELAY_LIMIT = 2;
   const SIGNAL_REALTIME_TYPES = new Set(["state", "snapshot", "attack", "skill", "collect", "openChest", "dropItem", "damage", "chooseDoor"]);
-  const APP_VERSION = "20260718-pixel-vfx-345";
+  const APP_VERSION = "20260718-pixel-vfx-346";
   const CHANGELOG_ENTRIES = [
     {
       version: APP_VERSION,
@@ -22416,7 +22416,9 @@
         return;
       }
       const pset = stall.pedestals || [];
-      const pTouch = (player.radius || 22) + 70;
+      // Ngưỡng rộng để đứng phía trước cột là đã hiện tooltip chỉ số của món đó
+      // (giống "di chuột vào vật phẩm"), không cần lướt sát sau cột.
+      const pTouch = (player.radius || 22) + 160;
       let nearest = -1;
       let nearestD = Infinity;
       for (let i = 0; i < pset.length; i++) {

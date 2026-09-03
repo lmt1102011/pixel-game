@@ -10,7 +10,7 @@
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
   const SIGNAL_REALTIME_RELAY_LIMIT = 2;
   const SIGNAL_REALTIME_TYPES = new Set(["state", "snapshot", "attack", "skill", "collect", "openChest", "dropItem", "damage", "chooseDoor"]);
-  const APP_VERSION = "20260718-pixel-vfx-335";
+  const APP_VERSION = "20260718-pixel-vfx-336";
   const CHANGELOG_ENTRIES = [
     {
       version: APP_VERSION,
@@ -5336,6 +5336,8 @@
       this.screen = document.getElementById("screen");
       this.hud = document.getElementById("hud");
       this.toastEl = document.getElementById("toast");
+      this.inworldPanel = document.getElementById("inworldPanel");
+      this.inworldPanelBody = document.getElementById("inworldPanelBody");
       this.inviteNotificationLayer = document.getElementById("inviteNotifications");
       this.quickActions = document.getElementById("quickActions");
       this.touchLayer = document.getElementById("touchLayer");
@@ -8118,6 +8120,13 @@
           this.showStatusEffects(Number(target.dataset.statusIndex || 0));
         }
       });
+      this.inworldPanel?.addEventListener("click", (event) => {
+        const target = event.target.closest("[data-action]");
+        if (!target) return;
+        event.preventDefault();
+        this.audio.ui(target.dataset.action?.includes("inventory") ? "inventory" : "click");
+        this.handleAction(target.dataset.action, target);
+      });
       this.quickActions?.addEventListener("click", (event) => {
         const target = event.target.closest("[data-quick]");
         if (!target) return;
@@ -10443,6 +10452,7 @@
       if (action === "toggle-awakened-power") this.toggleAwakenedPower(target.dataset.power);
       if (action === "spin-power") this.spinPower();
       if (action === "buy-merchant-offer") this.buyMerchantOffer(target.dataset.offer);
+      if (action === "merchant-reroll") this.rerollMerchantOffers();
       if (action === "merchant-tab") this.showMerchantShop(target.dataset.tab || "buy");
       if (action === "sell-run-item") this.sellRunItem(target.dataset.uid);
       if (action === "leave-merchant") this.completeMerchantRoom();
@@ -15313,6 +15323,8 @@
     }
 
     startRoom(room) {
+      if (this.inworldPanel) this.inworldPanel.classList.add("hidden");
+
       if (!this.run) return;
       this.mode = "game";
       this.setScreen("");
@@ -15691,12 +15703,22 @@
 
     spawnMerchantStall() {
       this.run.merchantOffers = this.rollMerchantOffers();
-      this.addRoomObject("merchantStall", {
-        y: WORLD_H / 2 - 20,
-        radius: 58,
+      this.run.merchantReroll = { uses: 0 };
+      const centerX = WORLD_W / 2;
+      const centerY = WORLD_H / 2;
+      return this.addRoomObject("merchantStall", {
+        x: centerX,
+        y: centerY - 20,
+        radius: 80,
         color: "#35d6c9",
-        label: "Quầy Thương Nhân",
-        effect: "merchant"
+        label: "Thương Nhân Khe Nứt",
+        effect: "merchant",
+        pedestals: [
+          { x: centerX - 186, y: centerY + 86 },
+          { x: centerX, y: centerY + 72 },
+          { x: centerX + 186, y: centerY + 86 }
+        ],
+        reroll: { x: centerX + 322, y: centerY - 34 }
       });
     }
 
@@ -22033,7 +22055,7 @@
     rollMerchantOffers() {
       const offers = [];
       const usedItems = new Set();
-      for (let i = 0; i < 4; i++) {
+      for (let i = 0; i < 3; i++) {
         const difficulty = clamp(0.62 + this.run.stage * 0.12 + i * 0.06, 0.55, 1.25);
         const reward = { type: "item", item: this.rollMerchantItemForRoom(difficulty, 0.08), difficulty };
         for (let tries = 0; usedItems.has(reward.item.id) && tries < 8; tries++) reward.item = this.rollMerchantItemForRoom(difficulty, 0.08);
@@ -22044,7 +22066,7 @@
           id: uid("offer"),
           reward,
           priceMaterial: "gold",
-          price: Math.max(6, rarityCost + this.run.stage * 6 + i * 4),
+          price: Math.max(6, rarityCost + this.run.stage * 6 + i * 3),
           bought: false
         });
       }
@@ -22124,7 +22146,106 @@
         return;
       }
       this.persist();
-      this.showMerchantShop();
+      this.renderMerchantPanel();
+    }
+
+    merchantRerollPrice() {
+      const rr = this.run?.merchantReroll;
+      const uses = rr?.uses || 0;
+      return 20 + uses * 20;
+    }
+
+    rerollMerchantOffers() {
+      if (!this.run) return;
+      const rr = this.run.merchantReroll || (this.run.merchantReroll = { uses: 0 });
+      if (rr.uses >= 5) {
+        this.toast("Máy random đã hết lượt dùng");
+        return;
+      }
+      const cost = 20 + rr.uses * 20;
+      const owned = Math.floor(this.run.runGold || 0);
+      if (owned < cost) {
+        this.toast("Không đủ tiền để random lại");
+        return;
+      }
+      this.run.runGold = owned - cost;
+      rr.uses += 1;
+      this.run.merchantOffers = this.rollMerchantOffers();
+      this.audio.sfx(440, "triangle", 0.16, 0.18);
+      this.addShockwave(this.run.player.x, this.run.player.y, 130, "#35d6c9", 0);
+      this.toast(`Đã random vật phẩm mới (-${cost})`);
+      this.persist();
+      this.renderMerchantPanel();
+    }
+
+    renderMerchantPanel() {
+      if (!this.inworldPanelBody || !this.run) return;
+      const offers = this.run.merchantOffers || [];
+      const owned = Math.floor(this.run.runGold || 0);
+      const rr = this.run.merchantReroll || { uses: 0 };
+      const cost = 20 + rr.uses * 20;
+      const canReroll = rr.uses < 5 && owned >= cost;
+      const cards = offers.map((offer, index) => {
+        const reward = offer.reward;
+        const color = this.rewardColor(reward);
+        const canBuy = owned >= offer.price && !offer.bought;
+        const item = reward.type === "item" ? reward.item : null;
+        const stats = item && this.itemStatLines(item).length ? `<ul class="item-stats">${this.itemStatLines(item).join("")}</ul>` : "";
+        return `
+          <div class="merchant-card rarity-${item ? item.rarity : "common"}" style="--mc:${color}">
+            <div class="merchant-card-head">
+              <span class="merchant-card-ill">${item ? this.itemIllustration(item) : ""}</span>
+              <div class="merchant-card-title">
+                <h3>${this.rewardLabel(reward)}</h3>
+                <p>${item ? `${slotLabel(item.slot)} - ${RARITY[item.rarity].label}` : RARITY[reward.rarity].label}</p>
+              </div>
+            </div>
+            ${stats}
+            <div class="merchant-card-buy">
+              <span class="merchant-price">◆ ${offer.price}</span>
+              <button class="btn primary small" data-action="buy-merchant-offer" data-offer="${index}" ${canBuy ? "" : "disabled"}>${offer.bought ? "ĐÃ MUA" : "MUA"}</button>
+            </div>
+          </div>`;
+      }).join("");
+      this.inworldPanelBody.innerHTML = `
+        <div class="merchant-panel-inner">
+          <div class="merchant-panel-title">
+            <span class="merchant-portrait-tag">◆ THƯƠNG NHÂN KHE NỨT</span>
+            <span class="merchant-gold">Tiền: ${owned}</span>
+          </div>
+          <div class="merchant-stalls">${cards}</div>
+          <div class="merchant-tools">
+            <div class="merchant-reroll-card">
+              <div>
+                <h3>Máy Random Lại</h3>
+                <p>Đổi 3 vật phẩm (${rr.uses}/5 lượt)</p>
+              </div>
+              <button class="btn ${canReroll ? "primary" : ""} small" data-action="merchant-reroll" ${canReroll ? "" : "disabled"}>◆ ${cost}</button>
+            </div>
+            <button class="btn small merchant-leave" data-action="leave-merchant">RỜI KHU</button>
+          </div>
+        </div>`;
+    }
+
+    updateMerchantProximity() {
+      if (!this.run || !this.inworldPanel) return;
+      const stall = (this.run.roomObjects || []).find((object) => object.type === "merchantStall");
+      const player = this.run.player;
+      let close = false;
+      if (stall && this.aliveActor(player)) {
+        const zones = [{ x: stall.x, y: stall.y, r: 170 }];
+        if (stall.reroll) zones.push({ x: stall.reroll.x, y: stall.reroll.y, r: 120 });
+        close = zones.some((zone) => Math.hypot(player.x - zone.x, player.y - zone.y) <= zone.r + (player.radius || 22));
+      }
+      const shouldShow = close && this.mode === "game" && !this.pauseOverlay;
+      if (shouldShow) {
+        if (this.inworldPanel.classList.contains("hidden")) {
+          this.renderMerchantPanel();
+          this.inworldPanel.classList.remove("hidden");
+        }
+      } else if (!this.inworldPanel.classList.contains("hidden")) {
+        this.inworldPanel.classList.add("hidden");
+      }
     }
 
     sellValueForItem(item) {
@@ -22144,6 +22265,7 @@
 
     completeMerchantRoom() {
       if (!this.run?.currentRoom) return;
+      if (this.inworldPanel) this.inworldPanel.classList.add("hidden");
       if (this.isMultiplayerClient()) {
         this.resumeGame();
         return;
@@ -25378,6 +25500,7 @@
         if (!contact) continue;
         this.handleRoomObjectContact(object, contact.id, contact.actor);
       }
+      this.updateMerchantProximity();
     }
 
     remoteRoomObjectActivatable(object) {
@@ -25430,7 +25553,8 @@
         return;
       }
       if (object.type === "merchantStall") {
-        this.showMerchantShop();
+        this.renderMerchantPanel();
+        this.toast("Chạm vật phẩm để xem chỉ số và mua, máy bên phải để random lại");
         return;
       }
       if (object.type === "secretAltar") {
@@ -28643,7 +28767,7 @@
         if (object.type === "nextDoor" || object.type === "bossGate" || object.type === "bossExit") this.drawDoorObject(ctx, object);
         else if (object.type === "treasureChest") this.drawTreasureChest(ctx, object);
         else if (object.type === "merchantStall") {
-          if (!this.drawExportedMerchantStall(ctx, object)) this.drawMerchantStall(ctx, object);
+          this.drawMerchantStall(ctx, object);
         } else if (object.type === "curseBook") {
           if (!this.drawExportedCurseBook(ctx, object)) this.drawCurseBook(ctx, object);
         } else if (object.type === "secretAltar") {
@@ -28957,37 +29081,213 @@
     drawMerchantStall(ctx, object) {
       const grow = clamp(object.grow || 0, 0, 1);
       const y = object.y + (1 - grow) * 34;
-      this.drawObjectAmbient(ctx, { ...object, y }, 82);
+      this.drawObjectAmbient(ctx, { ...object, y }, 96);
       ctx.save();
-      ctx.translate(object.x, y);
       ctx.scale(grow, grow);
-      ctx.shadowColor = "#35d6c9";
-      ctx.shadowBlur = this.glow(14);
-      ctx.fillStyle = "rgba(0,0,0,0.34)";
-      ctx.beginPath();
-      ctx.ellipse(0, 46, 74, 13, 0, 0, TAU);
-      ctx.fill();
-      ctx.fillStyle = "#1d2230";
-      ctx.fillRect(-64, -12, 128, 58);
-      ctx.fillStyle = "#2f3546";
-      ctx.fillRect(-58, 8, 116, 30);
-      for (let i = 0; i < 4; i++) {
-        ctx.fillStyle = i % 2 ? "#f2bf63" : "#35d6c9";
-        ctx.fillRect(-66 + i * 33, -40, 34, 28);
-      }
-      ctx.fillStyle = "#c9d0db";
-      ctx.fillRect(-52, 18, 24, 14);
-      ctx.fillStyle = "#f2bf63";
-      ctx.fillRect(-3, 12, 18, 18);
-      ctx.fillStyle = "#76ffd8";
-      ctx.save();
-      ctx.translate(43, 22);
-      ctx.rotate(Math.PI / 4);
-      ctx.fillRect(-8, -8, 16, 16);
+      this.drawMerchantStage(ctx, object, y);
       ctx.restore();
+    }
+
+    drawMerchantStage(ctx, object, y) {
+      const offers = this.run?.merchantOffers || [];
+      const pedestals = object.pedestals || [];
+      const reroll = object.reroll || { x: object.x + 322, y: object.y - 14 };
+      const rerollX = this.run?.merchantReroll ? reroll.x : -9999;
+      const rerollOn = Boolean(this.run?.merchantReroll && (this.run.merchantReroll.uses || 0) < 5);
+      for (let i = 0; i < pedestals.length; i++) {
+        const p = pedestals[i];
+        this.drawMerchantPedestal(ctx, p.x, p.y, offers[i], i);
+      }
+      this.drawMerchantNpc(ctx, object.x, y);
+      if (this.run?.merchantReroll) this.drawMerchantReroll(ctx, rerollX, reroll.y, rerollOn);
+    }
+
+    drawMerchantNpc(ctx, x, y) {
+      const bob = Math.sin(this.menuTime * 2.1) * 2;
+      const yb = y + bob;
+      const shadow = "rgba(0,0,0,0.34)";
+      ctx.save();
+      ctx.translate(x, yb);
+      ctx.beginPath();
+      ctx.ellipse(0, 60, 62, 14, 0, 0, TAU);
+      ctx.fillStyle = shadow;
+      ctx.fill();
+      ctx.shadowColor = "#35d6c9";
+      ctx.shadowBlur = this.glow(18);
+      ctx.strokeStyle = "#9ffcf1";
+      ctx.lineWidth = 2.5;
+      ctx.strokeRect(-26, 8, 52, 2);
+      ctx.fillStyle = "#1d2230";
+      ctx.fillRect(-24, 10, 48, 14);
+      ctx.fillStyle = "#9ffcf1";
+      ctx.font = "800 10px ui-sans-serif, system-ui";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText("KHE NỨT", 0, 17);
+      ctx.strokeStyle = "#2f3546";
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(-20, 28);
+      ctx.lineTo(-20, 74);
+      ctx.lineTo(20, 74);
+      ctx.lineTo(20, 28);
+      ctx.closePath();
+      ctx.stroke();
+      const robegrad = ctx.createLinearGradient(-20, 28, 20, 74);
+      robegrad.addColorStop(0, "#1a2333");
+      robegrad.addColorStop(1, "#0f1522");
+      ctx.fillStyle = robegrad;
+      ctx.fill();
+      ctx.fillStyle = "#35d6c9";
+      ctx.fillRect(-20, 30, 6, 8);
+      ctx.fillRect(14, 30, 6, 8);
+      ctx.beginPath();
+      ctx.moveTo(-24, 34);
+      ctx.lineTo(0, 56);
+      ctx.lineTo(24, 34);
+      ctx.lineTo(20, 40);
+      ctx.lineTo(0, 62);
+      ctx.lineTo(-20, 40);
+      ctx.closePath();
+      ctx.fillStyle = "#2a3a52";
+      ctx.fill();
+      const hood = ctx.createRadialGradient(0, -4, 4, 0, -38, 34);
+      hood.addColorStop(0, "#3b526f");
+      hood.addColorStop(0.55, "#263448");
+      hood.addColorStop(1, "#141c2c");
+      ctx.fillStyle = hood;
+      ctx.beginPath();
+      ctx.arc(0, -34, 26, 0, TAU);
+      ctx.fill();
+      ctx.fillStyle = "#0b111c";
+      ctx.beginPath();
+      ctx.arc(0, -26, 18, 0, TAU);
+      ctx.fill();
+      ctx.fillRect(-6, -14, 12, 4);
+      const faceGlow = Math.sin(this.menuTime * 2.1) * 0.5 + 0.5;
+      ctx.fillStyle = `rgba(212,234,240,${0.4 + faceGlow * 0.5})`;
+      ctx.beginPath();
+      ctx.arc(-5, -29, 2, 0, TAU);
+      ctx.arc(5, -29, 2, 0, TAU);
+      ctx.fill();
+      ctx.fillStyle = "#9ffcf1";
+      ctx.beginPath();
+      ctx.arc(0, -20, 3, 0, TAU);
+      ctx.fill();
       ctx.strokeStyle = "#9ffcf1";
       ctx.lineWidth = 3;
-      ctx.strokeRect(-64, -12, 128, 58);
+      ctx.beginPath();
+      ctx.moveTo(34, -16);
+      ctx.lineTo(38, 34);
+      ctx.lineTo(42, 34);
+      ctx.lineTo(40, -18);
+      ctx.closePath();
+      ctx.stroke();
+      ctx.fillStyle = "#35d6c9";
+      ctx.beginPath();
+      ctx.arc(39, 4, 6, 0, TAU);
+      ctx.fill();
+      ctx.restore();
+    }
+
+    drawMerchantPedestal(ctx, x, y, offer, index) {
+      const bob = Math.sin(this.menuTime * 2.4 + index * 1.1) * 4;
+      const color = offer ? this.rewardColor(offer.reward) : "#35d6c9";
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.beginPath();
+      ctx.ellipse(0, 26, 36, 9, 0, 0, TAU);
+      ctx.fillStyle = "rgba(0,0,0,0.34)";
+      ctx.fill();
+      ctx.fillStyle = "#141a28";
+      ctx.fillRect(-22, -6, 44, 32);
+      ctx.strokeStyle = "rgba(255,255,255,0.14)";
+      ctx.lineWidth = 2;
+      ctx.strokeRect(-22, -6, 44, 32);
+      ctx.fillStyle = "#1e2638";
+      ctx.fillRect(-16, 0, 32, 8);
+      ctx.fillStyle = "#2a3548";
+      ctx.beginPath();
+      ctx.ellipse(0, -6, 20, 6, 0, 0, TAU);
+      ctx.fill();
+      ctx.shadowColor = color;
+      ctx.shadowBlur = this.glow(18);
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      ctx.ellipse(0, -10 - bob, 14, 14, 0, 0, TAU);
+      ctx.fill();
+      ctx.fillStyle = "rgba(255,255,255,0.35)";
+      ctx.beginPath();
+      ctx.ellipse(0, -13 - bob, 7, 7, 0, 0, TAU);
+      ctx.fill();
+      if (offer?.reward?.type === "item") {
+        const item = offer.reward.item;
+        ctx.save();
+        ctx.translate(0, -26 - bob);
+        ctx.scale(0.62, 0.62);
+        this.drawRunItemShape(ctx, item, color);
+        ctx.restore();
+      } else {
+        ctx.fillStyle = "#0b111c";
+        ctx.font = "800 12px ui-sans-serif, system-ui";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText("?", 0, -10 - bob);
+      }
+      ctx.restore();
+      if (offer) {
+        ctx.save();
+        ctx.translate(x, y + 36);
+        ctx.font = "800 11px ui-sans-serif, system-ui";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillStyle = "#0b111c";
+        ctx.fillRect(-26, -11, 52, 18);
+        ctx.strokeStyle = offer.bought ? "#70e083" : "#f2bf63";
+        ctx.lineWidth = 2;
+        ctx.strokeRect(-26, -11, 52, 18);
+        ctx.fillStyle = offer.bought ? "#70e083" : "#ffd84d";
+        ctx.fillText(offer.bought ? "ĐÃ MUA" : `◆ ${offer.price}`, 0, 0);
+        ctx.restore();
+      }
+    }
+
+    drawMerchantReroll(ctx, x, y) {
+      const spin = Math.sin(this.menuTime * 3.2) * 0.18;
+      const uses = this.run?.merchantReroll?.uses || 0;
+      const left = Math.max(0, 5 - uses);
+      ctx.save();
+      ctx.translate(x, y + Math.sin(this.menuTime * 2.6) * 2);
+      ctx.beginPath();
+      ctx.ellipse(0, 46, 44, 11, 0, 0, TAU);
+      ctx.fillStyle = "rgba(0,0,0,0.34)";
+      ctx.fill();
+      ctx.shadowColor = "#35d6c9";
+      ctx.shadowBlur = this.glow(16);
+      ctx.fillStyle = "#1b2434";
+      ctx.fillRect(-26, -14, 52, 58);
+      ctx.strokeStyle = "#9ffcf1";
+      ctx.lineWidth = 3;
+      ctx.strokeRect(-26, -14, 52, 58);
+      ctx.fillStyle = "#2a3548";
+      ctx.fillRect(-20, 20, 40, 14);
+      ctx.fillStyle = "#f2bf63";
+      ctx.beginPath();
+      ctx.arc(0, 0, 15, 0, TAU);
+      ctx.fill();
+      ctx.strokeStyle = "#0b111c";
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.arc(0, 0, 15, spin, spin + Math.PI * 1.35);
+      ctx.stroke();
+      ctx.fillStyle = "#0b111c";
+      ctx.font = "800 13px ui-sans-serif, system-ui";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText("?", 0, 0);
+      ctx.fillStyle = "#2a3548";
+      ctx.font = "800 9px ui-sans-serif, system-ui";
+      ctx.fillText(`${uses}/5`, 0, 28);
       ctx.restore();
     }
 

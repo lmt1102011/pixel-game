@@ -6592,7 +6592,150 @@ body.is-mobile-ui .toast.combat-toast {
     transform: translate(-50%, -50%) scale(1.25);
   }
 
-  .toast {
+.inworld-panel {
+  position: fixed;
+  left: 50%;
+  bottom: 26px;
+  z-index: 22;
+  transform: translateX(-50%);
+  width: min(920px, calc(100vw - 24px));
+  pointer-events: none;
+}
+
+.inworld-panel.hidden {
+  display: none;
+}
+
+.inworld-panel-body {
+  pointer-events: auto;
+  border: 1px solid rgba(53, 214, 201, 0.4);
+  background: rgba(8, 10, 16, 0.92);
+  box-shadow: 0 18px 44px rgba(0, 0, 0, 0.58), 0 0 0 1px rgba(0, 0, 0, 0.4);
+}
+
+.merchant-panel-inner {
+  padding: 12px 14px;
+}
+
+.merchant-panel-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.merchant-portrait-tag {
+  color: #76ffd8;
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 1px;
+}
+
+.merchant-gold {
+  color: #ffd84d;
+  font-size: 12px;
+  font-weight: 850;
+}
+
+.merchant-stalls {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.merchant-card {
+  position: relative;
+  padding: 10px;
+  border: 1px solid color-mix(in srgb, var(--mc), transparent 45%);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--mc), transparent 88%), rgba(20, 26, 40, 0.6));
+}
+
+.merchant-card-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.merchant-card-ill {
+  flex: 0 0 auto;
+}
+
+.merchant-card-title h3 {
+  margin: 0 0 2px;
+  font-size: 13px;
+  color: var(--ink);
+}
+
+.merchant-card-title p {
+  margin: 0;
+  color: color-mix(in srgb, var(--mc), #ffffff 18%);
+  font-size: 11px;
+  font-weight: 750;
+}
+
+.merchant-card .item-stats {
+  margin: 8px 0 0;
+}
+
+.merchant-card-buy {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 9px;
+}
+
+.merchant-price {
+  color: #ffd84d;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.merchant-tools {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.merchant-reroll-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex: 1 1 auto;
+}
+
+.merchant-reroll-card h3 {
+  margin: 0 0 2px;
+  color: #76ffd8;
+  font-size: 13px;
+}
+
+.merchant-reroll-card p {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.merchant-card .btn,
+.merchant-tools .btn {
+  min-height: 32px;
+  padding: 6px 12px;
+  font-size: 12px;
+}
+
+.merchant-leave {
+  flex: 0 0 auto;
+}
+
+.toast {
     bottom: calc(12px + env(safe-area-inset-bottom));
     min-width: calc(100vw - 20px);
     padding: 10px;

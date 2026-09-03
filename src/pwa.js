@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const APP_VERSION = "20260718-pixel-vfx-344";
+  const APP_VERSION = "20260718-pixel-vfx-345";
   const APP_ICON = "assets/icons/app-icon-20260605-logo-xl-149.svg";
   let deferredInstallPrompt = null;
   let startGame = null;
@@ -236,9 +236,41 @@
     }
   }
 
+  async function hardResetCache() {
+    // Bypass mọi cache/service worker cũ: gỡ SW + xóa toàn bộ cache rồi tải lại với URL sạch.
+    try {
+      if ("serviceWorker" in navigator) {
+        const regs = await navigator.serviceWorker.getRegistrations();
+        await Promise.all(regs.map((reg) => reg.unregister()));
+      }
+    } catch {
+      /* ignore */
+    }
+    try {
+      if ("caches" in window) {
+        const keys = await caches.keys();
+        await Promise.all(keys.map((key) => caches.delete(key)));
+      }
+    } catch {
+      /* ignore */
+    }
+    const next = new URL(location.href);
+    next.searchParams.delete("fresh");
+    const clean =
+      next.pathname +
+      (next.search.length ? next.search + "&" : "?") +
+      "t=" +
+      Date.now();
+    location.replace(clean);
+  }
+
   function boot(start) {
     startGame = start;
     syncViewport();
+    if (new URLSearchParams(location.search).has("fresh")) {
+      hardResetCache();
+      return;
+    }
     registerServiceWorker();
     bindLanding();
     updateInstallButton();

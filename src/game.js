@@ -10,7 +10,7 @@
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
   const SIGNAL_REALTIME_RELAY_LIMIT = 2;
   const SIGNAL_REALTIME_TYPES = new Set(["state", "snapshot", "attack", "skill", "collect", "openChest", "dropItem", "damage", "chooseDoor"]);
-  const APP_VERSION = "20260718-pixel-vfx-336";
+  const APP_VERSION = "20260718-pixel-vfx-344";
   const CHANGELOG_ENTRIES = [
     {
       version: APP_VERSION,
@@ -22270,8 +22270,9 @@
       this.inworldPanel.classList.remove("hidden");
       // Đo đồng bộ ngay sau khi panel đã hiện (offsetWidth ép reflow),
       // neo popup NGAY DƯỚI cột vật phẩm để nút MUA nằm sát dưới món đồ.
-      const w = this.inworldPanel.offsetWidth || 320;
-      const h = this.inworldPanel.offsetHeight || 280;
+      // Clamp để không bao giờ bay ra mép màn hình kể cả khi CSS cache cũ.
+      const w = clamp(this.inworldPanel.offsetWidth || 360, 280, 420);
+      const h = clamp(this.inworldPanel.offsetHeight || 300, 200, 560);
       const margin = 14;
       const left = clamp(anchor.x - w / 2, margin, Math.max(margin, window.innerWidth - w - margin));
       let top;

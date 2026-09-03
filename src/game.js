@@ -15739,7 +15739,7 @@
         pedestals,
         reroll,
         colliders: [
-          { x: centerX, y: centerY + 26, r: 100 },
+          { box: { x1: centerX - 150, y1: centerY - 24, x2: centerX + 150, y2: centerY + 46 } },
           { x: centerX - 390, y: centerY + 212, r: 42 },
           { x: centerX, y: centerY + 232, r: 42 },
           { x: centerX + 390, y: centerY + 212, r: 42 },
@@ -22214,10 +22214,34 @@
 
     resolveMerchantCollision(actor) {
       if (!actor || actor.dead || !this.run) return;
+      const pr = actor.radius || 22;
       for (const col of this.merchantColliders()) {
+        if (col.box) {
+          const b = col.box;
+          const cx = clamp(actor.x, b.x1, b.x2);
+          const cy = clamp(actor.y, b.y1, b.y2);
+          const dx = actor.x - cx;
+          const dy = actor.y - cy;
+          const d = Math.hypot(dx, dy);
+          if (d > 0.0001 && d < pr) {
+            actor.x += (dx / d) * (pr - d);
+            actor.y += (dy / d) * (pr - d);
+          } else if (d <= 0.0001) {
+            const pushL = actor.x - b.x1 + pr;
+            const pushR = b.x2 - actor.x + pr;
+            const pushT = actor.y - b.y1 + pr;
+            const pushB = b.y2 - actor.y + pr;
+            const minPush = Math.min(pushL, pushR, pushT, pushB);
+            if (minPush === pushL) actor.x = b.x1 - pr;
+            else if (minPush === pushR) actor.x = b.x2 + pr;
+            else if (minPush === pushT) actor.y = b.y1 - pr;
+            else actor.y = b.y2 + pr;
+          }
+          continue;
+        }
         const dx = actor.x - col.x;
         const dy = actor.y - col.y;
-        const min = col.r + (actor.radius || 22);
+        const min = col.r + pr;
         const d = Math.hypot(dx, dy);
         let push;
         if (d > 0.0001 && d < min) {
@@ -22240,25 +22264,28 @@
       return { x: (rect.left || 0) + (wx - camX) * scale, y: (rect.top || 0) + (wy - camY) * scale, scale };
     }
 
-    positionMerchantPopup(anchor) {
+    positionMerchantPopup(anchor, place = "below") {
       if (!this.inworldPanel) return;
       this.inworldPanel.classList.add("floating");
       this.inworldPanel.classList.remove("hidden");
-      // Force layout after content is rendered and panel is visible
-      requestAnimationFrame(() => {
-        if (!this.inworldPanel) return;
-        const w = this.inworldPanel.offsetWidth || 320;
-        const h = this.inworldPanel.offsetHeight || 280;
-        const margin = 14;
-        let left = anchor.x - w / 2;
-        let top = anchor.y - h - 26;
-        left = clamp(left, margin, window.innerWidth - w - margin);
-        if (top < margin) top = Math.max(margin, anchor.y + 26);
-        if (top + h > window.innerHeight - margin) top = window.innerHeight - h - margin;
-        this.inworldPanel.style.left = left + "px";
-        this.inworldPanel.style.top = top + "px";
-        this.inworldPanel.style.transform = "none";
-      });
+      // Đo đồng bộ ngay sau khi panel đã hiện (offsetWidth ép reflow),
+      // neo popup NGAY DƯỚI cột vật phẩm để nút MUA nằm sát dưới món đồ.
+      const w = this.inworldPanel.offsetWidth || 320;
+      const h = this.inworldPanel.offsetHeight || 280;
+      const margin = 14;
+      const left = clamp(anchor.x - w / 2, margin, Math.max(margin, window.innerWidth - w - margin));
+      let top;
+      if (place === "below") {
+        top = anchor.y + 18;
+        if (top + h > window.innerHeight - margin) top = anchor.y - h - 18;
+      } else {
+        top = anchor.y - h - 18;
+        if (top < margin) top = anchor.y + 18;
+      }
+      top = clamp(top, margin, Math.max(margin, window.innerHeight - h - margin));
+      this.inworldPanel.style.left = `${left}px`;
+      this.inworldPanel.style.top = `${top}px`;
+      this.inworldPanel.style.transform = "none";
     }
 
     renderMerchantItemPopup(index) {
@@ -22294,6 +22321,7 @@
             <span class="pup-card-gold">Tiền: ${owned}</span>
             <button class="btn primary small pup-card-btn" data-action="buy-merchant-offer" data-offer="${index}" ${canBuy && !offer.bought ? "" : "disabled"}>${offer.bought ? "ĐÃ MUA" : "MUA"}</button>
           </div>
+          <button class="btn small ghost pup-leave" data-action="leave-merchant">RỜI KHU ▸ MỞ CỬA TIẾP</button>
         </div>`;
       this.drawItemCanvases(this.inworldPanelBody);
     }
@@ -22323,6 +22351,7 @@
             <span class="pup-card-gold">Tiền: ${owned}</span>
             <button class="btn ${canReroll ? "primary" : ""} small pup-card-btn" data-action="merchant-reroll" ${canReroll ? "" : "disabled"}>${rr.uses >= 5 ? "HẾT LƯỢT" : "QUAY"}</button>
           </div>
+          <button class="btn small ghost pup-leave" data-action="leave-merchant">RỜI KHU ▸ MỞ CỬA TIẾP</button>
         </div>`;
     }
 
@@ -22386,7 +22415,7 @@
         return;
       }
       const pset = stall.pedestals || [];
-      const pTouch = (player.radius || 22) + 60;
+      const pTouch = (player.radius || 22) + 70;
       let nearest = -1;
       let nearestD = Infinity;
       for (let i = 0; i < pset.length; i++) {
@@ -22397,8 +22426,9 @@
         }
       }
       const reroll = stall.reroll;
-      const rerollRange = reroll && Math.hypot(player.x - reroll.x, player.y - reroll.y) <= (player.radius || 22) + 64;
-      const counterRange = Math.hypot(player.x - stall.x, player.y - stall.y) <= (player.radius || 22) + 145;
+      const rerollRange = reroll && Math.hypot(player.x - reroll.x, player.y - reroll.y) <= (player.radius || 22) + 70;
+      // Điểm chạm quầy đặt ở mép trước quầy (đi bộ tới được), không phải tâm thương nhân sau quầy.
+      const counterRange = Math.hypot(player.x - stall.x, player.y - (stall.y + 135)) <= (player.radius || 22) + 160;
 
       let key = "";
       let kind = "none";
@@ -22428,11 +22458,11 @@
         else this.renderMerchantPanel();
       }
       if (kind === "item" && anchor) {
-        const screen = this.worldToScreen(anchor.x, anchor.y - 60);
-        this.positionMerchantPopup(screen);
+        const screen = this.worldToScreen(anchor.x, anchor.y + 92);
+        this.positionMerchantPopup(screen, "below");
       } else if (kind === "reroll" && anchor) {
-        const screen = this.worldToScreen(anchor.x, anchor.y - 40);
-        this.positionMerchantPopup(screen);
+        const screen = this.worldToScreen(anchor.x, anchor.y + 72);
+        this.positionMerchantPopup(screen, "below");
       } else {
         this.inworldPanel.classList.remove("hidden");
         this.inworldPanel.classList.remove("floating");
@@ -25747,8 +25777,8 @@
         return;
       }
       if (object.type === "merchantStall") {
-        this.renderMerchantPanel();
-        this.toast("Lại gần từng vật phẩm để xem chỉ số và mua");
+        // Panel thương nhân do updateMerchantProximity() quản lý (popup theo từng cột),
+        // không render đè ở đây để tránh giật/toast spam mỗi frame.
         return;
       }
       if (object.type === "secretAltar") {

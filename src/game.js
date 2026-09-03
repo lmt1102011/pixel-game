@@ -10,7 +10,7 @@
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
   const SIGNAL_REALTIME_RELAY_LIMIT = 2;
   const SIGNAL_REALTIME_TYPES = new Set(["state", "snapshot", "attack", "skill", "collect", "openChest", "dropItem", "damage", "chooseDoor"]);
-  const APP_VERSION = "20260718-pixel-vfx-330";
+  const APP_VERSION = "20260718-pixel-vfx-331";
   const CHANGELOG_ENTRIES = [
     {
       version: APP_VERSION,
@@ -9560,6 +9560,7 @@
         }
         if (this.mode === "menu" && this.screen?.classList.contains("aaa-menu-screen") && this.shouldRenderMenuHero(time)) this.renderMainMenuHero();
         if (this.mode === "play" && this.screen?.classList.contains("valorant-screen") && this.shouldRenderSquadHeroes(time)) this.renderSquadHeroCanvases();
+        if (this.mode === "runInventory" && this.screen?.querySelector("[data-bag-root]")?.querySelector(".bag-figure-canvas")) this.renderBagFigure();
         const loopMs = performance.now() - loopStart;
         this.perf.loopMs = loopMs;
         this.perf.avgLoopMs = this.perf.avgLoopMs
@@ -11210,6 +11211,52 @@
         const baseScale = Math.min(rect.width / fit.w, rect.height / fit.h);
         const scale = clamp(baseScale * (self ? 1.18 : 1.1), 0.82, self ? 3.05 : 2.85);
         this.drawHero(ctx, rect.width * fit.x, rect.height * fit.y, scale, actor, power, custom);
+      }
+    }
+
+    renderBagFigure() {
+      const cv = this.screen?.querySelector("[data-bag-root]")?.querySelector(".bag-figure-canvas");
+      if (!cv) return;
+      const rect = cv.getBoundingClientRect();
+      if (rect.width < 8 || rect.height < 8) return;
+      const ratio = Math.max(1, Math.min(1.5, window.devicePixelRatio || 1));
+      const targetW = Math.round(rect.width * ratio);
+      const targetH = Math.round(rect.height * ratio);
+      if (cv.width !== targetW || cv.height !== targetH) { cv.width = targetW; cv.height = targetH; }
+      const ctx = cv.getContext("2d");
+      if (!ctx) return;
+      ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+      ctx.clearRect(0, 0, rect.width, rect.height);
+      const characterId = cv.dataset.character || this.save.account?.selectedCharacter || "swordsman";
+      const power = powerById(cv.dataset.power || this.save.account?.selectedPower || "fire");
+      const player = this.run?.player;
+      const actor = {
+        characterId,
+        facing: -0.15,
+        animation: "idle",
+        animTime: player?.animTime ?? this.menuTime,
+        actionTime: 0,
+        actionTotal: 0,
+        hp: 1,
+        powerAwakened: cv.dataset.awakened === "1"
+      };
+      const custom = this.save.customization || {};
+      const inner = Math.min(rect.width, rect.height);
+      const scale = inner / 70;
+      const cx = rect.width / 2;
+      const cy = rect.height * 0.96;
+      if (!this.drawExportedHeroSprite(ctx, cx, cy, scale, actor, power, custom)) {
+        const fit = {
+          swordsman: { w: 92, h: 92, x: 0.42, y: 0.69 },
+          guardian: { w: 96, h: 94, x: 0.46, y: 0.69 },
+          mage: { w: 88, h: 100, x: 0.49, y: 0.69 },
+          ranger: { w: 108, h: 92, x: 0.42, y: 0.69 },
+          assassin: { w: 96, h: 90, x: 0.45, y: 0.69 },
+          martial: { w: 76, h: 90, x: 0.5, y: 0.69 },
+          spearman: { w: 145, h: 92, x: 0.39, y: 0.69 }
+        }[characterId] || { w: 96, h: 92, x: 0.44, y: 0.69 };
+        const dScale = clamp((inner / fit.w), 0.8, 2.6);
+        this.drawHero(ctx, rect.width * fit.x, rect.height * fit.y, dScale, actor, power, custom);
       }
     }
 
@@ -13410,7 +13457,7 @@
       }
       const characterId = this.run.player?.characterId || this.save.account.selectedCharacter;
       const character = characterById(characterId);
-      const figure = this.characterPreviewImage(characterId, this.run.power?.id || "fire");
+      const awake = this.run.player?.powerAwakened ?? this.powerAwakeningActive(this.run.power?.id || this.save.account.selectedPower);
       const subtitle = `Trang bị ${equipped.length}/${RUN_EQUIP_LIMIT} · Kho ${bag.length}/${RUN_ITEM_LIMIT} · Tiền ${Math.floor(this.run.runGold || 0)}`;
       this.setScreen(`
         <section class="bag-screen" data-bag-root data-multiplayer="${this.isMultiplayerRun() ? "1" : "0"}">
@@ -13424,7 +13471,9 @@
           <div class="bag-body">
             <div class="bag-left">
               <div class="bag-figure">
-                ${figure}
+                <canvas class="bag-figure-canvas" width="128" height="128"
+                  data-character="${characterId}" data-power="${this.run.power?.id || this.save.account.selectedPower || "fire"}"
+                  data-awakened="${awake ? "1" : "0"}"></canvas>
                 <div class="bag-figure-name">${character?.name || ""}</div>
               </div>
               <div class="bag-discard" data-kind="discard" title="Kéo đồ vào đây để vứt">
@@ -13446,34 +13495,52 @@
 
     bagDragInit() {
       this._bagDrag = null;
+      this._bagOrigin = null;
       const root = this.screen?.querySelector("[data-bag-root]");
       if (!root) return;
       const moveCls = document.createElement("div");
       moveCls.className = "bag-drag-clone";
       document.body.appendChild(moveCls);
       this._bagDragEl = moveCls;
-      const onDown = (ev) => {
-        const cell = ev.target.closest(".bag-slot, .bag-cell");
-        if (!cell || !cell.dataset.uid) return;
-        const kind = cell.dataset.kind;
-        ev.preventDefault();
-        const item = itemById(this.runItemByUid(cell.dataset.uid)?.id);
-        if (!item) return;
+      const startDrag = (origin) => {
+        const item = itemById(this.runItemByUid(origin.uid)?.id);
+        if (!item) return false;
+        const cell = origin.cell;
+        const cssSize = Math.max(46, Math.min(56, cell.getBoundingClientRect().width || 52));
+        moveCls.style.width = cssSize + "px";
+        moveCls.style.height = cssSize + "px";
         const color = RARITY[item.rarity]?.color || "#f2bf63";
-        moveCls.innerHTML = `<canvas class="bag-item-canvas" data-shape="${item.shape || ""}" data-color="${color}" width="46" height="46"></canvas>`;
+        moveCls.innerHTML = `<canvas class="bag-item-canvas" data-shape="${item.shape || ""}" data-color="${color}" width="64" height="64"></canvas>`;
         moveCls.classList.add("active");
         const cv = moveCls.querySelector("canvas");
-        cv.width = 46; cv.height = 46;
-        const c2 = cv.getContext("2d");
-        c2.setTransform(1.5, 0, 0, 1.5, 0, 0);
-        this.drawRunItemShape(c2, { shape: item.shape }, color);
-        this._bagDrag = { uid: cell.dataset.uid, kind, x: ev.clientX, y: ev.clientY };
-        this.positionDragClone(ev);
+        {
+          const px = Math.round(cssSize * 2);
+          cv.width = px; cv.height = px;
+          const c2 = cv.getContext("2d");
+          c2.setTransform(2, 0, 0, 2, 0, 0);
+          c2.clearRect(0, 0, px, px);
+          c2.translate(cssSize / 2, cssSize / 2);
+          c2.scale(cssSize / 52, cssSize / 52);
+          this.drawRunItemShape(c2, { shape: item.shape }, color);
+        }
+        this._bagDrag = { uid: origin.uid, kind: origin.kind, x: origin.x, y: origin.y };
+        this.positionDragClone({ clientX: origin.x, clientY: origin.y });
         root.querySelectorAll(".bag-slot.drop-hint, .bag-cell.drop-hint, .bag-discard.drop-hint").forEach((n) => n.classList.remove("drop-hint"));
         cell.classList.add("dragging");
         this.closeBagTooltip();
+        return true;
+      };
+      const onDown = (ev) => {
+        const cell = ev.target.closest(".bag-slot, .bag-cell");
+        if (!cell || !cell.dataset.uid) return;
+        ev.preventDefault();
+        this._bagOrigin = { uid: cell.dataset.uid, kind: cell.dataset.kind, cell, x: ev.clientX, y: ev.clientY };
       };
       const onMove = (ev) => {
+        if (this._bagOrigin && !this._bagDrag) {
+          const dx = ev.clientX - this._bagOrigin.x, dy = ev.clientY - this._bagOrigin.y;
+          if (dx * dx + dy * dy > 25) startDrag(this._bagOrigin);
+        }
         if (!this._bagDrag) return;
         ev.preventDefault();
         this.positionDragClone(ev);
@@ -13482,11 +13549,12 @@
         if (target) target.classList.add("drop-hint");
       };
       const onUp = (ev) => {
-        if (!this._bagDrag) return;
         const drag = this._bagDrag;
         this._bagDrag = null;
+        this._bagOrigin = null;
         moveCls.classList.remove("active");
         root.querySelectorAll(".dragging, .drop-hint").forEach((n) => n.classList.remove("dragging", "drop-hint"));
+        if (!drag) return;
         const target = this.bagDropTarget(ev);
         if (!target) return;
         if (target.dataset.kind === "discard") { this.dropRunItem(drag.uid); return; }
@@ -13508,8 +13576,10 @@
     positionDragClone(ev) {
       const el = this._bagDragEl;
       if (!el) return;
-      el.style.left = (ev.clientX + 14) + "px";
-      el.style.top = (ev.clientY + 12) + "px";
+      const w = parseFloat(el.style.width) || 52;
+      const h = parseFloat(el.style.height) || 52;
+      el.style.left = (ev.clientX - w / 2) + "px";
+      el.style.top = (ev.clientY - h / 2) + "px";
     }
 
     bagDropTarget(ev) {
@@ -13536,8 +13606,9 @@
     }
 
     closeBagTooltip() {
-      const tip = this.screen?.querySelector(".bag-tooltip");
+      const tip = document.querySelector(".bag-tooltip");
       if (tip) tip.remove();
+      if (this.screen) this.screen.__bagTip = null;
     }
 
     attachBagTooltip(root) {

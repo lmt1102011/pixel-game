@@ -10,7 +10,7 @@
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
   const SIGNAL_REALTIME_RELAY_LIMIT = 2;
   const SIGNAL_REALTIME_TYPES = new Set(["state", "snapshot", "attack", "skill", "collect", "openChest", "dropItem", "damage", "chooseDoor"]);
-  const APP_VERSION = "20260718-pixel-vfx-347";
+  const APP_VERSION = "20260718-pixel-vfx-348";
   const CHANGELOG_ENTRIES = [
     {
       version: APP_VERSION,
@@ -15732,12 +15732,29 @@
       return this.addRoomObject("merchantStall", {
         x: centerX,
         y: centerY - 95,
-        radius: 95,
-        color: "#35d6c9",
-        label: "Thương Nhân Khe Nứt",
+        radius: 96,
+        color: "#f2bf63",
+        label: "Chợ Khe Nứt",
         effect: "merchant",
         pedestals,
         reroll,
+        theme: "market",
+        // Đèn lồng treo quanh quầy (vẽ trang trí, không chặn di chuyển).
+        lanterns: [
+          { x: centerX - 330, y: centerY + 130 },
+          { x: centerX + 330, y: centerY + 130 },
+          { x: centerX - 210, y: centerY - 72 },
+          { x: centerX + 210, y: centerY - 72 },
+          { x: centerX - 470, y: centerY + 300 },
+          { x: centerX + 470, y: centerY + 300 }
+        ],
+        // Thùng gỗ trang trí 2 bên.
+        crates: [
+          { x: centerX - 300, y: centerY + 230 },
+          { x: centerX + 300, y: centerY + 230 },
+          { x: centerX - 260, y: centerY + 305 },
+          { x: centerX + 260, y: centerY + 305 }
+        ],
         colliders: [
           { box: { x1: centerX - 150, y1: centerY - 24, x2: centerX + 150, y2: centerY + 46 } },
           { x: centerX - 390, y: centerY + 212, r: 42 },
@@ -16486,7 +16503,8 @@
       this.updateSlashes(worldDt);
       this.updateTrails(worldDt);
       this.updateShockwaves(worldDt);
-      if (this.input.mouse.left && !this.pauseOverlay && !player.dead) this.attackBasic();
+      const consumedMerchantClick = this.handleMerchantCanvasClick();
+      if (this.input.mouse.left && !consumedMerchantClick && !this.pauseOverlay && !player.dead) this.attackBasic();
       if (player.comboTimer > 0) player.comboTimer -= worldDt;
       else player.combo = 0;
       this.updateTutorialProgress();
@@ -22414,16 +22432,17 @@
       const player = this.run.player;
       const show = this.aliveActor(player) && this.mode === "game" && !this.pauseOverlay;
       if (!stall || !show) {
+        this._merchantUi = null;
         if (!this.inworldPanel.classList.contains("hidden")) this.inworldPanel.classList.add("hidden");
         return;
       }
       const pset = stall.pedestals || [];
-      // Ngưỡng rộng để đứng phía trước cột là đã hiện tooltip chỉ số của món đó
-      // (giống "di chuột vào vật phẩm"), không cần lướt sát sau cột.
-      const pTouch = (player.radius || 22) + 160;
+      // Ngưỡng rộng để đứng phía trước cột là đã hiện thẻ chỉ số của món đó.
+      const pTouch = (player.radius || 22) + 180;
       let nearest = -1;
       let nearestD = Infinity;
       for (let i = 0; i < pset.length; i++) {
+        if (i < this.run.merchantOffers?.length && this.run.merchantOffers[i]?.bought) continue;
         const d = Math.hypot(player.x - pset[i].x, player.y - pset[i].y);
         if (d < pTouch && d < nearestD) {
           nearestD = d;
@@ -22433,48 +22452,55 @@
       const reroll = stall.reroll;
       const rerollRange = reroll && Math.hypot(player.x - reroll.x, player.y - reroll.y) <= (player.radius || 22) + 70;
       // Điểm chạm quầy đặt ở mép trước quầy (đi bộ tới được), không phải tâm thương nhân sau quầy.
-      const counterRange = Math.hypot(player.x - stall.x, player.y - (stall.y + 135)) <= (player.radius || 22) + 160;
+      const counterRange = Math.hypot(player.x - stall.x, player.y - (stall.y + 135)) <= (player.radius || 22) + 170;
 
-      let key = "";
       let kind = "none";
-      let anchor = null;
+      let anchorIdx = -1;
       if (nearest >= 0) {
         kind = "item";
-        key = "item:" + nearest;
-        anchor = pset[nearest];
+        anchorIdx = nearest;
       } else if (rerollRange && reroll) {
         kind = "reroll";
-        key = "reroll";
-        anchor = reroll;
       } else if (counterRange) {
         kind = "counter";
-        key = "counter";
       }
-      const rerender = kind !== "none" && this._merchantPopupKey !== key;
-      if (kind === "none") {
-        this._merchantPopupKey = "";
-        if (!this.inworldPanel.classList.contains("hidden")) this.inworldPanel.classList.add("hidden");
-        return;
+
+      // Luôn cập nhật trạng thái canvas (đạn được vẽ mỗi frame qua drawMerchantStage);
+      // DOM panel không còn dùng cho việc này nữa.
+      this._merchantUi = { kind, idx: anchorIdx, anchor: kind === "item" ? pset[anchorIdx] : kind === "reroll" ? reroll : null };
+      this._merchantUi.btn = null;
+      this._merchantUi.rerollBtn = null;
+      this._merchantUi.leaveBtn = null;
+      if (kind !== "none") {
+        this.inworldPanel.classList.add("hidden");
       }
-      if (rerender) {
-        this._merchantPopupKey = key;
-        if (kind === "item") this.renderMerchantItemPopup(nearest);
-        else if (kind === "reroll") this.renderMerchantRerollPopup();
-        else this.renderMerchantPanel();
+    }
+
+    handleMerchantCanvasClick() {
+      const down = Boolean(this.input?.mouse?.left) && !this.pauseOverlay
+        && this.mode === "game" && this.run?.player && !this.run.player.dead;
+      const fresh = down && !this._merchantPrevLeft;
+      this._merchantPrevLeft = Boolean(down);
+      if (!fresh) return false;
+      const ui = this._merchantUi;
+      if (!ui) return false;
+      const wx = this.input?.mouse?.worldX;
+      const wy = this.input?.mouse?.worldY;
+      if (wx == null || wy == null) return false;
+      const hit = (r) => r && wx >= r.x && wx <= r.x + r.w && wy >= r.y && wy <= r.y + r.h;
+      if (ui.kind === "item" && ui.btn && hit(ui.btn)) {
+        this.buyMerchantOffer(ui.idx);
+        return true;
       }
-      if (kind === "item" && anchor) {
-        const screen = this.worldToScreen(anchor.x, anchor.y + 92);
-        this.positionMerchantPopup(screen, "below");
-      } else if (kind === "reroll" && anchor) {
-        const screen = this.worldToScreen(anchor.x, anchor.y + 72);
-        this.positionMerchantPopup(screen, "below");
-      } else {
-        this.inworldPanel.classList.remove("hidden");
-        this.inworldPanel.classList.remove("floating");
-        this.inworldPanel.style.left = "50%";
-        this.inworldPanel.style.top = "";
-        this.inworldPanel.style.transform = "translateX(-50%)";
+      if (ui.kind === "reroll" && ui.rerollBtn && hit(ui.rerollBtn)) {
+        this.rerollMerchantOffers();
+        return true;
       }
+      if (ui.kind === "counter" && ui.leaveBtn && hit(ui.leaveBtn)) {
+        this.completeMerchantRoom();
+        return true;
+      }
+      return false;
     }
 
     sellValueForItem(item) {
@@ -29323,43 +29349,133 @@
       const reroll = object.reroll || { x: object.x + 322, y: object.y - 14 };
       const rerollX = this.run?.merchantReroll ? reroll.x : -9999;
       const rerollOn = Boolean(this.run?.merchantReroll && (this.run.merchantReroll.uses || 0) < 5);
+      this.drawMerchantRug(ctx, object.x, object.y);
+      // Hàng trang trí phía sau quầy.
+      this.drawMerchantBunting(ctx, object.x, object.y);
+      for (const lamp of object.lanterns || []) this.drawMerchantLantern(ctx, lamp.x, lamp.y);
       this.drawMerchantCounter(ctx, object.x, object.y + 93);
       for (let i = 0; i < pedestals.length; i++) {
         const p = pedestals[i];
         this.drawMerchantPedestal(ctx, p.x, p.y, offers[i], i);
       }
       this.drawMerchantNpc(ctx, object.x, y);
-      if (this.run?.merchantReroll) this.drawMerchantReroll(ctx, rerollX, reroll.y, rerollOn);
+      if (this.run?.merchantReroll)       this.drawMerchantReroll(ctx, rerollX, reroll.y, rerollOn);
+      for (const c of object.crates || []) this.drawMerchantCrate(ctx, c.x, c.y);
+      // Thẻ chỉ số vẽ trên canvas (đặt ngay tại cột, luôn thẳng hàng).
+      this.drawMerchantCard(ctx, object, offers);
+      if (rerollOn) this.drawMerchantRerollButton(ctx, object, reroll);
+      this.drawMerchantLeaveButton(ctx, object);
     }
 
-    drawMerchantColumn(ctx, x, y) {
+    drawMerchantRug(ctx, x, y) {
       ctx.save();
       ctx.translate(x, y);
-      const capGlow = Math.sin(this.menuTime * 2) * 0.5 + 0.5;
-      ctx.globalAlpha = 0.28;
-      ctx.beginPath();
-      ctx.ellipse(0, 20, 40, 10, 0, 0, TAU);
-      ctx.fillStyle = "rgba(0,0,0,0.5)";
-      ctx.fill();
-      ctx.globalAlpha = 1;
-      const colGrad = ctx.createLinearGradient(-16, -40, 16, 40);
-      colGrad.addColorStop(0, "#2c3a52");
-      colGrad.addColorStop(0.5, "#1b2536");
-      colGrad.addColorStop(1, "#101720");
-      ctx.fillStyle = colGrad;
-      ctx.fillRect(-16, -36, 32, 58);
-      ctx.strokeStyle = "rgba(159,252,241,0.5)";
+      const g = ctx.createRadialGradient(0, 120, 40, 0, 190, 480);
+      g.addColorStop(0, "rgba(120,60,20,0.0)");
+      g.addColorStop(0.7, "rgba(120,60,20,0.35)");
+      g.addColorStop(1, "rgba(120,60,20,0.0)");
+      ctx.fillStyle = g;
+      ctx.fillRect(-520, -60, 1040, 620);
+      ctx.restore();
+    }
+
+    drawMerchantBunting(ctx, x, y) {
+      ctx.save();
+      ctx.translate(x, y);
+      const tops = [ -268, -150, 0, 150, 268 ];
+      ctx.strokeStyle = "rgba(90,60,35,0.5)";
       ctx.lineWidth = 2;
-      ctx.strokeRect(-16, -36, 32, 58);
-      ctx.fillStyle = "#202c40";
-      ctx.fillRect(-18, -44, 36, 10);
-      ctx.fillStyle = "#0f1522";
-      ctx.fillRect(-18, 20, 36, 10);
-      ctx.fillStyle = "#35d6c9";
-      ctx.shadowColor = "#35d6c9";
-      ctx.shadowBlur = this.glow(14 + capGlow * 8);
-      ctx.fillRect(-12, -52, 24, 6);
-      ctx.fillRect(10, -49, 6, 12);
+      ctx.beginPath();
+      ctx.moveTo(-300, -120);
+      ctx.quadraticCurveTo(-150, -86, 0, -120);
+      ctx.quadraticCurveTo(150, -86, 300, -120);
+      ctx.stroke();
+      const palette = ["#e08a3c", "#d95d39", "#e0b84a", "#b0486b", "#5a8f4a"];
+      tops.forEach((tx, i) => {
+        const ty = -100 - Math.abs(tx) * 0.08;
+        const sway = Math.sin(this.menuTime * 1.8 + i) * 3;
+        ctx.fillStyle = palette[i % palette.length];
+        ctx.beginPath();
+        ctx.moveTo(tx - 13, ty + sway);
+        ctx.lineTo(tx + 13, ty + sway);
+        ctx.lineTo(tx, ty + 30 + sway);
+        ctx.closePath();
+        ctx.fill();
+      });
+      ctx.restore();
+    }
+
+    drawMerchantLantern(ctx, x, y) {
+      const bob = Math.sin(this.menuTime * 2.2 + x) * 3;
+      const flame = Math.sin(this.menuTime * 9 + x) * 0.35 + 0.65;
+      ctx.save();
+      ctx.translate(x, y + bob);
+      ctx.strokeStyle = "#5a3c1e";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(0, -34);
+      ctx.lineTo(0, -16);
+      ctx.stroke();
+      ctx.shadowColor = "#ffb347";
+      ctx.shadowBlur = this.glow(16 + flame * 14);
+      const body = ctx.createLinearGradient(-9, -16, 9, 16);
+      body.addColorStop(0, "#e0a050");
+      body.addColorStop(0.5, "#b3442c");
+      body.addColorStop(1, "#7a2418");
+      ctx.fillStyle = body;
+      ctx.beginPath();
+      ctx.moveTo(-8, -14);
+      ctx.lineTo(8, -14);
+      ctx.lineTo(9, 12);
+      ctx.lineTo(-9, 12);
+      ctx.closePath();
+      ctx.fill();
+      ctx.strokeStyle = "#ffd9a0";
+      ctx.lineWidth = 1.5;
+      ctx.strokeRect(-9, -14, 18, 26);
+      ctx.fillStyle = `rgba(255,214,140,${0.7 + flame * 0.3})`;
+      ctx.beginPath();
+      ctx.moveTo(0, -4);
+      ctx.lineTo(4, 6);
+      ctx.lineTo(-4, 6);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillStyle = "#7a2418";
+      ctx.fillRect(-5, 10, 10, 3);
+      ctx.fillRect(-5, -16, 10, 3);
+      ctx.shadowBlur = 0;
+      ctx.restore();
+    }
+
+    drawMerchantCrate(ctx, x, y) {
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.beginPath();
+      ctx.ellipse(0, 34, 34, 9, 0, 0, TAU);
+      ctx.fillStyle = "rgba(0,0,0,0.3)";
+      ctx.fill();
+      const wood = ctx.createLinearGradient(-22, -24, 22, 30);
+      wood.addColorStop(0, "#c08a4e");
+      wood.addColorStop(0.5, "#9c6a34");
+      wood.addColorStop(1, "#6e451f");
+      ctx.fillStyle = wood;
+      ctx.fillRect(-22, -22, 44, 46);
+      ctx.strokeStyle = "#5a3515";
+      ctx.lineWidth = 2;
+      ctx.strokeRect(-22, -22, 44, 46);
+      ctx.strokeStyle = "#5a3515";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(-22, -22);
+      ctx.lineTo(0, 1);
+      ctx.lineTo(22, -22);
+      ctx.moveTo(-22, 24);
+      ctx.lineTo(0, 1);
+      ctx.lineTo(22, 24);
+      ctx.stroke();
+      ctx.strokeStyle = "#e9c189";
+      ctx.lineWidth = 1.5;
+      ctx.strokeRect(-22, -22, 44, 46);
       ctx.restore();
     }
 
@@ -29371,26 +29487,34 @@
       ctx.fillStyle = "rgba(0,0,0,0.38)";
       ctx.fill();
       const top = ctx.createLinearGradient(0, -24, 0, 2);
-      top.addColorStop(0, "#2c3a52");
-      top.addColorStop(1, "#1a2434");
+      top.addColorStop(0, "#3a2a17");
+      top.addColorStop(1, "#241706");
       ctx.fillStyle = top;
       ctx.fillRect(-150, -22, 300, 22);
-      ctx.fillStyle = "#101720";
+      ctx.fillStyle = "#181009";
       ctx.fillRect(-146, 0, 292, 26);
-      ctx.strokeStyle = "rgba(159,252,241,0.35)";
+      ctx.strokeStyle = "rgba(232,178,96,0.5)";
       ctx.lineWidth = 2.5;
       ctx.strokeRect(-150, -22, 300, 48);
-      ctx.strokeStyle = "#35d6c9";
-      ctx.lineWidth = 3;
+      ctx.strokeStyle = "#e8a03c";
+      ctx.lineWidth = 4;
       ctx.strokeRect(-150, -10, 300, 4);
-      ctx.fillStyle = "rgba(53,214,201,0.18)";
+      ctx.fillStyle = "rgba(214,140,60,0.18)";
       for (let i = -6; i <= 6; i++) {
         ctx.fillRect(i * 26 - 6, -18, 10, 14);
       }
+      ctx.strokeStyle = "rgba(90,58,30,0.7)";
+      ctx.lineWidth = 2;
+      for (let i = -6; i <= 6; i++) {
+        ctx.beginPath();
+        ctx.moveTo(i * 26 - 4, -2);
+        ctx.lineTo(i * 26 + 4, -2);
+        ctx.stroke();
+      }
       const glow = Math.sin(this.menuTime * 2.4) * 0.5 + 0.5;
-      ctx.fillStyle = "#35d6c9";
-      ctx.shadowColor = "#35d6c9";
-      ctx.shadowBlur = this.glow(10);
+      ctx.fillStyle = "#ffd27a";
+      ctx.shadowColor = "#ffb347";
+      ctx.shadowBlur = this.glow(14);
       ctx.beginPath();
       ctx.arc(0, -38, 5 + glow * 2, 0, TAU);
       ctx.fill();
@@ -29405,199 +29529,229 @@
       ctx.translate(x, yb);
       ctx.beginPath();
       ctx.ellipse(0, 58, 58, 13, 0, 0, TAU);
-      ctx.fillStyle = "rgba(0,0,0,0.38)";
+      ctx.fillStyle = "rgba(0,0,0,0.4)";
       ctx.fill();
-      const robeGrad = ctx.createLinearGradient(-26, -16, 26, 60);
-      robeGrad.addColorStop(0, "#2b3b57");
-      robeGrad.addColorStop(0.6, "#172233");
-      robeGrad.addColorStop(1, "#0c1420");
+      // Áo choàng thương nhân ấm (saffron + đỏ đồng).
+      const robeGrad = ctx.createLinearGradient(-28, -16, 28, 62);
+      robeGrad.addColorStop(0, "#d98a3e");
+      robeGrad.addColorStop(0.5, "#a94f28");
+      robeGrad.addColorStop(1, "#6e2c14");
       ctx.fillStyle = robeGrad;
       ctx.beginPath();
-      ctx.moveTo(-26, -12);
-      ctx.lineTo(-24, 58);
-      ctx.quadraticCurveTo(0, 66, 24, 58);
-      ctx.lineTo(26, -12);
-      ctx.quadraticCurveTo(0, -2, -26, -12);
+      ctx.moveTo(-28, -12);
+      ctx.lineTo(-26, 58);
+      ctx.quadraticCurveTo(0, 68, 26, 58);
+      ctx.lineTo(28, -12);
+      ctx.quadraticCurveTo(0, -2, -28, -12);
       ctx.closePath();
       ctx.fill();
-      ctx.strokeStyle = "#35d6c9";
+      ctx.strokeStyle = "#ffd9a0";
       ctx.lineWidth = 3;
       ctx.stroke();
-      ctx.fillStyle = "#243349";
+      // Thắt lưng.
+      ctx.strokeStyle = "#7a3b14";
+      ctx.lineWidth = 5;
       ctx.beginPath();
-      ctx.moveTo(-24, 8);
-      ctx.lineTo(-12, 22);
-      ctx.lineTo(12, 22);
-      ctx.lineTo(24, 8);
-      ctx.lineTo(20, 34);
-      ctx.lineTo(-20, 34);
-      ctx.closePath();
-      ctx.fill();
-      ctx.strokeStyle = "rgba(255,255,255,0.15)";
-      ctx.lineWidth = 2;
+      ctx.moveTo(-26, 16);
+      ctx.lineTo(26, 16);
       ctx.stroke();
-      ctx.fillStyle = "#0e1622";
-      ctx.fillRect(-18, 34, 36, 18);
-      ctx.fillStyle = "rgba(240,220,180,0.9)";
-      ctx.font = "700 10px ui-sans-serif, system-ui";
-      ctx.textAlign = "center";
-      ctx.textBaseline = "middle";
-      ctx.fillText("◆", 0, 56);
-      const shoulder = "#26344a";
-      ctx.fillStyle = shoulder;
+      const bagColor = "#6e4520";
+      ctx.fillStyle = bagColor;
       ctx.beginPath();
-      ctx.ellipse(-26, -12, 12, 14, 0.3, 0, TAU);
+      ctx.ellipse(30, 40, 12, 16, 0.5, 0, TAU);
       ctx.fill();
-      ctx.beginPath();
-      ctx.ellipse(26, -12, 12, 14, -0.3, 0, TAU);
-      ctx.fill();
-      const hoodGrad = ctx.createRadialGradient(0, -34, 4, 0, -58, 46);
-      hoodGrad.addColorStop(0, "#3c5470");
-      hoodGrad.addColorStop(0.55, "#263448");
-      hoodGrad.addColorStop(1, "#131b2a");
-      ctx.fillStyle = hoodGrad;
-      ctx.beginPath();
-      ctx.arc(0, -40, 30, 0, TAU);
-      ctx.fill();
-      ctx.strokeStyle = "#35d6c9";
-      ctx.lineWidth = 3;
-      ctx.beginPath();
-      ctx.arc(0, -40, 30, Math.PI * 1.15, Math.PI * 1.85);
-      ctx.stroke();
-      const headGrad = ctx.createRadialGradient(-4, -52, 2, 0, -48, 22);
-      headGrad.addColorStop(0, "#4a6384");
-      headGrad.addColorStop(1, "#1c2940");
-      ctx.fillStyle = headGrad;
-      ctx.beginPath();
-      ctx.ellipse(0, -48, 20, 22, 0, 0, TAU);
-      ctx.fill();
-      ctx.fillStyle = "#0a1018";
-      ctx.fillRect(-4, -36, 8, 7);
-      ctx.fillStyle = "#5d7a9e";
-      ctx.beginPath();
-      ctx.arc(0, -30, 12, 0, TAU);
-      ctx.fill();
-      ctx.strokeStyle = "rgba(240,220,180,0.6)";
+      ctx.strokeStyle = "rgba(40,24,10,0.8)";
       ctx.lineWidth = 2;
       ctx.beginPath();
-      ctx.moveTo(-9, -30);
-      ctx.quadraticCurveTo(0, -24, 9, -30);
+      ctx.moveTo(20, 32);
+      ctx.lineTo(40, 50);
       ctx.stroke();
-      ctx.shadowColor = "#9ffcf1";
-      ctx.shadowBlur = this.glow(20);
-      ctx.fillStyle = `rgba(160,255,240,${0.75 + faceGlow * 0.25})`;
+      // Tay áo.
+      ctx.fillStyle = "#a94f28";
       ctx.beginPath();
-      ctx.ellipse(-6, -52, 3, 4, 0, 0, TAU);
-      ctx.ellipse(6, -52, 3, 4, 0, 0, TAU);
+      ctx.ellipse(-28, -12, 12, 15, 0.3, 0, TAU);
       ctx.fill();
-      ctx.shadowBlur = 0;
-      ctx.strokeStyle = "#9ffcf1";
-      ctx.lineWidth = 2.5;
       ctx.beginPath();
-      ctx.arc(0, -46, 9, Math.PI * 0.1, Math.PI * 0.9);
-      ctx.stroke();
-      const hatGrad = ctx.createLinearGradient(0, -128, 0, -34);
-      hatGrad.addColorStop(0, "#26a89c");
-      hatGrad.addColorStop(1, "#0e3f42");
+      ctx.ellipse(28, -12, 12, 15, -0.3, 0, TAU);
+      ctx.fill();
+      // Mũ rơm.
+      const hatGrad = ctx.createLinearGradient(0, -130, 0, -40);
+      hatGrad.addColorStop(0, "#e0b04a");
+      hatGrad.addColorStop(1, "#a9741f");
       ctx.fillStyle = hatGrad;
       ctx.beginPath();
-      ctx.moveTo(-16, -52);
-      ctx.quadraticCurveTo(-4, -96, 3, -122);
-      ctx.quadraticCurveTo(9, -100, 16, -52);
+      ctx.moveTo(-34, -52);
+      ctx.quadraticCurveTo(0, -46, 34, -52);
+      ctx.quadraticCurveTo(24, -116, 6, -124);
+      ctx.quadraticCurveTo(-6, -124, -10, -116);
+      ctx.quadraticCurveTo(-24, -106, -34, -52);
       ctx.closePath();
       ctx.fill();
-      ctx.strokeStyle = "#9ffcf1";
+      ctx.strokeStyle = "#ffd9a0";
       ctx.lineWidth = 2.5;
       ctx.stroke();
-      ctx.fillStyle = "#f2bf63";
-      ctx.fillRect(-16, -68, 32, 5);
-      ctx.fillStyle = "#0c2f33";
-      ctx.beginPath();
-      ctx.arc(-6, -116, 5, 0, TAU);
-      ctx.fill();
-      ctx.strokeStyle = "rgba(255,255,255,0.6)";
+      ctx.strokeStyle = "rgba(90,60,25,0.6)";
       ctx.lineWidth = 2;
       ctx.beginPath();
-      ctx.arc(-6, -116, 5, 0.4, 2.4);
+      ctx.moveTo(-30, -56);
+      ctx.quadraticCurveTo(0, -48, 30, -56);
       ctx.stroke();
+      // Mặt ấm.
+      const headGrad = ctx.createRadialGradient(-4, -52, 2, 0, -48, 22);
+      headGrad.addColorStop(0, "#e8b477");
+      headGrad.addColorStop(1, "#a56a35");
+      ctx.fillStyle = headGrad;
+      ctx.beginPath();
+      ctx.ellipse(0, -48, 21, 22, 0, 0, TAU);
+      ctx.fill();
+      ctx.fillStyle = "#4a2a12";
+      ctx.fillRect(-9, -34, 18, 5);
+      // Khăn che mặt.
+      ctx.fillStyle = "#cf8734";
+      ctx.beginPath();
+      ctx.ellipse(0, -32, 11, 9, 0, 0, Math.PI);
+      ctx.fill();
+      ctx.strokeStyle = "rgba(40,24,10,0.7)";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(0, -32, 11, Math.PI * 0.05, Math.PI * 0.95);
+      ctx.stroke();
+      // Mắt sáng vàng.
+      ctx.shadowColor = "#ffcf7a";
+      ctx.shadowBlur = this.glow(18);
+      ctx.fillStyle = `rgba(255,214,130,${0.8 + faceGlow * 0.2})`;
+      ctx.beginPath();
+      ctx.ellipse(-6, -50, 3, 4, 0, 0, TAU);
+      ctx.ellipse(6, -50, 3, 4, 0, 0, TAU);
+      ctx.fill();
+      ctx.shadowBlur = 0;
+      // Lồng đèn cầm tay.
       const orbGlow = Math.sin(this.menuTime * 2.6) * 0.5 + 0.5;
-      const orbX = 40;
-      const orbY = -18;
-      ctx.shadowColor = "#9ffcf1";
-      ctx.shadowBlur = this.glow(16 + orbGlow * 14);
-      const orbGrad = ctx.createRadialGradient(orbX - 4, orbY - 4, 1, orbX, orbY, 10);
-      orbGrad.addColorStop(0, "#eaffff");
-      orbGrad.addColorStop(0.5, "#35d6c9");
-      orbGrad.addColorStop(1, "#0f4a52");
+      const orbX = -46;
+      const orbY = -10;
+      ctx.strokeStyle = "#6e4520";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(orbX, -38);
+      ctx.lineTo(orbX, -18);
+      ctx.stroke();
+      ctx.shadowColor = "#ffb347";
+      ctx.shadowBlur = this.glow(14 + orbGlow * 12);
+      const orbGrad = ctx.createRadialGradient(orbX - 4, orbY - 4, 1, orbX, orbY, 11);
+      orbGrad.addColorStop(0, "#fff6dd");
+      orbGrad.addColorStop(0.5, "#ffb347");
+      orbGrad.addColorStop(1, "#8a3a14");
       ctx.fillStyle = orbGrad;
       ctx.beginPath();
-      ctx.arc(orbX, orbY, 10, 0, TAU);
+      ctx.arc(orbX, orbY, 11, 0, TAU);
       ctx.fill();
+      ctx.strokeStyle = "#ffd9a0";
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.arc(orbX, orbY, 11, 0, TAU);
+      ctx.stroke();
       ctx.shadowBlur = 0;
       ctx.restore();
     }
 
     drawMerchantPedestal(ctx, x, y, offer, index) {
       const bob = Math.sin(this.menuTime * 2.4 + index * 1.1) * 4;
-      const color = offer ? this.rewardColor(offer.reward) : "#35d6c9";
+      const color = offer ? this.rewardColor(offer.reward) : "#e0a050";
       const player = this.run?.player;
       const playerNear = Boolean(player && this.aliveActor(player)
-        && Math.hypot(player.x - x, player.y - y) <= (player.radius || 22) + 66);
+        && Math.hypot(player.x - x, player.y - y) <= (player.radius || 22) + 140);
       const pulse = Math.sin(this.menuTime * 3) * 0.5 + 0.5;
       const item = offer?.reward?.type === "item" ? offer.reward.item : null;
       ctx.save();
       ctx.translate(x, y);
       ctx.beginPath();
-      ctx.ellipse(0, 50, 54, 14, 0, 0, TAU);
-      ctx.fillStyle = "rgba(0,0,0,0.42)";
+      ctx.ellipse(0, 50, 60, 15, 0, 0, TAU);
+      ctx.fillStyle = "rgba(30,18,8,0.45)";
       ctx.fill();
-      const grad = ctx.createLinearGradient(0, -58, 0, 52);
-      grad.addColorStop(0, "#273650");
-      grad.addColorStop(0.5, "#18233a");
-      grad.addColorStop(1, "#0c1320");
-      ctx.fillStyle = grad;
+      // Chân thùng gỗ.
+      const wood = ctx.createLinearGradient(0, -70, 0, 50);
+      wood.addColorStop(0, "#c08a4e");
+      wood.addColorStop(0.5, "#9a6830");
+      wood.addColorStop(1, "#6e431c");
+      ctx.fillStyle = wood;
       ctx.beginPath();
-      ctx.moveTo(-34, -56);
-      ctx.lineTo(-26, 48);
-      ctx.lineTo(26, 48);
-      ctx.lineTo(34, -56);
+      ctx.moveTo(-44, -62);
+      ctx.lineTo(-36, 48);
+      ctx.lineTo(36, 48);
+      ctx.lineTo(44, -62);
       ctx.closePath();
       ctx.fill();
-      ctx.strokeStyle = "rgba(255,255,255,0.18)";
-      ctx.lineWidth = 2.5;
-      ctx.stroke();
-      ctx.fillStyle = "#0c1320";
-      ctx.fillRect(-28, 44, 56, 10);
-      ctx.fillStyle = color;
-      ctx.fillRect(-20, 50, 40, 4);
-      const dishGrad = ctx.createLinearGradient(0, -12, 0, -58);
-      dishGrad.addColorStop(0, "#35d6c9");
-      dishGrad.addColorStop(1, "#12222e");
-      ctx.strokeStyle = "rgba(159,252,241,0.6)";
+      ctx.strokeStyle = "#5a3515";
       ctx.lineWidth = 3;
-      ctx.beginPath();
-      ctx.ellipse(0, -20, 30, 9, 0, 0, TAU);
       ctx.stroke();
-      if (playerNear) {
-        ctx.globalAlpha = 0.5 + pulse * 0.4;
-        ctx.strokeStyle = color;
-        ctx.lineWidth = 3 + pulse * 2;
-        ctx.shadowColor = color;
-        ctx.shadowBlur = this.glow(24);
+      ctx.strokeStyle = "rgba(232,178,96,0.5)";
+      ctx.lineWidth = 1.5;
+      ctx.strokeRect(-36, -50, 72, 58);
+      ctx.strokeStyle = "#5a3515";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(-44, -20);
+      ctx.lineTo(44, -20);
+      ctx.moveTo(-40, 10);
+      ctx.lineTo(40, 10);
+      ctx.stroke();
+      ctx.fillStyle = "rgba(30,18,8,0.25)";
+      ctx.fillRect(-44, -62, 20, 90);
+      ctx.fillRect(24, -62, 20, 90);
+      // Cọc + rèm che.
+      ctx.strokeStyle = "#6e431c";
+      ctx.lineWidth = 5;
+      ctx.beginPath();
+      ctx.moveTo(-40, -62);
+      ctx.lineTo(-40, -110);
+      ctx.moveTo(40, -62);
+      ctx.lineTo(40, -110);
+      ctx.stroke();
+      const awning = ["#e08a3c", "#d95d39", "#e0b84a", "#d95d39", "#e08a3c"];
+      for (let i = 0; i < 5; i++) {
+        const ax = -40 + i * 20;
+        const sway = Math.sin(this.menuTime * 1.6 + index) * 3;
+        ctx.fillStyle = awning[i];
         ctx.beginPath();
-        ctx.ellipse(0, -22, 38 + pulse * 8, 16 + pulse * 6, 0, 0, TAU);
+        ctx.moveTo(ax, -108 + sway);
+        ctx.lineTo(ax + 20, -108 + sway);
+        ctx.lineTo(ax + 22, -86);
+        ctx.lineTo(ax - 2, -86);
+        ctx.closePath();
+        ctx.fill();
+      }
+      ctx.fillStyle = "#3a2412";
+      ctx.fillRect(-44, -108, 88, 3);
+      // Mặt sàn bày hàng.
+      ctx.fillStyle = "#7a4a20";
+      ctx.fillRect(-46, -56, 92, 6);
+      // Đèn làm nổi lúc đứng gần.
+      if (playerNear && offer && !offer.bought) {
+        ctx.globalAlpha = 0.45 + pulse * 0.35;
+        ctx.strokeStyle = "#ffd27a";
+        ctx.lineWidth = 3 + pulse * 2;
+        ctx.shadowColor = "#ffb347";
+        ctx.shadowBlur = this.glow(26);
+        ctx.beginPath();
+        ctx.ellipse(0, -40, 42 + pulse * 8, 20 + pulse * 6, 0, 0, TAU);
         ctx.stroke();
         ctx.globalAlpha = 1;
         ctx.shadowBlur = 0;
       }
+      // Vật phẩm bày trên đĩa.
       if (item) {
         const glowBg = Math.sin(this.menuTime * 2.2 + index) * 0.5 + 0.5;
         ctx.fillStyle = color;
-        ctx.globalAlpha = 0.16 + glowBg * 0.16;
+        ctx.globalAlpha = 0.14 + glowBg * 0.14;
         ctx.beginPath();
-        ctx.arc(0, -26 - bob, 40 + glowBg * 10, 0, TAU);
+        ctx.arc(0, -26 - bob, 42 + glowBg * 10, 0, TAU);
         ctx.fill();
         ctx.globalAlpha = 1;
+        ctx.strokeStyle = "rgba(60,36,14,0.8)";
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.ellipse(0, -20, 30, 9, 0, 0, TAU);
+        ctx.stroke();
         ctx.save();
         ctx.shadowColor = color;
         ctx.shadowBlur = this.glow(22);
@@ -29606,105 +29760,262 @@
         this.drawRunItemShape(ctx, item, color);
         ctx.restore();
       } else {
-        ctx.fillStyle = "#0b111c";
-        ctx.font = "800 20px ui-sans-serif, system-ui";
+        ctx.fillStyle = "#3a2412";
+        ctx.font = "800 26px ui-sans-serif, system-ui";
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
         ctx.fillText("?", 0, -28 - bob);
       }
-      ctx.restore();
+      // Bảng gỗ tên + giá.
       if (offer) {
         const label = offer.bought ? "ĐÃ MUA" : item ? item.name : "Vật Phẩm";
+        const sold = offer.bought;
         ctx.save();
         ctx.translate(x, y + 66);
         ctx.font = "800 12px ui-sans-serif, system-ui";
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
-        ctx.fillStyle = "rgba(8,12,20,0.92)";
-        ctx.fillRect(-64, -12, 128, 22);
-        ctx.strokeStyle = offer.bought ? "#70e083" : "#f2bf63";
+        ctx.fillStyle = "#3a2412";
+        ctx.fillRect(-70, -13, 140, 24);
+        ctx.strokeStyle = sold ? "#70e083" : "#e8a03c";
         ctx.lineWidth = 2;
-        ctx.strokeRect(-64, -12, 128, 22);
-        ctx.fillStyle = offer.bought ? "#70e083" : "#f3ead7";
+        ctx.strokeRect(-70, -13, 140, 24);
+        ctx.fillStyle = sold ? "#ffd9a0" : "#f6ecd6";
         ctx.fillText(label, 0, -1);
-        ctx.fillStyle = "#0b111c";
-        ctx.fillRect(-30, 12, 60, 18);
-        ctx.strokeStyle = offer.bought ? "#70e083" : "#ffd84d";
-        ctx.lineWidth = 2;
-        ctx.strokeRect(-30, 12, 60, 18);
-        ctx.fillStyle = offer.bought ? "#70e083" : "#ffd84d";
-        ctx.font = "800 12px ui-sans-serif, system-ui";
-        ctx.fillText(offer.bought ? "ĐÃ MUA" : `◆ ${offer.price}`, 0, 21);
-        ctx.restore();
-        if (playerNear && !offer.bought) {
-          ctx.save();
-          ctx.translate(x, y - 64 - pulse * 2);
-          ctx.fillStyle = "#35d6c9";
-          ctx.shadowColor = "#35d6c9";
-          ctx.shadowBlur = this.glow(16);
-          ctx.beginPath();
-          ctx.arc(0, 0, 9 + pulse * 2, 0, TAU);
-          ctx.fill();
-          ctx.fillStyle = "#08121a";
-          ctx.font = "900 11px ui-sans-serif, system-ui";
-          ctx.textAlign = "center";
-          ctx.textBaseline = "middle";
-          ctx.fillText("…", 0, 0);
-          ctx.restore();
-        }
       }
+      ctx.restore();
     }
 
     drawMerchantReroll(ctx, x, y) {
       const spin = Math.sin(this.menuTime * 3.2) * 0.18;
       const uses = this.run?.merchantReroll?.uses || 0;
-      const left = Math.max(0, 5 - uses);
       const outOfUses = uses >= 5;
       ctx.save();
       ctx.translate(x, y + Math.sin(this.menuTime * 2.6) * 2);
       ctx.beginPath();
-      ctx.ellipse(0, 62, 52, 13, 0, 0, TAU);
-      ctx.fillStyle = "rgba(0,0,0,0.42)";
+      ctx.ellipse(0, 62, 54, 14, 0, 0, TAU);
+      ctx.fillStyle = "rgba(30,18,8,0.45)";
       ctx.fill();
-      ctx.shadowColor = "#35d6c9";
-      ctx.shadowBlur = this.glow(18);
+      ctx.shadowColor = "#ffb347";
+      ctx.shadowBlur = this.glow(16);
+      // Bánh xe gỗ máy xoay.
       const bodyGrad = ctx.createLinearGradient(-30, -30, 30, 58);
-      bodyGrad.addColorStop(0, "#223349");
-      bodyGrad.addColorStop(0.6, "#141d30");
-      bodyGrad.addColorStop(1, "#0b111c");
+      bodyGrad.addColorStop(0, "#b07a38");
+      bodyGrad.addColorStop(0.6, "#8a5720");
+      bodyGrad.addColorStop(1, "#5a3512");
       ctx.fillStyle = bodyGrad;
-      ctx.fillRect(-30, -30, 60, 88);
-      ctx.strokeStyle = "#9ffcf1";
+      ctx.fillRect(-32, -28, 64, 90);
+      ctx.strokeStyle = "#ffd9a0";
       ctx.lineWidth = 3;
-      ctx.strokeRect(-30, -30, 60, 88);
-      ctx.fillStyle = "#0c1320";
-      ctx.fillRect(-22, 40, 44, 14);
+      ctx.strokeRect(-32, -28, 64, 90);
+      ctx.strokeStyle = "rgba(255,217,160,0.4)";
+      ctx.lineWidth = 1.5;
+      ctx.strokeRect(-38, -34, 76, 102);
+      ctx.fillStyle = "#2e1a0c";
+      ctx.fillRect(-20, 44, 40, 14);
+      // Đĩa xoay vàng.
       ctx.fillStyle = "#f2bf63";
       ctx.beginPath();
-      ctx.arc(0, -6, 17, 0, TAU);
+      ctx.arc(0, -4, 17, 0, TAU);
       ctx.fill();
-      ctx.strokeStyle = outOfUses ? "#5a4530" : "#0b111c";
+      ctx.strokeStyle = outOfUses ? "#7a4a1c" : "#4a2c10";
       ctx.lineWidth = 3.5;
       ctx.beginPath();
-      ctx.arc(0, -6, 17, spin, spin + Math.PI * 1.35);
+      ctx.arc(0, -4, 17, spin, spin + Math.PI * 1.35);
       ctx.stroke();
-      ctx.fillStyle = "#0b111c";
+      ctx.fillStyle = "#4a2c10";
       ctx.font = "900 16px ui-sans-serif, system-ui";
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
-      ctx.fillText("?", 0, -6);
-      ctx.fillStyle = outOfUses ? "#ff6b6b" : "#2a3548";
+      ctx.fillText("?", 0, -4);
+      ctx.fillStyle = outOfUses ? "#ff6b6b" : "#3a2412";
       ctx.font = "800 12px ui-sans-serif, system-ui";
-      ctx.fillText(outOfUses ? "HẾT" : `${uses}/5`, 0, 49);
+      ctx.fillText(outOfUses ? "HẾT" : `${uses}/5`, 0, 52);
       if (outOfUses) {
         ctx.fillStyle = "rgba(255,107,107,0.85)";
         ctx.beginPath();
         ctx.arc(0, -44, 11, 0, TAU);
         ctx.fill();
-        ctx.fillStyle = "#0b111c";
+        ctx.fillStyle = "#2e1a0c";
         ctx.font = "900 12px ui-sans-serif, system-ui";
         ctx.fillText("✕", 0, -44);
       }
+      ctx.shadowBlur = 0;
+      ctx.restore();
+    }
+
+    merchantCardData(item) {
+      const list = ITEM_STATS[item?.id] || [];
+      if (!list.length) return [];
+      return list.map(([key, value]) => {
+        const meta = STAT_INFO[key];
+        if (!meta) return null;
+        let numeral = "+";
+        let preview = "";
+        if (meta.mult) {
+          const diff = (value - 1) * 100;
+          numeral = diff >= 0 ? "+" : "−";
+          preview = `${numeral}${Math.round(Math.abs(diff))}%`;
+        } else if (meta.pct) {
+          const scaled = value * 100;
+          numeral = scaled >= 0 ? "+" : "−";
+          preview = `${numeral}${Math.round(Math.abs(scaled))}%`;
+        } else {
+          numeral = value >= 0 ? "+" : "−";
+          preview = `${numeral}${Math.round(Math.abs(value))}`;
+        }
+        return { label: meta.label, preview, good: numeral === "+" };
+      }).filter(Boolean);
+    }
+
+    drawMerchantCard(ctx, object, offers) {
+      const ui = this._merchantUi;
+      if (!ui || ui.kind !== "item" || ui.idx < 0 || !ui.anchor) return;
+      const offer = offers[ui.idx];
+      if (!offer) return;
+      const item = offer.reward?.type === "item" ? offer.reward.item : null;
+      const color = this.rewardColor(offer.reward);
+      const owned = Math.floor(this.run.runGold || 0);
+      const stats = item ? this.merchantCardData(item) : [];
+      const W = 176;
+      const pad = 12;
+      const headH = 16;
+      const titleH = 22;
+      const artH = 46;
+      const statH = stats.length ? stats.length * 19 + 6 : 0;
+      const priceH = 24;
+      const btnH = 32;
+      let top = ui.anchor.y - 292;
+      // Xê card ngang ra khỏi trục quầy/NPC để không đè lên giữa phòng.
+      const ax = ui.anchor.x;
+      const cx = ax < 800 ? ax + 170 : ax <= 1040 ? ax + 6 : ax - 170;
+      const left = cx - W / 2;
+      const face = (y1, y2) => {
+        ctx.fillStyle = "#2a1809";
+        ctx.fillRect(left + 3, top + y1 + 4, W - 6, y2 - y1);
+        const g = ctx.createLinearGradient(left, top + y1, left, top + y2);
+        g.addColorStop(0, "#3b2410");
+        g.addColorStop(1, "#241407");
+        ctx.fillStyle = g;
+        ctx.fillRect(left, top + y1, W, y2 - y1);
+        ctx.strokeStyle = "#e8a03c";
+        ctx.lineWidth = 2;
+        ctx.strokeRect(left, top + y1, W, y2 - y1);
+      };
+      ctx.save();
+      ctx.beginPath();
+      ctx.ellipse(cx, top + pad + headH + titleH + artH + statH + priceH + btnH + pad + 8, W / 2, 8, 0, 0, TAU);
+      ctx.fillStyle = "rgba(24,14,6,0.4)";
+      ctx.fill();
+      // Tên + tiêu đề.
+      face(0, headH + titleH);
+      ctx.fillStyle = "#f6ecd6";
+      ctx.font = "800 14px ui-sans-serif, system-ui";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(item ? item.name : "Vật Phẩm", cx, top + headH + 6);
+      ctx.font = "600 11px ui-sans-serif, system-ui";
+      ctx.fillStyle = item ? RARITY[item.rarity]?.color || "#e8a03c" : "#e8a03c";
+      ctx.fillText(item ? `${slotLabel(item.slot)} • ${RARITY[item.rarity].label}` : "Phụ trợ đặc biệt", cx, top + headH + titleH - 6);
+      // Vẽ vật.
+      face(headH + titleH, headH + titleH + artH);
+      ctx.save();
+      ctx.translate(cx, top + headH + titleH + artH / 2 + 4);
+      ctx.scale(1.55, 1.55);
+      if (item) this.drawRunItemShape(ctx, item, color);
+      else { ctx.fillStyle = "#e8a03c"; ctx.font = "800 22px ui-sans-serif, system-ui"; ctx.textAlign = "center"; ctx.fillText("◆", 0, 2); }
+      ctx.restore();
+      // Chỉ số.
+      if (stats.length) {
+        const sy = top + headH + titleH + artH;
+        ctx.fillStyle = "#1e1106";
+        ctx.fillRect(left, sy, W, statH);
+        ctx.strokeStyle = "rgba(232,160,60,0.3)";
+        ctx.lineWidth = 1;
+        ctx.strokeRect(left, sy, W, statH);
+        for (let i = 0; i < stats.length; i++) {
+          const s = stats[i];
+          ctx.font = "600 12px ui-sans-serif, system-ui";
+          ctx.textAlign = "left";
+          ctx.fillStyle = "#d8c49a";
+          ctx.fillText(s.label, left + 10, sy + 6 + i * 19 + 9);
+          ctx.textAlign = "right";
+          ctx.fillStyle = s.good ? "#6fe08a" : "#ff6b6b";
+          ctx.font = "800 12px ui-sans-serif, system-ui";
+          ctx.fillText(s.preview, left + W - 10, sy + 6 + i * 19 + 9);
+        }
+      }
+      // Giá.
+      const pyStart = top + headH + titleH + artH + statH;
+      face(pyStart - top, pyStart - top + priceH);
+      ctx.fillStyle = "#ffd84d";
+      ctx.font = "800 13px ui-sans-serif, system-ui";
+      ctx.textAlign = "center";
+      ctx.fillText(offer.bought ? "ĐÃ MUA" : `◆ ${offer.price}   ·   Tiền ${owned}`, cx, pyStart + priceH / 2 + 4);
+      // Nút.
+      const by = pyStart + priceH + 4;
+      const canBuy = owned >= offer.price && !offer.bought;
+      ctx.fillStyle = offer.bought ? "#4a4a32" : (canBuy ? "#c9861e" : "#5a4630");
+      ctx.fillRect(left + 14, by, W - 28, btnH - 8);
+      ctx.strokeStyle = "#ffd9a0";
+      ctx.lineWidth = 2;
+      ctx.strokeRect(left + 14, by, W - 28, btnH - 8);
+      ctx.fillStyle = offer.bought ? "#ffd9a0" : "#1c1006";
+      ctx.font = "900 13px ui-sans-serif, system-ui";
+      ctx.fillText(offer.bought ? "ĐÃ MUA ✓" : "MUA", cx, by + (btnH - 8) / 2);
+      ui.btn = { x: left + 14, y: by, w: W - 28, h: btnH - 8 };
+      ctx.restore();
+    }
+
+    drawMerchantLeaveButton(ctx, object) {
+      const ui = this._merchantUi;
+      if (!ui || ui.kind !== "counter") return;
+      const y = object.y + 140;
+      const x = object.x;
+      const w = 172;
+      const h = 34;
+      this._merchantUi.leaveBtn = { x: x - w / 2, y, w, h };
+      ctx.save();
+      ctx.beginPath();
+      ctx.ellipse(x, y + h + 6, w / 2, 7, 0, 0, TAU);
+      ctx.fillStyle = "rgba(24,14,6,0.4)";
+      ctx.fill();
+      ctx.fillStyle = "rgba(26,16,42,0.94)";
+      ctx.fillRect(x - w / 2, y, w, h);
+      ctx.strokeStyle = "#8faeff";
+      ctx.lineWidth = 2;
+      ctx.strokeRect(x - w / 2, y, w, h);
+      ctx.fillStyle = "#cfe0ff";
+      ctx.font = "800 13px ui-sans-serif, system-ui";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText("RỜI KHU ▸ MỞ CỬA TIẾP", x, y + h / 2);
+      ctx.restore();
+    }
+
+    drawMerchantRerollButton(ctx, object, reroll) {
+      const ui = this._merchantUi;
+      if (!ui || ui.kind !== "reroll" || !reroll) return;
+      const w = 150;
+      const h = 34;
+      const x = reroll.x;
+      const y = reroll.y - 64;
+      this._merchantUi.rerollBtn = { x: x - w / 2, y, w, h };
+      const rr = this.run?.merchantReroll || { uses: 0 };
+      const cost = 20 + rr.uses * 20;
+      const owned = Math.floor(this.run.runGold || 0);
+      const can = rr.uses < 5 && owned >= cost;
+      ctx.save();
+      ctx.fillStyle = can ? "#7a4a14" : "#5a4630";
+      ctx.fillRect(x - w / 2, y, w, h);
+      ctx.strokeStyle = "#ffd9a0";
+      ctx.lineWidth = 2;
+      ctx.strokeRect(x - w / 2, y, w, h);
+      ctx.fillStyle = "#fff2d6";
+      ctx.font = "900 13px ui-sans-serif, system-ui";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(rr.uses >= 5 ? "HẾT LƯỢT" : `QUAY ◆ ${cost}`, x, y + h / 2);
       ctx.restore();
     }
 

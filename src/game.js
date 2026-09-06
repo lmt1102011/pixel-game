@@ -10,7 +10,7 @@
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
   const SIGNAL_REALTIME_RELAY_LIMIT = 2;
   const SIGNAL_REALTIME_TYPES = new Set(["state", "snapshot", "attack", "skill", "collect", "openChest", "dropItem", "damage", "chooseDoor"]);
-  const APP_VERSION = "20260718-pixel-vfx-353";
+  const APP_VERSION = "20260718-pixel-vfx-354";
   const CHANGELOG_ENTRIES = [
     {
       version: APP_VERSION,
@@ -17864,7 +17864,7 @@
         const dy = enemy.y - y;
         const forward = dx * dirX + dy * dirY;
         const lateral = Math.abs(dx * sideX + dy * sideY);
-        if (forward < 8 || forward > length + enemy.radius || lateral > width + enemy.radius) continue;
+        if (forward < 8 || forward > 8 + length * 1.08 + enemy.radius * 0.5 || lateral > width + enemy.radius) continue;
         const sweet = forward > length * 0.58;
         hits++;
         if (sweet && !this.enemyDomainBoundActive(enemy)) {

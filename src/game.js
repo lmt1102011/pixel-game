@@ -10,7 +10,7 @@
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
   const SIGNAL_REALTIME_RELAY_LIMIT = 2;
   const SIGNAL_REALTIME_TYPES = new Set(["state", "snapshot", "attack", "skill", "collect", "openChest", "dropItem", "damage", "chooseDoor"]);
-  const APP_VERSION = "20260718-pixel-vfx-356";
+  const APP_VERSION = "20260718-pixel-vfx-357";
   const CHANGELOG_ENTRIES = [
     {
       version: APP_VERSION,
@@ -13537,8 +13537,9 @@
         hp: 1,
         powerAwakened: false
       };
-      const scale = Math.max(0.1, rect.height / 54);
-      this.drawHero(ctx, rect.width * 0.42, rect.height - 10, scale, actor, power, this.save.customization);
+      const scale = Math.max(0.1, rect.height / 81);
+      const drawY = rect.height - 14 * scale;
+      this.drawHero(ctx, rect.width * 0.5, drawY, scale, actor, power, this.save.customization);
     }
 
     showInventory() {
@@ -31286,11 +31287,11 @@
         block(34 + reach, -3, 3, 6, "#0a0e16", 0.8);
       } else if (character.id === "axe") {
         block(-5, -3, 4, 7, trim);
-        block(-2, -2, 22 + reach, 5, skin);
-        block(1 + reach, -4, 4, 9, trim);
-        poly([[20 + reach, 9], [31 + reach, 7], [38 + reach, -3], [36 + reach, -13], [30 + reach, -18], [26 + reach, -14], [24 + reach, -4], [19 + reach, 2]], "#dfe8ef");
-        poly([[20 + reach, -1], [23 + reach, 1.5], [20 + reach, 4], [17 + reach, 1.5]], trim);
-        block(31 + reach, -13, 2, 12, "#ffffff", 0.7);
+        block(-2, -2, 24 + reach, 5, skin);
+        block(2 + reach, -4, 4, 9, trim);
+        poly([[22 + reach, 8], [34 + reach, 6], [40 + reach, -2], [39 + reach, -12], [33 + reach, -16], [28 + reach, -12], [25 + reach, -2], [21 + reach, 3]], "#dfe8ef");
+        poly([[22 + reach, -1], [25 + reach, 1.5], [22 + reach, 4], [19 + reach, 1.5]], trim);
+        block(33 + reach, -12, 2, 10, "#ffffff", 0.7);
       } else {
         ctx.rotate(hit ? -0.62 : -0.18);
         block(-4, -3, 10, 6, skin);
@@ -31962,53 +31963,64 @@
         ctx.lineJoin = "round";
         ctx.fillStyle = "rgba(0,0,0,0.26)";
         ctx.beginPath();
-        ctx.ellipse(24, 14, 26, 3.2, 0, 0, TAU);
+        ctx.ellipse(26, 16, 28, 3.5, 0, 0, TAU);
         ctx.fill();
-        const handle = ctx.createLinearGradient(-2, -2.4, 26, 2.4);
-        handle.addColorStop(0, "#6b4a2b");
-        handle.addColorStop(0.5, "#9a6d3f");
-        handle.addColorStop(1, "#5f432c");
+        const handle = ctx.createLinearGradient(-4, -2, 30, 2);
+        handle.addColorStop(0, "#5b3d22");
+        handle.addColorStop(0.4, "#8a5f34");
+        handle.addColorStop(1, "#4a3319");
         ctx.fillStyle = handle;
-        roundPixel(ctx, -3, -2, 27 + hitFrame * 4, 5, 2);
-        ctx.fillStyle = "rgba(28,17,8,0.5)";
-        for (let i = 3; i < 24; i += 6) ctx.fillRect(i, -2.7, 1.6, 5.4);
-        drawGripHand(11 + hitFrame, -4, 6, 6);
+        roundPixel(ctx, -4, -2.5, 34 + hitFrame * 4, 5, 2);
+        ctx.fillStyle = "rgba(28,17,8,0.45)";
+        for (let i = 4; i < 28; i += 7) ctx.fillRect(i, -2.5, 1.8, 5);
+        drawGripHand(13 + hitFrame, -4, 6, 6);
         ctx.fillStyle = "#2b2f3a";
-        roundPixel(ctx, -6, -3.2, 4, 7, 2);
-        const bladeX = 23 + hitFrame * 4;
+        roundPixel(ctx, -8, -4, 5, 8, 2);
+        const bladeX = 26 + hitFrame * 4;
         ctx.fillStyle = "#8b96a5";
-        ctx.fillRect(bladeX - 2, -5, 4, 10);
-        const blade = ctx.createLinearGradient(bladeX - 1, 8, bladeX + 20, -18);
-        blade.addColorStop(0, "#8b96a5");
-        blade.addColorStop(0.45, "#f7fbff");
-        blade.addColorStop(1, "#c7d2dd");
+        ctx.fillRect(bladeX - 3, -7, 6, 14);
+        const blade = ctx.createLinearGradient(bladeX - 4, -20, bladeX + 22, 12);
+        blade.addColorStop(0, "#9aa6b5");
+        blade.addColorStop(0.35, "#f7fbff");
+        blade.addColorStop(0.7, "#b9c6d4");
+        blade.addColorStop(1, "#5f6b7a");
         ctx.fillStyle = blade;
         ctx.beginPath();
-        ctx.moveTo(bladeX - 2, 9);
-        ctx.quadraticCurveTo(bladeX + 11, 8, bladeX + 18, -3);
-        ctx.quadraticCurveTo(bladeX + 22, -12, bladeX + 13, -19);
-        ctx.lineTo(bladeX + 9, -15);
-        ctx.quadraticCurveTo(bladeX + 7, -7, bladeX + 3, -2);
-        ctx.quadraticCurveTo(bladeX, 4, bladeX - 2, 9);
+        ctx.moveTo(bladeX - 4, -1);
+        ctx.lineTo(bladeX - 2, -6);
+        ctx.quadraticCurveTo(bladeX + 4, -16, bladeX + 14, -18);
+        ctx.lineTo(bladeX + 20, -15);
+        ctx.quadraticCurveTo(bladeX + 26, -6, bladeX + 22, 4);
+        ctx.quadraticCurveTo(bladeX + 20, 10, bladeX + 12, 12);
+        ctx.lineTo(bladeX + 4, 9);
+        ctx.quadraticCurveTo(bladeX - 1, 5, bladeX - 4, -1);
         ctx.closePath();
         ctx.fill();
         ctx.strokeStyle = "#4a545f";
         ctx.lineWidth = 1.2;
         ctx.stroke();
+        ctx.fillStyle = "rgba(20,26,36,0.25)";
+        ctx.beginPath();
+        ctx.moveTo(bladeX - 4, -1);
+        ctx.lineTo(bladeX + 2, -4);
+        ctx.lineTo(bladeX + 8, 6);
+        ctx.lineTo(bladeX + 2, 9);
+        ctx.closePath();
+        ctx.fill();
         ctx.strokeStyle = "#ffffff";
         ctx.lineWidth = 1.8;
-        ctx.globalAlpha = 0.75;
+        ctx.globalAlpha = 0.7;
         ctx.beginPath();
-        ctx.moveTo(bladeX + 12.5, -17.5);
-        ctx.quadraticCurveTo(bladeX + 20, -11, bladeX + 17.5, -2);
+        ctx.moveTo(bladeX + 10, -16);
+        ctx.quadraticCurveTo(bladeX + 21, -8, bladeX + 19, 2);
         ctx.stroke();
         ctx.globalAlpha = 1;
         ctx.fillStyle = character.color;
         ctx.beginPath();
-        ctx.moveTo(bladeX - 1, -2);
-        ctx.lineTo(bladeX + 2.5, 1.5);
-        ctx.lineTo(bladeX - 1, 5);
-        ctx.lineTo(bladeX - 4.5, 1.5);
+        ctx.moveTo(bladeX - 3, -3);
+        ctx.lineTo(bladeX + 1, 0);
+        ctx.lineTo(bladeX - 1, 4);
+        ctx.lineTo(bladeX - 5, 1);
         ctx.closePath();
         ctx.fill();
       } else {

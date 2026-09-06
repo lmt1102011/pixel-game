@@ -10,7 +10,7 @@
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
   const SIGNAL_REALTIME_RELAY_LIMIT = 2;
   const SIGNAL_REALTIME_TYPES = new Set(["state", "snapshot", "attack", "skill", "collect", "openChest", "dropItem", "damage", "chooseDoor"]);
-  const APP_VERSION = "20260718-pixel-vfx-348";
+  const APP_VERSION = "20260718-pixel-vfx-349";
   const CHANGELOG_ENTRIES = [
     {
       version: APP_VERSION,
@@ -7195,6 +7195,10 @@
         this.normalizeSave();
         this.applyGraphicsSettings();
         this.store.save(this.save);
+        if (this._bootPreferLocalUpload && this.save.auth?.currentUser) {
+          this._bootPreferLocalUpload = false;
+          this.queueCloudAccountSave(this.save.auth.currentUser);
+        }
         if (this.deletedAccountNotice) {
           this.run = null;
           this.remotePlayers.clear();
@@ -7220,12 +7224,21 @@
       if (options.expectedCurrent !== undefined && (this.save.auth?.currentUser || "") !== options.expectedCurrent) return false;
       if (options.expectedKeys !== undefined && this.authKeysSignature() !== options.expectedKeys) return false;
       const clean = {};
+      let preferLocalUpload = false;
       for (const [key, account] of Object.entries(accounts || {})) {
         if (!account || typeof account !== "object") continue;
         const username = String(account.username || account.profile?.account?.username || key).trim();
         if (!username) continue;
-        clean[accountKey(username)] = this.normalizeAccountRecord(account, username);
+        const ckey = accountKey(username);
+        const normalized = this.normalizeAccountRecord(account, username);
+        const localRecord = localAccounts[ckey];
+        const localStamp = localRecord?.profile?.account?.updatedAt || localRecord?.updatedAt || "";
+        const cloudStamp = normalized.profile?.account?.updatedAt || normalized.updatedAt || "";
+        const preferLocal = ckey === (this.save.auth?.currentUser || "") && localRecord && localStamp && cloudStamp && localStamp > cloudStamp;
+        clean[ckey] = preferLocal ? this.normalizeAccountRecord(localRecord, username) : normalized;
+        if (preferLocal) preferLocalUpload = true;
       }
+      this._bootPreferLocalUpload = preferLocalUpload;
       const cloudKeys = Object.keys(clean);
       let migrated = false;
       try {
@@ -9709,7 +9722,8 @@
             const normalizedAccount = this.normalizeAccountRecord(account, key);
             const remoteSignature = this.accountCloudSignature(normalizedAccount);
             const localSignature = this.accountCloudSignature(this.save.auth.accounts?.[key]);
-            if (remoteSignature && remoteSignature !== localSignature && remoteSignature !== this.lastCloudAccountSignature) {
+            const pendingLocalChange = Boolean(this.cloudSaveTimer) || this.socialCloudWrites > 0;
+            if (remoteSignature && remoteSignature !== localSignature && remoteSignature !== this.lastCloudAccountSignature && !pendingLocalChange) {
               this.applyCloudAccountUpdate(key, normalizedAccount);
             }
           }
@@ -14173,12 +14187,16 @@
 
     persist(syncCloud = true) {
       const active = this.save.auth?.currentUser;
+      const stamp = new Date().toISOString();
       if (active && this.save.auth.accounts?.[active] && this.save.account?.created) {
         this.ensureAccountSocial(active);
+        this.save.account.updatedAt = stamp;
         this.save.auth.accounts[active].username = this.save.account.username;
+        this.save.auth.accounts[active].updatedAt = stamp;
         this.save.auth.accounts[active].profile = this.profileSnapshot();
       }
       this.store.save(this.save);
+      this.lastCloudAccountSignature = this.accountCloudSignature(this.save.auth.accounts?.[active]);
       if (syncCloud) this.queueCloudAccountSave(active);
     }
 
@@ -17736,8 +17754,8 @@
     }
 
     performSpearThrust(x, y, angle, baseDamage, combo = 1, sourceId = "") {
-      const length = 148 + Math.min(30, combo * 2.5);
-      const width = 23;
+      const length = 178 + Math.min(38, combo * 3);
+      const width = 28;
       const dirX = Math.cos(angle);
       const dirY = Math.sin(angle);
       const sideX = -dirY;
@@ -17751,8 +17769,8 @@
         const dy = enemy.y - y;
         const forward = dx * dirX + dy * dirY;
         const lateral = Math.abs(dx * sideX + dy * sideY);
-        if (forward < 18 || forward > length + enemy.radius || lateral > width + enemy.radius) continue;
-        const sweet = forward > length * 0.62;
+        if (forward < 8 || forward > length + enemy.radius || lateral > width + enemy.radius) continue;
+        const sweet = forward > length * 0.58;
         hits++;
         if (sweet && !this.enemyDomainBoundActive(enemy)) {
           enemy.vx += dirX * (enemy.boss ? 70 : 150);

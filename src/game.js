@@ -10,7 +10,7 @@
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
   const SIGNAL_REALTIME_RELAY_LIMIT = 2;
   const SIGNAL_REALTIME_TYPES = new Set(["state", "snapshot", "attack", "skill", "collect", "openChest", "dropItem", "damage", "chooseDoor"]);
-  const APP_VERSION = "20260718-pixel-vfx-359";
+  const APP_VERSION = "20260718-pixel-vfx-360";
   const CHANGELOG_ENTRIES = [
     {
       version: APP_VERSION,
@@ -31290,11 +31290,11 @@
         block(-5, -3, 4, 7, trim);
         block(-2, -2, 24 + reach, 5, skin);
         block(2 + reach, -4, 4, 9, trim);
-        poly([[22 + reach, -2], [28 + reach, -12], [36 + reach, -13], [39 + reach, -6], [36 + reach, 1], [28 + reach, 2]], "#dfe8ef");
-        poly([[22 + reach, 2], [28 + reach, 12], [36 + reach, 13], [39 + reach, 6], [36 + reach, -1], [28 + reach, -2]], "#dfe8ef");
+        poly([[22 + reach, -2], [27 + reach, -9], [33 + reach, -10], [35 + reach, -6], [32 + reach, -2], [26 + reach, -1]], "#dfe8ef");
+        poly([[22 + reach, 2], [27 + reach, 9], [33 + reach, 10], [35 + reach, 6], [32 + reach, 2], [26 + reach, 1]], "#dfe8ef");
         poly([[22 + reach, -1], [24 + reach, 1], [22 + reach, 3], [20 + reach, 1]], trim);
-        block(31 + reach, -10, 2, 7, "#ffffff", 0.7);
-        block(31 + reach, 4, 2, 7, "#ffffff", 0.7);
+        block(29 + reach, -8, 2, 5, "#ffffff", 0.7);
+        block(29 + reach, 4, 2, 5, "#ffffff", 0.7);
       } else {
         ctx.rotate(hit ? -0.62 : -0.18);
         block(-4, -3, 10, 6, skin);
@@ -31981,23 +31981,21 @@
         roundPixel(ctx, -7, -3.5, 5, 7, 2);
         const bladeX = 26 + hitFrame * 4;
         ctx.fillStyle = "#8b96a5";
-        ctx.fillRect(bladeX - 3, -6, 6, 14);
-        ctx.fillStyle = "#6f7a88";
-        ctx.fillRect(bladeX + 3, -6, 3, 14);
-        const blade = ctx.createLinearGradient(bladeX - 2, -22, bladeX + 20, 20);
+        ctx.fillRect(bladeX - 3, -6, 6, 12);
+        ctx.fillStyle = "#5f6b7a";
+        ctx.fillRect(bladeX + 3, -5, 2.5, 10);
+        const blade = ctx.createLinearGradient(bladeX - 2, -16, bladeX + 14, 16);
         blade.addColorStop(0, "#9aa6b5");
-        blade.addColorStop(0.3, "#f7fbff");
-        blade.addColorStop(0.65, "#c3cedb");
-        blade.addColorStop(1, "#6f7a88");
+        blade.addColorStop(0.35, "#f7fbff");
+        blade.addColorStop(1, "#7d8a99");
         ctx.fillStyle = blade;
         ctx.beginPath();
         ctx.moveTo(bladeX - 2, -2);
-        ctx.lineTo(bladeX + 2, -10);
-        ctx.quadraticCurveTo(bladeX + 8, -20, bladeX + 15, -21);
-        ctx.lineTo(bladeX + 20, -17);
-        ctx.quadraticCurveTo(bladeX + 24, -8, bladeX + 22, -2);
-        ctx.quadraticCurveTo(bladeX + 20, 2, bladeX + 12, 3);
-        ctx.lineTo(bladeX + 2, 2);
+        ctx.lineTo(bladeX + 3, -7);
+        ctx.quadraticCurveTo(bladeX + 7, -14, bladeX + 12, -15);
+        ctx.lineTo(bladeX + 15, -12);
+        ctx.quadraticCurveTo(bladeX + 16, -6, bladeX + 12, -3);
+        ctx.lineTo(bladeX + 4, -1);
         ctx.closePath();
         ctx.fill();
         ctx.strokeStyle = "#4a545f";
@@ -32005,12 +32003,11 @@
         ctx.stroke();
         ctx.beginPath();
         ctx.moveTo(bladeX - 2, 2);
-        ctx.lineTo(bladeX + 2, 10);
-        ctx.quadraticCurveTo(bladeX + 8, 20, bladeX + 15, 21);
-        ctx.lineTo(bladeX + 20, 17);
-        ctx.quadraticCurveTo(bladeX + 24, 8, bladeX + 22, 2);
-        ctx.quadraticCurveTo(bladeX + 20, -2, bladeX + 12, -3);
-        ctx.lineTo(bladeX + 2, -2);
+        ctx.lineTo(bladeX + 3, 7);
+        ctx.quadraticCurveTo(bladeX + 7, 14, bladeX + 12, 15);
+        ctx.lineTo(bladeX + 15, 12);
+        ctx.quadraticCurveTo(bladeX + 16, 6, bladeX + 12, 3);
+        ctx.lineTo(bladeX + 4, 1);
         ctx.closePath();
         ctx.fill();
         ctx.strokeStyle = "#4a545f";
@@ -32018,18 +32015,18 @@
         ctx.stroke();
         ctx.strokeStyle = "#ffffff";
         ctx.lineWidth = 1.6;
-        ctx.globalAlpha = 0.65;
+        ctx.globalAlpha = 0.7;
         ctx.beginPath();
-        ctx.moveTo(bladeX + 9, -18);
-        ctx.quadraticCurveTo(bladeX + 19, -10, bladeX + 18, -3);
+        ctx.moveTo(bladeX + 9, -14);
+        ctx.quadraticCurveTo(bladeX + 14, -9, bladeX + 13, -4);
         ctx.stroke();
         ctx.beginPath();
-        ctx.moveTo(bladeX + 9, 18);
-        ctx.quadraticCurveTo(bladeX + 19, 10, bladeX + 18, 3);
+        ctx.moveTo(bladeX + 9, 14);
+        ctx.quadraticCurveTo(bladeX + 14, 9, bladeX + 13, 4);
         ctx.stroke();
         ctx.globalAlpha = 1;
         ctx.fillStyle = character.color;
-        ctx.fillRect(bladeX - 3, -3, 4, 6);
+        ctx.fillRect(bladeX - 3, -2.5, 3.5, 5);
       } else {
         const weaponWindup = anim === "attack"
           ? (actionProgress < 0.22 ? -0.72 : hitFrame ? 0.72 : holdFrame ? 0.34 : recoilFrame ? -0.18 : 0)

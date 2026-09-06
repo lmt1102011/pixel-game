@@ -10,7 +10,7 @@
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
   const SIGNAL_REALTIME_RELAY_LIMIT = 2;
   const SIGNAL_REALTIME_TYPES = new Set(["state", "snapshot", "attack", "skill", "collect", "openChest", "dropItem", "damage", "chooseDoor"]);
-  const APP_VERSION = "20260718-pixel-vfx-349";
+  const APP_VERSION = "20260718-pixel-vfx-350";
   const CHANGELOG_ENTRIES = [
     {
       version: APP_VERSION,
@@ -1255,6 +1255,24 @@
       attackName: "Song dao chữ X",
       attackText: "Chém hai dao ngắn tạo dấu X, đánh nhanh nhưng máu và sát thương thấp.",
       stats: { hp: 94, energy: 108, speed: 282, damage: 7.4, crit: 0.22, attackCd: 0.68 }
+    },
+    {
+      id: "hammer",
+      name: "Búa Chiến",
+      icon: "BÚA",
+      color: "#8ea4ff",
+      attackName: "Bổ búa",
+      attackText: "Vung búa rộng sát thương cao, hất lùi mạnh và có 20% khiến kẻ địch choáng 2 giây. Đánh chậm.",
+      stats: { hp: 170, energy: 88, speed: 196, damage: 13.8, crit: 0.06, attackCd: 1.3 }
+    },
+    {
+      id: "axe",
+      name: "Rìu Chiến",
+      icon: "RÌU",
+      color: "#ff8a5c",
+      attackName: "Chém rìu",
+      attackText: "Chém rìu nặng, 10% khiến kẻ địch choáng 1 giây và 10% gây chảy máu 2 giây. Đánh chậm.",
+      stats: { hp: 152, energy: 96, speed: 228, damage: 12.8, crit: 0.11, attackCd: 1.08 }
     }
   ];
 
@@ -2017,7 +2035,9 @@
           spearman: motif([0, 12, 7, 5, 14, 12, 7, 0], [0.75, 0.75, 1, 0.5, 1, 0.5, 1, 1.5], "triangle", 0.95),
           mage: motif([0, 4, 11, 14, 12, 7, 11, 16], [1, 1, 0.5, 0.5, 1.25, 0.75, 1, 1], "sine", 1),
           ranger: motif([0, 7, 12, 16, 12, 7, 19, 16], [0.75, 0.5, 0.75, 1, 0.75, 0.5, 1, 1.25], "triangle", 0.95),
-          assassin: motif([0, 1, 7, 6, 12, 10, 7, 1], [0.5, 0.5, 0.75, 0.5, 0.75, 0.5, 0.5, 1.5], "square", 0.88)
+          assassin: motif([0, 1, 7, 6, 12, 10, 7, 1], [0.5, 0.5, 0.75, 0.5, 0.75, 0.5, 0.5, 1.5], "square", 0.88),
+          hammer: motif([0, -2, 5, 0, 10, 7, 5, -2], [1.5, 0.75, 0.5, 1.25, 1, 1, 0.75, 1.5], "square", 1.12),
+          axe: motif([0, 7, 3, 10, 7, 12, 5, 0], [1, 0.5, 0.75, 1, 0.5, 1, 1, 1.5], "sawtooth", 1)
         },
         powers: {
           fire: motif([0, 3, 7, 10, 12, 7, 15, 10], [0.75, 0.5, 0.75, 1, 0.5, 0.5, 1, 1.5], "sawtooth", 1.12),
@@ -2383,6 +2403,15 @@
       } else if (weapon === "spearman") {
         this.tone(390, "triangle", 0.04, 0.058 * vol, now, { pan, slideTo: 640 });
         this.bladeEdge(now + 0.004, 0.037 * vol, { pan, sharp: 1.16, length: 0.036, frequency: 3300, frequencyEnd: 780 });
+      } else if (weapon === "hammer") {
+        this.tone(96, "square", 0.1, 0.12 * vol, now, { pan, slideTo: 66, attack: 0.008, warm: 0.55 });
+        this.stoneTexture(now + 0.004, 0.058 * vol, { pan, heavy: true });
+        this.impactBoom(now + 0.012, 0.082 * vol, { pan, freq: 64, slideTo: 40, length: 0.16, frequency: 300, frequencyEnd: 84, reverb: 0.16 });
+        this.noiseBurst(now + 0.02, 0.05, 0.042 * vol, { filterType: "lowpass", frequency: 620, frequencyEnd: 160, q: 0.9, pan, decay: 2.6 });
+      } else if (weapon === "axe") {
+        this.tone(180, "square", 0.07, 0.09 * vol, now, { pan, slideTo: 110, attack: 0.006, warm: 0.45 });
+        this.bladeEdge(now + 0.006, 0.05 * vol, { pan, sharp: 1.24, length: 0.05, frequency: 2600, frequencyEnd: 520 });
+        this.impactBoom(now + 0.012, 0.06 * vol, { pan, freq: 74, slideTo: 46, length: 0.12, frequency: 320, frequencyEnd: 96, reverb: 0.1 });
       } else {
         this.tone(520, "sawtooth", 0.05, 0.058 * vol, now, { pan, slideTo: 330, attack: 0.006, warm: 0.4 });
         this.bladeEdge(now + 0.004, 0.04 * vol, { pan, sharp: 1.05, length: 0.038, frequency: 2900, frequencyEnd: 700 });
@@ -2392,7 +2421,7 @@
 
     weaponFoley(weapon = "swordsman", now = this.ctx.currentTime, volume = 0.045, options = {}) {
       const detail = this.audioDetailScale();
-      if (detail < 0.45 && !/guardian|ranger/.test(weapon)) return;
+      if (detail < 0.45 && !/guardian|ranger|hammer|axe/.test(weapon)) return;
       const pan = Number(options.pan || 0);
       if (weapon === "guardian") {
         this.metalContact(now, volume * 0.74, { pan, sharp: 0.72, sliceFreq: 1550, sliceEnd: 430, length: 0.055, essential: true });
@@ -2409,6 +2438,12 @@
       } else if (weapon === "spearman") {
         this.metalContact(now, volume * 0.54, { pan, sharp: 1.12, sliceFreq: 3900, sliceEnd: 720, length: 0.05 });
         this.airDisplacement(now + 0.004, volume * 0.26, { pan, filterType: "highpass", frequency: 320, frequencyEnd: 2100, q: 0.48 });
+      } else if (weapon === "hammer") {
+        this.metalContact(now, volume * 0.6, { pan, sharp: 0.6, sliceFreq: 1200, sliceEnd: 220, length: 0.09, essential: true });
+        this.airDisplacement(now + 0.008, volume * 0.4, { pan, heavy: true, frequency: 120, frequencyEnd: 480, freq: 64, slideTo: 36, reverb: 0.06 });
+      } else if (weapon === "axe") {
+        this.metalContact(now, volume * 0.52, { pan, sharp: 1.2, sliceFreq: 4200, sliceEnd: 640, length: 0.06 });
+        this.airDisplacement(now + 0.004, volume * 0.3, { pan, filterType: "highpass", frequency: 260, frequencyEnd: 1800, q: 0.5 });
       } else if (weapon === "mage") {
         this.airDisplacement(now, volume * 0.38, { pan, filterType: "bandpass", frequency: 420, frequencyEnd: 1850, q: 0.55, reverb: 0.14 });
         this.tone(940, "sine", 0.052, volume * 0.22 * detail, now + 0.02, { pan, slideTo: 1280, reverb: 0.16 });
@@ -10113,7 +10148,9 @@
         ranger: { w: 118, h: 118, x: 0.5, y: 0.67 },
         assassin: { w: 102, h: 112, x: 0.52, y: 0.67 },
         martial: { w: 88, h: 112, x: 0.54, y: 0.67 },
-        spearman: { w: 154, h: 118, x: 0.45, y: 0.67 }
+        spearman: { w: 154, h: 118, x: 0.45, y: 0.67 },
+        hammer: { w: 114, h: 124, x: 0.5, y: 0.67 },
+        axe: { w: 110, h: 122, x: 0.5, y: 0.67 }
       }[character.id] || { w: 104, h: 120, x: 0.52, y: 0.67 };
       const baseScale = Math.min(rect.width / fit.w, rect.height / fit.h);
       const scale = clamp(baseScale * 0.92, 2.45, 4.85);
@@ -11324,7 +11361,9 @@
           ranger: { w: 108, h: 92, x: 0.42, y: 0.69 },
           assassin: { w: 96, h: 90, x: 0.45, y: 0.69 },
           martial: { w: 76, h: 90, x: 0.5, y: 0.69 },
-          spearman: { w: 145, h: 92, x: 0.39, y: 0.69 }
+          spearman: { w: 145, h: 92, x: 0.39, y: 0.69 },
+          hammer: { w: 102, h: 94, x: 0.44, y: 0.69 },
+          axe: { w: 100, h: 92, x: 0.44, y: 0.69 }
         }[character.id] || { w: 96, h: 92, x: 0.44, y: 0.69 };
         const baseScale = Math.min(rect.width / fit.w, rect.height / fit.h);
         const scale = clamp(baseScale * (self ? 1.18 : 1.1), 0.82, self ? 3.05 : 2.85);
@@ -12151,7 +12190,7 @@
       const seed = parseInt(hashText(`${key}:${username}:${index}`).slice(0, 8), 16) || (index + 3) * 977;
       const status = options.status || entry.status || "friend";
       const id = String(options.id || entry.id || key || `SR-${String((seed % 9000) + 1000)}`);
-      const classes = ["Guardian", "Mage", "Ranger", "Assassin", "Martial", "Spearman", "Swordsman"];
+      const classes = ["Guardian", "Mage", "Ranger", "Assassin", "Martial", "Spearman", "Swordsman", "Hammer", "Axe"];
       const guilds = ["Moonlit Forge", "Cinder Ward", "Starfall Circle", "Ashen Vale"];
       const countries = ["Aurelia", "Vesper", "Nimora", "Cael", "Rhyne", "Draeven"];
       const activities = ["Exploring the ruins", "Training in the forge", "Preparing for a raid", "Guarding the gate"];
@@ -17139,6 +17178,8 @@
       if (characterId === "assassin") return 0.44;
       if (characterId === "martial") return 0.42;
       if (characterId === "spearman") return 0.62;
+      if (characterId === "hammer") return 0.9;
+      if (characterId === "axe") return 0.78;
       return 0.58;
     }
 
@@ -17205,7 +17246,7 @@
       if (character.id === "guardian") p.attackAimLock = p.actionTotal;
       p.combo = Math.min(9, p.combo + 1);
       p.comboTimer = 1.15;
-      this.addAttackDust(p.x + Math.cos(angle) * 24, p.y + Math.sin(angle) * 24, angle, character.id === "guardian");
+      this.addAttackDust(p.x + Math.cos(angle) * 24, p.y + Math.sin(angle) * 24, angle, character.id === "guardian" || character.id === "hammer");
       this.audio.attack(character.id, { x: p.x, y: p.y, combo: p.combo });
       if (this.isMultiplayerClient() && character.id !== "ranger") this.sendBasicAttackPacket(character, p, angle);
       if (character.id === "mage") {
@@ -17226,6 +17267,14 @@
       }
       if (character.id === "spearman") {
         this.basicSpearmanAttack(p, angle);
+        return;
+      }
+      if (character.id === "hammer") {
+        this.basicHammerAttack(p, angle);
+        return;
+      }
+      if (character.id === "axe") {
+        this.basicAxeAttack(p, angle);
         return;
       }
       if (character.id === "assassin") {
@@ -17503,7 +17552,7 @@
         damage,
         life: 0.88,
         color: "#ff9f43",
-        pierce: 0,
+        pierce: chance(0.25) ? 2 : 0,
         critBonus: 0.28,
         kind: "rangerBasic"
       });
@@ -17789,6 +17838,104 @@
       return hits;
     }
 
+    basicHammerAttack(p, angle) {
+      const damage = p.damage * this.playerDamageOutputMult();
+      const hits = this.performHammerSwing(p.x, p.y, angle, damage, p.combo, this.lobby.id);
+      if (hits > 0) {
+        this.hitStop = Math.max(this.hitStop || 0, 0.068);
+        this.camera.shake = Math.max(this.camera.shake, 9 + hits * 1.2);
+      }
+    }
+
+    performHammerSwing(x, y, angle, baseDamage, combo = 1, sourceId = "") {
+      const range = 104 + Math.min(22, combo * 2);
+      const arc = Math.PI * 0.98;
+      const damage = baseDamage * (1.0 + combo * 0.026);
+      const dirX = Math.cos(angle);
+      const dirY = Math.sin(angle);
+      const centerX = x + dirX * range * 0.5;
+      const centerY = y + dirY * range * 0.5;
+      this.addBasicAttackBurst(centerX, centerY, angle, "hammer", range);
+      let hits = 0;
+      for (let i = this.run.enemies.length - 1; i >= 0; i--) {
+        const enemy = this.run.enemies[i];
+        if (!enemy || enemy.hp <= 0) continue;
+        const dx = enemy.x - x;
+        const dy = enemy.y - y;
+        const d = Math.hypot(dx, dy);
+        const a = Math.atan2(dy, dx);
+        if (d < range + enemy.radius && Math.abs(angleDelta(a, angle)) < arc * 0.5) {
+          hits++;
+          if (chance(0.2)) enemy.stun = Math.max(enemy.stun || 0, enemy.boss ? 0.5 : 2.0);
+          if (!this.enemyDomainBoundActive(enemy)) {
+            enemy.vx += dirX * (enemy.boss ? 110 : 300);
+            enemy.vy += dirY * (enemy.boss ? 110 : 300);
+          }
+          this.damageEnemy(enemy, damage, {
+            x: dirX * 1.6,
+            y: dirY * 1.6,
+            source: "hammer",
+            kind: "hammer",
+            combo,
+            critBonus: 0,
+            sourceId
+          });
+        }
+      }
+      return hits;
+    }
+
+    basicAxeAttack(p, angle) {
+      const damage = p.damage * this.playerDamageOutputMult();
+      const hits = this.performAxeSwing(p.x, p.y, angle, damage, p.combo, this.lobby.id);
+      if (hits > 0) {
+        this.hitStop = Math.max(this.hitStop || 0, 0.058);
+        this.camera.shake = Math.max(this.camera.shake, 6 + hits);
+      }
+    }
+
+    performAxeSwing(x, y, angle, baseDamage, combo = 1, sourceId = "") {
+      const range = 98 + Math.min(22, combo * 2);
+      const arc = Math.PI * 0.8;
+      const damage = baseDamage * (0.94 + combo * 0.024);
+      const dirX = Math.cos(angle);
+      const dirY = Math.sin(angle);
+      const centerX = x + dirX * range * 0.48;
+      const centerY = y + dirY * range * 0.48;
+      this.addBasicAttackBurst(centerX, centerY, angle, "axe", range);
+      let hits = 0;
+      for (let i = this.run.enemies.length - 1; i >= 0; i--) {
+        const enemy = this.run.enemies[i];
+        if (!enemy || enemy.hp <= 0) continue;
+        const dx = enemy.x - x;
+        const dy = enemy.y - y;
+        const d = Math.hypot(dx, dy);
+        const a = Math.atan2(dy, dx);
+        if (d < range + enemy.radius && Math.abs(angleDelta(a, angle)) < arc * 0.5) {
+          hits++;
+          if (chance(0.1)) enemy.stun = Math.max(enemy.stun || 0, enemy.boss ? 0.25 : 1.0);
+          if (chance(0.1)) {
+            enemy.bleed = Math.max(enemy.bleed || 0, enemy.boss ? 1.4 : 2.0);
+            enemy.bleedTick = Math.min(Number(enemy.bleedTick || 0.45), 0.34);
+            enemy.bleedDamage = Math.max(enemy.bleedDamage || 0, Math.max(1.0, damage * (enemy.boss ? 0.032 : 0.06)));
+            for (let p = 0; p < this.particleCount(4); p++) {
+              this.addParticle(enemy.x + rand(-enemy.radius * 0.4, enemy.radius * 0.4), enemy.y + rand(-enemy.radius * 0.5, enemy.radius * 0.35), "#b01d45", rand(4, 10), rand(0.2, 0.4), "spark", a + Math.PI + rand(-0.9, 0.9), rand(50, 150));
+            }
+          }
+          this.damageEnemy(enemy, damage, {
+            x: dirX * 1.3,
+            y: dirY * 1.3,
+            source: "axe",
+            kind: "axe",
+            combo,
+            critBonus: 0,
+            sourceId
+          });
+        }
+      }
+      return hits;
+    }
+
     basicAssassinAttack(p, angle) {
       const range = 88 + Math.min(24, p.combo * 2);
       const arc = Math.PI * 0.72;
@@ -17979,7 +18126,7 @@
           damage,
           life: character.id === "ranger" ? 0.88 : 1.35,
           color: character.id === "ranger" ? "#ff9f43" : "#83e8ff",
-          pierce: 0,
+          pierce: character.id === "ranger" ? (chance(0.25) ? 2 : 0) : 0,
           kind: character.id === "ranger" ? "rangerBasic" : "mageBasic",
           critBonus: character.id === "ranger" ? 0.28 : 0
         });
@@ -17993,6 +18140,16 @@
 
       if (character.id === "spearman") {
         this.performSpearThrust(x, y, angle, baseDamage, combo, remoteId);
+        return;
+      }
+
+      if (character.id === "hammer") {
+        this.performHammerSwing(x, y, angle, baseDamage, combo, remoteId);
+        return;
+      }
+
+      if (character.id === "axe") {
+        this.performAxeSwing(x, y, angle, baseDamage, combo, remoteId);
         return;
       }
 
@@ -25530,17 +25687,24 @@
           }
         }
         if (projectile.visualOnly || ((projectile.owner === "player" || projectile.owner === "ally") && this.isMultiplayerClient())) {
-          this.stopVisualProjectileAtEnemy(projectile, fromX, fromY);
+          if (projectile.kind === "rangerBasic" && projectile.pierce > 0) {
+            projectile.hitIds = projectile.hitIds || [];
+            const near = this.firstProjectileEnemyHit(projectile, fromX, fromY);
+            if (near && !projectile.hitIds.includes(near.enemy?.id)) projectile.hitIds.push(near.enemy.id);
+          } else {
+            this.stopVisualProjectileAtEnemy(projectile, fromX, fromY);
+          }
         } else if ((projectile.owner === "player" || projectile.owner === "ally") && !this.isMultiplayerClient()) {
           const hit = this.firstProjectileEnemyHit(projectile, fromX, fromY);
           if (hit) {
             projectile.x = hit.x;
             projectile.y = hit.y;
             projectile.hitIds = projectile.hitIds || [];
+            const piercePass = projectile.kind === "rangerBasic" && projectile.hitIds.length > 0;
             if (hit.enemy.id) projectile.hitIds.push(hit.enemy.id);
             const len = Math.hypot(projectile.vx, projectile.vy) || 1;
             const sourceId = projectile.casterId || (projectile.owner === "player" ? this.lobby.id : "");
-            this.damageEnemy(hit.enemy, projectile.damage, { x: projectile.vx / len, y: projectile.vy / len, source: "projectile", kind: projectile.kind, critBonus: projectile.critBonus || 0, sourceId });
+            this.damageEnemy(hit.enemy, projectile.damage * (piercePass ? 0.55 : 1), { x: projectile.vx / len, y: projectile.vy / len, source: "projectile", kind: projectile.kind, critBonus: projectile.critBonus || 0, sourceId });
             if (projectile.kind === "mageBasic" && chance(0.25)) {
               this.areaDamage(projectile.x, projectile.y, 72, projectile.damage * 0.1, projectile.color, "mageBasic", false, sourceId);
               this.addShockwave(projectile.x, projectile.y, 92, projectile.color, 0);
@@ -26739,6 +26903,8 @@
       if (options.source === "guardianReflect") return "guardian";
       if (options.source === "martial") return "martial";
       if (options.source === "spearman") return "spearman";
+      if (options.source === "hammer") return "hammer";
+      if (options.source === "axe") return "axe";
       if (options.source === "assassin") return "assassin";
       if (options.source === "remoteBasic") return options.kind || "swordsman";
       if (options.source === "projectile" && options.kind === "mageBasic") return "mage";
@@ -26752,15 +26918,17 @@
       if (kind === "ranger") return { color: "#ffc15a", accent: "#fff0b8", dust: "#b9813e" };
       if (kind === "martial") return { color: "#ffcf6b", accent: "#fff6c8", dust: "#c9933e" };
       if (kind === "spearman") return { color: "#9fd27a", accent: "#eefdd6", dust: "#6e8f54" };
+      if (kind === "hammer") return { color: "#8ea4ff", accent: "#ffffff", dust: "#5b6fae" };
+      if (kind === "axe") return { color: "#ff8a5c", accent: "#ffd9a3", dust: "#a85d38" };
       if (kind === "assassin") return { color: "#b8b7ff", accent: "#ffffff", dust: "#7f80c8" };
       return { color: "#dfe6ef", accent: "#ffffff", dust: "#9aa6b5" };
     }
 
     addBasicAttackBurst(x, y, angle, kind = "swordsman", reach = 0) {
       if (!this.run) return;
-      const heavy = kind === "guardian";
+      const heavy = kind === "guardian" || kind === "hammer";
       const ranged = kind === "mage" || kind === "ranger";
-      const life = heavy ? 0.24 : kind === "martial" ? 0.16 : kind === "spearman" ? 0.2 : kind === "assassin" ? 0.18 : ranged ? 0.19 : 0.22;
+      const life = heavy ? 0.24 : kind === "martial" ? 0.16 : kind === "spearman" ? 0.2 : kind === "assassin" ? 0.18 : kind === "axe" ? 0.22 : ranged ? 0.19 : 0.22;
       const palette = this.characterEffectPalette(kind);
       this.addEffect({
         type: "attackBurst",
@@ -31061,6 +31229,19 @@
           block(4, -1, 12 + reach, 1, "#ffffff", 0.75);
           ctx.restore();
         }
+      } else if (character.id === "hammer") {
+        block(-3, -3, 24 + reach, 6, skin);
+        block(7 + reach, -8, 4, 16, trim);
+        block(20 + reach, -12, 17, 24, trim);
+        block(24 + reach, -5, 7, 10, power.accent || "#ffffff", hit ? 0.9 : 0.5);
+        block(13 + reach, -7, 9, 3, power.accent || "#ffffff", 0.5);
+        block(33 + reach, -3, 3, 6, "#0a0e16", 0.8);
+      } else if (character.id === "axe") {
+        block(-3, -2, 22 + reach, 5, skin);
+        block(5 + reach, -6, 4, 12, trim);
+        poly([[12 + reach, -2], [25 + reach, -12], [29 + reach, 0], [25 + reach, 12], [12 + reach, 2]], "#dfe8ef");
+        block(14 + reach, -1, 8 + reach, 2, "#ffffff", 0.7);
+        block(10 + reach, -3, 4, 6, trim);
       } else {
         ctx.rotate(hit ? -0.62 : -0.18);
         block(-4, -3, 10, 6, skin);
@@ -31158,6 +31339,20 @@
           attackPose.squashX = hitFrame ? 1.11 : holdFrame ? 1.04 : 1;
           attackPose.squashY = hitFrame ? 0.91 : holdFrame ? 0.97 : 1;
           attackPose.crouch = hitFrame ? 3 : holdFrame ? 1 : 0;
+        } else if (character.id === "hammer") {
+          attackPose.lift = hitFrame ? -1 : holdFrame ? -2 : recoilFrame ? 2 : 0;
+          attackPose.shift = dir * (hitFrame ? 11 : holdFrame ? 4 : recoilFrame ? -4 : 0);
+          attackPose.lean = dir * (hitFrame ? 0.15 : holdFrame ? 0.06 : recoilFrame ? -0.05 : 0);
+          attackPose.squashX = hitFrame ? 1.15 : holdFrame ? 1.05 : 1;
+          attackPose.squashY = hitFrame ? 0.89 : holdFrame ? 0.96 : 1;
+          attackPose.crouch = hitFrame ? 5 : holdFrame ? 3 : 1;
+        } else if (character.id === "axe") {
+          attackPose.lift = hitFrame ? -2 : holdFrame ? -1 : recoilFrame ? 1 : 0;
+          attackPose.shift = dir * (hitFrame ? 8 : holdFrame ? 3 : recoilFrame ? -3 : 0);
+          attackPose.lean = dir * (hitFrame ? 0.19 : holdFrame ? 0.08 : recoilFrame ? -0.06 : 0);
+          attackPose.squashX = hitFrame ? 1.12 : holdFrame ? 1.04 : 1;
+          attackPose.squashY = hitFrame ? 0.91 : holdFrame ? 0.96 : 1;
+          attackPose.crouch = hitFrame ? 4 : holdFrame ? 2 : 0;
         } else {
           attackPose.lift = hitFrame ? -3 : holdFrame ? -2 : recoilFrame ? 1 : 0;
           attackPose.shift = dir * (hitFrame ? 6 : holdFrame ? 3 : recoilFrame ? -3 : 0);
@@ -31663,6 +31858,82 @@
           ctx.globalAlpha = 1;
           ctx.restore();
         }
+      } else if (character.id === "hammer") {
+        const swing = hitFrame ? 24 : holdFrame ? 12 : recoilFrame ? -5 : 2;
+        applyWeaponFacing(facing);
+        ctx.translate(swing, 0);
+        ctx.lineCap = "butt";
+        ctx.lineJoin = "miter";
+        ctx.fillStyle = "rgba(0,0,0,0.26)";
+        ctx.beginPath();
+        ctx.ellipse(30, 14, 30, 3.4, 0, 0, TAU);
+        ctx.fill();
+        const handle = ctx.createLinearGradient(1, -2, 34, 2);
+        handle.addColorStop(0, "#6b4a2b");
+        handle.addColorStop(0.5, "#9a6d3f");
+        handle.addColorStop(1, "#5f432c");
+        ctx.fillStyle = handle;
+        roundPixel(ctx, 2, -2.6, 30 + hitFrame * 4, 5.2, 2);
+        ctx.fillStyle = power.accent;
+        ctx.fillRect(-2, -7, 4, 14);
+        ctx.fillRect(-4, -5, 8, 3);
+        ctx.fillRect(-4, 2, 8, 3);
+        drawGripHand(8, -3, 6, 6);
+        const headX = 32 + hitFrame * 4;
+        const head = ctx.createLinearGradient(headX, -14, headX + 18, 14);
+        head.addColorStop(0, "#38404d");
+        head.addColorStop(0.42, "#c7d2dd");
+        head.addColorStop(1, "#5f6b7a");
+        ctx.fillStyle = head;
+        ctx.fillRect(headX - 4, -14, 18, 28);
+        ctx.fillStyle = character.color;
+        ctx.fillRect(headX + 6, -14, 4, 28);
+        ctx.fillStyle = "#ffffff";
+        ctx.globalAlpha = 0.66;
+        ctx.fillRect(headX - 1, -10, 9, 3);
+        ctx.globalAlpha = 0.4;
+        ctx.fillRect(headX - 1, 7, 9, 3);
+        ctx.globalAlpha = 1;
+        ctx.fillStyle = "#0a0e16";
+        ctx.fillRect(headX + 10, -6, 6, 12);
+      } else if (character.id === "axe") {
+        const swing = hitFrame ? 22 : holdFrame ? 11 : recoilFrame ? -4 : 2;
+        applyWeaponFacing(facing);
+        ctx.translate(swing * 0.8, 0);
+        ctx.lineCap = "round";
+        ctx.lineJoin = "round";
+        ctx.fillStyle = "rgba(0,0,0,0.26)";
+        ctx.beginPath();
+        ctx.ellipse(24, 14, 26, 3.2, 0, 0, TAU);
+        ctx.fill();
+        ctx.fillStyle = "#6b4a2b";
+        roundPixel(ctx, -3, -2, 26 + hitFrame * 4, 4.5, 2);
+        ctx.fillStyle = power.accent;
+        ctx.fillRect(0, -8, 3, 16);
+        drawGripHand(11 + hitFrame, -4, 6, 6);
+        const bladeX = 24 + hitFrame * 4;
+        const blade = ctx.createLinearGradient(bladeX, -12, bladeX + 9, 12);
+        blade.addColorStop(0, "#8895a6");
+        blade.addColorStop(0.5, "#f7fbff");
+        blade.addColorStop(1, "#b7c3cf");
+        ctx.fillStyle = blade;
+        ctx.beginPath();
+        ctx.moveTo(bladeX - 2, -2);
+        ctx.quadraticCurveTo(bladeX + 4, -14, bladeX + 14, -14);
+        ctx.quadraticCurveTo(bladeX + 9, -6, bladeX + 12, 0);
+        ctx.quadraticCurveTo(bladeX + 9, 4, bladeX + 14, 14);
+        ctx.quadraticCurveTo(bladeX + 4, 14, bladeX - 2, 2);
+        ctx.closePath();
+        ctx.fill();
+        ctx.strokeStyle = "#5f6b7a";
+        ctx.lineWidth = 1.2;
+        ctx.stroke();
+        ctx.fillStyle = character.color;
+        ctx.fillRect(bladeX - 3, -5, 6, 10);
+        ctx.fillStyle = "#ffffff";
+        ctx.globalAlpha = 0.6;
+        ctx.fillRect(bladeX + 3, -10, 6, 3);
+        ctx.globalAlpha = 1;
       } else {
         const weaponWindup = anim === "attack"
           ? (actionProgress < 0.22 ? -0.72 : hitFrame ? 0.72 : holdFrame ? 0.34 : recoilFrame ? -0.18 : 0)
@@ -34057,7 +34328,7 @@
           const progress = 1 - effect.time / effect.maxTime;
           const alpha = (1 - progress) * (effect.heavy ? 1 : 0.92);
           const length = effect.reach ? effect.reach : effect.heavy ? 74 : effect.ranged ? 52 : 64;
-          const width = effect.kind === "guardian" ? Math.max(62, length * 0.56) : effect.kind === "martial" ? 30 : effect.kind === "spearman" ? 20 : effect.kind === "assassin" ? 26 : effect.ranged ? 18 : 22;
+          const width = effect.kind === "guardian" ? Math.max(62, length * 0.56) : effect.kind === "hammer" ? Math.max(70, length * 0.5) : effect.kind === "axe" ? 30 : effect.kind === "martial" ? 30 : effect.kind === "spearman" ? 20 : effect.kind === "assassin" ? 26 : effect.ranged ? 18 : 22;
           ctx.translate(effect.x, effect.y);
           ctx.rotate(effect.angle || 0);
           ctx.globalAlpha = alpha;
@@ -34222,6 +34493,44 @@
             ctx.globalAlpha = alpha * 0.95;
             ctx.fillStyle = effect.accent || "#ffffff";
             ctx.fillRect(-5, -5, 10, 10);
+          } else if (effect.kind === "hammer") {
+            ctx.globalAlpha = alpha * 0.92;
+            ctx.shadowBlur = this.glow(24);
+            ctx.lineCap = "butt";
+            ctx.lineJoin = "miter";
+            const headX = length * 0.46;
+            ctx.fillStyle = effect.accent || "#ffffff";
+            ctx.fillRect(headX - 26, -width * 0.5, 20 + progress * 12, width);
+            ctx.fillStyle = effect.color || "#8ea4ff";
+            ctx.fillRect(headX - 6, -width * 0.42, 7 + progress * 8, width * 0.84);
+            ctx.globalAlpha = alpha * 0.7;
+            ctx.strokeStyle = effect.color || "#8ea4ff";
+            ctx.lineWidth = 5;
+            ctx.beginPath();
+            ctx.arc(headX - 12, 0, width * 0.62, -1.15, 1.15);
+            ctx.stroke();
+            ctx.globalAlpha = alpha * 0.85;
+            ctx.fillStyle = effect.accent || "#ffffff";
+            ctx.fillRect(headX + 10 + progress * 6, -width * 0.3, 4, width * 0.6);
+          } else if (effect.kind === "axe") {
+            ctx.lineCap = "butt";
+            ctx.lineJoin = "miter";
+            ctx.shadowBlur = this.glow(18);
+            const chop = length * (0.88 + progress * 0.12);
+            ctx.strokeStyle = effect.color || "#ff8a5c";
+            ctx.lineWidth = width * 0.6;
+            ctx.beginPath();
+            ctx.arc(length * 0.42, 0, chop * 0.86, -1.0, 1.0);
+            ctx.stroke();
+            ctx.globalAlpha = alpha * 0.82;
+            ctx.strokeStyle = effect.accent || "#ffd9a3";
+            ctx.lineWidth = width * 0.26;
+            ctx.beginPath();
+            ctx.arc(length * 0.42, 0, chop * 0.72, -0.82, 0.82);
+            ctx.stroke();
+            ctx.globalAlpha = alpha * 0.75;
+            ctx.fillStyle = effect.accent || "#ffd9a3";
+            ctx.fillRect(length * 0.5, -width * 0.1, length * 0.3, width * 0.2);
           } else {
             const slashRadius = length * 0.86;
             const start = -1.08;
@@ -34382,6 +34691,51 @@
             ctx.globalAlpha = alpha;
             ctx.fillStyle = "#ffffff";
             ctx.fillRect(-6, -6, 12, 12);
+          } else if (effect.kind === "hammer") {
+            ctx.lineCap = "butt";
+            ctx.lineJoin = "miter";
+            ctx.shadowBlur = this.glow(24);
+            ctx.strokeStyle = effect.color || "#8ea4ff";
+            ctx.lineWidth = 6;
+            ctx.beginPath();
+            ctx.moveTo(-length * 0.4, 0);
+            ctx.lineTo(length, 0);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(length * 0.42, -spread * 1.5);
+            ctx.lineTo(length, 0);
+            ctx.lineTo(length * 0.42, spread * 1.5);
+            ctx.stroke();
+            ctx.globalAlpha = alpha * 0.85;
+            ctx.fillStyle = effect.accent || "#ffffff";
+            ctx.fillRect(-10, -10, 20, 20);
+            ctx.globalAlpha = alpha * 0.6;
+            ctx.strokeStyle = "#ffffff";
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(length * 0.5, -spread * 2.3);
+            ctx.lineTo(length * 0.5, spread * 2.3);
+            ctx.stroke();
+          } else if (effect.kind === "axe") {
+            ctx.lineCap = "butt";
+            ctx.lineJoin = "miter";
+            ctx.lineWidth = 5;
+            ctx.strokeStyle = effect.accent || "#ffd9a3";
+            ctx.beginPath();
+            ctx.moveTo(-length * 0.3, -spread * 0.4);
+            ctx.lineTo(length * 0.95, -spread * 0.12);
+            ctx.stroke();
+            ctx.globalAlpha = alpha * 0.82;
+            ctx.strokeStyle = effect.color || "#ff8a5c";
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.moveTo(-length * 0.26, -spread * 0.22);
+            ctx.lineTo(length * 0.92, -spread * 0.05);
+            ctx.stroke();
+            ctx.globalAlpha = alpha * 0.68;
+            ctx.fillStyle = "#b01d45";
+            ctx.fillRect(length * 0.36, -spread * 0.5, 7, 5);
+            ctx.fillRect(length * 0.5, spread * 0.05, 6, 4);
           } else {
             const cutRadius = length * 0.72;
             const start = -0.95;

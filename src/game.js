@@ -10,10 +10,21 @@
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
   const SIGNAL_REALTIME_RELAY_LIMIT = 2;
   const SIGNAL_REALTIME_TYPES = new Set(["state", "snapshot", "attack", "skill", "collect", "openChest", "dropItem", "damage", "chooseDoor"]);
-  const APP_VERSION = "20260718-pixel-vfx-362";
+  const APP_VERSION = "20260718-pixel-vfx-363";
   const CHANGELOG_ENTRIES = [
     {
       version: APP_VERSION,
+      title: "Rìu song lưỡi Huyết Thạch theo thiết kế người chơi",
+      items: [
+        "Mũi thương trên đỉnh rìu: tam giác thép xanh đen (#bce6eb → #141e30) bắt sáng cạnh trong (#ece9e6 → #243b55).",
+        "Lưỡi rìu kép hai bên (phải + lật gương): khối ngoài thép xanh đen, mặt vát trong bắt sáng, mép cắt trắng phát sáng filter glowing, cổ tự ma thuật đỏ (#ff0844) + đường khắc rune (#ff0055).",
+        "Cán gỗ mun đen (#1a0b08 → #0a0403) quấn da đan chéo (#2a1610/#402218) 10 vòng, chuôi vàng (#fff7b0 → #8a471c) đính ngọc huyết thạch, vành khắc vàng sáng.",
+        "Khớp rìu trung tâm hình lục giác vàng ôm lấy cán và 2 lưỡi, viền trong vàng sáng, ngọc huyết thạch thoi ở giữa (#6a001b/#ff0844/#ffffff) phát sáng.",
+        "Nhúng thiết kế SVG (rotate 15°, gradient + glow) vào renderer trong trận, preview và 44 frame export."
+      ]
+    },
+    {
+      version: "20260718-pixel-vfx-362",
       title: "Rìu chiến 1 lưỡi theo thiết kế người chơi",
       items: [
         "Đầu rìu thép rèn to bản: thân thép xám, lưỡi thép sáng #8c929b với cạnh cắt sáng #d5d8dc, đỉnh poll (#b8bcc2), gờ rèn (#51555d), lỗ tra cán (#17191d) có viền kim loại (#777c84).",
@@ -31297,15 +31308,15 @@
         block(24 + reach, -6, 8, 12, power.accent || "#ffffff", hit ? 0.9 : 0.5);
         block(34 + reach, -3, 3, 6, "#0a0e16", 0.8);
       } else if (character.id === "axe") {
-        block(-6, -3, 30 + reach, 5, "#4a2d1b");
-        block(-3, -1.5, 23 + reach, 1.3, "#815334", 0.6);
-        block(-6, -1, 5, 4, "#171416");
-        block(4 + reach, -4, 4, 9, "#34373d");
-        block(22 + reach, -7, 5, 14, "#34373d");
-        poly([[24 + reach, -8], [29 + reach, -11], [37 + reach, -11], [41 + reach, -5], [40 + reach, 3], [36 + reach, 8], [28 + reach, 8], [24 + reach, 4]], "#8c929b");
-        poly([[33 + reach, -10], [38 + reach, -7], [38 + reach, 2], [35 + reach, 6]], "#d5d8dc");
-        poly([[27 + reach, -2], [22 + reach, 8], [25 + reach, 9], [29 + reach, 1]], "#555960");
-        block(28 + reach, -4, 2, 7, "#711d26");
+        block(-6, -2, 30 + reach, 4, "#3e1d16");
+        block(-3, -1, 26 + reach, 1.2, "#110805", 0.5);
+        block(-6, -1, 4, 3, "#f2c94c");
+        block(20 + reach, -7, 6, 14, "#f2c94c");
+        poly([[24 + reach, -14], [32 + reach, -18], [38 + reach, -12], [36 + reach, -4], [28 + reach, -3]], "#4b6cb7");
+        poly([[25 + reach, 1], [27 + reach, 8], [35 + reach, 8], [36 + reach, 1]], "#4b6cb7");
+        poly([[29 + reach, -14], [35 + reach, -16], [37 + reach, -11], [30 + reach, -7]], "#bce6eb");
+        poly([[24 + reach, -3], [27 + reach, 3], [24 + reach, 7], [21 + reach, 3]], "#ff0844");
+        block(13 + reach, -4, 4, 8, "#100805");
       } else {
         ctx.rotate(hit ? -0.62 : -0.18);
         block(-4, -3, 10, 6, skin);
@@ -31975,74 +31986,129 @@
         ctx.translate(swing * 0.8, 0);
         ctx.lineCap = "round";
         ctx.lineJoin = "round";
-        const wp = (X, Y) => [(715 - Y) * 0.075, (512 - X) * 0.075];
-        const wpath = (pts) => {
+        const W0 = 0.075;
+        const cR = Math.cos(0.2617993878);
+        const sR = Math.sin(0.2617993878);
+        const ap = (X, Y, fl = 1) => {
+          const X1 = fl < 0 ? 500 - X : X;
+          const Y1 = Y - 20;
+          const dX = X1 - 250, dY = Y1 - 250;
+          const X2 = 250 + dX * cR - dY * sR;
+          const Y2 = 250 + dX * sR + dY * cR;
+          return [(462 - Y2) * W0, (272 - X2) * W0];
+        };
+        const wpath = (pts, fl) => {
           ctx.beginPath();
           pts.forEach((p, i) => {
-            const g = wp(p[0], p[1]);
+            const g = ap(p[0], p[1], fl);
             i ? ctx.lineTo(g[0], g[1]) : ctx.moveTo(g[0], g[1]);
           });
         };
-        const wpoly = (pts, fill, stroke, w, alpha = 1) => {
-          wpath(pts);
+        const wpoly = (pts, fill, stroke, w, alpha = 1, fl = 1) => {
+          wpath(pts, fl);
           ctx.closePath();
           if (fill) { ctx.globalAlpha = alpha; ctx.fillStyle = fill; ctx.fill(); ctx.globalAlpha = 1; }
-          if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = w * 0.075; ctx.stroke(); }
+          if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = w * W0; ctx.stroke(); }
         };
-        const wglide = (pts, stroke, w, alpha = 1) => {
-          wpath(pts);
+        const wglide = (pts, stroke, w, alpha = 1, fl = 1) => {
+          wpath(pts, fl);
           ctx.strokeStyle = stroke;
-          ctx.lineWidth = w * 0.075;
+          ctx.lineWidth = w * W0;
           ctx.globalAlpha = alpha;
           ctx.stroke();
           ctx.globalAlpha = 1;
         };
-        const wline = (x1, y1, x2, y2, stroke, w, alpha = 1) => {
-          ctx.strokeStyle = stroke;
-          ctx.lineWidth = w * 0.075;
-          ctx.globalAlpha = alpha;
-          ctx.beginPath();
-          ctx.moveTo(wp(x1, y1)[0], wp(x1, y1)[1]);
-          ctx.lineTo(wp(x2, y2)[0], wp(x2, y2)[1]);
-          ctx.stroke();
-          ctx.globalAlpha = 1;
-        };
+        const woodGrad = ctx.createLinearGradient(0, -3.1, 0, -0.5);
+        woodGrad.addColorStop(0, "#1a0b08");
+        woodGrad.addColorStop(0.5, "#3e1d16");
+        woodGrad.addColorStop(1, "#0a0403");
+        const goldGrad = ctx.createLinearGradient(20, -12, 12, 9);
+        goldGrad.addColorStop(0, "#fff7b0");
+        goldGrad.addColorStop(0.25, "#f2c94c");
+        goldGrad.addColorStop(0.75, "#f2994a");
+        goldGrad.addColorStop(1, "#8a471c");
+        const goldLightGrad = ctx.createLinearGradient(18, -5, 10, 5);
+        goldLightGrad.addColorStop(0, "#f2c94c");
+        goldLightGrad.addColorStop(1, "#ffffff");
+        const bladeOuterGrad = ctx.createLinearGradient(18, -16, 20, 6);
+        bladeOuterGrad.addColorStop(0, "#bce6eb");
+        bladeOuterGrad.addColorStop(0.3, "#4b6cb7");
+        bladeOuterGrad.addColorStop(1, "#141e30");
+        const bladeInnerGrad = ctx.createLinearGradient(11, 4, 27, -16);
+        bladeInnerGrad.addColorStop(0, "#ece9e6");
+        bladeInnerGrad.addColorStop(0.5, "#8b9bb4");
+        bladeInnerGrad.addColorStop(1, "#243b55");
+        const gemGrad = ctx.createLinearGradient(24, -1.4, 20.5, 1.2);
+        gemGrad.addColorStop(0, "#ffb199");
+        gemGrad.addColorStop(0.3, "#ff0844");
+        gemGrad.addColorStop(1, "#6a001b");
         ctx.fillStyle = "rgba(0,0,0,0.26)";
         ctx.beginPath();
-        ctx.ellipse(12, 16, 24, 3, 0, 0, TAU);
+        ctx.ellipse(16, 17, 22, 3.2, 0, 0, TAU);
         ctx.fill();
-        wpoly([[402, 825], [414, 690], [425, 570], [435, 465], [443, 395], [449, 345], [458, 300], [492, 308], [482, 375], [475, 425], [469, 485], [458, 600], [448, 720], [438, 830]], "#4a2d1b", "#171217", 12);
-        wglide([[438, 795], [447, 670], [455, 560], [463, 475], [468, 420], [475, 360], [482, 325]], "#815334", 9, 0.65);
-        wline(426, 690, 452, 675, "#24170f", 8);
-        wline(422, 745, 447, 730, "#24170f", 7);
-        wline(418, 785, 443, 772, "#24170f", 6);
-        wpoly([[401, 825], [438, 830], [443, 785], [407, 780]], "#171416", "#09090a", 8);
-        wline(404, 816, 440, 821, "#65402b", 7);
-        wline(405, 803, 441, 808, "#65402b", 7);
-        wline(406, 790, 442, 795, "#65402b", 7);
-        wpoly([[440, 310], [488, 318], [510, 382], [475, 475], [438, 463], [452, 382]], "#24252a", "#09090b", 13);
-        wglide([[465, 327], [483, 333], [493, 377]], "#70747b", 7, 0.7);
-        wpoly([[470, 300], [510, 238], [575, 195], [665, 212], [730, 255], [770, 350], [780, 445], [750, 510], [705, 555], [625, 570], [550, 540], [500, 495], [475, 440], [480, 370]], "#34373d", "#0a0b0d", 18);
-        wpoly([[650, 215], [700, 225], [735, 250], [755, 295], [778, 345], [790, 410], [775, 455], [765, 490], [742, 515], [705, 550], [655, 565], [690, 520], [716, 480], [725, 435], [720, 385], [715, 330], [695, 270], [650, 215]], "#8c929b", "#111216", 11);
-        wglide([[705, 550], [740, 515], [765, 480], [775, 445], [790, 390], [775, 320], [755, 295]], "#d5d8dc", 15);
-        wglide([[655, 225], [685, 265], [700, 315], [705, 365], [710, 420], [705, 470], [680, 515]], "#555a62", 28, 0.85);
-        wpoly([[575, 220], [625, 208], [652, 225], [610, 245]], "#b8bcc2", null, 0, 0.8);
-        wline(705, 330, 735, 345, "#d0d3d7", 7, 0.55);
-        wline(710, 365, 742, 380, "#d0d3d7", 7, 0.55);
-        wline(704, 430, 735, 438, "#d0d3d7", 7, 0.55);
-        wline(675, 500, 710, 505, "#d0d3d7", 7, 0.55);
-        wpoly([[485, 290], [530, 250], [570, 265], [555, 330], [515, 360], [485, 335]], "#17191d", "#0a0b0c", 10);
-        wglide([[492, 292], [530, 260], [558, 271]], "#777c84", 8);
-        wpoly([[515, 240], [575, 205], [650, 218], [620, 240], [570, 230], [530, 265]], "#51555d");
-        wline(595, 285, 620, 300, "#17181c", 12);
-        wline(625, 470, 655, 480, "#17181c", 12);
-        wline(545, 430, 570, 445, "#17181c", 12);
-        wpoly([[585, 330], [625, 350], [610, 390], [570, 370]], "#711d26", "#2b0c11", 8);
-        wpoly([[480, 390], [415, 365], [370, 395], [425, 420], [485, 430]], "#555960", "#0a0b0d", 13);
-        wglide([[425, 382], [390, 395], [430, 405]], "#a4a8ae", 6);
-        wline(398, 700, 448, 705, "#111216", 12);
-        wline(400, 700, 447, 705, "#66616a", 4, 0.5);
-        drawGripHand(-6.5, 6.5, 6, 6);
+        wpoly([[235, 100], [250, 20], [265, 100]], bladeOuterGrad, bladeInnerGrad, 2);
+        wpoly([[250, 20], [265, 100], [250, 95]], bladeInnerGrad);
+        wpoly([[235, 90], [265, 90], [265, 440], [235, 440]], woodGrad, "#000000", 2);
+        const wrapA = [[235, 250], [265, 270], [265, 285], [235, 265]];
+        const wrapB = [[235, 280], [265, 300], [265, 315], [235, 295]];
+        const wrapC = [[235, 310], [265, 330], [265, 345], [235, 325]];
+        const wrapD = [[235, 340], [265, 360], [265, 375], [235, 355]];
+        const wrapE = [[235, 370], [265, 390], [265, 405], [235, 385]];
+        const wraps = [wrapA, wrapB, wrapC, wrapD, wrapE];
+        for (const wk of wraps) wpoly(wk, "#2a1610", "#110805", 1.5);
+        const wrapX1 = [[265, 250], [235, 270], [235, 285], [265, 265]];
+        const wrapX2 = [[265, 280], [235, 300], [235, 315], [265, 295]];
+        const wrapX3 = [[265, 310], [235, 330], [235, 345], [265, 325]];
+        const wrapX4 = [[265, 340], [235, 360], [235, 375], [265, 355]];
+        const wrapX5 = [[265, 370], [235, 390], [235, 405], [265, 385]];
+        for (const wk of [wrapX1, wrapX2, wrapX3, wrapX4, wrapX5]) wpoly(wk, "#402218", "#110805", 1.5);
+        wpoly([[230, 420], [270, 420], [285, 450], [250, 490], [215, 450]], goldGrad, "#000000", 2);
+        wglide([[235, 425], [265, 425], [275, 450], [250, 480], [225, 450]], goldLightGrad, 2);
+        const pg = ap(250, 450);
+        ctx.save();
+        ctx.shadowColor = "#ff0844";
+        ctx.shadowBlur = 2.5;
+        ctx.fillStyle = gemGrad;
+        ctx.beginPath();
+        ctx.arc(pg[0], pg[1], 0.75, 0, TAU);
+        ctx.fill();
+        ctx.restore();
+        wpoly([[270, 120], [350, 90], [410, 50], [480, 180], [410, 320], [350, 280], [270, 240], [310, 180]], bladeOuterGrad, "#111111", 2);
+        wpoly([[275, 135], [340, 110], [390, 75], [450, 180], [390, 295], [340, 260], [275, 225], [300, 180]], bladeInnerGrad);
+        ctx.save();
+        ctx.shadowColor = "#ffffff";
+        ctx.shadowBlur = 2;
+        wglide([[410, 50], [480, 180], [410, 320]], "#ffffff", 3, 0.8);
+        ctx.restore();
+        ctx.save();
+        ctx.shadowColor = "#ff0844";
+        ctx.shadowBlur = 2;
+        wpoly([[330, 180], [350, 150], [360, 150], [345, 175], [365, 175], [345, 205], [335, 205], [345, 180]], "#ff0844");
+        wglide([[310, 180], [360, 180], [390, 180]], "#ff0055", 2, 0.6);
+        ctx.restore();
+        wpoly([[270, 120], [350, 90], [410, 50], [480, 180], [410, 320], [350, 280], [270, 240], [310, 180]], bladeOuterGrad, "#111111", 2, 1, -1);
+        wpoly([[275, 135], [340, 110], [390, 75], [450, 180], [390, 295], [340, 260], [275, 225], [300, 180]], bladeInnerGrad, null, 0, 1, -1);
+        ctx.save();
+        ctx.shadowColor = "#ffffff";
+        ctx.shadowBlur = 2;
+        wglide([[410, 50], [480, 180], [410, 320]], "#ffffff", 3, 0.8, -1);
+        ctx.restore();
+        ctx.save();
+        ctx.shadowColor = "#ff0844";
+        ctx.shadowBlur = 2;
+        wpoly([[330, 180], [350, 150], [360, 150], [345, 175], [365, 175], [345, 205], [335, 205], [345, 180]], "#ff0844", null, 0, 1, -1);
+        wglide([[310, 180], [360, 180], [390, 180]], "#ff0055", 2, 0.6, -1);
+        ctx.restore();
+        wpoly([[250, 90], [300, 140], [300, 220], [250, 270], [200, 220], [200, 140]], goldGrad, "#1a0a00", 3);
+        wglide([[250, 105], [285, 145], [285, 215], [250, 255], [215, 215], [215, 145]], goldLightGrad, 3);
+        ctx.save();
+        ctx.shadowColor = "#ff0844";
+        ctx.shadowBlur = 2.5;
+        wpoly([[250, 120], [275, 180], [250, 240], [225, 180]], "#6a001b");
+        wpoly([[250, 135], [265, 180], [250, 225], [235, 180]], gemGrad);
+        wpoly([[250, 140], [255, 180], [250, 160], [245, 180]], "#ffffff", null, 0, 0.8);
+        ctx.restore();
+        drawGripHand(7.5, 2.2, 7, 6);
       } else {
         const weaponWindup = anim === "attack"
           ? (actionProgress < 0.22 ? -0.72 : hitFrame ? 0.72 : holdFrame ? 0.34 : recoilFrame ? -0.18 : 0)

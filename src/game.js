@@ -10,7 +10,7 @@
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
   const SIGNAL_REALTIME_RELAY_LIMIT = 2;
   const SIGNAL_REALTIME_TYPES = new Set(["state", "snapshot", "attack", "skill", "collect", "openChest", "dropItem", "damage", "chooseDoor"]);
-  const APP_VERSION = "20260718-pixel-vfx-351";
+  const APP_VERSION = "20260718-pixel-vfx-352";
   const CHANGELOG_ENTRIES = [
     {
       version: APP_VERSION,
@@ -17855,7 +17855,7 @@
       const dirY = Math.sin(angle);
       const sideX = -dirY;
       const sideY = dirX;
-      this.addBasicAttackBurst(x + dirX * length * 0.56, y + dirY * length * 0.56, angle, "spearman", length);
+      this.addBasicAttackBurst(x + dirX * (8 + length * 0.5), y + dirY * (8 + length * 0.5), angle, "spearman", length);
       let hits = 0;
       for (let i = this.run.enemies.length - 1; i >= 0; i--) {
         const enemy = this.run.enemies[i];
@@ -34452,14 +34452,15 @@
             ctx.lineCap = "butt";
             ctx.lineJoin = "miter";
             ctx.shadowBlur = this.glow(16);
-            const thrustLen = length * (0.98 + progress * 0.12);
+            const half = length * 0.5;
+            const thrustLen = half * (0.98 + progress * 0.12);
             ctx.fillStyle = effect.accent || "#eefdd6";
             ctx.beginPath();
-            ctx.moveTo(-length * 0.24, -width * 0.2);
+            ctx.moveTo(-half * 0.95, -width * 0.2);
             ctx.lineTo(thrustLen * 0.78, -width * 0.16);
             ctx.lineTo(thrustLen, 0);
             ctx.lineTo(thrustLen * 0.78, width * 0.16);
-            ctx.lineTo(-length * 0.24, width * 0.2);
+            ctx.lineTo(-half * 0.95, width * 0.2);
             ctx.closePath();
             ctx.fill();
             ctx.strokeStyle = effect.color || "#9fd27a";
@@ -34469,15 +34470,15 @@
             ctx.strokeStyle = "#ffffff";
             ctx.lineWidth = 2;
             ctx.beginPath();
-            ctx.moveTo(-length * 0.18, 0);
+            ctx.moveTo(-half * 0.8, 0);
             ctx.lineTo(thrustLen * 0.9, 0);
             ctx.stroke();
             ctx.fillStyle = effect.color || "#9fd27a";
             ctx.beginPath();
             ctx.moveTo(thrustLen * 0.72, -width * 0.55);
-            ctx.lineTo(thrustLen * 1.02, 0);
+            ctx.lineTo(thrustLen * 1.05, 0);
             ctx.lineTo(thrustLen * 0.72, width * 0.55);
-            ctx.lineTo(thrustLen * 0.82, 0);
+            ctx.lineTo(thrustLen * 0.84, 0);
             ctx.closePath();
             ctx.fill();
           } else if (effect.kind === "guardian") {

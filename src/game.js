@@ -10,7 +10,7 @@
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
   const SIGNAL_REALTIME_RELAY_LIMIT = 2;
   const SIGNAL_REALTIME_TYPES = new Set(["state", "snapshot", "attack", "skill", "collect", "openChest", "dropItem", "damage", "chooseDoor"]);
-  const APP_VERSION = "20260718-pixel-vfx-350";
+  const APP_VERSION = "20260718-pixel-vfx-351";
   const CHANGELOG_ENTRIES = [
     {
       version: APP_VERSION,
@@ -13346,6 +13346,7 @@
         </section>
       `);
       this.restoreScreenScroll(scroll);
+      requestAnimationFrame(() => this.renderCharacterPreviewCanvas());
     }
 
     showStatPoints(preserveScroll = false) {
@@ -13399,6 +13400,7 @@
         </section>
       `);
       this.restoreScreenScroll(scroll);
+      requestAnimationFrame(() => this.renderCharacterPreviewCanvas());
     }
 
     customizationOptionData() {
@@ -13457,6 +13459,7 @@
         </section>
       `);
       this.restoreScreenScroll(scroll);
+      requestAnimationFrame(() => this.renderCharacterPreviewCanvas());
       for (const swatch of this.screen.querySelectorAll(".swatch")) {
         swatch.addEventListener("click", () => {
           const input = swatch.querySelector("input");
@@ -13486,13 +13489,55 @@
       `;
     }
 
+    hasExportedCharacterPreview(characterId) {
+      const id = characterById(characterId)?.id || characterId;
+      const path = `assets/exported/characters/${id}/idle_00.png`;
+      if (this.exportedAssetMissing?.has(path)) return false;
+      if (this.exportedAssetManifestPaths?.size) return this.exportedAssetManifestPaths.has(path);
+      return false;
+    }
+
     characterPreviewImage(characterId, powerId) {
       const character = characterById(characterId);
       const altText = `${character.name} preview`;
-      const imagePath = `assets/exported/characters/${characterId}/idle_00.png`;
-      return `
-        <img class="character-preview-image" src="${imagePath}" alt="${altText}" loading="lazy" />
-      `;
+      if (this.hasExportedCharacterPreview(characterId)) {
+        const imagePath = `assets/exported/characters/${characterId}/idle_00.png`;
+        return `
+          <img class="character-preview-image" src="${imagePath}" alt="${altText}" loading="lazy" />
+        `;
+      }
+      return `<canvas class="character-preview-image" data-character-preview data-character="${characterId}" width="256" height="256" aria-label="${altText}"></canvas>`;
+    }
+
+    renderCharacterPreviewCanvas() {
+      const canvas = this.screen?.querySelector("[data-character-preview]");
+      if (!canvas) return;
+      const rect = canvas.getBoundingClientRect();
+      if (rect.width < 8 || rect.height < 8) return;
+      const ratio = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
+      const targetW = Math.round(rect.width * ratio);
+      const targetH = Math.round(rect.height * ratio);
+      if (canvas.width !== targetW || canvas.height !== targetH) { canvas.width = targetW; canvas.height = targetH; }
+      canvas.style.width = `${rect.width}px`;
+      canvas.style.height = `${rect.height}px`;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return;
+      ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+      ctx.clearRect(0, 0, rect.width, rect.height);
+      const characterId = canvas.dataset.character || "swordsman";
+      const power = powerById(this.save.account.selectedPower || "fire");
+      const actor = {
+        characterId,
+        facing: -0.12,
+        animation: "idle",
+        animTime: this.menuTime,
+        actionTime: 0,
+        actionTotal: 0,
+        hp: 1,
+        powerAwakened: false
+      };
+      const scale = Math.min(rect.width / 120, rect.height / 96);
+      this.drawHeroLite(ctx, rect.width / 2, rect.height / 2 + 6, scale, actor, power, this.save.customization);
     }
 
     showInventory() {
@@ -13523,6 +13568,7 @@
           </div>
         </section>
       `);
+      requestAnimationFrame(() => this.renderCharacterPreviewCanvas());
     }
 
     runItemCard(entry, context = "bag") {

@@ -10,8 +10,17 @@
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
   const SIGNAL_REALTIME_RELAY_LIMIT = 2;
   const SIGNAL_REALTIME_TYPES = new Set(["state", "snapshot", "attack", "skill", "collect", "openChest", "dropItem", "damage", "chooseDoor"]);
-  const APP_VERSION = "20260718-pixel-vfx-363";
+  const APP_VERSION = "20260718-pixel-vfx-364";
   const CHANGELOG_ENTRIES = [
+    {
+      version: APP_VERSION,
+      title: "Đập bổ xuống — làm lại chuỗi tấn công búa & rìu",
+      items: [
+        "Búa: giơ cao lên đỉnh đầu lúc vung, rồi đập mạnh xuống đất, trụ người và ngã người theo nhịp đập (windup giơ lên, hit hạ đầu búa).",
+        "Rìu: bổ chẻ từ trên xuống — lưỡi rìu giơ cao ngang vai rồi chém mạnh xuống, thân người cúi theo góc bổ.",
+        "Xoay nòng vũ khí theo chuỗi attack của từng loại: búa/-1.25→+0.6 rad, rìu/-1.25→+0.7 rad; bóng dưới đất giữ nguyên, không xoay theo.",
+      ],
+    },
     {
       version: APP_VERSION,
       title: "Rìu song lưỡi Huyết Thạch theo thiết kế người chơi",
@@ -31415,19 +31424,19 @@
           attackPose.squashY = hitFrame ? 0.91 : holdFrame ? 0.97 : 1;
           attackPose.crouch = hitFrame ? 3 : holdFrame ? 1 : 0;
         } else if (character.id === "hammer") {
-          attackPose.lift = hitFrame ? -1 : holdFrame ? -2 : recoilFrame ? 2 : 0;
-          attackPose.shift = dir * (hitFrame ? 11 : holdFrame ? 4 : recoilFrame ? -4 : 0);
-          attackPose.lean = dir * (hitFrame ? 0.15 : holdFrame ? 0.06 : recoilFrame ? -0.05 : 0);
-          attackPose.squashX = hitFrame ? 1.15 : holdFrame ? 1.05 : 1;
-          attackPose.squashY = hitFrame ? 0.89 : holdFrame ? 0.96 : 1;
-          attackPose.crouch = hitFrame ? 5 : holdFrame ? 3 : 1;
+          attackPose.lift = actionProgress < 0.22 ? -1 : hitFrame ? -1 : holdFrame ? -2 : recoilFrame ? 2 : 0;
+          attackPose.shift = dir * (actionProgress < 0.22 ? -3 : hitFrame ? 12 : holdFrame ? 5 : recoilFrame ? -4 : 0);
+          attackPose.lean = dir * (actionProgress < 0.22 ? -0.09 : hitFrame ? 0.16 : holdFrame ? 0.07 : recoilFrame ? -0.06 : 0);
+          attackPose.squashX = hitFrame ? 1.16 : holdFrame ? 1.05 : 1;
+          attackPose.squashY = hitFrame ? 0.88 : holdFrame ? 0.96 : 1;
+          attackPose.crouch = actionProgress < 0.22 ? 1 : hitFrame ? 6 : holdFrame ? 4 : recoilFrame ? 2 : 1;
         } else if (character.id === "axe") {
-          attackPose.lift = hitFrame ? -2 : holdFrame ? -1 : recoilFrame ? 1 : 0;
-          attackPose.shift = dir * (hitFrame ? 8 : holdFrame ? 3 : recoilFrame ? -3 : 0);
-          attackPose.lean = dir * (hitFrame ? 0.19 : holdFrame ? 0.08 : recoilFrame ? -0.06 : 0);
+          attackPose.lift = actionProgress < 0.22 ? -1 : hitFrame ? -2 : holdFrame ? -1 : recoilFrame ? 1 : 0;
+          attackPose.shift = dir * (actionProgress < 0.22 ? -3 : hitFrame ? 10 : holdFrame ? 4 : recoilFrame ? -3 : 0);
+          attackPose.lean = dir * (actionProgress < 0.22 ? -0.1 : hitFrame ? 0.2 : holdFrame ? 0.09 : recoilFrame ? -0.07 : 0);
           attackPose.squashX = hitFrame ? 1.12 : holdFrame ? 1.04 : 1;
           attackPose.squashY = hitFrame ? 0.91 : holdFrame ? 0.96 : 1;
-          attackPose.crouch = hitFrame ? 4 : holdFrame ? 2 : 0;
+          attackPose.crouch = actionProgress < 0.22 ? 1 : hitFrame ? 5 : holdFrame ? 3 : recoilFrame ? 2 : 0;
         } else {
           attackPose.lift = hitFrame ? -3 : holdFrame ? -2 : recoilFrame ? 1 : 0;
           attackPose.shift = dir * (hitFrame ? 6 : holdFrame ? 3 : recoilFrame ? -3 : 0);
@@ -31934,15 +31943,20 @@
           ctx.restore();
         }
       } else if (character.id === "hammer") {
-        const swing = hitFrame ? 24 : holdFrame ? 12 : recoilFrame ? -5 : 2;
+        const swing = actionProgress < 0.22 ? -4 : hitFrame ? 16 : holdFrame ? 8 : recoilFrame ? -6 : 2;
+        const hammerSpin = anim === "attack"
+          ? (actionProgress < 0.22 ? -0.3 - 0.95 * clamp(actionProgress / 0.22, 0, 1)
+            : hitFrame ? 0.6 : holdFrame ? 0.38 : recoilFrame ? 0.06 : 0)
+          : 0;
         applyWeaponFacing(facing);
-        ctx.translate(swing, 0);
-        ctx.lineCap = "butt";
-        ctx.lineJoin = "miter";
         ctx.fillStyle = "rgba(0,0,0,0.26)";
         ctx.beginPath();
         ctx.ellipse(28, 14, 28, 3.4, 0, 0, TAU);
         ctx.fill();
+        ctx.rotate(hammerSpin);
+        ctx.translate(swing, 0);
+        ctx.lineCap = "butt";
+        ctx.lineJoin = "miter";
         const handle = ctx.createLinearGradient(1, -2, 34, 2);
         handle.addColorStop(0, "#6b4a2b");
         handle.addColorStop(0.5, "#9a6d3f");
@@ -31981,8 +31995,17 @@
         ctx.fillRect(headX + 3, -12, 1.6, 7);
         ctx.globalAlpha = 1;
       } else if (character.id === "axe") {
-        const swing = hitFrame ? 22 : holdFrame ? 11 : recoilFrame ? -4 : 2;
+        const swing = actionProgress < 0.22 ? -4 : hitFrame ? 16 : holdFrame ? 8 : recoilFrame ? -5 : 2;
+        const axeSpin = anim === "attack"
+          ? (actionProgress < 0.22 ? -0.25 - 1.0 * clamp(actionProgress / 0.22, 0, 1)
+            : hitFrame ? 0.7 : holdFrame ? 0.45 : recoilFrame ? 0.1 : 0)
+          : 0;
         applyWeaponFacing(facing);
+        ctx.fillStyle = "rgba(0,0,0,0.26)";
+        ctx.beginPath();
+        ctx.ellipse(16, 17, 22, 3.2, 0, 0, TAU);
+        ctx.fill();
+        ctx.rotate(axeSpin);
         ctx.translate(swing * 0.8, 0);
         ctx.lineCap = "round";
         ctx.lineJoin = "round";
@@ -32042,10 +32065,6 @@
         gemGrad.addColorStop(0, "#ffb199");
         gemGrad.addColorStop(0.3, "#ff0844");
         gemGrad.addColorStop(1, "#6a001b");
-        ctx.fillStyle = "rgba(0,0,0,0.26)";
-        ctx.beginPath();
-        ctx.ellipse(16, 17, 22, 3.2, 0, 0, TAU);
-        ctx.fill();
         wpoly([[235, 100], [250, 20], [265, 100]], bladeOuterGrad, bladeInnerGrad, 2);
         wpoly([[250, 20], [265, 100], [250, 95]], bladeInnerGrad);
         wpoly([[235, 90], [265, 90], [265, 440], [235, 440]], woodGrad, "#000000", 2);

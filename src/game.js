@@ -10,8 +10,17 @@
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
   const SIGNAL_REALTIME_RELAY_LIMIT = 2;
   const SIGNAL_REALTIME_TYPES = new Set(["state", "snapshot", "attack", "skill", "collect", "openChest", "dropItem", "damage", "chooseDoor"]);
-  const APP_VERSION = "20260718-pixel-vfx-364";
+  const APP_VERSION = "20260718-pixel-vfx-365";
   const CHANGELOG_ENTRIES = [
+    {
+      version: APP_VERSION,
+      title: "Nới rộng hitbox tấn công búa và rìu",
+      items: [
+        "Búa: tầm đánh 104 → 124 (+20), mở rộng theo combo (+26).",
+        "Rìu: tầm đánh 98 → 118 (+20), mở rộng theo combo (+26).",
+        "Vụ nổ tấn công (attack burst) cũng dịch ra xa theo tầm mới.",
+      ],
+    },
     {
       version: APP_VERSION,
       title: "Đập bổ xuống — làm lại chuỗi tấn công búa & rìu",
@@ -17927,7 +17936,7 @@
     }
 
     performHammerSwing(x, y, angle, baseDamage, combo = 1, sourceId = "") {
-      const range = 104 + Math.min(22, combo * 2);
+      const range = 124 + Math.min(26, combo * 2);
       const arc = Math.PI * 0.98;
       const damage = baseDamage * (1.0 + combo * 0.026);
       const dirX = Math.cos(angle);
@@ -17974,7 +17983,7 @@
     }
 
     performAxeSwing(x, y, angle, baseDamage, combo = 1, sourceId = "") {
-      const range = 98 + Math.min(22, combo * 2);
+      const range = 118 + Math.min(26, combo * 2);
       const arc = Math.PI * 0.8;
       const damage = baseDamage * (0.94 + combo * 0.024);
       const dirX = Math.cos(angle);

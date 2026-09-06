@@ -10,10 +10,20 @@
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
   const SIGNAL_REALTIME_RELAY_LIMIT = 2;
   const SIGNAL_REALTIME_TYPES = new Set(["state", "snapshot", "attack", "skill", "collect", "openChest", "dropItem", "damage", "chooseDoor"]);
-  const APP_VERSION = "20260718-pixel-vfx-361";
+  const APP_VERSION = "20260718-pixel-vfx-362";
   const CHANGELOG_ENTRIES = [
     {
       version: APP_VERSION,
+      title: "Rìu chiến 1 lưỡi theo thiết kế người chơi",
+      items: [
+        "Đầu rìu thép rèn to bản: thân thép xám, lưỡi thép sáng #8c929b với cạnh cắt sáng #d5d8dc, đỉnh poll (#b8bcc2), gờ rèn (#51555d), lỗ tra cán (#17191d) có viền kim loại (#777c84).",
+        "Cán gỗ nâu dài (#4a2d1b) có sọc vân gỗ đậm, quấn da đen ở đốc (#171416) kèm vằn buộc (#65402b), vành kim loại kép ở giữa cán (#111216 + #66616a).",
+        "Khớp nối rìu (#24252a) có viền sáng, gai phản phía sau (#555960) với điểm nhấn (#a4a8ae), vết chém chiến trường (#17181c), vết xước trên lưỡi (#d0d3d7), dấu thoi đỏ thẫm (#711d26) trên má lưỡi.",
+        "Nhúng thiết kế SVG của người chơi vào renderer trong trận, preview và 44 frame export."
+      ]
+    },
+    {
+      version: "20260718-pixel-vfx-361",
       title: "Giao diện mobile khít như PC",
       items: [
         "HUD trên điện thoại giờ dùng đúng bố cục 3 cột như PC: thanh HP/năng lượng (trái), thông tin phòng/mục tiêu (giữa) và dải kỹ năng Q/E/R/F kèm hồi chiêu (phải).",
@@ -31287,13 +31297,15 @@
         block(24 + reach, -6, 8, 12, power.accent || "#ffffff", hit ? 0.9 : 0.5);
         block(34 + reach, -3, 3, 6, "#0a0e16", 0.8);
       } else if (character.id === "axe") {
-        block(-5, -3, 4, 7, trim);
-        block(-2, -2, 24 + reach, 5, skin);
-        block(2 + reach, -4, 4, 9, trim);
-        block(23 + reach, -7, 4, 14, "#3a4048");
-        poly([[25 + reach, -6], [29 + reach, -13], [34 + reach, -18], [37 + reach, -14], [38 + reach, -2], [37 + reach, 8], [29 + reach, 11], [25 + reach, 5]], "#8b96a5");
-        poly([[34 + reach, -16], [36 + reach, -4], [35.5 + reach, 6]], "#d7dee8");
-        block(24 + reach, -6, 2, 12, "#7a1f24");
+        block(-6, -3, 30 + reach, 5, "#4a2d1b");
+        block(-3, -1.5, 23 + reach, 1.3, "#815334", 0.6);
+        block(-6, -1, 5, 4, "#171416");
+        block(4 + reach, -4, 4, 9, "#34373d");
+        block(22 + reach, -7, 5, 14, "#34373d");
+        poly([[24 + reach, -8], [29 + reach, -11], [37 + reach, -11], [41 + reach, -5], [40 + reach, 3], [36 + reach, 8], [28 + reach, 8], [24 + reach, 4]], "#8c929b");
+        poly([[33 + reach, -10], [38 + reach, -7], [38 + reach, 2], [35 + reach, 6]], "#d5d8dc");
+        poly([[27 + reach, -2], [22 + reach, 8], [25 + reach, 9], [29 + reach, 1]], "#555960");
+        block(28 + reach, -4, 2, 7, "#711d26");
       } else {
         ctx.rotate(hit ? -0.62 : -0.18);
         block(-4, -3, 10, 6, skin);
@@ -31963,94 +31975,74 @@
         ctx.translate(swing * 0.8, 0);
         ctx.lineCap = "round";
         ctx.lineJoin = "round";
+        const wp = (X, Y) => [(715 - Y) * 0.075, (512 - X) * 0.075];
+        const wpath = (pts) => {
+          ctx.beginPath();
+          pts.forEach((p, i) => {
+            const g = wp(p[0], p[1]);
+            i ? ctx.lineTo(g[0], g[1]) : ctx.moveTo(g[0], g[1]);
+          });
+        };
+        const wpoly = (pts, fill, stroke, w, alpha = 1) => {
+          wpath(pts);
+          ctx.closePath();
+          if (fill) { ctx.globalAlpha = alpha; ctx.fillStyle = fill; ctx.fill(); ctx.globalAlpha = 1; }
+          if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = w * 0.075; ctx.stroke(); }
+        };
+        const wglide = (pts, stroke, w, alpha = 1) => {
+          wpath(pts);
+          ctx.strokeStyle = stroke;
+          ctx.lineWidth = w * 0.075;
+          ctx.globalAlpha = alpha;
+          ctx.stroke();
+          ctx.globalAlpha = 1;
+        };
+        const wline = (x1, y1, x2, y2, stroke, w, alpha = 1) => {
+          ctx.strokeStyle = stroke;
+          ctx.lineWidth = w * 0.075;
+          ctx.globalAlpha = alpha;
+          ctx.beginPath();
+          ctx.moveTo(wp(x1, y1)[0], wp(x1, y1)[1]);
+          ctx.lineTo(wp(x2, y2)[0], wp(x2, y2)[1]);
+          ctx.stroke();
+          ctx.globalAlpha = 1;
+        };
         ctx.fillStyle = "rgba(0,0,0,0.26)";
         ctx.beginPath();
-        ctx.ellipse(26, 18, 28, 3.5, 0, 0, TAU);
+        ctx.ellipse(12, 16, 24, 3, 0, 0, TAU);
         ctx.fill();
-        const handle = ctx.createLinearGradient(-4, -2, 30, 2);
-        handle.addColorStop(0, "#3a2413");
-        handle.addColorStop(0.5, "#6e4a2a");
-        handle.addColorStop(1, "#33200f");
-        ctx.fillStyle = handle;
-        roundPixel(ctx, -4, -2.2, 34 + hitFrame * 4, 4.4, 2);
-        ctx.fillStyle = "rgba(20,12,6,0.55)";
-        for (let i = 2; i < 30; i += 7) ctx.fillRect(i, -2.2, 1.5, 4.4);
-        drawGripHand(12 + hitFrame, -4, 6, 6);
-        ctx.fillStyle = "#2b2f3a";
-        roundPixel(ctx, -7, -3.5, 5, 7, 2);
-        const bladeX = 26 + hitFrame * 4;
-        ctx.fillStyle = "#23272e";
-        ctx.fillRect(bladeX - 9, -5, 7, 10);
-        ctx.fillStyle = "#3a4048";
-        ctx.fillRect(bladeX - 9, -5, 7, 2);
-        ctx.beginPath();
-        ctx.moveTo(bladeX - 9, -2.5);
-        ctx.lineTo(bladeX - 15, 0);
-        ctx.lineTo(bladeX - 9, 2.5);
-        ctx.closePath();
-        ctx.fillStyle = "#3a4048";
-        ctx.fill();
-        ctx.strokeStyle = "#14171c";
-        ctx.lineWidth = 1.1;
-        ctx.stroke();
-        ctx.fillStyle = "#8b96a5";
-        ctx.fillRect(bladeX - 3, -7, 5, 14);
-        ctx.fillStyle = "#7a1f24";
-        ctx.fillRect(bladeX - 2, -7, 2, 14);
-        ctx.fillStyle = "#c9d3de";
-        ctx.fillRect(bladeX - 1.6, -7, 1.1, 14);
-        const blade = ctx.createLinearGradient(bladeX - 2, -20, bladeX + 12, 16);
-        blade.addColorStop(0, "#565e68");
-        blade.addColorStop(0.35, "#8b96a5");
-        blade.addColorStop(0.62, "#3a4048");
-        blade.addColorStop(1, "#23272e");
-        ctx.fillStyle = blade;
-        ctx.beginPath();
-        ctx.moveTo(bladeX - 2, -6);
-        ctx.lineTo(bladeX + 3, -13);
-        ctx.lineTo(bladeX + 9, -20);
-        ctx.lineTo(bladeX + 13, -17);
-        ctx.lineTo(bladeX + 15, -4);
-        ctx.lineTo(bladeX + 14, 8);
-        ctx.lineTo(bladeX + 5, 12);
-        ctx.lineTo(bladeX - 2, 6);
-        ctx.closePath();
-        ctx.fill();
-        ctx.strokeStyle = "#14171c";
-        ctx.lineWidth = 1.4;
-        ctx.stroke();
-        ctx.strokeStyle = "#d7dee8";
-        ctx.lineWidth = 2.2;
-        ctx.globalAlpha = 0.9;
-        ctx.beginPath();
-        ctx.moveTo(bladeX + 9.5, -18.5);
-        ctx.lineTo(bladeX + 13, -5);
-        ctx.lineTo(bladeX + 12.5, 7);
-        ctx.stroke();
-        ctx.globalAlpha = 1;
-        ctx.fillStyle = "#23272e";
-        ctx.fillRect(bladeX + 11, -8, 2.2, 2.6);
-        ctx.fillRect(bladeX + 12, 0.5, 2.2, 2.6);
-        ctx.strokeStyle = "#9aa6b5";
-        ctx.lineWidth = 1;
-        ctx.globalAlpha = 0.55;
-        ctx.beginPath();
-        ctx.moveTo(bladeX + 3, -10);
-        ctx.lineTo(bladeX + 10, -5);
-        ctx.stroke();
-        ctx.beginPath();
-        ctx.moveTo(bladeX + 2, 6);
-        ctx.lineTo(bladeX + 9, 8);
-        ctx.stroke();
-        ctx.globalAlpha = 1;
-        ctx.fillStyle = "#7a1f24";
-        ctx.beginPath();
-        ctx.moveTo(bladeX + 2, -3);
-        ctx.lineTo(bladeX + 5.5, 0);
-        ctx.lineTo(bladeX + 2, 3);
-        ctx.lineTo(bladeX - 1.5, 0);
-        ctx.closePath();
-        ctx.fill();
+        wpoly([[402, 825], [414, 690], [425, 570], [435, 465], [443, 395], [449, 345], [458, 300], [492, 308], [482, 375], [475, 425], [469, 485], [458, 600], [448, 720], [438, 830]], "#4a2d1b", "#171217", 12);
+        wglide([[438, 795], [447, 670], [455, 560], [463, 475], [468, 420], [475, 360], [482, 325]], "#815334", 9, 0.65);
+        wline(426, 690, 452, 675, "#24170f", 8);
+        wline(422, 745, 447, 730, "#24170f", 7);
+        wline(418, 785, 443, 772, "#24170f", 6);
+        wpoly([[401, 825], [438, 830], [443, 785], [407, 780]], "#171416", "#09090a", 8);
+        wline(404, 816, 440, 821, "#65402b", 7);
+        wline(405, 803, 441, 808, "#65402b", 7);
+        wline(406, 790, 442, 795, "#65402b", 7);
+        wpoly([[440, 310], [488, 318], [510, 382], [475, 475], [438, 463], [452, 382]], "#24252a", "#09090b", 13);
+        wglide([[465, 327], [483, 333], [493, 377]], "#70747b", 7, 0.7);
+        wpoly([[470, 300], [510, 238], [575, 195], [665, 212], [730, 255], [770, 350], [780, 445], [750, 510], [705, 555], [625, 570], [550, 540], [500, 495], [475, 440], [480, 370]], "#34373d", "#0a0b0d", 18);
+        wpoly([[650, 215], [700, 225], [735, 250], [755, 295], [778, 345], [790, 410], [775, 455], [765, 490], [742, 515], [705, 550], [655, 565], [690, 520], [716, 480], [725, 435], [720, 385], [715, 330], [695, 270], [650, 215]], "#8c929b", "#111216", 11);
+        wglide([[705, 550], [740, 515], [765, 480], [775, 445], [790, 390], [775, 320], [755, 295]], "#d5d8dc", 15);
+        wglide([[655, 225], [685, 265], [700, 315], [705, 365], [710, 420], [705, 470], [680, 515]], "#555a62", 28, 0.85);
+        wpoly([[575, 220], [625, 208], [652, 225], [610, 245]], "#b8bcc2", null, 0, 0.8);
+        wline(705, 330, 735, 345, "#d0d3d7", 7, 0.55);
+        wline(710, 365, 742, 380, "#d0d3d7", 7, 0.55);
+        wline(704, 430, 735, 438, "#d0d3d7", 7, 0.55);
+        wline(675, 500, 710, 505, "#d0d3d7", 7, 0.55);
+        wpoly([[485, 290], [530, 250], [570, 265], [555, 330], [515, 360], [485, 335]], "#17191d", "#0a0b0c", 10);
+        wglide([[492, 292], [530, 260], [558, 271]], "#777c84", 8);
+        wpoly([[515, 240], [575, 205], [650, 218], [620, 240], [570, 230], [530, 265]], "#51555d");
+        wline(595, 285, 620, 300, "#17181c", 12);
+        wline(625, 470, 655, 480, "#17181c", 12);
+        wline(545, 430, 570, 445, "#17181c", 12);
+        wpoly([[585, 330], [625, 350], [610, 390], [570, 370]], "#711d26", "#2b0c11", 8);
+        wpoly([[480, 390], [415, 365], [370, 395], [425, 420], [485, 430]], "#555960", "#0a0b0d", 13);
+        wglide([[425, 382], [390, 395], [430, 405]], "#a4a8ae", 6);
+        wline(398, 700, 448, 705, "#111216", 12);
+        wline(400, 700, 447, 705, "#66616a", 4, 0.5);
+        drawGripHand(-6.5, 6.5, 6, 6);
       } else {
         const weaponWindup = anim === "attack"
           ? (actionProgress < 0.22 ? -0.72 : hitFrame ? 0.72 : holdFrame ? 0.34 : recoilFrame ? -0.18 : 0)

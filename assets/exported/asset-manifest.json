@@ -1,6 +1,6 @@
 {
-  "version": "20260718-pixel-vfx-355",
-  "generatedAt": "2026-09-01T10:42:34.600Z",
+  "version": "20260718-pixel-vfx-356",
+  "generatedAt": "2026-09-06T05:54:33.512Z",
   "files": [
     {
       "path": "monsters/skeletonArcher/idle_00.png",
@@ -8972,6 +8972,490 @@
         "category": "object",
         "roomType": "secretAltar",
         "frame": 4
+      }
+    },
+    {
+      "path": "characters/hammer/skill_00.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "character",
+        "character": "hammer",
+        "state": "skill",
+        "frame": 0
+      }
+    },
+    {
+      "path": "characters/hammer/skill_01.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "character",
+        "character": "hammer",
+        "state": "skill",
+        "frame": 1
+      }
+    },
+    {
+      "path": "characters/hammer/skill_02.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "character",
+        "character": "hammer",
+        "state": "skill",
+        "frame": 2
+      }
+    },
+    {
+      "path": "characters/hammer/skill_03.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "character",
+        "character": "hammer",
+        "state": "skill",
+        "frame": 3
+      }
+    },
+    {
+      "path": "characters/hammer/ultimate_00.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "character",
+        "character": "hammer",
+        "state": "ultimate",
+        "frame": 0
+      }
+    },
+    {
+      "path": "characters/hammer/ultimate_01.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "character",
+        "character": "hammer",
+        "state": "ultimate",
+        "frame": 1
+      }
+    },
+    {
+      "path": "characters/hammer/ultimate_02.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "character",
+        "character": "hammer",
+        "state": "ultimate",
+        "frame": 2
+      }
+    },
+    {
+      "path": "characters/hammer/ultimate_03.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "character",
+        "character": "hammer",
+        "state": "ultimate",
+        "frame": 3
+      }
+    },
+    {
+      "path": "characters/axe/idle_00.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "character",
+        "character": "axe",
+        "state": "idle",
+        "frame": 0
+      }
+    },
+    {
+      "path": "characters/axe/idle_01.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "character",
+        "character": "axe",
+        "state": "idle",
+        "frame": 1
+      }
+    },
+    {
+      "path": "characters/axe/run_00.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "character",
+        "character": "axe",
+        "state": "run",
+        "frame": 0
+      }
+    },
+    {
+      "path": "characters/axe/run_01.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "character",
+        "character": "axe",
+        "state": "run",
+        "frame": 1
+      }
+    },
+    {
+      "path": "characters/axe/run_02.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "character",
+        "character": "axe",
+        "state": "run",
+        "frame": 2
+      }
+    },
+    {
+      "path": "characters/axe/run_03.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "character",
+        "character": "axe",
+        "state": "run",
+        "frame": 3
+      }
+    },
+    {
+      "path": "characters/axe/attack_00.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "character",
+        "character": "axe",
+        "state": "attack",
+        "frame": 0
+      }
+    },
+    {
+      "path": "characters/axe/attack_01.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "character",
+        "character": "axe",
+        "state": "attack",
+        "frame": 1
+      }
+    },
+    {
+      "path": "characters/axe/attack_02.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "character",
+        "character": "axe",
+        "state": "attack",
+        "frame": 2
+      }
+    },
+    {
+      "path": "characters/axe/attack_03.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "character",
+        "character": "axe",
+        "state": "attack",
+        "frame": 3
+      }
+    },
+    {
+      "path": "characters/axe/skill_00.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "character",
+        "character": "axe",
+        "state": "skill",
+        "frame": 0
+      }
+    },
+    {
+      "path": "characters/axe/skill_01.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "character",
+        "character": "axe",
+        "state": "skill",
+        "frame": 1
+      }
+    },
+    {
+      "path": "characters/axe/skill_02.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "character",
+        "character": "axe",
+        "state": "skill",
+        "frame": 2
+      }
+    },
+    {
+      "path": "characters/axe/skill_03.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "character",
+        "character": "axe",
+        "state": "skill",
+        "frame": 3
+      }
+    },
+    {
+      "path": "characters/axe/ultimate_00.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "character",
+        "character": "axe",
+        "state": "ultimate",
+        "frame": 0
+      }
+    },
+    {
+      "path": "characters/axe/ultimate_01.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "character",
+        "character": "axe",
+        "state": "ultimate",
+        "frame": 1
+      }
+    },
+    {
+      "path": "characters/axe/ultimate_02.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "character",
+        "character": "axe",
+        "state": "ultimate",
+        "frame": 2
+      }
+    },
+    {
+      "path": "characters/axe/ultimate_03.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "character",
+        "character": "axe",
+        "state": "ultimate",
+        "frame": 3
+      }
+    },
+    {
+      "path": "characters/axe/death_00.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "character",
+        "character": "axe",
+        "state": "death",
+        "frame": 0
+      }
+    },
+    {
+      "path": "characters/axe/death_01.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "character",
+        "character": "axe",
+        "state": "death",
+        "frame": 1
+      }
+    },
+    {
+      "path": "characters/axe/death_02.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "character",
+        "character": "axe",
+        "state": "death",
+        "frame": 2
+      }
+    },
+    {
+      "path": "characters/axe/death_03.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "character",
+        "character": "axe",
+        "state": "death",
+        "frame": 3
+      }
+    },
+    {
+      "path": "characters/hammer/idle_00.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "character",
+        "character": "hammer",
+        "state": "idle",
+        "frame": 0
+      }
+    },
+    {
+      "path": "characters/hammer/idle_01.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "character",
+        "character": "hammer",
+        "state": "idle",
+        "frame": 1
+      }
+    },
+    {
+      "path": "characters/hammer/run_00.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "character",
+        "character": "hammer",
+        "state": "run",
+        "frame": 0
+      }
+    },
+    {
+      "path": "characters/hammer/run_01.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "character",
+        "character": "hammer",
+        "state": "run",
+        "frame": 1
+      }
+    },
+    {
+      "path": "characters/hammer/run_02.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "character",
+        "character": "hammer",
+        "state": "run",
+        "frame": 2
+      }
+    },
+    {
+      "path": "characters/hammer/run_03.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "character",
+        "character": "hammer",
+        "state": "run",
+        "frame": 3
+      }
+    },
+    {
+      "path": "characters/hammer/attack_00.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "character",
+        "character": "hammer",
+        "state": "attack",
+        "frame": 0
+      }
+    },
+    {
+      "path": "characters/hammer/attack_01.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "character",
+        "character": "hammer",
+        "state": "attack",
+        "frame": 1
+      }
+    },
+    {
+      "path": "characters/hammer/attack_02.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "character",
+        "character": "hammer",
+        "state": "attack",
+        "frame": 2
+      }
+    },
+    {
+      "path": "characters/hammer/attack_03.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "character",
+        "character": "hammer",
+        "state": "attack",
+        "frame": 3
+      }
+    },
+    {
+      "path": "characters/hammer/death_00.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "character",
+        "character": "hammer",
+        "state": "death",
+        "frame": 0
+      }
+    },
+    {
+      "path": "characters/hammer/death_01.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "character",
+        "character": "hammer",
+        "state": "death",
+        "frame": 1
+      }
+    },
+    {
+      "path": "characters/hammer/death_02.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "character",
+        "character": "hammer",
+        "state": "death",
+        "frame": 2
+      }
+    },
+    {
+      "path": "characters/hammer/death_03.png",
+      "width": 256,
+      "height": 256,
+      "meta": {
+        "category": "character",
+        "character": "hammer",
+        "state": "death",
+        "frame": 3
       }
     }
   ],

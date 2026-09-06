@@ -10,8 +10,18 @@
   const SIGNAL_RELAY_URLS = ["https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.adminforge.de", "https://ntfy.sh"];
   const SIGNAL_REALTIME_RELAY_LIMIT = 2;
   const SIGNAL_REALTIME_TYPES = new Set(["state", "snapshot", "attack", "skill", "collect", "openChest", "dropItem", "damage", "chooseDoor"]);
-  const APP_VERSION = "20260718-pixel-vfx-365";
+  const APP_VERSION = "20260718-pixel-vfx-366";
   const CHANGELOG_ENTRIES = [
+    {
+      version: APP_VERSION,
+      title: "Búa đập thực tế — hitbox xuất hiện khi vung xong",
+      items: [
+        "Không còn dính đame ngay khi bấm: búa giờ vùng áp lực chỉ hình thành khi cú vung rơi xuống (trễ 0.24s đúng lúc hitFrame).",
+        "Vung búa hiện vòng cảnh báo xanh (#8ea4ff) đúng chỗ đập trước 0.24s, rồi nện: vòng dập lớn (92 + 30·combo) gây đame + sóng xung kích.",
+        "Tầm đánh tăng: điểm đập cách người 150 + 30·combo; đẩy lùi theo hướng tâm vòng dập; sát thương buff nhẹ (1.06 + 0.03·combo).",
+        "Đồng bộ trong co-op: host cũng dùng hàng đợi delay giống hệt để hitbox trùng với nhịp vung của remote.",
+      ],
+    },
     {
       version: APP_VERSION,
       title: "Nới rộng hitbox tấn công búa và rìu",
@@ -17928,36 +17938,51 @@
 
     basicHammerAttack(p, angle) {
       const damage = p.damage * this.playerDamageOutputMult();
-      const hits = this.performHammerSwing(p.x, p.y, angle, damage, p.combo, this.lobby.id);
-      if (hits > 0) {
-        this.hitStop = Math.max(this.hitStop || 0, 0.068);
-        this.camera.shake = Math.max(this.camera.shake, 9 + hits * 1.2);
-      }
+      this.queueHammerSmash(p.x, p.y, angle, damage, p.combo, this.lobby.id);
     }
 
-    performHammerSwing(x, y, angle, baseDamage, combo = 1, sourceId = "") {
-      const range = 124 + Math.min(26, combo * 2);
-      const arc = Math.PI * 0.98;
-      const damage = baseDamage * (1.0 + combo * 0.026);
+    queueHammerSmash(x, y, angle, baseDamage, combo = 1, sourceId = "") {
+      const range = 150 + Math.min(30, combo * 3);
+      const crushRadius = 92 + Math.min(30, combo * 3);
       const dirX = Math.cos(angle);
       const dirY = Math.sin(angle);
-      const centerX = x + dirX * range * 0.5;
-      const centerY = y + dirY * range * 0.5;
+      this.addEffect({
+        type: "danger",
+        x: x + dirX * range,
+        y: y + dirY * range,
+        radius: crushRadius,
+        time: 0.24,
+        color: "#8ea4ff",
+        damage: 0,
+        visualOnly: true
+      });
+      this.run.delayedStrikes ||= [];
+      this.run.delayedStrikes.push({ type: "hammer", x, y, angle, range, damage: baseDamage, combo, sourceId, time: 0.24 });
+    }
+
+    performHammerSmash(x, y, angle, range, baseDamage, combo = 1, sourceId = "") {
+      const crushRadius = 92 + Math.min(30, combo * 3);
+      const damage = baseDamage * (1.06 + combo * 0.03);
+      const dirX = Math.cos(angle);
+      const dirY = Math.sin(angle);
+      const centerX = x + dirX * range;
+      const centerY = y + dirY * range;
       this.addBasicAttackBurst(centerX, centerY, angle, "hammer", range);
+      this.addShockwave(centerX, centerY, crushRadius + 46, "#8ea4ff", 0, { owner: "player", casterId: sourceId });
       let hits = 0;
       for (let i = this.run.enemies.length - 1; i >= 0; i--) {
         const enemy = this.run.enemies[i];
         if (!enemy || enemy.hp <= 0) continue;
-        const dx = enemy.x - x;
-        const dy = enemy.y - y;
+        const dx = enemy.x - centerX;
+        const dy = enemy.y - centerY;
         const d = Math.hypot(dx, dy);
-        const a = Math.atan2(dy, dx);
-        if (d < range + enemy.radius && Math.abs(angleDelta(a, angle)) < arc * 0.5) {
+        if (d < crushRadius + enemy.radius) {
           hits++;
-          if (chance(0.2)) enemy.stun = Math.max(enemy.stun || 0, enemy.boss ? 0.5 : 2.0);
+          if (chance(0.22)) enemy.stun = Math.max(enemy.stun || 0, enemy.boss ? 0.5 : 2.0);
           if (!this.enemyDomainBoundActive(enemy)) {
-            enemy.vx += dirX * (enemy.boss ? 110 : 300);
-            enemy.vy += dirY * (enemy.boss ? 110 : 300);
+            const kn = d > 1 ? 1 / d : 1;
+            enemy.vx += dx * kn * (enemy.boss ? 130 : 340);
+            enemy.vy += dy * kn * (enemy.boss ? 130 : 340);
           }
           this.damageEnemy(enemy, damage, {
             x: dirX * 1.6,
@@ -18096,7 +18121,13 @@
           this.run.delayedStrikes[write++] = strike;
           continue;
         }
-        if (strike.type === "assassin") {
+        if (strike.type === "hammer") {
+          const hits = this.performHammerSmash(strike.x, strike.y, strike.angle, strike.range, strike.damage, strike.combo, strike.sourceId || "");
+          if (hits > 0) {
+            this.hitStop = Math.max(this.hitStop || 0, 0.072);
+            this.camera.shake = Math.max(this.camera.shake, 11 + hits * 1.3);
+          }
+        } else if (strike.type === "assassin") {
           const hits = this.performAssassinSlash(strike.x, strike.y, strike.angle, strike.range, strike.arc, strike.damage, strike.combo, strike.sourceId || "");
           if (hits > 0) {
             this.hitStop = Math.max(this.hitStop || 0, 0.035);
@@ -18232,7 +18263,7 @@
       }
 
       if (character.id === "hammer") {
-        this.performHammerSwing(x, y, angle, baseDamage, combo, remoteId);
+        this.queueHammerSmash(x, y, angle, baseDamage, combo, remoteId);
         return;
       }
 
